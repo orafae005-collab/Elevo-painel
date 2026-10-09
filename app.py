@@ -252,3 +252,63 @@ if not df_filtrado.empty:
     st.dataframe(df_filtrado[colunas_visiveis], use_container_width=True)
 else:
     st.info("Nenhum dado encontrado para o período selecionado.")
+
+# ==========================================================
+# 10. MINDSET MILIONÁRIO & MISSÃO DO DIA (GAMIFICAÇÃO)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Mindset & Missão Diária</h3>", unsafe_allow_html=True)
+
+# Pega o dia do ano para rotacionar as frases/missões automaticamente sem repetir logo
+dia_do_ano = datetime.now().timetuple().tm_yday
+
+frases_motivacionais = [
+    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+    "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
+    "A constância é a chave que abre a porta da escala.",
+    "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
+    "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!",
+    "Se você não construir o seu sonho, alguém vai te contratar para construir o dele.",
+    "Foco no processo. O resultado é só uma consequência natural."
+]
+
+missoes = [
+    "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
+    "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
+    "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
+    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
+    "Responder a 10 comentários de seguidores para engajar o algoritmo.",
+    "Fazer 1 vídeo longo detalhado (mais de 1 minuto) sobre os benefícios de um produto.",
+    "Passar 30 minutos estudando vídeos gringos para pegar referências novas."
+]
+
+dicas_investimento = [
+    "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
+    "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
+    "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
+    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?",
+    "O melhor investimento no começo é em conhecimento. Estude copy e retenção de público.",
+    "Separe o dinheiro da pessoa física do dinheiro da empresa (operação TikTok).",
+    "Não aumente seu custo de vida só porque as primeiras comissões entraram. Tenha visão de longo prazo."
+]
+
+# Seleciona o conteúdo baseado no dia 
+frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
+missao_hoje = missoes[dia_do_ano % len(missoes)]
+dica_hoje = dicas_investimento[dia_do_ano % len(dicas_investimento)]
+
+col_mindset, col_missao = st.columns(2)
+
+with col_mindset:
+    st.info(f"💎 **Visão de Águia:** {frase_hoje}")
+    st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
+    
+with col_missao:
+    st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
+    
+    # Caixa de seleção para cumprir a missão
+    missao_cumprida = st.checkbox("✅ Marcar missão de hoje como cumprida!")
+    
+    if missao_cumprida:
+        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e o seu bolso também. Continue empilhando vitórias!")
+        st.balloons() # Solta animação de balões na tela!
