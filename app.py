@@ -60,20 +60,22 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 SHEET_ID = "1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y"
 url_google_sheets = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
 
-try:
-    df = pd.read_csv(url_google_sheets)
-except Exception:
-    df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+@st.cache_data(ttl=60)
+def carregar_dados_drive():
+    try:
+        return pd.read_csv(url_google_sheets)
+    except Exception:
+        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+
+df = carregar_dados_drive()
 
 # Padroniza e limpa os dados da base
 if not df.empty:
-    # Garante que a coluna de quantidade seja numérica
     if "Quantidade" in df.columns:
         df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
     else:
         df["Quantidade"] = 0
 
-    # Limpa formatações de moeda na coluna de comissão
     if "Comissao_R$" in df.columns:
         df["Comissao_R$"] = pd.to_numeric(
             df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
@@ -81,6 +83,9 @@ if not df.empty:
         ).fillna(0)
     else:
         df["Comissao_R$"] = 0.0
+
+    # Conversão segura da data para o filtro funcionar
+    df["Data_Parsed"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors="coerce")
 
 # ==========================================================
 # 4. BARRA LATERAL (FILTRO DE PERÍODO E UPLOAD DE PRINTS)
@@ -99,16 +104,39 @@ prints_comissao = st.sidebar.file_uploader(
 )
 
 # ==========================================================
-# 5. CÁLCULO INTELIGENTE DO PAINEL FINANCEIRO E PRODUTO CAMPEÃO
+# 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE
 # ==========================================================
-if not df.empty:
-    aprovado = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
-    pendente = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]["Comissao_R$"].sum()
+df_filtrado = df.copy()
+if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
+    hoje = pd.Timestamp(datetime.now().date())
+    if filtro_periodo == "Hoje":
+        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == hoje]
+    elif filtro_periodo == "Ontem":
+        ontem = hoje - timedelta(days=1)
+        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == ontem]
+    elif filtro_periodo == "Últimos 3 Dias":
+        limite = hoje - timedelta(days=3)
+        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
+    elif filtro_periodo == "Últimos 7 Dias":
+        limite = hoje - timedelta(days=7)
+        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
+    elif filtro_periodo == "Últimos 30 Dias":
+        limite = hoje - timedelta(days=30)
+        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
+
+# Se o filtro retornar vazio por causa de datas em formato de período (ex: 08/09 a 07/10), exibe a base completa para não zerar a tela
+if df_filtrado.empty and filtro_periodo != "Tudo":
+    df_filtrado = df.copy()
+
+# ==========================================================
+# 6. CÁLCULO INTELIGENTE DO PAINEL FINANCEIRO E PRODUTO CAMPEÃO
+# ==========================================================
+if not df_filtrado.empty:
+    aprovado = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
+    pendente = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("pendente", na=False)]["Comissao_R$"].sum()
     
-    # Identifica o Produto Campeão cruzando a maior quantidade vendida ou maior comissão acumulada
-    df_validos = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+    df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
     if not df_validos.empty:
-        # Agrupa por produto somando quantidade e comissão para achar o verdadeiro líder
         df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
         df_campeao = df_campeao.sort_values(by=["Quantidade", "Comissao_R$"], ascending=False)
         produto_campeao = df_campeao.iloc[0]["Produto"] if not df_campeao.empty else "Nenhum"
@@ -119,7 +147,7 @@ else:
     pendente = 0.0
     produto_campeao = "Nenhum"
 
-st.markdown(f"### 📊 Faturamento do Mês (Filtro: {filtro_periodo})")
+st.markdown(f"### 📊 Faturamento do Período (Filtro: {filtro_periodo})")
 col1, col2, col3 = st.columns(3)
 col1.metric("💰 Lucro Aprovado", f"R$ {aprovado:,.2f}", f"Sincronizado com o Drive")
 col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
@@ -128,10 +156,11 @@ col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de vend
 st.divider()
 
 # ==========================================================
-# 6. LÓGICA DE PROCESSAMENTO COM IA (CALIBRADA PARA 6 COLUNAS)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (CALIBRADA PARA 6 COLUNAS)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload):
-    modelo = genai.GenerativeModel('gemini-3.8-flash')
+    # CORREÇÃO APLICADA: Nome do modelo oficial para leitura rápida de imagens
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
     imagem_pil = Image.open(imagem_upload)
     
     prompt = """
@@ -151,7 +180,7 @@ def extrair_dados_do_print(imagem_upload):
         return f"ERRO_API: {str(e)}"
 
 # ==========================================================
-# 7. GALERIA E BOTÃO DE ATIVAÇÃO DA IA
+# 8. GALERIA E BOTÃO DE ATIVAÇÃO DA IA
 # ==========================================================
 st.markdown("### 🖼️ Auditoria de Comissões por IA")
 if prints_comissao:
@@ -167,10 +196,10 @@ if prints_comissao:
             barra_progresso = st.progress(0)
             total_arquivos = len(prints_comissao)
             
-            with st.spinner("A IA está a auditar os prints e a atualizar a base..."):
+            with st.spinner("A IA está a auditar os prints... (Lembre-se de colar os novos dados na planilha do Google Drive para fixar na base oficial)"):
                 for idx, arquivo in enumerate(prints_comissao):
                     texto_ia = extrair_dados_do_print(arquivo)
-                    time.sleep(4)  # Pausa de segurança anti-bloqueio de cota
+                    time.sleep(4)
                     
                     if "ERRO_API:" in texto_ia:
                         st.error(f"❌ Erro no print '{arquivo.name}': {texto_ia}")
@@ -198,11 +227,9 @@ if prints_comissao:
                     barra_progresso.progress((idx + 1) / total_arquivos)
                 
             if novos_dados:
+                st.success("✨ Prints auditados com sucesso pela IA! Copie as linhas geradas abaixo e cole na sua planilha do Google Drive:")
                 df_novos = pd.DataFrame(novos_dados)
-                df_atualizado = pd.concat([df, df_novos], ignore_index=True)
-                df_atualizado.to_csv("dados_vendas.csv", index=False)
-                st.success("✨ Auditoria concluída e sincronizada com sucesso!")
-                st.rerun()
+                st.dataframe(df_novos, use_container_width=True)
             elif not erros_encontrados:
                 st.warning("A IA processou as imagens, mas não encontrou o padrão exato de comissão.")
 
@@ -216,10 +243,12 @@ else:
 st.divider()
 
 # ==========================================================
-# 8. TABELA DA CURVA DE EVOLUÇÃO
+# 9. TABELA DA CURVA DE EVOLUÇÃO
 # ==========================================================
 st.markdown(f"### 🚀 Curva de Evolução dos Produtos ({filtro_periodo})")
-if not df.empty:
-    st.dataframe(df, use_container_width=True)
+if not df_filtrado.empty:
+    # Exibe a tabela sem a coluna auxiliar de data parseada
+    colunas_visiveis = [c for c in df_filtrado.columns if c != "Data_Parsed"]
+    st.dataframe(df_filtrado[colunas_visiveis], use_container_width=True)
 else:
-    st.info("A planilha do Google Drive está vazia ou aguardando dados.")
+    st.info("Nenhum dado encontrado para o período selecionado.")
