@@ -10,7 +10,7 @@ from PIL import Image
 # ==========================================================
 st.set_page_config(page_title="ÉLÉVO | Painel de Vendas", page_icon="🦅", layout="wide")
 
-CHAVE_ATIVACAO = "AQ.Ab8RN6I4XF5inVrfDyEzicSoANo-zVt54CaKhli3Z96n58_HKw"
+CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
 
 # ==========================================================
