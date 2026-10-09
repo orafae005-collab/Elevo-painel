@@ -84,8 +84,32 @@ if not df.empty:
     else:
         df["Comissao_R$"] = 0.0
 
-    # Conversão segura da data para o filtro funcionar
-    df["Data_Parsed"] = pd.to_datetime(df["Data"], format="%d/%m/%Y", errors="coerce")
+    # =================================================================
+    # CORREÇÃO AQUI: Lógica inteligente para ler períodos na planilha!
+    # Se ele achar "08/09 a 07/10/2026", ele pega só o "07/10/2026" para o cálculo matemático
+    # =================================================================
+    df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
+    df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")# Padroniza e limpa os dados da base
+if not df.empty:
+    if "Quantidade" in df.columns:
+        df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
+    else:
+        df["Quantidade"] = 0
+
+    if "Comissao_R$" in df.columns:
+        df["Comissao_R$"] = pd.to_numeric(
+            df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
+            errors="coerce"
+        ).fillna(0)
+    else:
+        df["Comissao_R$"] = 0.0
+
+    # =================================================================
+    # CORREÇÃO AQUI: Lógica inteligente para ler períodos na planilha!
+    # Se ele achar "08/09 a 07/10/2026", ele pega só o "07/10/2026" para o cálculo matemático
+    # =================================================================
+    df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
+    df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
 
 # ==========================================================
 # 4. BARRA LATERAL (FILTRO DE PERÍODO E UPLOAD DE PRINTS)
