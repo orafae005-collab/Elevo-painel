@@ -336,3 +336,34 @@ with col_missao:
     if missao_cumprida:
         st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e o seu bolso também. Continue empilhando vitórias!")
         st.balloons() # Solta animação de balões na tela!
+
+# ==========================================================
+# 11. RADAR DE TENDÊNCIAS DA AURORA (INTELIGÊNCIA DE MERCADO)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
+st.write("Deixe a IA mapear o mercado e sugerir os 3 produtos de beleza/cabelo com maior potencial de viralização no TikTok nesta semana.")
+
+if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
+    with st.spinner("A Aurora está vasculhando as fofocas e tendências do TikTok..."):
+        try:
+            modelo_radar = genai.GenerativeModel('gemini-1.5-flash')
+            prompt_radar = """
+            Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
+            Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem. Você não vende, você conta segredos.
+            Comece o texto com um hook forte de voz, como: 'Amiga, para tudo!', 'Vem cá, me conta uma coisa...', 'Eu não deveria estar falando isso, mas...' ou 'Gente, o pessoal do estoque vai me matar.'
+            
+            Sua missão: Recomendar 3 tipos de produtos de beleza ou cabelo que estão com alto potencial de viralização nesta semana.
+            Para cada produto, forneça:
+            1. **Nome/Tipo do Produto** (ex: Máscara reconstrutora densa, Óleo capilar premium).
+            2. **Por que está bombando?** (O desejo/dor que ele atende na Buscadora de Atalhos).
+            3. **Ideia de Roteiro Rápido:** Crie um pitch de vendas curto usando verbos de experiência sensorial. 
+            REGRA CRÍTICA PARA O ROTEIRO: É totalmente proibido usar palavras de cura ou milagre (nada de 'cura', 'elimina', 'resultado imediato', 'conserta'). Substitua obrigatoriamente por 'Sensação de', 'Promove um aspecto de', 'Auxilia na redução do aspecto de', 'Efeito desmaiado', 'Toque de seda' ou 'Achado de ouro'.
+            
+            Encerre com uma assinatura do tipo: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
+            """
+            resposta_radar = modelo_radar.generate_content(prompt_radar)
+            st.success("✨ Tendências mapeadas com sucesso! Olha o que a Aurora descobriu:")
+            st.markdown(resposta_radar.text)
+        except Exception as e:
+            st.error(f"Erro ao buscar tendências: {e}")
