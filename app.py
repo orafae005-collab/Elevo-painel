@@ -10,7 +10,7 @@ from PIL import Image
 # ==========================================================
 st.set_page_config(page_title="ÉLÉVO | Painel de Vendas", page_icon="🦅", layout="wide")
 
-CHAVE_ATIVACAO = "AQ.Ab8RN6IcO7p2wTxO4TPmACC5mVEe_FayYJJk5Tm5O8LdPCv-xA"
+CHAVE_ATIVACAO = "AQ.Ab8RN6I4XF5inVrfDyEzicSoANo-zVt54CaKhli3Z96n58_HKw"
 genai.configure(api_key=CHAVE_ATIVACAO)
 
 # ==========================================================
