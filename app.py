@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.8 - SETA ORIGINAL + CLEAN VIP)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.9 - MOEDA ÁGUIA GIRATÓRIA)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -61,7 +61,7 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 A ESTRATÉGIA PERFEITA: Escondemos APENAS o lado direito (Marca D'água) 🔥 */
+    /* 🔥 LADO DIREITO INVISÍVEL (Limpeza Total) 🔥 */
     [data-testid="stToolbar"], 
     [data-testid="stHeaderActionElements"], 
     #MainMenu, 
@@ -69,11 +69,47 @@ estilo_elevo = f"""
         display: none !important; 
     }}
     footer {{ display: none !important; }}
-    
-    /* NOTA: Não tocamos no stHeader nem no collapsedControl (lado esquerdo). 
-       A setinha original vai funcionar perfeitamente sem o Chrome bugar! */
+    [data-testid="stHeader"] {{ background-color: transparent !important; }}
 
-    /* Títulos e Cards VIP (Intactos) */
+    /* 🦅 LADO ESQUERDO: A MOEDA DA ÁGUIA GIRATÓRIA 🦅 */
+    /* Esconde a setinha preta padrão */
+    [data-testid="collapsedControl"] svg {{ 
+        display: none !important; 
+    }}
+
+    /* Transforma a caixa do botão numa Moeda de Ouro */
+    [data-testid="collapsedControl"] {{
+        background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%) !important;
+        border: 2px solid #FFF8DC !important;
+        border-radius: 50% !important; /* Deixa redondo perfeito */
+        width: 45px !important;
+        height: 45px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.5) !important;
+        margin-top: 10px !important;
+        margin-left: 10px !important;
+        animation: girar-moeda 4s infinite ease-in-out !important; /* Animação ativada */
+        transition: all 0.2s ease !important;
+    }}
+
+    /* Coloca o emoji da Águia dentro da moeda */
+    [data-testid="collapsedControl"]::before {{
+        content: "🦅" !important;
+        font-size: 22px !important;
+        line-height: 1 !important;
+    }}
+
+    /* A Mágica do Giro 3D (Gira, para pra pessoa clicar, gira de novo) */
+    @keyframes girar-moeda {{
+        0% {{ transform: perspective(400px) rotateY(0deg); }}
+        40% {{ transform: perspective(400px) rotateY(0deg); }} /* Fica parada */
+        60% {{ transform: perspective(400px) rotateY(360deg); }} /* Dá o giro da moeda */
+        100% {{ transform: perspective(400px) rotateY(360deg); }} /* Fica parada */
+    }}
+
+    /* Títulos e Cards VIP */
     .titulo-elevo {{
         font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
