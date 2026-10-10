@@ -9,9 +9,9 @@ import re
 import plotly.express as px
 
 # ==========================================================
-# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP
+# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V4.0 VIP)
 # ==========================================================
-st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V3.0", page_icon="🦅", layout="wide")
+st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V4.0", page_icon="🦅", layout="wide")
 
 CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
@@ -31,12 +31,26 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN BLACK, GOLD & NEON
+# 2. DESIGN BLACK, GOLD & NEON (🔥 UI/UX DE LUXO V4.0)
 # ==========================================================
 estilo_elevo = """
 <style>
+    /* Importando a Fonte de Luxo (Montserrat) */
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
+    
+    html, body, [class*="css"]  {
+        font-family: 'Montserrat', sans-serif !important;
+    }
+
+    /* Escondendo as marcas d'água do Streamlit para parecer um App Nativo */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    [data-testid="stHeader"] {background-color: transparent;}
+
+    /* Título Animado ÉLÉVO */
     .titulo-elevo {
-        font-size: 3.5rem;
+        font-size: 4rem;
         font-weight: 900;
         text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
@@ -44,8 +58,9 @@ estilo_elevo = """
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: 5px;
-        letter-spacing: 2px;
+        margin-bottom: -10px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
     }
     @keyframes brilho-evolucao {
         0% { background-position: 0% 50%; }
@@ -55,14 +70,67 @@ estilo_elevo = """
     .subtitulo {
         text-align: center;
         color: #A0A0A0;
-        font-size: 1.2rem;
-        margin-bottom: 30px;
+        font-size: 1.1rem;
+        margin-bottom: 40px;
         font-weight: 300;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+    }
+    
+    /* Linhas Divisórias de Luxo */
+    hr {
+        border: 0;
+        height: 1px;
+        background-image: linear-gradient(to right, rgba(212, 175, 55, 0), rgba(212, 175, 55, 0.75), rgba(212, 175, 55, 0));
+        margin-top: 40px;
+        margin-bottom: 40px;
+    }
+
+    /* Glassmorphism nos Cards de Métricas (Vidro Fosco) */
+    [data-testid="stMetric"] {
+        background: rgba(20, 20, 20, 0.4);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(212, 175, 55, 0.15);
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        transition: all 0.3s ease;
+    }
+    [data-testid="stMetric"]:hover {
+        transform: translateY(-5px);
+        border: 1px solid rgba(0, 229, 255, 0.5);
+        box-shadow: 0 8px 30px rgba(0, 229, 255, 0.15);
+    }
+    [data-testid="stMetricValue"] {
+        color: #D4AF37 !important;
+        font-weight: 600;
+        font-size: 2.2rem !important;
+    }
+    
+    /* Botões Glow Up */
+    .stButton>button {
+        border-radius: 10px;
+        border: 1px solid #D4AF37;
+        background: rgba(212, 175, 55, 0.05);
+        color: #D4AF37;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
         letter-spacing: 1px;
     }
-    hr {
-        border-top: 1px solid #D4AF37;
-        opacity: 0.3;
+    .stButton>button:hover {
+        background: #D4AF37;
+        color: #000;
+        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
+        border: 1px solid #D4AF37;
+    }
+    
+    /* Caixas de Texto Expansíveis (Gavetas) */
+    [data-testid="stExpander"] {
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
     }
 </style>
 """
@@ -74,7 +142,7 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 # ==========================================================
 # 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
-st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important; font-weight: 900; font-size: 2rem;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
 
 COFRE_DE_LINKS = {
     "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
@@ -101,7 +169,6 @@ filtro_periodo = st.sidebar.selectbox(
     ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
 )
 
-# 🔥 AQUI ESTÁ A MUDANÇA: Limite visual alterado para 5 imagens
 prints_comissao = st.sidebar.file_uploader(
     "Suba os Prints do TikTok Shop (Máx: 5 imagens)", 
     type=["png", "jpg", "jpeg"], 
@@ -188,7 +255,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 LINHA DO TEMPO + PRODUTOS)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -200,12 +267,10 @@ else:
         df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
         
         if not df_validos.empty:
-            # 1. Dados para o Produto Campeão e Gráfico de Barras
             df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
             df_campeao = df_campeao.sort_values(by=["Comissao_R$"], ascending=False)
             produto_campeao = df_campeao.iloc[0]["Produto"]
             
-            # 2. Dados para a Linha do Tempo
             df_timeline = df_validos.groupby("Data_Parsed")["Comissao_R$"].sum().reset_index()
             df_timeline.sort_values("Data_Parsed", inplace=True)
             df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
@@ -226,8 +291,9 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
+    st.markdown("<br>", unsafe_allow_html=True) # Espaço visual
+
     if not df_timeline.empty and not df_campeao.empty:
-        # Divide a tela em duas colunas para os dois gráficos (no PC ficam lado a lado, no celular empilham)
         col_graf1, col_graf2 = st.columns(2)
         
         with col_graf1:
@@ -246,17 +312,14 @@ else:
                 marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)),
                 textfont=dict(color="#D4AF37", size=12, weight="bold")
             )
-            
-            # 🔥 ADICIONADO: Barra de rolagem (Range Slider) no eixo X
             fig_line.update_xaxes(rangeslider_visible=True, showgrid=False, title="")
-            
             fig_line.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#A0A0A0"),
                 yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False),
                 margin=dict(l=0, r=0, t=40, b=10),
-                height=380, # Altura levemente aumentada para acomodar o slider
+                height=380, 
                 hovermode="x unified"
             )
             st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
@@ -275,7 +338,7 @@ else:
             fig_bar.update_traces(
                 texttemplate='R$ %{text:,.2f}', 
                 textposition='outside',
-                cliponaxis=False, # 🔥 ADICIONADO: Impede que o número seja cortado se a barra for muito grande
+                cliponaxis=False, 
                 marker_line_color='#00E5FF', 
                 marker_line_width=1.5, 
                 opacity=0.9
@@ -286,10 +349,11 @@ else:
                 font=dict(color="#A0A0A0"),
                 xaxis=dict(showgrid=False, title="", visible=False),
                 yaxis=dict(showgrid=False, title="", autorange="reversed"),
-                margin=dict(l=0, r=80, t=40, b=0), # 🔥 ADICIONADO: Margem direita (r=80) para dar espaço aos números escondidos
+                margin=dict(l=0, r=80, t=40, b=0),
                 height=380
             )
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA
 # ==========================================================
@@ -337,7 +401,6 @@ aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto 
 
 with aba_imagem:
     if prints_comissao:
-        # 🔥 AQUI ESTÁ A TRAVA DE SEGURANÇA PARA 5 IMAGENS
         if len(prints_comissao) > 5:
             st.error("🚨 Limite excedido! Por favor, selecione no máximo 5 imagens para não sobrecarregar o sistema.")
         else:
@@ -435,6 +498,7 @@ if st.session_state["dados_prontos"]:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
+
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
@@ -443,13 +507,10 @@ if not df_filtrado.empty:
     colunas_visiveis = [c for c in df_filtrado.columns if c != "Data_Parsed"]
     df_tabela = df_filtrado[colunas_visiveis].copy()
     
-    # Inverte para mostrar as vendas MAIS RECENTES sempre no topo
     df_tabela = df_tabela.iloc[::-1].reset_index(drop=True)
     
-    # Exibe apenas os top 10 iniciais para não poluir
     st.dataframe(df_tabela.head(10), use_container_width=True)
     
-    # Se houver mais de 10 vendas, cria a gaveta oculta (seta)
     if len(df_tabela) > 10:
         with st.expander(f"📂 Ver todo o histórico escondido ({len(df_tabela)} vendas)"):
             st.dataframe(df_tabela, use_container_width=True)
@@ -598,7 +659,6 @@ hoje_str_radar = agora_brasil.strftime("%d/%m/%Y")
 historico_radar = []
 aba_radar = None
 
-# Acesso à memória do Radar via Robô
 if link_planilha_ativa and robo_sheets:
     try:
         sheet_id = extrair_id_planilha(link_planilha_ativa)
@@ -612,11 +672,9 @@ if link_planilha_ativa and robo_sheets:
     except Exception as e:
         st.warning("⚠️ Planilha não conectada. O Radar funcionará sem memória e limites.")
 
-# Lógica de Limite Diário (2 buscas por dia)
 buscas_hoje = [req for req in historico_radar if str(req.get("Data", "")) == hoje_str_radar]
 buscas_restantes = max(0, 2 - len(buscas_hoje))
 
-# Exibe o painel de limites, lixeira e o conteúdo guardado
 col_mem1, col_mem2 = st.columns([3, 1])
 with col_mem1:
     if buscas_hoje:
@@ -628,7 +686,6 @@ with col_mem1:
 with col_mem2:
     st.markdown(f"<h4 style='text-align: center; color: #D4AF37;'>⚡ {buscas_restantes}/2 Restantes</h4>", unsafe_allow_html=True)
     
-    # 🔥 NOVO: BOTÃO DA LIXEIRA
     if st.button("🗑️ Limpar Radar", use_container_width=True):
         if aba_radar is not None:
             with st.spinner("A limpar a memória da Aurora..."):
@@ -638,7 +695,6 @@ with col_mem2:
                 time.sleep(1)
                 st.rerun()
 
-# Botão com bloqueio dinâmico
 if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disabled=(buscas_restantes <= 0), use_container_width=True):
     if buscas_restantes <= 0:
         st.error("🚫 Amiga, a cota de segredos de hoje já esgotou. Volta amanhã para mais fofoca lucrativa!")
@@ -647,7 +703,6 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
             try:
                 modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
                 
-                # 🔥 AQUI MUDAMOS A MENTE DA IA: Tiramos o link e pedimos Palavras-Chave
                 prompt_radar = """
                 Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
                 Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem.
@@ -663,7 +718,6 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
                 """
                 resposta_radar = modelo_radar.generate_content(prompt_radar)
                 
-                # Salva o texto gerado na Memória do Robô
                 if aba_radar is not None:
                     aba_radar.append_row([hoje_str_radar, resposta_radar.text])
                 
@@ -685,7 +739,6 @@ st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do s
 aba_raiox = None
 historico_raiox = []
 
-# Acesso à memória do Raio-X via Robô (Google Sheets)
 if link_planilha_ativa and robo_sheets:
     try:
         sheet_id = extrair_id_planilha(link_planilha_ativa)
@@ -706,7 +759,6 @@ with col_raiox1:
     texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
     btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
     
-    # Exibe os botões de Download e Lixeira apenas se houver um mapa salvo na memória
     if historico_raiox:
         st.markdown("### 💾 Ações do Funil")
         ultimo_funil = historico_raiox[-1]["Funil"]
@@ -777,7 +829,6 @@ with col_raiox2:
                 
                 resposta_raiox = modelo_raiox.generate_content(conteudo_geracao)
                 
-                # Salva o resultado no banco de dados para não sumir ao fechar o app
                 if aba_raiox is not None:
                     aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox.text])
                 
@@ -790,7 +841,6 @@ with col_raiox2:
             except Exception as e:
                 st.error(f"Erro na IA: {e}")
     else:
-        # Se o botão não foi clicado, mostra o que está salvo na memória
         if historico_raiox:
             st.info("💡 **Seu Mapa Mental salvo no sistema:**")
             st.markdown(historico_raiox[-1]["Funil"])
