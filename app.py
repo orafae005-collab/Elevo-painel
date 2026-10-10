@@ -15,7 +15,6 @@ st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V3.0", page_icon="🦅
 CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
 
-# 🚀 VERSÃO EXATA EXIGIDA PELO SERVIDOR DO GOOGLE
 MODELO_ATIVO = 'gemini-3.8-flash'
 
 # Conexão do Robô (GCP) com o Google Sheets
@@ -76,7 +75,6 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 # ==========================================================
 st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
 
-# 🔐 COFRE DE LINKS
 COFRE_DE_LINKS = {
     "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
     "O Garimpo Chic": "" 
@@ -90,7 +88,6 @@ if canal_selecionado == "➕ Adicionar Novo Canal":
     link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
 else:
     nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
-    
     link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
     if link_salvo != "":
         link_planilha_ativa = link_salvo
@@ -110,7 +107,7 @@ prints_comissao = st.sidebar.file_uploader(
 )
 
 # ==========================================================
-# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (AGORA VIA ROBÔ)
 # ==========================================================
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
@@ -118,44 +115,60 @@ def extrair_id_planilha(url):
 
 @st.cache_data(ttl=60)
 def carregar_dados_dinamicos(url):
-    if not url:
-        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
-    
-    sheet_id = extrair_id_planilha(url)
-    if not sheet_id:
-        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
-        
-    url_csv = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    if not url or not robo_sheets:
+        return pd.DataFrame()
     try:
-        return pd.read_csv(url_csv)
+        sheet_id = extrair_id_planilha(url)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        aba = planilha.sheet1
+        # O robô entra na planilha e puxa os dados reais (evita o bloqueio do Google)
+        dados = aba.get_all_records()
+        if dados:
+            df_temp = pd.DataFrame(dados)
+            # Limpeza rápida de linhas vazias
+            df_temp.replace("", pd.NA, inplace=True)
+            df_temp.dropna(how='all', inplace=True)
+            return df_temp
+        return pd.DataFrame()
     except Exception:
-        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+        return pd.DataFrame()
 
 df = carregar_dados_dinamicos(link_planilha_ativa)
 
-if not df.empty:
-    if "Quantidade" in df.columns:
-        df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
-    else:
-        df["Quantidade"] = 0
+if df.empty:
+    df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
 
-    if "Comissao_R$" in df.columns:
-        df["Comissao_R$"] = pd.to_numeric(
-            df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
-            errors="coerce"
-        ).fillna(0)
-    else:
-        df["Comissao_R$"] = 0.0
+# Padroniza e limpa os dados da base
+df.columns = df.columns.astype(str).str.strip() # Garante que os nomes das colunas não tenham espaços
 
+if "Quantidade" in df.columns:
+    df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
+else:
+    df["Quantidade"] = 0
+
+if "Comissao_R$" in df.columns:
+    df["Comissao_R$"] = pd.to_numeric(
+        df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
+        errors="coerce"
+    ).fillna(0)
+else:
+    df["Comissao_R$"] = 0.0
+
+if "Data" in df.columns:
     df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
     df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
+else:
+    df["Data_Parsed"] = pd.NaT
 
 # ==========================================================
-# 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE
+# 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE (FUSO BRASIL)
 # ==========================================================
 df_filtrado = df.copy()
 if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
-    hoje = pd.Timestamp(datetime.now().date())
+    # Crava o horário oficial do Brasil (UTC-3)
+    agora_brasil = datetime.utcnow() - timedelta(hours=3)
+    hoje = pd.Timestamp(agora_brasil.date())
+    
     df_filtrado["Data_Parsed"] = df_filtrado["Data_Parsed"].dt.normalize()
     
     if filtro_periodo == "Hoje":
@@ -177,7 +190,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
 # 6. DASHBOARD FINANCEIRO E GRÁFICO
 # ==========================================================
 if not link_planilha_ativa:
-    st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'. O painel ficará branco até a planilha ser conectada.")
+    st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
 else:
     if not df_filtrado.empty:
         aprovado = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
@@ -216,7 +229,6 @@ st.divider()
 def extrair_dados_do_print(imagem_upload, nome_canal):
     modelo = genai.GenerativeModel(MODELO_ATIVO)
     imagem_pil = Image.open(imagem_upload)
-    
     prompt = f"""
     Analise esta imagem do painel de dados ou produtos do TikTok Shop.
     Extraia as informações e retorne APENAS os dados brutos, sem markdown.
@@ -247,7 +259,7 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS
+# 8. AUDITORIA E INJEÇÃO DE DADOS (INJEÇÃO CIRÚRGICA)
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
@@ -337,12 +349,20 @@ if st.session_state["dados_prontos"]:
                     aba = planilha.sheet1
                     
                     dados_finais = df_editado.to_dict('records')
-                    linhas_inserir = [[str(d["Data"]), str(d["Produto"]), str(d["Canal"]), str(d["Status"]), str(d["Quantidade"]), str(d["Comissao_R$"])] for d in dados_finais]
-                    aba.append_rows(linhas_inserir, value_input_option="USER_ENTERED")
+                    linhas_inserir = [[str(d.get("Data", "")), str(d.get("Produto", "")), str(d.get("Canal", "")), str(d.get("Status", "")), str(d.get("Quantidade", "")), str(d.get("Comissao_R$", "")) ] for d in dados_finais]
+                    
+                    # O Atirador de Elite: Encontra a última linha real com texto e ignora a formatação vazia
+                    coluna_a = aba.col_values(1)
+                    linhas_com_dados = len([x for x in coluna_a if x.strip() != ""])
+                    proxima_linha = linhas_com_dados + 1
+                    
+                    # Insere exatamente na próxima linha verdadeira
+                    aba.insert_rows(linhas_inserir, row=proxima_linha, value_input_option="USER_ENTERED")
                     
                     st.success("🔥 SUCESSO ABSOLUTO! Planilha atualizada automaticamente!")
                     st.balloons()
                     st.session_state["dados_prontos"] = [] 
+                    carregar_dados_dinamicos.clear() # Limpa a memória para os gráficos atualizarem na hora
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
@@ -363,7 +383,8 @@ else:
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Gamificação & Disciplina</h3>", unsafe_allow_html=True)
 
-dia_do_ano = datetime.now().timetuple().tm_yday
+agora_brasil = datetime.utcnow() - timedelta(hours=3)
+dia_do_ano = agora_brasil.timetuple().tm_yday
 
 frases_motivacionais = [
     "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
@@ -419,14 +440,13 @@ with col_missao:
                     sheet_id = extrair_id_planilha(link_planilha_ativa)
                     planilha = robo_sheets.open_by_key(sheet_id)
                     
-                    # Cria a aba automaticamente se não existir
                     try:
                         aba_historico = planilha.worksheet("Historico_Missoes")
                     except gspread.exceptions.WorksheetNotFound:
                         aba_historico = planilha.add_worksheet(title="Historico_Missoes", rows="1000", cols="2")
                         aba_historico.append_row(["Data", "Status"])
                     
-                    hoje_str = datetime.now().strftime("%d/%m/%Y")
+                    hoje_str = agora_brasil.strftime("%d/%m/%Y")
                     registros = aba_historico.col_values(1)
                     
                     if hoje_str in registros:
@@ -458,15 +478,13 @@ if link_planilha_ativa and robo_sheets:
         
     if not df_hist.empty and "Data" in df_hist.columns:
         df_hist["Data_Parsed"] = pd.to_datetime(df_hist["Data"], format="%d/%m/%Y", errors="coerce")
-        hoje_data = pd.Timestamp(datetime.now().date())
-        limite_30d = hoje_data - timedelta(days=29) # Janela de hoje + 29 dias para trás
+        hoje_data = pd.Timestamp(agora_brasil.date())
+        limite_30d = hoje_data - timedelta(days=29) 
         
-        # Filtra estritamente os últimos 30 dias do histórico
         df_30d = df_hist[df_hist["Data_Parsed"] >= limite_30d]
         dias_cumpridos = df_30d["Data"].nunique()
         taxa_acerto = (dias_cumpridos / 30) * 100
         
-        # Constrói o calendário visual para o gráfico não falhar
         dias_lista = pd.date_range(start=limite_30d, end=hoje_data)
         df_grafico_missoes = pd.DataFrame({"Data_Parsed": dias_lista})
         df_grafico_missoes["Status_Num"] = df_grafico_missoes["Data_Parsed"].isin(df_30d["Data_Parsed"]).astype(int)
@@ -486,7 +504,7 @@ if link_planilha_ativa and robo_sheets:
             st.warning("STATUS MEDIANO: Você está no empate. O algoritmo exige mais consistência. Acelere!")
         else:
             col_stat3.markdown("<h1 style='text-align: center;'>😟📉</h1>", unsafe_allow_html=True)
-            st.error("STATUS ALERTA VERMELHO: Sócio, a concorrência está gravando enquanto você descansa. Onde está o foco? Retome o controle AGORA!")
+            st.error("STATUS ALERTA VERMELHO: Sócio, a concorrência está gravando enquanto você descansa. Retome o controle AGORA!")
             
         st.bar_chart(df_plot, color="#00E5FF")
     else:
