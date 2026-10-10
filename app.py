@@ -215,7 +215,7 @@ st.divider()
 # 7. LÓGICA DE PROCESSAMENTO COM IA (VERSÃO 3.0)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
-    modelo = genai.GenerativeModel('gemini-1.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash-latest')
     imagem_pil = Image.open(imagem_upload)
     
     prompt = f"""
@@ -231,7 +231,7 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
-    modelo = genai.GenerativeModel('gemini-1.5-flash')
+    modelo = genai.GenerativeModel('gemini-1.5-flash-latest')
     prompt = f"""
     Analise o texto abaixo copiado de um painel de vendas.
     Extraia as informações e retorne APENAS os dados brutos, sem markdown.
@@ -437,7 +437,7 @@ st.write("Deixe a IA mapear o mercado e sugerir os 3 produtos de beleza/cabelo c
 if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
     with st.spinner("A Aurora está vasculhando as fofocas e tendências do TikTok..."):
         try:
-            modelo_radar = genai.GenerativeModel('gemini-1.5-flash')
+            modelo_radar = genai.GenerativeModel('gemini-1.5-flash-latest')
             prompt_radar = """
             Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
             Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem. Você não vende, você conta segredos.
