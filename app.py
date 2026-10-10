@@ -101,8 +101,9 @@ filtro_periodo = st.sidebar.selectbox(
     ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
 )
 
+# 🔥 AQUI ESTÁ A MUDANÇA: Limite visual alterado para 5 imagens
 prints_comissao = st.sidebar.file_uploader(
-    "Suba os Prints do TikTok Shop (Até 20 arquivos)", 
+    "Suba os Prints do TikTok Shop (Máx: 5 imagens)", 
     type=["png", "jpg", "jpeg"], 
     accept_multiple_files=True
 )
@@ -336,27 +337,31 @@ aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto 
 
 with aba_imagem:
     if prints_comissao:
-        if st.button("🚀 Extrair Dados das Imagens", type="primary"):
-            barra_progresso = st.progress(0)
-            with st.spinner(f"A IA ({MODELO_ATIVO}) está analisando as imagens..."):
-                for idx, arquivo in enumerate(prints_comissao):
-                    texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
-                    time.sleep(3)
-                    if "ERRO_API:" not in texto_ia and texto_ia:
-                        linhas = texto_ia.split('\n')
-                        for linha in linhas:
-                            linha = linha.strip()
-                            if not linha or "Data;" in linha or "Produto;" in linha: continue
-                            itens = linha.split(';')
-                            if len(itens) >= 6:
-                                st.session_state["dados_prontos"].append({
-                                    "Data": itens[0].strip(),
-                                    "Produto": itens[1].strip(),
-                                    "Canal": itens[2].strip(),
-                                    "Status": itens[3].strip(),
-                                    "Quantidade": itens[4].strip(),
-                                    "Comissao_R$": itens[5].strip()
-                                })
+        # 🔥 AQUI ESTÁ A TRAVA DE SEGURANÇA PARA 5 IMAGENS
+        if len(prints_comissao) > 5:
+            st.error("🚨 Limite excedido! Por favor, selecione no máximo 5 imagens para não sobrecarregar o sistema.")
+        else:
+            if st.button("🚀 Extrair Dados das Imagens", type="primary"):
+                barra_progresso = st.progress(0)
+                with st.spinner(f"A IA ({MODELO_ATIVO}) está analisando as imagens..."):
+                    for idx, arquivo in enumerate(prints_comissao):
+                        texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
+                        time.sleep(3)
+                        if "ERRO_API:" not in texto_ia and texto_ia:
+                            linhas = texto_ia.split('\n')
+                            for linha in linhas:
+                                linha = linha.strip()
+                                if not linha or "Data;" in linha or "Produto;" in linha: continue
+                                itens = linha.split(';')
+                                if len(itens) >= 6:
+                                    st.session_state["dados_prontos"].append({
+                                        "Data": itens[0].strip(),
+                                        "Produto": itens[1].strip(),
+                                        "Canal": itens[2].strip(),
+                                        "Status": itens[3].strip(),
+                                        "Quantidade": itens[4].strip(),
+                                        "Comissao_R$": itens[5].strip()
+                                    })
                     barra_progresso.progress((idx + 1) / len(prints_comissao))
 
 with aba_texto:
@@ -430,7 +435,6 @@ if st.session_state["dados_prontos"]:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
-
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
