@@ -73,6 +73,12 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 # ==========================================================
 st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
 
+# 🔐 COFRE DE LINKS (Ficam salvos para sempre no sistema)
+COFRE_DE_LINKS = {
+    "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
+    "O Garimpo Chic": "" # Cole o link da planilha do Garimpo Chic aqui dentro das aspas
+}
+
 opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
 canal_selecionado = st.sidebar.selectbox("🎯 Selecione a Conta", opcoes_canais)
 
@@ -81,7 +87,15 @@ if canal_selecionado == "➕ Adicionar Novo Canal":
     link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
 else:
     nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
-    link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
+    
+    # Verifica se o canal já tem um link salvo no cofre
+    link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
+    
+    if link_salvo != "":
+        link_planilha_ativa = link_salvo
+        st.sidebar.success("✅ Link carregado do cofre automaticamente!")
+    else:
+        link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
 
 filtro_periodo = st.sidebar.selectbox(
     "📅 Filtrar Período",
@@ -216,23 +230,75 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
     except Exception as e:
         return f"ERRO_API: {str(e)}"
 
+def extrair_dados_do_texto(texto_bruto, nome_canal):
+    modelo = genai.GenerativeModel('gemini-1.5-flash')
+    prompt = f"""
+    Analise o texto abaixo copiado de um painel de vendas.
+    Extraia as informações e retorne APENAS os dados brutos, sem markdown.
+    Formato OBRIGATÓRIO de cada linha (separado por ponto e vírgula):
+    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
+    
+    Texto copiado:
+    {texto_bruto}
+    """
+    try:
+        resposta = modelo.generate_content(prompt)
+        return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
+    except Exception as e:
+        return f"ERRO_API: {str(e)}"
+
 # ==========================================================
-# 8. GALERIA, AUDITORIA IA E INJEÇÃO NO DRIVE (ROBÔ)
+# 8. AUDITORIA E INJEÇÃO DE DADOS (IMAGEM E TEXTO)
 # ==========================================================
 # Memória para guardar os dados antes de injetar
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
 
-st.markdown("### 🖼️ Auditoria e Injeção de Dados (Robô)")
-if prints_comissao:
-    if st.button("🚀 Processar Prints pela IA", type="primary"):
-        st.session_state["dados_prontos"] = []
-        barra_progresso = st.progress(0)
-        
-        with st.spinner("A IA está dissecando as imagens..."):
-            for idx, arquivo in enumerate(prints_comissao):
-                texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
-                time.sleep(3)
+st.markdown("### 🤖 Motor de Auditoria e Injeção (IA)")
+
+aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto (Plano B)"])
+
+# ABA 1: LEITOR DE PRINTS
+with aba_imagem:
+    if prints_comissao:
+        if st.button("🚀 Extrair Dados das Imagens", type="primary"):
+            st.session_state["dados_prontos"] = []
+            barra_progresso = st.progress(0)
+            
+            with st.spinner("A IA está dissecando as imagens..."):
+                for idx, arquivo in enumerate(prints_comissao):
+                    texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
+                    time.sleep(3)
+                    
+                    if "ERRO_API:" not in texto_ia and texto_ia:
+                        linhas = texto_ia.split('\n')
+                        for linha in linhas:
+                            linha = linha.strip()
+                            if not linha or "Data;" in linha or "Produto;" in linha: continue
+                            itens = linha.split(';')
+                            if len(itens) >= 6:
+                                st.session_state["dados_prontos"].append({
+                                    "Data": itens[0].strip(),
+                                    "Produto": itens[1].strip(),
+                                    "Canal": itens[2].strip(),
+                                    "Status": itens[3].strip(),
+                                    "Quantidade": itens[4].strip(),
+                                    "Comissao_R$": itens[5].strip()
+                                })
+                    barra_progresso.progress((idx + 1) / len(prints_comissao))
+
+# ABA 2: LEITOR DE TEXTO (O TEXTO DE BACKUP QUE VOCÊ PEDIU)
+with aba_texto:
+    st.write("Copie o relatório do TikTok Shop ou do WhatsApp e cole abaixo:")
+    texto_copiado = st.text_area("Cole os dados brutos aqui:", height=150)
+    
+    if st.button("🚀 Extrair Dados do Texto", type="primary"):
+        if texto_copiado.strip() == "":
+            st.warning("⚠️ Cole algum texto antes de pedir para a IA ler!")
+        else:
+            st.session_state["dados_prontos"] = []
+            with st.spinner("A IA está organizando o texto copiado..."):
+                texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
                 
                 if "ERRO_API:" not in texto_ia and texto_ia:
                     linhas = texto_ia.split('\n')
@@ -249,12 +315,14 @@ if prints_comissao:
                                 "Quantidade": itens[4].strip(),
                                 "Comissao_R$": itens[5].strip()
                             })
-                barra_progresso.progress((idx + 1) / len(prints_comissao))
 
+# BOTÃO DE INJEÇÃO (Aparece para qualquer uma das Abas)
 if st.session_state["dados_prontos"]:
-    st.success("✨ Prints lidos com sucesso! Verifique os dados abaixo:")
+    st.success("✨ Dados lidos com sucesso! ✍️ Você pode EDITAR as células na tabela abaixo antes de enviar:")
     df_novos = pd.DataFrame(st.session_state["dados_prontos"])
-    st.dataframe(df_novos, use_container_width=True)
+    
+    # Aqui é a tabela interativa, igual a um Excel!
+    df_editado = st.data_editor(df_novos, num_rows="dynamic", use_container_width=True)
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
         if not link_planilha_ativa:
@@ -262,20 +330,22 @@ if st.session_state["dados_prontos"]:
         elif not robo_sheets:
             st.error("⚠️ Robô não conectado. Verifique os Secrets.")
         else:
-            with st.spinner("Injetando dados no Google Drive..."):
+            with st.spinner("O Robô está injetando dados no Google Drive..."):
                 try:
                     sheet_id = extrair_id_planilha(link_planilha_ativa)
                     planilha = robo_sheets.open_by_key(sheet_id)
                     aba = planilha.sheet1
                     
-                    linhas_inserir = [[d["Data"], d["Produto"], d["Canal"], d["Status"], d["Quantidade"], d["Comissao_R$"]] for d in st.session_state["dados_prontos"]]
+                    dados_finais = df_editado.to_dict('records')
+                    linhas_inserir = [[str(d["Data"]), str(d["Produto"]), str(d["Canal"]), str(d["Status"]), str(d["Quantidade"]), str(d["Comissao_R$"])] for d in dados_finais]
+                    
                     aba.append_rows(linhas_inserir, value_input_option="USER_ENTERED")
                     
-                    st.success("🔥 SUCESSO! Planilha atualizada automaticamente!")
+                    st.success("🔥 SUCESSO ABSOLUTO! Planilha atualizada automaticamente!")
                     st.balloons()
-                    st.session_state["dados_prontos"] = [] # Limpa a tela
+                    st.session_state["dados_prontos"] = [] # Zera a memória após salvar
                 except Exception as e:
-                    st.error(f"❌ Erro ao escrever. O robô é Editor na planilha? Erro: {e}")
+                    st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
 
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO
