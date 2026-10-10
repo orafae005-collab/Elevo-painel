@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.5 - OURO VIP + ÁGUIA FLUTUANTE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.6 - ÁGUIA HEADER CHROME)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -43,7 +43,7 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" # Dourado elegante claro
+    metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
     seta_bg = "rgba(255, 255, 255, 0.9)"
     seta_cor = "#B8860B"
@@ -52,7 +52,7 @@ else:
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#FFD700" # Ouro Neon Escuro
+    metric_val_color = "#FFD700" 
     metric_label_color = "#A0A0A0"
     seta_bg = "rgba(20, 20, 20, 0.9)"
     seta_cor = "#FFD700"
@@ -61,112 +61,77 @@ estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"] {{
-        font-family: 'Montserrat', sans-serif !important;
-    }}
-
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🦅 HACK DA ÁGUIA: Esconde a seta padrão do sistema */
-    [data-testid="collapsedControl"] svg {{
-        display: none !important;
-    }}
-
-    /* Injeta a Águia como botão flutuante */
-    [data-testid="collapsedControl"]::after {{
-        content: "🦅";
-        font-size: 26px;
-        display: block;
-        line-height: 1;
-    }}
-
-    /* Estiliza a caixa flutuante da Águia */
+    /* 🔥 O SEGREDO PARA FUNCIONAR NO CHROME 🔥 */
+    /* Mantemos o header original que já segue a tela, mas invisível */
+    [data-testid="stHeader"] {{ background-color: transparent !important; }}
+    [data-testid="stToolbar"] {{ display: none !important; }}
+    footer {{ display: none !important; }}
+    
+    /* Transformamos o botão nativo numa Águia Dourada Flutuante */
     [data-testid="collapsedControl"] {{
-        position: fixed !important;
-        top: 50vh !important; 
-        left: 0px !important;
         background: {seta_bg} !important;
         border: 2px solid {seta_cor} !important;
-        border-left: none !important;
-        border-radius: 0px 20px 20px 0px !important;
-        padding: 8px 12px 8px 8px !important;
-        z-index: 999999 !important;
-        animation: pulo-seta 1s infinite alternate ease-in-out !important;
-        box-shadow: 2px 0px 15px {border_color} !important;
-        transition: all 0.3s ease !important;
+        border-radius: 50% !important; /* Botão perfeitamente Redondo */
+        width: 55px !important;
+        height: 55px !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
+        box-shadow: 0px 0px 15px {border_color} !important;
+        margin-left: 15px !important;
+        margin-top: 10px !important;
+        animation: pulsar-aguia 1.5s infinite alternate ease-in-out !important;
     }}
     
-    @keyframes pulo-seta {{
-        0% {{ transform: translateX(0px); }}
-        100% {{ transform: translateX(10px); }}
+    /* Esconde a setinha preta padrão do Streamlit */
+    [data-testid="collapsedControl"] svg {{ display: none !important; }}
+    
+    /* Coloca a Águia no lugar da seta */
+    [data-testid="collapsedControl"]::before {{
+        content: "🦅" !important;
+        font-size: 28px !important;
+        line-height: 1 !important;
+    }}
+    
+    /* Efeito de coração batendo (pulso) para chamar o clique */
+    @keyframes pulsar-aguia {{
+        0% {{ transform: scale(1); box-shadow: 0px 0px 5px {seta_cor}; }}
+        100% {{ transform: scale(1.1); box-shadow: 0px 0px 20px {seta_cor}; }}
     }}
 
-    /* Esconde menu padrão do topo */
-    [data-testid="stToolbar"] {{ display: none !important; }}
-    footer {{ display: none !important; }}
-    [data-testid="stHeader"] {{ background-color: transparent !important; }}
-
-    /* Título Animado ÉLÉVO */
+    /* Títulos e Cards (Mantidos Intactos da versão premium) */
     .titulo-elevo {{
-        font-size: 4rem;
-        font-weight: 900;
-        text-align: center;
+        font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
-        background-size: 200% 200%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: -10px;
-        letter-spacing: 4px;
-        text-transform: uppercase;
+        background-size: 200% 200%; -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
+        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
     }}
-    @keyframes brilho-evolucao {{
-        0% {{ background-position: 0% 50%; }}
-        50% {{ background-position: 100% 50%; }}
-        100% {{ background-position: 0% 50%; }}
-    }}
+    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
     .subtitulo {{
-        text-align: center;
-        font-size: 1.1rem;
-        margin-bottom: 40px;
-        font-weight: 300;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        text-align: center; font-size: 1.1rem; margin-bottom: 40px;
+        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
         color: {text_color};
     }}
-    
     [data-testid="stMetric"] {{
-        background: {card_bg};
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid {border_color};
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+        background: {card_bg}; backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px); border: 1px solid {border_color};
+        border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
-    
-    [data-testid="stMetricLabel"] {{
-        color: {metric_label_color} !important;
-    }}
-    
-    [data-testid="stMetricValue"], 
-    [data-testid="stMetricValue"] div, 
-    [data-testid="stMetricValue"] span,
-    div[data-testid="stMetricValue"] {{
-        color: {metric_val_color} !important;
-        font-weight: 900 !important;
-        font-size: 2.2rem !important;
-        text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
+    [data-testid="stMetric"]:hover {{ transform: translateY(-5px); border: 1px solid rgba(0, 229, 255, 0.5); }}
+    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
+        color: {metric_val_color} !important; font-weight: 900 !important;
+        font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
     }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
-
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 # ==========================================================
