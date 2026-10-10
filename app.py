@@ -184,7 +184,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICO (🔥 VERSÃO PLOTLY PREMIUM)
+# 6. DASHBOARD FINANCEIRO E GRÁFICO (🔥 VERSÃO LINHA DO TEMPO)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -194,17 +194,24 @@ else:
         pendente = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("pendente", na=False)]["Comissao_R$"].sum()
         
         df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+        
         if not df_validos.empty:
+            # Calcula o Produto Campeão Geral
             df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
             df_campeao = df_campeao.sort_values(by=["Comissao_R$"], ascending=False)
             produto_campeao = df_campeao.iloc[0]["Produto"]
+            
+            # Prepara os dados diários para a Linha do Tempo
+            df_timeline = df_validos.groupby("Data_Parsed")["Comissao_R$"].sum().reset_index()
+            df_timeline.sort_values("Data_Parsed", inplace=True)
+            df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
         else:
-            df_campeao = pd.DataFrame()
+            df_timeline = pd.DataFrame()
             produto_campeao = "Nenhum"
     else:
         aprovado = 0.0
         pendente = 0.0
-        df_campeao = pd.DataFrame()
+        df_timeline = pd.DataFrame()
         produto_campeao = "Nenhum"
 
     st.markdown(f"### 📊 Faturamento: {nome_canal_ativo} (Filtro: {filtro_periodo})")
@@ -213,43 +220,38 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
-    # 🔥 GRÁFICO INTERATIVO PLOTLY 
-    if not df_campeao.empty:
-        st.markdown("##### 📈 Top Produtos por Comissão (R$)")
+    # 🔥 GRÁFICO INTERATIVO PLOTLY - LINHA DO TEMPO
+    if not df_timeline.empty:
+        st.markdown("##### 📈 Curva de Crescimento (Lucro por Dia)")
         
-        # Pega os Top 10 produtos para o gráfico não ficar esmagado se houver muitos
-        df_grafico = df_campeao.head(10).copy()
-        
-        fig = px.bar(
-            df_grafico, 
-            x="Comissao_R$", 
-            y="Produto", 
-            orientation='h', # Gráfico horizontal (melhor para ler nomes de produtos grandes)
-            text="Comissao_R$",
-            color_discrete_sequence=["#D4AF37"] # Ouro ÉLÉVO
+        fig = px.line(
+            df_timeline, 
+            x="Data_Formatada", 
+            y="Comissao_R$", 
+            markers=True, # Adiciona os pontos nos dias
+            text="Comissao_R$" # Mostra o valor em cima do ponto
         )
         
         fig.update_traces(
+            textposition='top center',
             texttemplate='R$ %{text:,.2f}', 
-            textposition='outside', 
-            marker_line_color='#00E5FF', # Borda Neon
-            marker_line_width=1.5, 
-            opacity=0.9
+            line=dict(color="#00E5FF", width=4), # Linha Azul Neon grossa
+            marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)), # Pontos Dourados
+            textfont=dict(color="#D4AF37", size=12, weight="bold")
         )
         
         fig.update_layout(
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             font=dict(color="#A0A0A0"),
-            xaxis=dict(showgrid=False, title="", visible=False),
-            yaxis=dict(showgrid=False, title="", autorange="reversed"),
-            margin=dict(l=0, r=0, t=10, b=0),
-            height=max(300, len(df_grafico) * 40) # Ajusta altura dinamicamente
+            xaxis=dict(showgrid=False, title="", visible=True, tickangle=0),
+            yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False), # Grade sutil no fundo
+            margin=dict(l=0, r=0, t=40, b=30),
+            height=350,
+            hovermode="x unified" # O hover mostra uma linha guia elegante
         )
         
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-
-st.divider()
 
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA
