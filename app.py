@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.7 - BOTÃO VIP DEFINITIVO)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.8 - SETA ORIGINAL + CLEAN VIP)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -45,8 +45,6 @@ if modo_claro:
     border_color = "rgba(0, 0, 0, 0.1)"
     metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
-    menu_bg = "#FFFFFF"
-    menu_cor = "#B8860B"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
@@ -54,8 +52,6 @@ else:
     border_color = "rgba(212, 175, 55, 0.15)"
     metric_val_color = "#FFD700" 
     metric_label_color = "#A0A0A0"
-    menu_bg = "rgba(20, 20, 20, 0.9)"
-    menu_cor = "#FFD700"
 
 estilo_elevo = f"""
 <style>
@@ -65,34 +61,19 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 O RESGATE DO BOTÃO DE MENU 🔥 */
-    [data-testid="stHeader"] {{ background-color: transparent !important; z-index: 99999 !important; }}
-    [data-testid="stToolbar"] {{ display: none !important; }}
-    
-    /* Transformando o botão nativo numa peça de Luxo (O Chrome não consegue bloquear isto) */
-    [data-testid="collapsedControl"] {{
-        display: flex !important;
-        visibility: visible !important;
-        background: {menu_bg} !important;
-        border: 2px solid {menu_cor} !important;
-        border-radius: 12px !important;
-        margin-top: 15px !important;
-        margin-left: 15px !important;
-        padding: 5px !important;
-        box-shadow: 0px 0px 15px rgba(212, 175, 55, 0.2) !important;
-        transition: all 0.3s ease !important;
+    /* 🔥 A ESTRATÉGIA PERFEITA: Escondemos APENAS o lado direito (Marca D'água) 🔥 */
+    [data-testid="stToolbar"], 
+    [data-testid="stHeaderActionElements"], 
+    #MainMenu, 
+    header .stActionButton {{ 
+        display: none !important; 
     }}
+    footer {{ display: none !important; }}
     
-    /* Pintando o ícone do botão com o nosso Ouro VIP */
-    [data-testid="collapsedControl"] svg {{
-        fill: {menu_cor} !important;
-        color: {menu_cor} !important;
-        width: 32px !important;
-        height: 32px !important;
-        display: block !important;
-    }}
+    /* NOTA: Não tocamos no stHeader nem no collapsedControl (lado esquerdo). 
+       A setinha original vai funcionar perfeitamente sem o Chrome bugar! */
 
-    /* Títulos e Cards (Intactos - Os números estão perfeitos no seu print!) */
+    /* Títulos e Cards VIP (Intactos) */
     .titulo-elevo {{
         font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
@@ -101,18 +82,22 @@ estilo_elevo = f"""
         margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
     }}
     @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
+    
     .subtitulo {{
         text-align: center; font-size: 1.1rem; margin-bottom: 40px;
         font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
         color: {text_color};
     }}
+    
     [data-testid="stMetric"] {{
         background: {card_bg}; backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px); border: 1px solid {border_color};
         border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
+    
     [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
+    
     [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
         color: {metric_val_color} !important; font-weight: 900 !important;
         font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
