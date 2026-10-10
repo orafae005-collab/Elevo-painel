@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.3 - OURO VIP + DIA/NOITE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.4 - OURO VIP + SETA FLUTUANTE)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -43,29 +43,60 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" # Dourado mais escuro e elegante para fundo branco
+    metric_val_color = "#B8860B" # Dourado elegante para o modo claro (Não fica feio!)
     metric_label_color = "#555555"
+    seta_bg = "rgba(255, 255, 255, 0.9)"
+    seta_cor = "#B8860B"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#D4AF37" # Ouro neon brilhante da V4 (O que gostou!)
+    metric_val_color = "#FFD700" # OURO PURO NEON (Brilhante igual à V4)
     metric_label_color = "#A0A0A0"
+    seta_bg = "rgba(20, 20, 20, 0.9)"
+    seta_cor = "#FFD700"
 
 estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"]  {{
+    html, body, [class*="css"] {{
         font-family: 'Montserrat', sans-serif !important;
     }}
 
-    /* Forçar a cor de fundo do ecrã e da barra lateral */
+    /* Forçar a cor de fundo independente do sistema */
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* HACK DA SETINHA: Esconde apenas o menu direito, mantém a seta esquerda intacta! */
+    /* 🎯 HACK DE ELITE: SETA ANIMADA FLUTUANTE NA ESQUERDA */
+    [data-testid="collapsedControl"] {{
+        position: fixed !important;
+        top: 50vh !important; /* Fica exatamente no meio da tela */
+        left: 0px !important;
+        background: {seta_bg} !important;
+        border: 2px solid {seta_cor} !important;
+        border-left: none !important;
+        border-radius: 0px 20px 20px 0px !important; /* Arredondado apenas na direita */
+        padding: 10px 15px 10px 5px !important;
+        z-index: 999999 !important;
+        animation: pulo-seta 1s infinite alternate ease-in-out !important; /* Animação de movimento */
+        box-shadow: 2px 0px 15px {border_color} !important;
+        transition: all 0.3s ease !important;
+    }}
+    [data-testid="collapsedControl"] svg {{
+        fill: {seta_cor} !important;
+        color: {seta_cor} !important;
+        width: 30px !important;
+        height: 30px !important;
+    }}
+    /* A mágica do movimento da Seta */
+    @keyframes pulo-seta {{
+        0% {{ transform: translateX(0px); }}
+        100% {{ transform: translateX(10px); }} /* Vai e volta suavemente */
+    }}
+
+    /* Esconde menu inútil e cabeçalho */
     [data-testid="stToolbar"] {{ display: none !important; }}
     footer {{ display: none !important; }}
     [data-testid="stHeader"] {{ background-color: transparent !important; }}
@@ -115,23 +146,21 @@ estilo_elevo = f"""
         border: 1px solid rgba(0, 229, 255, 0.5);
     }}
     
-    /* Cor do Título do Card (Ex: Lucro Aprovado) */
+    /* Cor do Título do Card */
     [data-testid="stMetricLabel"] {{
         color: {metric_label_color} !important;
     }}
     
-    /* Cor do Valor (Ouro VIP) */
-    [data-testid="stMetricValue"] {{
+    /* 🔥 FORÇANDO O OURO VIP NOS VALORES (Destruindo o branco padrão) */
+    [data-testid="stMetricValue"], 
+    [data-testid="stMetricValue"] div, 
+    [data-testid="stMetricValue"] span,
+    div[data-testid="stMetricValue"] {{
         color: {metric_val_color} !important;
-        font-weight: 600;
+        font-weight: 900 !important;
         font-size: 2.2rem !important;
+        text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
     }}
-    div[data-testid="stMetricValue"] > div {{
-        color: {metric_val_color} !important;
-    }}
-    
-    /* Cor dos textos gerais */
-    p, div, span, label {{ color: {text_color}; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
