@@ -15,6 +15,28 @@ st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V3.0", page_icon="🦅
 CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
 
+# 🚀 NOVIDADE: AUTO-DETETOR DE MODELOS PARA EVITAR ERRO 404
+@st.cache_resource
+def definir_modelo_disponivel():
+    try:
+        modelos_disponiveis = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        # Prioridade 1: Tenta o 1.5 flash padrão
+        for m in modelos_disponiveis:
+            if '1.5-flash' in m and 'latest' not in m:
+                return m
+        # Prioridade 2: Tenta o 1.5 pro
+        for m in modelos_disponiveis:
+            if '1.5-pro' in m:
+                return m
+        # Prioridade 3: Pega o primeiro válido da lista para nunca falhar
+        if len(modelos_disponiveis) > 0:
+            return modelos_disponiveis[0]
+    except Exception:
+        pass
+    return 'gemini-1.5-flash' # Fallback seguro
+
+MODELO_ATIVO = definir_modelo_disponivel()
+
 # Conexão do Robô (GCP) com o Google Sheets
 @st.cache_resource
 def conectar_robo():
@@ -149,6 +171,7 @@ if not df.empty:
 
     df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
     df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
+
 # ==========================================================
 # 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE
 # ==========================================================
@@ -170,7 +193,6 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         limite = hoje - timedelta(days=30)
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
 
-# Se o filtro retornar vazio por causa de datas em formato de período (ex: 08/09 a 07/10), exibe a base completa para não zerar a tela
 if df_filtrado.empty and filtro_periodo != "Tudo":
     df_filtrado = df.copy()
 
@@ -204,18 +226,18 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
-    # GRÁFICO VISUAL DO PRODUTO CAMPEÃO
     if not df_campeao.empty:
         st.markdown("##### 📈 Top Produtos por Comissão (R$)")
         df_grafico = df_campeao.set_index("Produto")["Comissao_R$"]
         st.bar_chart(df_grafico, color="#D4AF37")
 
 st.divider()
+
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (VERSÃO 3.0)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (MODELO AUTO-DETETADO)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
-    modelo = genai.GenerativeModel('gemini-1.5-flash-latest')
+    modelo = genai.GenerativeModel(MODELO_ATIVO)
     imagem_pil = Image.open(imagem_upload)
     
     prompt = f"""
@@ -231,7 +253,7 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
-    modelo = genai.GenerativeModel('gemini-1.5-flash-latest')
+    modelo = genai.GenerativeModel(MODELO_ATIVO)
     prompt = f"""
     Analise o texto abaixo copiado de um painel de vendas.
     Extraia as informações e retorne APENAS os dados brutos, sem markdown.
@@ -250,7 +272,6 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
 # ==========================================================
 # 8. AUDITORIA E INJEÇÃO DE DADOS (IMAGEM E TEXTO)
 # ==========================================================
-# Memória para guardar os dados antes de injetar
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
 
@@ -258,14 +279,13 @@ st.markdown("### 🤖 Motor de Auditoria e Injeção (IA)")
 
 aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto (Plano B)"])
 
-# ABA 1: LEITOR DE PRINTS
 with aba_imagem:
     if prints_comissao:
         if st.button("🚀 Extrair Dados das Imagens", type="primary"):
             st.session_state["dados_prontos"] = []
             barra_progresso = st.progress(0)
             
-            with st.spinner("A IA está dissecando as imagens..."):
+            with st.spinner(f"A IA ({MODELO_ATIVO}) está a analisar as imagens..."):
                 for idx, arquivo in enumerate(prints_comissao):
                     texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
                     time.sleep(3)
@@ -287,7 +307,6 @@ with aba_imagem:
                                 })
                     barra_progresso.progress((idx + 1) / len(prints_comissao))
 
-# ABA 2: LEITOR DE TEXTO (O TEXTO DE BACKUP QUE VOCÊ PEDIU)
 with aba_texto:
     st.write("Copie o relatório do TikTok Shop ou do WhatsApp e cole abaixo:")
     texto_copiado = st.text_area("Cole os dados brutos aqui:", height=150)
@@ -297,11 +316,11 @@ with aba_texto:
             st.warning("⚠️ Cole algum texto antes de pedir para a IA ler!")
         else:
             st.session_state["dados_prontos"] = []
-            barra_progresso_texto = st.progress(10) # Criamos a barra de progresso do texto!
+            barra_progresso_texto = st.progress(10)
             
-            with st.spinner("A IA está organizando o texto copiado..."):
+            with st.spinner(f"A IA ({MODELO_ATIVO}) está a organizar o texto copiado..."):
                 texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
-                barra_progresso_texto.progress(60) # Barra enchendo...
+                barra_progresso_texto.progress(60)
                 
                 if "ERRO_API:" not in texto_ia and texto_ia:
                     linhas = texto_ia.split('\n')
@@ -318,29 +337,26 @@ with aba_texto:
                                 "Quantidade": itens[4].strip(),
                                 "Comissao_R$": itens[5].strip()
                             })
-                    barra_progresso_texto.progress(100) # Processo concluído!
+                    barra_progresso_texto.progress(100)
                     
-                    # ALERTA DE ERRO: Se a IA não achar nada válido, avisa o usuário em vez de ficar mudo!
                     if len(st.session_state["dados_prontos"]) == 0:
-                        st.error("⚠️ A IA leu o texto, mas não achou os dados no formato correto. Veja se copiou certinho!")
+                        st.error("⚠️ A IA leu o texto, mas não encontrou os dados no formato correto. Verifique se copiou corretamente!")
                 else:
                     st.error(f"⚠️ Erro na IA ao ler o texto: {texto_ia}")
 
-# BOTÃO DE INJEÇÃO (Aparece para qualquer uma das Abas)
 if st.session_state["dados_prontos"]:
-    st.success("✨ Dados lidos com sucesso! ✍️ Você pode EDITAR as células na tabela abaixo antes de enviar:")
+    st.success("✨ Dados lidos com sucesso! ✍️ Pode EDITAR as células na tabela abaixo antes de enviar:")
     df_novos = pd.DataFrame(st.session_state["dados_prontos"])
     
-    # Tabela Editável (estilo Excel)
     df_editado = st.data_editor(df_novos, num_rows="dynamic", use_container_width=True)
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
         if not link_planilha_ativa:
-            st.error("⚠️ Cole o link da planilha na barra lateral primeiro!")
+            st.error("⚠️ Cole o link da aguardar na barra lateral primeiro!")
         elif not robo_sheets:
             st.error("⚠️ Robô não conectado. Verifique os Secrets.")
         else:
-            with st.spinner("O Robô está injetando dados no Google Drive..."):
+            with st.spinner("O Robô está a injetar os dados no Google Drive..."):
                 try:
                     sheet_id = extrair_id_planilha(link_planilha_ativa)
                     planilha = robo_sheets.open_by_key(sheet_id)
@@ -353,15 +369,15 @@ if st.session_state["dados_prontos"]:
                     
                     st.success("🔥 SUCESSO ABSOLUTO! Planilha atualizada automaticamente!")
                     st.balloons()
-                    st.session_state["dados_prontos"] = [] # Zera a memória após salvar
+                    st.session_state["dados_prontos"] = [] 
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
+
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO
 # ==========================================================
 st.markdown(f"### 🚀 Curva de Evolução dos Produtos ({filtro_periodo})")
 if not df_filtrado.empty:
-    # Exibe a tabela sem a coluna auxiliar de data parseada
     colunas_visiveis = [c for c in df_filtrado.columns if c != "Data_Parsed"]
     st.dataframe(df_filtrado[colunas_visiveis], use_container_width=True)
 else:
@@ -373,40 +389,38 @@ else:
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Mindset & Missão Diária</h3>", unsafe_allow_html=True)
 
-# Pega o dia do ano para rotacionar as frases/missões automaticamente sem repetir logo
 dia_do_ano = datetime.now().timetuple().tm_yday
 
 frases_motivacionais = [
     "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
     "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
     "A constância é a chave que abre a porta da escala.",
-    "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
+    "O seu próximo vídeo pode ser o que vai lhe dar a maior comissão. Não pare!",
     "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!",
-    "Se você não construir o seu sonho, alguém vai te contratar para construir o dele.",
-    "Foco no processo. O resultado é só uma consequência natural."
+    "Se não construir o seu sonho, alguém vai contratá-lo para construir o dele.",
+    "Foco no processo. O resultado é apenas uma consequência natural."
 ]
 
 missoes = [
     "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
     "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
     "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
-    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
+    "Rever o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
     "Responder a 10 comentários de seguidores para engajar o algoritmo.",
     "Fazer 1 vídeo longo detalhado (mais de 1 minuto) sobre os benefícios de um produto.",
-    "Passar 30 minutos estudando vídeos gringos para pegar referências novas."
+    "Passar 30 minutos a estudar vídeos internacionais para captar novas referências."
 ]
 
 dicas_investimento = [
-    "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
+    "Pegue em 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
     "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
-    "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
-    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?",
-    "O melhor investimento no começo é em conhecimento. Estude copy e retenção de público.",
-    "Separe o dinheiro da pessoa física do dinheiro da empresa (operação TikTok).",
-    "Não aumente seu custo de vida só porque as primeiras comissões entraram. Tenha visão de longo prazo."
+    "Reinvista no Produto Campeão. Se está a vender organicamente, imagine com algum impulsionamento!",
+    "Diversificação: Que tal guardar parte do lucro num depósito a prazo para render juros?",
+    "O melhor investimento no início é em conhecimento. Estude copy e retenção de público.",
+    "Separe o dinheiro pessoal do dinheiro da empresa (operação TikTok).",
+    "Não aumente o seu custo de vida só porque as primeiras comissões entraram. Tenha visão a longo prazo."
 ]
 
-# Seleciona o conteúdo baseado no dia 
 frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
 missao_hoje = missoes[dia_do_ano % len(missoes)]
 dica_hoje = dicas_investimento[dia_do_ano % len(dicas_investimento)]
@@ -418,14 +432,13 @@ with col_mindset:
     st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
     
 with col_missao:
-    st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
+    st.markdown(f"🎯 **A sua Missão de Hoje:** {missao_hoje}")
     
-    # Caixa de seleção para cumprir a missão
     missao_cumprida = st.checkbox("✅ Marcar missão de hoje como cumprida!")
     
     if missao_cumprida:
-        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e o seu bolso também. Continue empilhando vitórias!")
-        st.balloons() # Solta animação de balões na tela!
+        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e a sua carteira também. Continue a acumular vitórias!")
+        st.balloons()
 
 # ==========================================================
 # 11. RADAR DE TENDÊNCIAS DA AURORA (INTELIGÊNCIA DE MERCADO)
@@ -435,9 +448,9 @@ st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tend�
 st.write("Deixe a IA mapear o mercado e sugerir os 3 produtos de beleza/cabelo com maior potencial de viralização no TikTok nesta semana.")
 
 if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
-    with st.spinner("A Aurora está vasculhando as fofocas e tendências do TikTok..."):
+    with st.spinner(f"A Aurora (usando o modelo {MODELO_ATIVO}) está a analisar as tendências do TikTok..."):
         try:
-            modelo_radar = genai.GenerativeModel('gemini-1.5-flash-latest')
+            modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
             prompt_radar = """
             Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
             Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem. Você não vende, você conta segredos.
@@ -453,7 +466,7 @@ if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
             Encerre com uma assinatura do tipo: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
             """
             resposta_radar = modelo_radar.generate_content(prompt_radar)
-            st.success("✨ Tendências mapeadas com sucesso! Olha o que a Aurora descobriu:")
+            st.success("✨ Tendências mapeadas com sucesso! Veja o que a Aurora descobriu:")
             st.markdown(resposta_radar.text)
         except Exception as e:
-            st.error(f"Erro ao buscar tendências: {e}")
+            st.error(f"Erro ao procurar tendências: {e}")
