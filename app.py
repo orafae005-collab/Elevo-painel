@@ -297,8 +297,11 @@ with aba_texto:
             st.warning("⚠️ Cole algum texto antes de pedir para a IA ler!")
         else:
             st.session_state["dados_prontos"] = []
+            barra_progresso_texto = st.progress(10) # Criamos a barra de progresso do texto!
+            
             with st.spinner("A IA está organizando o texto copiado..."):
                 texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
+                barra_progresso_texto.progress(60) # Barra enchendo...
                 
                 if "ERRO_API:" not in texto_ia and texto_ia:
                     linhas = texto_ia.split('\n')
@@ -315,13 +318,20 @@ with aba_texto:
                                 "Quantidade": itens[4].strip(),
                                 "Comissao_R$": itens[5].strip()
                             })
+                    barra_progresso_texto.progress(100) # Processo concluído!
+                    
+                    # ALERTA DE ERRO: Se a IA não achar nada válido, avisa o usuário em vez de ficar mudo!
+                    if len(st.session_state["dados_prontos"]) == 0:
+                        st.error("⚠️ A IA leu o texto, mas não achou os dados no formato correto. Veja se copiou certinho!")
+                else:
+                    st.error(f"⚠️ Erro na IA ao ler o texto: {texto_ia}")
 
 # BOTÃO DE INJEÇÃO (Aparece para qualquer uma das Abas)
 if st.session_state["dados_prontos"]:
     st.success("✨ Dados lidos com sucesso! ✍️ Você pode EDITAR as células na tabela abaixo antes de enviar:")
     df_novos = pd.DataFrame(st.session_state["dados_prontos"])
     
-    # Aqui é a tabela interativa, igual a um Excel!
+    # Tabela Editável (estilo Excel)
     df_editado = st.data_editor(df_novos, num_rows="dynamic", use_container_width=True)
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
@@ -346,7 +356,6 @@ if st.session_state["dados_prontos"]:
                     st.session_state["dados_prontos"] = [] # Zera a memória após salvar
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
-
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO
 # ==========================================================
