@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.6 - ÁGUIA HEADER CHROME)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.7 - BOTÃO VIP DEFINITIVO)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -45,8 +45,8 @@ if modo_claro:
     border_color = "rgba(0, 0, 0, 0.1)"
     metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
-    seta_bg = "rgba(255, 255, 255, 0.9)"
-    seta_cor = "#B8860B"
+    menu_bg = "#FFFFFF"
+    menu_cor = "#B8860B"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
@@ -54,8 +54,8 @@ else:
     border_color = "rgba(212, 175, 55, 0.15)"
     metric_val_color = "#FFD700" 
     metric_label_color = "#A0A0A0"
-    seta_bg = "rgba(20, 20, 20, 0.9)"
-    seta_cor = "#FFD700"
+    menu_bg = "rgba(20, 20, 20, 0.9)"
+    menu_cor = "#FFD700"
 
 estilo_elevo = f"""
 <style>
@@ -65,45 +65,34 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 O SEGREDO PARA FUNCIONAR NO CHROME 🔥 */
-    /* Mantemos o header original que já segue a tela, mas invisível */
-    [data-testid="stHeader"] {{ background-color: transparent !important; }}
+    /* 🔥 O RESGATE DO BOTÃO DE MENU 🔥 */
+    [data-testid="stHeader"] {{ background-color: transparent !important; z-index: 99999 !important; }}
     [data-testid="stToolbar"] {{ display: none !important; }}
-    footer {{ display: none !important; }}
     
-    /* Transformamos o botão nativo numa Águia Dourada Flutuante */
+    /* Transformando o botão nativo numa peça de Luxo (O Chrome não consegue bloquear isto) */
     [data-testid="collapsedControl"] {{
-        background: {seta_bg} !important;
-        border: 2px solid {seta_cor} !important;
-        border-radius: 50% !important; /* Botão perfeitamente Redondo */
-        width: 55px !important;
-        height: 55px !important;
         display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0px 0px 15px {border_color} !important;
+        visibility: visible !important;
+        background: {menu_bg} !important;
+        border: 2px solid {menu_cor} !important;
+        border-radius: 12px !important;
+        margin-top: 15px !important;
         margin-left: 15px !important;
-        margin-top: 10px !important;
-        animation: pulsar-aguia 1.5s infinite alternate ease-in-out !important;
+        padding: 5px !important;
+        box-shadow: 0px 0px 15px rgba(212, 175, 55, 0.2) !important;
+        transition: all 0.3s ease !important;
     }}
     
-    /* Esconde a setinha preta padrão do Streamlit */
-    [data-testid="collapsedControl"] svg {{ display: none !important; }}
-    
-    /* Coloca a Águia no lugar da seta */
-    [data-testid="collapsedControl"]::before {{
-        content: "🦅" !important;
-        font-size: 28px !important;
-        line-height: 1 !important;
-    }}
-    
-    /* Efeito de coração batendo (pulso) para chamar o clique */
-    @keyframes pulsar-aguia {{
-        0% {{ transform: scale(1); box-shadow: 0px 0px 5px {seta_cor}; }}
-        100% {{ transform: scale(1.1); box-shadow: 0px 0px 20px {seta_cor}; }}
+    /* Pintando o ícone do botão com o nosso Ouro VIP */
+    [data-testid="collapsedControl"] svg {{
+        fill: {menu_cor} !important;
+        color: {menu_cor} !important;
+        width: 32px !important;
+        height: 32px !important;
+        display: block !important;
     }}
 
-    /* Títulos e Cards (Mantidos Intactos da versão premium) */
+    /* Títulos e Cards (Intactos - Os números estão perfeitos no seu print!) */
     .titulo-elevo {{
         font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
@@ -123,7 +112,6 @@ estilo_elevo = f"""
         border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
-    [data-testid="stMetric"]:hover {{ transform: translateY(-5px); border: 1px solid rgba(0, 229, 255, 0.5); }}
     [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
     [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
         color: {metric_val_color} !important; font-weight: 900 !important;
