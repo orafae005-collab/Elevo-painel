@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN BLACK, GOLD & NEON (🔥 UI/UX DE LUXO V4.0)
+# 2. DESIGN BLACK, GOLD & NEON (🔥 UI/UX DE LUXO V4.1)
 # ==========================================================
 estilo_elevo = """
 <style>
@@ -42,10 +42,9 @@ estilo_elevo = """
         font-family: 'Montserrat', sans-serif !important;
     }
 
-    /* Escondendo as marcas d'água do Streamlit para parecer um App Nativo */
+    /* Escondendo APENAS a logo e o menu direito, mantendo o botão da barra lateral (mobile) */
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
-    header {visibility: hidden;}
     [data-testid="stHeader"] {background-color: transparent;}
 
     /* Título Animado ÉLÉVO */
