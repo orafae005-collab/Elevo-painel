@@ -96,16 +96,16 @@ else:
     else:
         link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
 
+# 🔥 AQUI ESTÁ O NOVO FILTRO DE MESES
 filtro_periodo = st.sidebar.selectbox(
     "📅 Filtrar Período",
-    ["Tudo", "Hoje", "Ontem", "Últimos 3 Dias", "Últimos 7 Dias", "Últimos 30 Dias"]
+    ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
 )
 
 prints_comissao = st.sidebar.file_uploader(
     "Suba os Prints do TikTok Shop (Até 20 arquivos)", 
     type=["png", "jpg", "jpeg"], 
     accept_multiple_files=True
-)
 
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS 
@@ -173,16 +173,18 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
     elif filtro_periodo == "Ontem":
         ontem = hoje - timedelta(days=1)
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == ontem]
-    elif filtro_periodo == "Últimos 3 Dias":
-        limite = hoje - timedelta(days=3)
-        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
     elif filtro_periodo == "Últimos 7 Dias":
         limite = hoje - timedelta(days=7)
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
     elif filtro_periodo == "Últimos 30 Dias":
         limite = hoje - timedelta(days=30)
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
-
+    elif filtro_periodo == "Mês Atual":
+        df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == hoje.month) & (df_filtrado["Data_Parsed"].dt.year == hoje.year)]
+    elif filtro_periodo == "Mês Passado":
+        mes_passado = hoje.month - 1 if hoje.month > 1 else 12
+        ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
+        df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 # ==========================================================
 # 6. DASHBOARD FINANCEIRO E GRÁFICO (🔥 VERSÃO LINHA DO TEMPO)
 # ==========================================================
@@ -396,15 +398,25 @@ if st.session_state["dados_prontos"]:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
 
 # ==========================================================
-# 9. TABELA DA CURVA DE EVOLUÇÃO
+# 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
 st.markdown(f"### 🚀 Curva de Evolução dos Produtos ({filtro_periodo})")
 if not df_filtrado.empty:
     colunas_visiveis = [c for c in df_filtrado.columns if c != "Data_Parsed"]
-    st.dataframe(df_filtrado[colunas_visiveis], use_container_width=True)
+    df_tabela = df_filtrado[colunas_visiveis].copy()
+    
+    # Inverte para mostrar as vendas MAIS RECENTES sempre no topo
+    df_tabela = df_tabela.iloc[::-1].reset_index(drop=True)
+    
+    # Exibe apenas os top 10 iniciais para não poluir
+    st.dataframe(df_tabela.head(10), use_container_width=True)
+    
+    # Se houver mais de 10 vendas, cria a gaveta oculta (seta)
+    if len(df_tabela) > 10:
+        with st.expander(f"📂 Ver todo o histórico escondido ({len(df_tabela)} vendas)"):
+            st.dataframe(df_tabela, use_container_width=True)
 else:
     st.info("Nenhum dado encontrado para o período selecionado.")
-
 # ==========================================================
 # 10. MOTOR DE ELITE: GAMIFICAÇÃO & DISCIPLINA
 # ==========================================================
