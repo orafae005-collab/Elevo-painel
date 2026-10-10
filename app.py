@@ -96,7 +96,6 @@ else:
     else:
         link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
 
-# 🔥 AQUI ESTÁ O NOVO FILTRO DE MESES
 filtro_periodo = st.sidebar.selectbox(
     "📅 Filtrar Período",
     ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
@@ -106,6 +105,7 @@ prints_comissao = st.sidebar.file_uploader(
     "Suba os Prints do TikTok Shop (Até 20 arquivos)", 
     type=["png", "jpg", "jpeg"], 
     accept_multiple_files=True
+)
 
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS 
