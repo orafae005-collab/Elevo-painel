@@ -226,7 +226,7 @@ else:
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
     if not df_timeline.empty and not df_campeao.empty:
-        # Divide a tela em duas colunas para os dois gráficos
+        # Divide a tela em duas colunas para os dois gráficos (no PC ficam lado a lado, no celular empilham)
         col_graf1, col_graf2 = st.columns(2)
         
         with col_graf1:
@@ -245,14 +245,17 @@ else:
                 marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)),
                 textfont=dict(color="#D4AF37", size=12, weight="bold")
             )
+            
+            # 🔥 ADICIONADO: Barra de rolagem (Range Slider) no eixo X
+            fig_line.update_xaxes(rangeslider_visible=True, showgrid=False, title="")
+            
             fig_line.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 font=dict(color="#A0A0A0"),
-                xaxis=dict(showgrid=False, title="", visible=True, tickangle=0),
                 yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False),
-                margin=dict(l=0, r=0, t=40, b=30),
-                height=350,
+                margin=dict(l=0, r=0, t=40, b=10),
+                height=380, # Altura levemente aumentada para acomodar o slider
                 hovermode="x unified"
             )
             st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
@@ -270,7 +273,8 @@ else:
             )
             fig_bar.update_traces(
                 texttemplate='R$ %{text:,.2f}', 
-                textposition='outside', 
+                textposition='outside',
+                cliponaxis=False, # 🔥 ADICIONADO: Impede que o número seja cortado se a barra for muito grande
                 marker_line_color='#00E5FF', 
                 marker_line_width=1.5, 
                 opacity=0.9
@@ -281,11 +285,10 @@ else:
                 font=dict(color="#A0A0A0"),
                 xaxis=dict(showgrid=False, title="", visible=False),
                 yaxis=dict(showgrid=False, title="", autorange="reversed"),
-                margin=dict(l=0, r=0, t=40, b=0),
-                height=350
+                margin=dict(l=0, r=80, t=40, b=0), # 🔥 ADICIONADO: Margem direita (r=80) para dar espaço aos números escondidos
+                height=380
             )
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
-
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA
 # ==========================================================
