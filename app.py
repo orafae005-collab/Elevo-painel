@@ -536,7 +536,7 @@ if link_planilha_ativa and robo_sheets:
         st.info("Nenhum histórico de missões ainda. Aperte no botão para concluir a missão de hoje e dar start no seu termômetro de 30 dias!")
 
 # ==========================================================
-# 11. RADAR DE TENDÊNCIAS DA AURORA (🔥 COM MEMÓRIA E LIMITES)
+# 11. RADAR DE TENDÊNCIAS DA AURORA (🔥 COM MEMÓRIA, LIMITES E LIXEIRA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
@@ -563,7 +563,7 @@ if link_planilha_ativa and robo_sheets:
 buscas_hoje = [req for req in historico_radar if str(req.get("Data", "")) == hoje_str_radar]
 buscas_restantes = max(0, 2 - len(buscas_hoje))
 
-# Exibe o painel de limites e o conteúdo guardado na memória
+# Exibe o painel de limites, lixeira e o conteúdo guardado
 col_mem1, col_mem2 = st.columns([3, 1])
 with col_mem1:
     if buscas_hoje:
@@ -574,6 +574,16 @@ with col_mem1:
 
 with col_mem2:
     st.markdown(f"<h4 style='text-align: center; color: #D4AF37;'>⚡ {buscas_restantes}/2 Restantes</h4>", unsafe_allow_html=True)
+    
+    # 🔥 NOVO: BOTÃO DA LIXEIRA
+    if st.button("🗑️ Limpar Radar", use_container_width=True):
+        if aba_radar is not None:
+            with st.spinner("A limpar a memória da Aurora..."):
+                aba_radar.clear()
+                aba_radar.append_row(["Data", "Conteudo"])
+                st.success("🧹 Memória limpa com sucesso!")
+                time.sleep(1)
+                st.rerun()
 
 # Botão com bloqueio dinâmico
 if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas_restantes <= 0), use_container_width=True):
@@ -602,10 +612,9 @@ if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas
                 if aba_radar is not None:
                     aba_radar.append_row([hoje_str_radar, resposta_radar.text])
                 
-                st.success("✨ Tendências e links mapeados com sucesso! Olha o que a Aurora descobriu:")
+                st.success("✨ Tendências e links mapeados com sucesso!")
                 st.markdown(resposta_radar.text)
                 
-                # Atualiza a página rapidamente para baixar o limite de buscas na tela
                 time.sleep(2)
                 st.rerun()
             except Exception as e:
