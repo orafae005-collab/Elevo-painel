@@ -31,24 +31,47 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN BLACK, GOLD & NEON (🔥 UI/UX DE LUXO V4.1)
+# 2. DESIGN E TEMA DINÂMICO (🔥 UI/UX DE LUXO V4.2)
 # ==========================================================
-estilo_elevo = """
+# Botão de Tema no Canto Direito
+col_vazia, col_tema = st.columns([8, 2])
+with col_tema:
+    modo_claro = st.toggle("☀️ Modo Claro", value=False)
+
+# Inteligência de Cores (Dia/Noite)
+if modo_claro:
+    bg_color = "#F4F4F9"
+    text_color = "#333333"
+    card_bg = "rgba(255, 255, 255, 0.9)"
+    border_color = "rgba(0, 0, 0, 0.1)"
+    metric_val_color = "#B8860B" # Ouro escuro puro para ler no fundo branco
+else:
+    bg_color = "#0E1117"
+    text_color = "#A0A0A0"
+    card_bg = "rgba(20, 20, 20, 0.4)"
+    border_color = "rgba(212, 175, 55, 0.15)"
+    metric_val_color = "#D4AF37" # Ouro neon para fundo preto
+
+estilo_elevo = f"""
 <style>
-    /* Importando a Fonte de Luxo (Montserrat) */
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"]  {
+    html, body, [class*="css"]  {{
         font-family: 'Montserrat', sans-serif !important;
-    }
+    }}
 
-    /* Escondendo APENAS a logo e o menu direito, mantendo o botão da barra lateral (mobile) */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    [data-testid="stHeader"] {background-color: transparent;}
+    /* Forçar a cor de fundo do app e da barra lateral independente do PC */
+    [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
+    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
+    .subtitulo, p, div, span, label {{ color: {text_color}; }}
+
+    /* HACK DE ELITE: Esconder menu direito (Deploy/Github) mas manter a Seta da esquerda! */
+    [data-testid="stToolbar"] {{ visibility: hidden !important; }}
+    footer {{ visibility: hidden !important; }}
+    [data-testid="stHeader"] {{ background-color: transparent !important; }}
 
     /* Título Animado ÉLÉVO */
-    .titulo-elevo {
+    .titulo-elevo {{
         font-size: 4rem;
         font-weight: 900;
         text-align: center;
@@ -60,84 +83,47 @@ estilo_elevo = """
         margin-bottom: -10px;
         letter-spacing: 4px;
         text-transform: uppercase;
-    }
-    @keyframes brilho-evolucao {
-        0% { background-position: 0% 50%; }
-        50% { background-position: 100% 50%; }
-        100% { background-position: 0% 50%; }
-    }
-    .subtitulo {
+    }}
+    @keyframes brilho-evolucao {{
+        0% {{ background-position: 0% 50%; }}
+        50% {{ background-position: 100% 50%; }}
+        100% {{ background-position: 0% 50%; }}
+    }}
+    .subtitulo {{
         text-align: center;
-        color: #A0A0A0;
         font-size: 1.1rem;
         margin-bottom: 40px;
         font-weight: 300;
         letter-spacing: 2px;
         text-transform: uppercase;
-    }
+    }}
     
-    /* Linhas Divisórias de Luxo */
-    hr {
-        border: 0;
-        height: 1px;
-        background-image: linear-gradient(to right, rgba(212, 175, 55, 0), rgba(212, 175, 55, 0.75), rgba(212, 175, 55, 0));
-        margin-top: 40px;
-        margin-bottom: 40px;
-    }
-
-    /* Glassmorphism nos Cards de Métricas (Vidro Fosco) */
-    [data-testid="stMetric"] {
-        background: rgba(20, 20, 20, 0.4);
+    /* Glassmorphism nos Cards */
+    [data-testid="stMetric"] {{
+        background: {card_bg};
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
-        border: 1px solid rgba(212, 175, 55, 0.15);
+        border: 1px solid {border_color};
         border-radius: 16px;
         padding: 20px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
-    }
-    [data-testid="stMetric"]:hover {
+    }}
+    [data-testid="stMetric"]:hover {{
         transform: translateY(-5px);
         border: 1px solid rgba(0, 229, 255, 0.5);
-        box-shadow: 0 8px 30px rgba(0, 229, 255, 0.15);
-    }
-    [data-testid="stMetricValue"] {
-        color: #D4AF37 !important;
+    }}
+    [data-testid="stMetricValue"] {{
+        color: {metric_val_color} !important;
         font-weight: 600;
         font-size: 2.2rem !important;
-    }
-    
-    /* Botões Glow Up */
-    .stButton>button {
-        border-radius: 10px;
-        border: 1px solid #D4AF37;
-        background: rgba(212, 175, 55, 0.05);
-        color: #D4AF37;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .stButton>button:hover {
-        background: #D4AF37;
-        color: #000;
-        box-shadow: 0 0 20px rgba(212, 175, 55, 0.4);
-        border: 1px solid #D4AF37;
-    }
-    
-    /* Caixas de Texto Expansíveis (Gavetas) */
-    [data-testid="stExpander"] {
-        background: rgba(255, 255, 255, 0.02);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        border-radius: 10px;
-    }
+    }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 # ==========================================================
 # 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
@@ -254,7 +240,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 ADAPTATIVO CLARO/ESCURO)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -290,10 +276,24 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
-    st.markdown("<br>", unsafe_allow_html=True) # Espaço visual
+    st.markdown("<br>", unsafe_allow_html=True)
 
     if not df_timeline.empty and not df_campeao.empty:
         col_graf1, col_graf2 = st.columns(2)
+        
+        # Cores Dinâmicas dos Gráficos
+        if modo_claro:
+            cor_linha = "#005C66" # Azul Teal elegante para modo claro
+            cor_ponto = "#B8860B" # Ouro escuro
+            cor_barra = "#005C66" # Barras azuis para destacar no branco
+            cor_texto_grafico = "#333333"
+            grid_color = "rgba(0, 0, 0, 0.05)"
+        else:
+            cor_linha = "#00E5FF" # Azul neon para modo escuro
+            cor_ponto = "#D4AF37" # Ouro neon
+            cor_barra = "#D4AF37" # Barras ouro original
+            cor_texto_grafico = "#A0A0A0"
+            grid_color = "rgba(212, 175, 55, 0.1)"
         
         with col_graf1:
             st.markdown("##### 📈 Curva de Crescimento Diário")
@@ -307,16 +307,16 @@ else:
             fig_line.update_traces(
                 textposition='top center',
                 texttemplate='R$ %{text:,.2f}', 
-                line=dict(color="#00E5FF", width=4),
-                marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)),
-                textfont=dict(color="#D4AF37", size=12, weight="bold")
+                line=dict(color=cor_linha, width=4),
+                marker=dict(color=cor_ponto, size=10, line=dict(color="white", width=1)),
+                textfont=dict(color=cor_ponto, size=12, weight="bold")
             )
             fig_line.update_xaxes(rangeslider_visible=True, showgrid=False, title="")
             fig_line.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#A0A0A0"),
-                yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False),
+                font=dict(color=cor_texto_grafico),
+                yaxis=dict(showgrid=True, gridcolor=grid_color, title="", visible=False, zeroline=False),
                 margin=dict(l=0, r=0, t=40, b=10),
                 height=380, 
                 hovermode="x unified"
@@ -332,20 +332,20 @@ else:
                 y="Produto", 
                 orientation='h',
                 text="Comissao_R$",
-                color_discrete_sequence=["#D4AF37"]
+                color_discrete_sequence=[cor_barra]
             )
             fig_bar.update_traces(
                 texttemplate='R$ %{text:,.2f}', 
                 textposition='outside',
                 cliponaxis=False, 
-                marker_line_color='#00E5FF', 
+                marker_line_color=cor_linha, 
                 marker_line_width=1.5, 
                 opacity=0.9
             )
             fig_bar.update_layout(
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#A0A0A0"),
+                font=dict(color=cor_texto_grafico),
                 xaxis=dict(showgrid=False, title="", visible=False),
                 yaxis=dict(showgrid=False, title="", autorange="reversed"),
                 margin=dict(l=0, r=80, t=40, b=0),
