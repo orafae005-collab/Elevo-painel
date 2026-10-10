@@ -635,13 +635,15 @@ with col_mem2:
                 st.rerun()
 
 # Botão com bloqueio dinâmico
-if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas_restantes <= 0), use_container_width=True):
+if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disabled=(buscas_restantes <= 0), use_container_width=True):
     if buscas_restantes <= 0:
         st.error("🚫 Amiga, a cota de segredos de hoje já esgotou. Volta amanhã para mais fofoca lucrativa!")
     else:
-        with st.spinner(f"A Aurora (Modelo {MODELO_ATIVO}) está minerando links secretos do TikTok..."):
+        with st.spinner(f"A Aurora (Modelo {MODELO_ATIVO}) está minerando produtos secretos do TikTok..."):
             try:
                 modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
+                
+                # 🔥 AQUI MUDAMOS A MENTE DA IA: Tiramos o link e pedimos Palavras-Chave
                 prompt_radar = """
                 Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
                 Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem.
@@ -651,7 +653,7 @@ if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas
                 1. **Nome do Produto** (ex: Máscara reconstrutora densa).
                 2. **Por que está bombando?** (O desejo/dor que ele atende).
                 3. **Ideia de Roteiro Rápido:** Pitch usando verbos sensoriais. PROIBIDO: 'cura', 'elimina', 'conserta'. USE: 'Sensação de', 'Promove', 'Efeito desmaiado', 'Toque de seda'.
-                4. **Link de Ação Imediata:** Forneça um link gerado com o nome do produto na busca do TikTok. O formato exato obrigatório é: `[🔍 Procurar este produto no TikTok](https://www.tiktok.com/search?q=NOME+DO+PRODUTO)` (substitua os espaços por + no link).
+                4. **Como encontrar no TikTok Shop (Palavras-Chave):** Forneça o nome exato do produto e 3 palavras-chave curtas e precisas para facilitar a minha busca lá dentro (ex: Busca: "Kit Cronograma Capilar", "efeito salão", "cabelo brilhante"). NÃO GERE LINKS DE INTERNET.
                 
                 Encerre com: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
                 """
@@ -661,10 +663,86 @@ if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas
                 if aba_radar is not None:
                     aba_radar.append_row([hoje_str_radar, resposta_radar.text])
                 
-                st.success("✨ Tendências e links mapeados com sucesso!")
+                st.success("✨ Tendências e palavras-chave mapeadas com sucesso!")
                 st.markdown(resposta_radar.text)
                 
                 time.sleep(2)
                 st.rerun()
             except Exception as e:
                 st.error(f"Erro ao buscar tendências: {e}")
+
+# ==========================================================
+# 12. RAIO-X DA OPERAÇÃO (OTIMIZAÇÃO DO PRÓPRIO FUNIL)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do seu Analytics (vídeos em alta, termos de pesquisa) e adicione o contexto. A IA vai montar seu funil de escala.</p>", unsafe_allow_html=True)
+
+col_raiox1, col_raiox2 = st.columns([1, 2])
+
+with col_raiox1:
+    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5 imagens)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img")
+    texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha do Novex. As pessoas estão buscando muito por 'como recuperar cabelo elástico'...")
+    btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
+
+with col_raiox2:
+    if btn_raiox:
+        if not texto_contexto and not imgs_analytics:
+            st.warning("⚠️ Forneça pelo menos uma imagem do Analytics ou escreva o contexto para a IA conseguir trabalhar!")
+        elif imgs_analytics and len(imgs_analytics) > 5:
+            st.error("🚨 Limite excedido! Por favor, selecione no máximo 5 imagens para não sobrecarregar a análise.")
+        else:
+            try:
+                modelo_raiox = genai.GenerativeModel(MODELO_ATIVO)
+                
+                prompt_raiox = f"""
+                Atue como um estrategista mestre em TikTok Shop, Copywriting e Neuromarketing. 
+                Sua regra fundamental de operação é: 'Eu não vendo produtos. Eu vendo decisões.'
+                
+                O usuário está analisando os dados do PRÓPRIO canal (vídeos que mais venderam, palavras-chave em alta) para otimizar e escalar o funil de vendas.
+                Contexto fornecido pelo usuário: {texto_contexto if texto_contexto else 'Nenhum texto extra fornecido.'}
+                
+                Sua missão:
+                Analise as informações (e as imagens do painel de dados, se foram enviadas). Descubra o padrão de sucesso do usuário e monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL para ele escalar esses resultados.
+                
+                Estrutura obrigatória da sua resposta:
+                1. 🧠 **O Padrão de Ouro:** O que está fazendo a audiência do usuário comprar neste momento? Qual o gatilho principal que deu certo?
+                2. 🌪️ **O Funil Escalável:** 
+                   - **Topo (Atenção):** Como replicar essa captura de atenção?
+                   - **Meio (Conexão):** Como alinhar os próximos vídeos com as palavras-chave que as pessoas já estão buscando no canal dele?
+                   - **Fundo (Ação):** Como otimizar a Chamada para Ação (CTA) para aumentar ainda mais a conversão?
+                3. 🎣 **3 Ganchos (Hooks) Prontos:** Baseado no que já deu certo, crie 3 novos inícios de roteiro magnéticos usando as palavras-chave validadas.
+                4. 💎 **Estratégia de Dominação:** Uma dica avançada para ele cercar e dominar essas palavras-chave específicas no TikTok.
+                
+                Use emojis. Seja frio, analítico, direto e 100% focado na arquitetura de conversão.
+                """
+                
+                conteudo_geracao = [prompt_raiox]
+                
+                # 🔥 A BARRA DE PROGRESSO ENTRA AQUI
+                barra_raiox = st.progress(0, text="Iniciando a Engenharia Reversa...")
+                
+                if imgs_analytics:
+                    total_imgs = len(imgs_analytics)
+                    for idx, img in enumerate(imgs_analytics):
+                        imagem_pil_raiox = Image.open(img)
+                        conteudo_geracao.append(imagem_pil_raiox)
+                        time.sleep(0.5) # Um leve respiro para o visual fluir
+                        progresso_atual = int(((idx + 1) / total_imgs) * 50) # Vai até 50% lendo imagens
+                        barra_raiox.progress(progresso_atual, text=f"Lendo print {idx + 1} de {total_imgs}...")
+                
+                barra_raiox.progress(75, text="🧠 Prints lidos! Cruzando os dados e montando o Funil...")
+                
+                # Chamada para a IA
+                resposta_raiox = modelo_raiox.generate_content(conteudo_geracao)
+                
+                barra_raiox.progress(100, text="✅ Análise concluída!")
+                time.sleep(1)
+                barra_raiox.empty() # A mágica acontece: a barra some para dar espaço ao texto!
+                
+                st.success("✅ Raio-X concluído. Aqui está o projeto do seu funil de escala!")
+                st.markdown(resposta_raiox.text)
+            except Exception as e:
+                st.error(f"Erro na IA: {e}")
+    else:
+        st.info("👈 Envie seus dados (até 5 prints) e o contexto. Depois clique no botão para criar o funil de vendas.")
