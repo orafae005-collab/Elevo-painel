@@ -31,8 +31,10 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4 ORIGINAL - OURO VIP CLASSIC)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.0 - A MOEDA MÁGICA + CLEAN VIP)
 # ==========================================================
+import streamlit.components.v1 as components
+
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -43,95 +45,114 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" # Dourado elegante para o modo claro
+    metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#D4AF37" # Ouro neon brilhante clássico da V4
+    metric_val_color = "#FFD700" 
     metric_label_color = "#A0A0A0"
 
 estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"] {{
-        font-family: 'Montserrat', sans-serif !important;
-    }}
-
-    /* Cores de Fundo do App e da Barra Lateral */
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* Título Animado ÉLÉVO */
+    /* 🔥 O GRANDE TRUQUE: ESCONDER TODO O CABEÇALHO PADRÃO 🔥 */
+    /* Isso destrói a marca d'água da direita e a setinha feia da esquerda de uma vez só! */
+    [data-testid="stHeader"] {{ visibility: hidden !important; height: 0px !important; }}
+    footer {{ display: none !important; }}
+
+    /* Títulos e Cards VIP (Intactos) */
     .titulo-elevo {{
-        font-size: 4rem;
-        font-weight: 900;
-        text-align: center;
+        font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
-        background-size: 200% 200%;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: -10px;
-        letter-spacing: 4px;
-        text-transform: uppercase;
+        background-size: 200% 200%; -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
+        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
+        margin-top: 25px; /* Dá espaço para a nova moeda respirar no topo */
     }}
-    @keyframes brilho-evolucao {{
-        0% {{ background-position: 0% 50%; }}
-        50% {{ background-position: 100% 50%; }}
-        100% {{ background-position: 0% 50%; }}
-    }}
+    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
     
     .subtitulo {{
-        text-align: center;
-        font-size: 1.1rem;
-        margin-bottom: 40px;
-        font-weight: 300;
-        letter-spacing: 2px;
-        text-transform: uppercase;
+        text-align: center; font-size: 1.1rem; margin-bottom: 40px;
+        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
         color: {text_color};
     }}
     
-    /* Glassmorphism nos Cards (Vidro Fosco de Luxo) */
     [data-testid="stMetric"] {{
-        background: {card_bg};
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
-        border: 1px solid {border_color};
-        border-radius: 16px;
-        padding: 20px;
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+        background: {card_bg}; backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px); border: 1px solid {border_color};
+        border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
-    [data-testid="stMetric"]:hover {{
-        transform: translateY(-5px);
-        border: 1px solid rgba(0, 229, 255, 0.5);
-    }}
     
-    /* Cor do Título do Card */
-    [data-testid="stMetricLabel"] {{
-        color: {metric_label_color} !important;
-    }}
+    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
     
-    /* Cor dos Valores (Ouro VIP Puro) */
-    [data-testid="stMetricValue"], 
-    [data-testid="stMetricValue"] div, 
-    [data-testid="stMetricValue"] span,
-    div[data-testid="stMetricValue"] {{
-        color: {metric_val_color} !important;
-        font-weight: 900 !important;
-        font-size: 2.2rem !important;
-        text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
+        color: {metric_val_color} !important; font-weight: 900 !important;
+        font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
     }}
-
-    /* Cor dos textos gerais para acompanhar o tema */
-    p, div, span, label {{ color: {text_color}; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
+
+# 🎯 INJEÇÃO DA MOEDA ANIMADA VIA JAVASCRIPT (HACK DE ELITE)
+js_moeda = """
+<script>
+    const parent = window.parent.document;
+    
+    // Evita duplicar a moeda se a página recarregar
+    if (!parent.getElementById("moeda-aguia-vip")) {
+        const btn = parent.createElement("div");
+        btn.id = "moeda-aguia-vip";
+        btn.innerHTML = "🦅";
+        
+        // Estilo da Moeda Dourada
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF8DC; box-shadow: 0px 4px 15px rgba(212,175,55,0.5); cursor: pointer; user-select: none;";
+        
+        // Função: Quando clicar na moeda, ela aciona a barra lateral!
+        btn.onclick = function() {
+            // Tenta achar o botão invisível de abrir
+            const openBtn = parent.querySelector('[data-testid="collapsedControl"]');
+            if(openBtn) { 
+                openBtn.click(); 
+            } else {
+                // Se já estiver aberto, procura o botão de fechar e clica
+                const closeBtns = parent.querySelectorAll('button');
+                closeBtns.forEach(b => {
+                    if(b.getAttribute('aria-label') === 'Collapse sidebar' || b.getAttribute('aria-label') === 'Close') {
+                        b.click(); 
+                    }
+                });
+            }
+        };
+        
+        parent.body.appendChild(btn);
+
+        // CSS da animação de giro 3D (para a moeda e gira, para e gira)
+        const style = parent.createElement('style');
+        style.innerHTML = `
+            @keyframes girar-moeda-3d {
+                0% { transform: perspective(400px) rotateY(0deg); }
+                40% { transform: perspective(400px) rotateY(0deg); }
+                60% { transform: perspective(400px) rotateY(360deg); }
+                100% { transform: perspective(400px) rotateY(360deg); }
+            }
+            #moeda-aguia-vip { animation: girar-moeda-3d 4s infinite ease-in-out; }
+            #moeda-aguia-vip:active { transform: scale(0.9); }
+        `;
+        parent.head.appendChild(style);
+    }
+</script>
+"""
+# Injeta o código sorrateiramente no sistema
+components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
