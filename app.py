@@ -6,6 +6,7 @@ import google.generativeai as genai
 from PIL import Image
 import gspread
 import re
+import plotly.express as px  # 🔥 NOVA BIBLIOTECA PARA O GRÁFICO PREMIUM
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP
@@ -107,7 +108,7 @@ prints_comissao = st.sidebar.file_uploader(
 )
 
 # ==========================================================
-# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (AGORA VIA ROBÔ)
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS 
 # ==========================================================
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
@@ -121,11 +122,9 @@ def carregar_dados_dinamicos(url):
         sheet_id = extrair_id_planilha(url)
         planilha = robo_sheets.open_by_key(sheet_id)
         aba = planilha.sheet1
-        # O robô entra na planilha e puxa os dados reais (evita o bloqueio do Google)
         dados = aba.get_all_records()
         if dados:
             df_temp = pd.DataFrame(dados)
-            # Limpeza rápida de linhas vazias
             df_temp.replace("", pd.NA, inplace=True)
             df_temp.dropna(how='all', inplace=True)
             return df_temp
@@ -138,8 +137,7 @@ df = carregar_dados_dinamicos(link_planilha_ativa)
 if df.empty:
     df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
 
-# Padroniza e limpa os dados da base
-df.columns = df.columns.astype(str).str.strip() # Garante que os nomes das colunas não tenham espaços
+df.columns = df.columns.astype(str).str.strip()
 
 if "Quantidade" in df.columns:
     df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
@@ -161,11 +159,10 @@ else:
     df["Data_Parsed"] = pd.NaT
 
 # ==========================================================
-# 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE (FUSO BRASIL)
+# 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE 
 # ==========================================================
 df_filtrado = df.copy()
 if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
-    # Crava o horário oficial do Brasil (UTC-3)
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
     hoje = pd.Timestamp(agora_brasil.date())
     
@@ -187,7 +184,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICO
+# 6. DASHBOARD FINANCEIRO E GRÁFICO (🔥 VERSÃO PLOTLY PREMIUM)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -216,10 +213,41 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
+    # 🔥 GRÁFICO INTERATIVO PLOTLY 
     if not df_campeao.empty:
         st.markdown("##### 📈 Top Produtos por Comissão (R$)")
-        df_grafico = df_campeao.set_index("Produto")["Comissao_R$"]
-        st.bar_chart(df_grafico, color="#D4AF37")
+        
+        # Pega os Top 10 produtos para o gráfico não ficar esmagado se houver muitos
+        df_grafico = df_campeao.head(10).copy()
+        
+        fig = px.bar(
+            df_grafico, 
+            x="Comissao_R$", 
+            y="Produto", 
+            orientation='h', # Gráfico horizontal (melhor para ler nomes de produtos grandes)
+            text="Comissao_R$",
+            color_discrete_sequence=["#D4AF37"] # Ouro ÉLÉVO
+        )
+        
+        fig.update_traces(
+            texttemplate='R$ %{text:,.2f}', 
+            textposition='outside', 
+            marker_line_color='#00E5FF', # Borda Neon
+            marker_line_width=1.5, 
+            opacity=0.9
+        )
+        
+        fig.update_layout(
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            font=dict(color="#A0A0A0"),
+            xaxis=dict(showgrid=False, title="", visible=False),
+            yaxis=dict(showgrid=False, title="", autorange="reversed"),
+            margin=dict(l=0, r=0, t=10, b=0),
+            height=max(300, len(df_grafico) * 40) # Ajusta altura dinamicamente
+        )
+        
+        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
 st.divider()
 
@@ -259,7 +287,7 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS (INJEÇÃO CIRÚRGICA)
+# 8. AUDITORIA E INJEÇÃO DE DADOS
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
@@ -351,18 +379,16 @@ if st.session_state["dados_prontos"]:
                     dados_finais = df_editado.to_dict('records')
                     linhas_inserir = [[str(d.get("Data", "")), str(d.get("Produto", "")), str(d.get("Canal", "")), str(d.get("Status", "")), str(d.get("Quantidade", "")), str(d.get("Comissao_R$", "")) ] for d in dados_finais]
                     
-                    # O Atirador de Elite: Encontra a última linha real com texto e ignora a formatação vazia
                     coluna_a = aba.col_values(1)
                     linhas_com_dados = len([x for x in coluna_a if x.strip() != ""])
                     proxima_linha = linhas_com_dados + 1
                     
-                    # Insere exatamente na próxima linha verdadeira
                     aba.insert_rows(linhas_inserir, row=proxima_linha, value_input_option="USER_ENTERED")
                     
                     st.success("🔥 SUCESSO ABSOLUTO! Planilha atualizada automaticamente!")
                     st.balloons()
                     st.session_state["dados_prontos"] = [] 
-                    carregar_dados_dinamicos.clear() # Limpa a memória para os gráficos atualizarem na hora
+                    carregar_dados_dinamicos.clear() 
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
@@ -460,7 +486,6 @@ with col_missao:
                 except Exception as e:
                     st.error(f"Erro ao salvar a missão: {e}")
 
-# Renderização do Gráfico de Missões de 30 Dias
 st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
 
 if link_planilha_ativa and robo_sheets:
@@ -511,32 +536,86 @@ if link_planilha_ativa and robo_sheets:
         st.info("Nenhum histórico de missões ainda. Aperte no botão para concluir a missão de hoje e dar start no seu termômetro de 30 dias!")
 
 # ==========================================================
-# 11. RADAR DE TENDÊNCIAS DA AURORA
+# 11. RADAR DE TENDÊNCIAS DA AURORA (🔥 COM MEMÓRIA, LIMITES E LIXEIRA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
-st.write("Deixe a IA mapear o mercado e sugerir os 3 produtos de beleza/cabelo com maior potencial de viralização no TikTok nesta semana.")
 
-if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
-    with st.spinner(f"A Aurora (usando o modelo {MODELO_ATIVO}) está vasculhando as tendências do TikTok..."):
+hoje_str_radar = agora_brasil.strftime("%d/%m/%Y")
+historico_radar = []
+aba_radar = None
+
+# Acesso à memória do Radar via Robô
+if link_planilha_ativa and robo_sheets:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
         try:
-            modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
-            prompt_radar = """
-            Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
-            Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem. Você não vende, você conta segredos.
-            Comece o texto com um hook forte de voz, como: 'Amiga, para tudo!', 'Vem cá, me conta uma coisa...', 'Eu não deveria estar falando isso, mas...' ou 'Gente, o pessoal do estoque vai me matar.'
-            
-            Sua missão: Recomendar 3 tipos de produtos de beleza ou cabelo que estão com alto potencial de viralização nesta semana.
-            Para cada produto, forneça:
-            1. **Nome/Tipo do Produto** (ex: Máscara reconstrutora densa, Óleo capilar premium).
-            2. **Por que está bombando?** (O desejo/dor que ele atende na Buscadora de Atalhos).
-            3. **Ideia de Roteiro Rápido:** Crie um pitch de vendas curto usando verbos de experiência sensorial. 
-            REGRA CRÍTICA PARA O ROTEIRO: É totalmente proibido usar palavras de cura ou milagre (nada de 'cura', 'elimina', 'resultado imediato', 'conserta'). Substitua obrigatoriamente por 'Sensação de', 'Promove um aspecto de', 'Auxilia na redução do aspecto de', 'Efeito desmaiado', 'Toque de seda' ou 'Achado de ouro'.
-            
-            Encerre com uma assinatura do tipo: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
-            """
-            resposta_radar = modelo_radar.generate_content(prompt_radar)
-            st.success("✨ Tendências mapeadas com sucesso! Olha o que a Aurora descobriu:")
-            st.markdown(resposta_radar.text)
-        except Exception as e:
-            st.error(f"Erro ao buscar tendências: {e}")
+            aba_radar = planilha.worksheet("Memoria_Radar")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_radar = planilha.add_worksheet(title="Memoria_Radar", rows="1000", cols="2")
+            aba_radar.append_row(["Data", "Conteudo"])
+        historico_radar = aba_radar.get_all_records()
+    except Exception as e:
+        st.warning("⚠️ Planilha não conectada. O Radar funcionará sem memória e limites.")
+
+# Lógica de Limite Diário (2 buscas por dia)
+buscas_hoje = [req for req in historico_radar if str(req.get("Data", "")) == hoje_str_radar]
+buscas_restantes = max(0, 2 - len(buscas_hoje))
+
+# Exibe o painel de limites, lixeira e o conteúdo guardado
+col_mem1, col_mem2 = st.columns([3, 1])
+with col_mem1:
+    if buscas_hoje:
+        st.info("💡 **A fofoca já está na mesa!** Última tendência que a Aurora mapeou hoje:")
+        st.markdown(buscas_hoje[-1]["Conteudo"])
+    else:
+        st.write("Deixe a IA mapear o mercado, sugerir 3 produtos com alto potencial e entregar o link direto da pesquisa no TikTok.")
+
+with col_mem2:
+    st.markdown(f"<h4 style='text-align: center; color: #D4AF37;'>⚡ {buscas_restantes}/2 Restantes</h4>", unsafe_allow_html=True)
+    
+    # 🔥 NOVO: BOTÃO DA LIXEIRA
+    if st.button("🗑️ Limpar Radar", use_container_width=True):
+        if aba_radar is not None:
+            with st.spinner("A limpar a memória da Aurora..."):
+                aba_radar.clear()
+                aba_radar.append_row(["Data", "Conteudo"])
+                st.success("🧹 Memória limpa com sucesso!")
+                time.sleep(1)
+                st.rerun()
+
+# Botão com bloqueio dinâmico
+if st.button("🔍 Buscar Tendências e Links", type="primary", disabled=(buscas_restantes <= 0), use_container_width=True):
+    if buscas_restantes <= 0:
+        st.error("🚫 Amiga, a cota de segredos de hoje já esgotou. Volta amanhã para mais fofoca lucrativa!")
+    else:
+        with st.spinner(f"A Aurora (Modelo {MODELO_ATIVO}) está minerando links secretos do TikTok..."):
+            try:
+                modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
+                prompt_radar = """
+                Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
+                Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem.
+                
+                Sua missão: Recomendar 3 produtos de beleza/cabelo que estão com potencial de viralização.
+                Para CADA produto, forneça:
+                1. **Nome do Produto** (ex: Máscara reconstrutora densa).
+                2. **Por que está bombando?** (O desejo/dor que ele atende).
+                3. **Ideia de Roteiro Rápido:** Pitch usando verbos sensoriais. PROIBIDO: 'cura', 'elimina', 'conserta'. USE: 'Sensação de', 'Promove', 'Efeito desmaiado', 'Toque de seda'.
+                4. **Link de Ação Imediata:** Forneça um link gerado com o nome do produto na busca do TikTok. O formato exato obrigatório é: `[🔍 Procurar este produto no TikTok](https://www.tiktok.com/search?q=NOME+DO+PRODUTO)` (substitua os espaços por + no link).
+                
+                Encerre com: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
+                """
+                resposta_radar = modelo_radar.generate_content(prompt_radar)
+                
+                # Salva o texto gerado na Memória do Robô
+                if aba_radar is not None:
+                    aba_radar.append_row([hoje_str_radar, resposta_radar.text])
+                
+                st.success("✨ Tendências e links mapeados com sucesso!")
+                st.markdown(resposta_radar.text)
+                
+                time.sleep(2)
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao buscar tendências: {e}")
