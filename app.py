@@ -15,27 +15,8 @@ st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V3.0", page_icon="🦅
 CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
 
-# 🚀 NOVIDADE: AUTO-DETETOR DE MODELOS PARA EVITAR ERRO 404
-@st.cache_resource
-def definir_modelo_disponivel():
-    try:
-        modelos_disponiveis = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        # Prioridade 1: Tenta o 1.5 flash padrão
-        for m in modelos_disponiveis:
-            if '1.5-flash' in m and 'latest' not in m:
-                return m
-        # Prioridade 2: Tenta o 1.5 pro
-        for m in modelos_disponiveis:
-            if '1.5-pro' in m:
-                return m
-        # Prioridade 3: Pega o primeiro válido da lista para nunca falhar
-        if len(modelos_disponiveis) > 0:
-            return modelos_disponiveis[0]
-    except Exception:
-        pass
-    return 'gemini-1.5-flash' # Fallback seguro
-
-MODELO_ATIVO = definir_modelo_disponivel()
+# 🚀 VERSÃO EXATA EXIGIDA PELO SERVIDOR DO GOOGLE
+MODELO_ATIVO = 'gemini-3.8-flash'
 
 # Conexão do Robô (GCP) com o Google Sheets
 @st.cache_resource
@@ -154,7 +135,6 @@ def carregar_dados_dinamicos(url):
 
 df = carregar_dados_dinamicos(link_planilha_ativa)
 
-# Padroniza e limpa os dados da base
 if not df.empty:
     if "Quantidade" in df.columns:
         df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
@@ -234,7 +214,7 @@ else:
 st.divider()
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (MODELO AUTO-DETETADO)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (MODELO 3.8-FLASH)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
     modelo = genai.GenerativeModel(MODELO_ATIVO)
@@ -285,7 +265,7 @@ with aba_imagem:
             st.session_state["dados_prontos"] = []
             barra_progresso = st.progress(0)
             
-            with st.spinner(f"A IA ({MODELO_ATIVO}) está a analisar as imagens..."):
+            with st.spinner(f"A IA ({MODELO_ATIVO}) está analisando as imagens..."):
                 for idx, arquivo in enumerate(prints_comissao):
                     texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
                     time.sleep(3)
@@ -318,7 +298,7 @@ with aba_texto:
             st.session_state["dados_prontos"] = []
             barra_progresso_texto = st.progress(10)
             
-            with st.spinner(f"A IA ({MODELO_ATIVO}) está a organizar o texto copiado..."):
+            with st.spinner(f"A IA ({MODELO_ATIVO}) está organizando o texto copiado..."):
                 texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
                 barra_progresso_texto.progress(60)
                 
@@ -352,11 +332,11 @@ if st.session_state["dados_prontos"]:
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
         if not link_planilha_ativa:
-            st.error("⚠️ Cole o link da aguardar na barra lateral primeiro!")
+            st.error("⚠️ Cole o link da planilha na barra lateral primeiro!")
         elif not robo_sheets:
             st.error("⚠️ Robô não conectado. Verifique os Secrets.")
         else:
-            with st.spinner("O Robô está a injetar os dados no Google Drive..."):
+            with st.spinner("O Robô está injetando os dados no Google Drive..."):
                 try:
                     sheet_id = extrair_id_planilha(link_planilha_ativa)
                     planilha = robo_sheets.open_by_key(sheet_id)
@@ -395,30 +375,30 @@ frases_motivacionais = [
     "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
     "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
     "A constância é a chave que abre a porta da escala.",
-    "O seu próximo vídeo pode ser o que vai lhe dar a maior comissão. Não pare!",
+    "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
     "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!",
-    "Se não construir o seu sonho, alguém vai contratá-lo para construir o dele.",
-    "Foco no processo. O resultado é apenas uma consequência natural."
+    "Se você não construir o seu sonho, alguém vai te contratar para construir o dele.",
+    "Foco no processo. O resultado é só uma consequência natural."
 ]
 
 missoes = [
     "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
     "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
     "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
-    "Rever o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
+    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
     "Responder a 10 comentários de seguidores para engajar o algoritmo.",
     "Fazer 1 vídeo longo detalhado (mais de 1 minuto) sobre os benefícios de um produto.",
-    "Passar 30 minutos a estudar vídeos internacionais para captar novas referências."
+    "Passar 30 minutos estudando vídeos gringos para pegar referências novas."
 ]
 
 dicas_investimento = [
-    "Pegue em 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
+    "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
     "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
-    "Reinvista no Produto Campeão. Se está a vender organicamente, imagine com algum impulsionamento!",
-    "Diversificação: Que tal guardar parte do lucro num depósito a prazo para render juros?",
-    "O melhor investimento no início é em conhecimento. Estude copy e retenção de público.",
-    "Separe o dinheiro pessoal do dinheiro da empresa (operação TikTok).",
-    "Não aumente o seu custo de vida só porque as primeiras comissões entraram. Tenha visão a longo prazo."
+    "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
+    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?",
+    "O melhor investimento no começo é em conhecimento. Estude copy e retenção de público.",
+    "Separe o dinheiro da pessoa física do dinheiro da empresa (operação TikTok).",
+    "Não aumente seu custo de vida só porque as primeiras comissões entraram. Tenha visão de longo prazo."
 ]
 
 frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
@@ -432,12 +412,12 @@ with col_mindset:
     st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
     
 with col_missao:
-    st.markdown(f"🎯 **A sua Missão de Hoje:** {missao_hoje}")
+    st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
     
     missao_cumprida = st.checkbox("✅ Marcar missão de hoje como cumprida!")
     
     if missao_cumprida:
-        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e a sua carteira também. Continue a acumular vitórias!")
+        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e o seu bolso também. Continue empilhando vitórias!")
         st.balloons()
 
 # ==========================================================
@@ -448,7 +428,7 @@ st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tend�
 st.write("Deixe a IA mapear o mercado e sugerir os 3 produtos de beleza/cabelo com maior potencial de viralização no TikTok nesta semana.")
 
 if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
-    with st.spinner(f"A Aurora (usando o modelo {MODELO_ATIVO}) está a analisar as tendências do TikTok..."):
+    with st.spinner(f"A Aurora (usando o modelo {MODELO_ATIVO}) está vasculhando as tendências do TikTok..."):
         try:
             modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
             prompt_radar = """
@@ -466,7 +446,7 @@ if st.button("🔍 Buscar Top 3 Produtos em Alta", type="primary"):
             Encerre com uma assinatura do tipo: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
             """
             resposta_radar = modelo_radar.generate_content(prompt_radar)
-            st.success("✨ Tendências mapeadas com sucesso! Veja o que a Aurora descobriu:")
+            st.success("✨ Tendências mapeadas com sucesso! Olha o que a Aurora descobriu:")
             st.markdown(resposta_radar.text)
         except Exception as e:
-            st.error(f"Erro ao procurar tendências: {e}")
+            st.error(f"Erro ao buscar tendências: {e}")
