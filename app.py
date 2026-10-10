@@ -76,10 +76,10 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 # ==========================================================
 st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
 
-# 🔐 COFRE DE LINKS (Ficam salvos para sempre no sistema)
+# 🔐 COFRE DE LINKS
 COFRE_DE_LINKS = {
     "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
-    "O Garimpo Chic": "" # Cole o link da planilha do Garimpo Chic aqui dentro das aspas
+    "O Garimpo Chic": "" 
 }
 
 opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
@@ -91,9 +91,7 @@ if canal_selecionado == "➕ Adicionar Novo Canal":
 else:
     nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
     
-    # Verifica se o canal já tem um link salvo no cofre
     link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
-    
     if link_salvo != "":
         link_planilha_ativa = link_salvo
         st.sidebar.success("✅ Link carregado do cofre automaticamente!")
@@ -158,6 +156,8 @@ if not df.empty:
 df_filtrado = df.copy()
 if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
     hoje = pd.Timestamp(datetime.now().date())
+    df_filtrado["Data_Parsed"] = df_filtrado["Data_Parsed"].dt.normalize()
+    
     if filtro_periodo == "Hoje":
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == hoje]
     elif filtro_periodo == "Ontem":
@@ -173,11 +173,8 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         limite = hoje - timedelta(days=30)
         df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
 
-if df_filtrado.empty and filtro_periodo != "Tudo":
-    df_filtrado = df.copy()
-
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICO (VERSÃO 3.0)
+# 6. DASHBOARD FINANCEIRO E GRÁFICO
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'. O painel ficará branco até a planilha ser conectada.")
@@ -214,7 +211,7 @@ else:
 st.divider()
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (MODELO 3.8-FLASH)
+# 7. LÓGICA DE PROCESSAMENTO COM IA
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
     modelo = genai.GenerativeModel(MODELO_ATIVO)
@@ -250,7 +247,7 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS (IMAGEM E TEXTO)
+# 8. AUDITORIA E INJEÇÃO DE DADOS
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
@@ -262,14 +259,11 @@ aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto 
 with aba_imagem:
     if prints_comissao:
         if st.button("🚀 Extrair Dados das Imagens", type="primary"):
-            st.session_state["dados_prontos"] = []
             barra_progresso = st.progress(0)
-            
             with st.spinner(f"A IA ({MODELO_ATIVO}) está analisando as imagens..."):
                 for idx, arquivo in enumerate(prints_comissao):
                     texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
                     time.sleep(3)
-                    
                     if "ERRO_API:" not in texto_ia and texto_ia:
                         linhas = texto_ia.split('\n')
                         for linha in linhas:
@@ -295,13 +289,10 @@ with aba_texto:
         if texto_copiado.strip() == "":
             st.warning("⚠️ Cole algum texto antes de pedir para a IA ler!")
         else:
-            st.session_state["dados_prontos"] = []
             barra_progresso_texto = st.progress(10)
-            
             with st.spinner(f"A IA ({MODELO_ATIVO}) está organizando o texto copiado..."):
                 texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
                 barra_progresso_texto.progress(60)
-                
                 if "ERRO_API:" not in texto_ia and texto_ia:
                     linhas = texto_ia.split('\n')
                     for linha in linhas:
@@ -318,23 +309,26 @@ with aba_texto:
                                 "Comissao_R$": itens[5].strip()
                             })
                     barra_progresso_texto.progress(100)
-                    
                     if len(st.session_state["dados_prontos"]) == 0:
-                        st.error("⚠️ A IA leu o texto, mas não encontrou os dados no formato correto. Verifique se copiou corretamente!")
+                        st.error("⚠️ A IA leu o texto, mas não encontrou os dados. Verifique se copiou corretamente!")
                 else:
                     st.error(f"⚠️ Erro na IA ao ler o texto: {texto_ia}")
 
 if st.session_state["dados_prontos"]:
     st.success("✨ Dados lidos com sucesso! ✍️ Pode EDITAR as células na tabela abaixo antes de enviar:")
-    df_novos = pd.DataFrame(st.session_state["dados_prontos"])
     
+    col_tabela_1, col_tabela_2 = st.columns([4, 1])
+    with col_tabela_2:
+        if st.button("🗑️ Limpar Lista"):
+            st.session_state["dados_prontos"] = []
+            st.rerun()
+
+    df_novos = pd.DataFrame(st.session_state["dados_prontos"])
     df_editado = st.data_editor(df_novos, num_rows="dynamic", use_container_width=True)
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
-        if not link_planilha_ativa:
-            st.error("⚠️ Cole o link da planilha na barra lateral primeiro!")
-        elif not robo_sheets:
-            st.error("⚠️ Robô não conectado. Verifique os Secrets.")
+        if not link_planilha_ativa or not robo_sheets:
+            st.error("⚠️ Cole o link da planilha na barra lateral e verifique a conexão do Robô.")
         else:
             with st.spinner("O Robô está injetando os dados no Google Drive..."):
                 try:
@@ -344,12 +338,12 @@ if st.session_state["dados_prontos"]:
                     
                     dados_finais = df_editado.to_dict('records')
                     linhas_inserir = [[str(d["Data"]), str(d["Produto"]), str(d["Canal"]), str(d["Status"]), str(d["Quantidade"]), str(d["Comissao_R$"])] for d in dados_finais]
-                    
                     aba.append_rows(linhas_inserir, value_input_option="USER_ENTERED")
                     
                     st.success("🔥 SUCESSO ABSOLUTO! Planilha atualizada automaticamente!")
                     st.balloons()
                     st.session_state["dados_prontos"] = [] 
+                    st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
 
@@ -364,10 +358,10 @@ else:
     st.info("Nenhum dado encontrado para o período selecionado.")
 
 # ==========================================================
-# 10. MINDSET MILIONÁRIO & MISSÃO DO DIA (GAMIFICAÇÃO)
+# 10. MOTOR DE ELITE: GAMIFICAÇÃO & DISCIPLINA
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Mindset & Missão Diária</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Gamificação & Disciplina</h3>", unsafe_allow_html=True)
 
 dia_do_ano = datetime.now().timetuple().tm_yday
 
@@ -405,7 +399,7 @@ frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
 missao_hoje = missoes[dia_do_ano % len(missoes)]
 dica_hoje = dicas_investimento[dia_do_ano % len(dicas_investimento)]
 
-col_mindset, col_missao = st.columns(2)
+col_mindset, col_missao = st.columns([1, 1])
 
 with col_mindset:
     st.info(f"💎 **Visão de Águia:** {frase_hoje}")
@@ -414,14 +408,92 @@ with col_mindset:
 with col_missao:
     st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
     
-    missao_cumprida = st.checkbox("✅ Marcar missão de hoje como cumprida!")
+    missao_cumprida = st.button("✅ CONCLUIR MISSÃO DE HOJE", type="primary", use_container_width=True)
     
     if missao_cumprida:
-        st.success("🔥 SENSACIONAL! Missão Cumprida! O algoritmo agradece e o seu bolso também. Continue empilhando vitórias!")
-        st.balloons()
+        if not link_planilha_ativa or not robo_sheets:
+            st.error("⚠️ Conecte a planilha para o Robô conseguir salvar seu progresso.")
+        else:
+            with st.spinner("Registrando sua vitória no banco de dados secreto..."):
+                try:
+                    sheet_id = extrair_id_planilha(link_planilha_ativa)
+                    planilha = robo_sheets.open_by_key(sheet_id)
+                    
+                    # Cria a aba automaticamente se não existir
+                    try:
+                        aba_historico = planilha.worksheet("Historico_Missoes")
+                    except gspread.exceptions.WorksheetNotFound:
+                        aba_historico = planilha.add_worksheet(title="Historico_Missoes", rows="1000", cols="2")
+                        aba_historico.append_row(["Data", "Status"])
+                    
+                    hoje_str = datetime.now().strftime("%d/%m/%Y")
+                    registros = aba_historico.col_values(1)
+                    
+                    if hoje_str in registros:
+                        st.warning("⚠️ Você já cumpriu e registrou a missão de hoje! Vá descansar ou grave mais um bônus.")
+                    else:
+                        aba_historico.append_row([hoje_str, "Concluída"])
+                        st.success("🔥 SENSACIONAL! Missão cravada. O algoritmo e o seu bolso agradecem!")
+                        st.balloons()
+                        time.sleep(2)
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao salvar a missão: {e}")
+
+# Renderização do Gráfico de Missões de 30 Dias
+st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
+
+if link_planilha_ativa and robo_sheets:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_historico = planilha.worksheet("Historico_Missoes")
+            dados_hist = aba_historico.get_all_records()
+            df_hist = pd.DataFrame(dados_hist)
+        except gspread.exceptions.WorksheetNotFound:
+            df_hist = pd.DataFrame(columns=["Data", "Status"])
+    except:
+        df_hist = pd.DataFrame(columns=["Data", "Status"])
+        
+    if not df_hist.empty and "Data" in df_hist.columns:
+        df_hist["Data_Parsed"] = pd.to_datetime(df_hist["Data"], format="%d/%m/%Y", errors="coerce")
+        hoje_data = pd.Timestamp(datetime.now().date())
+        limite_30d = hoje_data - timedelta(days=29) # Janela de hoje + 29 dias para trás
+        
+        # Filtra estritamente os últimos 30 dias do histórico
+        df_30d = df_hist[df_hist["Data_Parsed"] >= limite_30d]
+        dias_cumpridos = df_30d["Data"].nunique()
+        taxa_acerto = (dias_cumpridos / 30) * 100
+        
+        # Constrói o calendário visual para o gráfico não falhar
+        dias_lista = pd.date_range(start=limite_30d, end=hoje_data)
+        df_grafico_missoes = pd.DataFrame({"Data_Parsed": dias_lista})
+        df_grafico_missoes["Status_Num"] = df_grafico_missoes["Data_Parsed"].isin(df_30d["Data_Parsed"]).astype(int)
+        df_grafico_missoes["Data_Formatada"] = df_grafico_missoes["Data_Parsed"].dt.strftime("%d/%m")
+        
+        df_plot = df_grafico_missoes.set_index("Data_Formatada")["Status_Num"]
+        
+        col_stat1, col_stat2, col_stat3 = st.columns(3)
+        col_stat1.metric("⚔️ Dias Cumpridos", f"{dias_cumpridos}/30")
+        col_stat2.metric("📈 Taxa de Disciplina", f"{taxa_acerto:.1f}%")
+        
+        if taxa_acerto >= 80:
+            col_stat3.markdown("<h1 style='text-align: center;'>😎🦅</h1>", unsafe_allow_html=True)
+            st.success("STATUS ELITE: Você é uma máquina. Continue empilhando vitórias!")
+        elif taxa_acerto >= 50:
+            col_stat3.markdown("<h1 style='text-align: center;'>😐⚖️</h1>", unsafe_allow_html=True)
+            st.warning("STATUS MEDIANO: Você está no empate. O algoritmo exige mais consistência. Acelere!")
+        else:
+            col_stat3.markdown("<h1 style='text-align: center;'>😟📉</h1>", unsafe_allow_html=True)
+            st.error("STATUS ALERTA VERMELHO: Sócio, a concorrência está gravando enquanto você descansa. Onde está o foco? Retome o controle AGORA!")
+            
+        st.bar_chart(df_plot, color="#00E5FF")
+    else:
+        st.info("Nenhum histórico de missões ainda. Aperte no botão para concluir a missão de hoje e dar start no seu termômetro de 30 dias!")
 
 # ==========================================================
-# 11. RADAR DE TENDÊNCIAS DA AURORA (INTELIGÊNCIA DE MERCADO)
+# 11. RADAR DE TENDÊNCIAS DA AURORA
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
