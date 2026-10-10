@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.9 - MOEDA ÁGUIA GIRATÓRIA)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4 ORIGINAL - OURO VIP CLASSIC)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -43,104 +43,96 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" 
+    metric_val_color = "#B8860B" # Dourado elegante para o modo claro
     metric_label_color = "#555555"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#FFD700" 
+    metric_val_color = "#D4AF37" # Ouro neon brilhante clássico da V4
     metric_label_color = "#A0A0A0"
 
 estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
+    html, body, [class*="css"] {{
+        font-family: 'Montserrat', sans-serif !important;
+    }}
+
+    /* Cores de Fundo do App e da Barra Lateral */
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 LADO DIREITO INVISÍVEL (Limpeza Total) 🔥 */
-    [data-testid="stToolbar"], 
-    [data-testid="stHeaderActionElements"], 
-    #MainMenu, 
-    header .stActionButton {{ 
-        display: none !important; 
-    }}
-    footer {{ display: none !important; }}
-    [data-testid="stHeader"] {{ background-color: transparent !important; }}
-
-    /* 🦅 LADO ESQUERDO: A MOEDA DA ÁGUIA GIRATÓRIA 🦅 */
-    /* Esconde a setinha preta padrão */
-    [data-testid="collapsedControl"] svg {{ 
-        display: none !important; 
-    }}
-
-    /* Transforma a caixa do botão numa Moeda de Ouro */
-    [data-testid="collapsedControl"] {{
-        background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%) !important;
-        border: 2px solid #FFF8DC !important;
-        border-radius: 50% !important; /* Deixa redondo perfeito */
-        width: 45px !important;
-        height: 45px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        box-shadow: 0px 4px 15px rgba(212, 175, 55, 0.5) !important;
-        margin-top: 10px !important;
-        margin-left: 10px !important;
-        animation: girar-moeda 4s infinite ease-in-out !important; /* Animação ativada */
-        transition: all 0.2s ease !important;
-    }}
-
-    /* Coloca o emoji da Águia dentro da moeda */
-    [data-testid="collapsedControl"]::before {{
-        content: "🦅" !important;
-        font-size: 22px !important;
-        line-height: 1 !important;
-    }}
-
-    /* A Mágica do Giro 3D (Gira, para pra pessoa clicar, gira de novo) */
-    @keyframes girar-moeda {{
-        0% {{ transform: perspective(400px) rotateY(0deg); }}
-        40% {{ transform: perspective(400px) rotateY(0deg); }} /* Fica parada */
-        60% {{ transform: perspective(400px) rotateY(360deg); }} /* Dá o giro da moeda */
-        100% {{ transform: perspective(400px) rotateY(360deg); }} /* Fica parada */
-    }}
-
-    /* Títulos e Cards VIP */
+    /* Título Animado ÉLÉVO */
     .titulo-elevo {{
-        font-size: 4rem; font-weight: 900; text-align: center;
+        font-size: 4rem;
+        font-weight: 900;
+        text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
-        background-size: 200% 200%; -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
+        background-size: 200% 200%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        animation: brilho-evolucao 4s ease infinite;
+        margin-bottom: -10px;
+        letter-spacing: 4px;
+        text-transform: uppercase;
     }}
-    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
+    @keyframes brilho-evolucao {{
+        0% {{ background-position: 0% 50%; }}
+        50% {{ background-position: 100% 50%; }}
+        100% {{ background-position: 0% 50%; }}
+    }}
     
     .subtitulo {{
-        text-align: center; font-size: 1.1rem; margin-bottom: 40px;
-        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
+        text-align: center;
+        font-size: 1.1rem;
+        margin-bottom: 40px;
+        font-weight: 300;
+        letter-spacing: 2px;
+        text-transform: uppercase;
         color: {text_color};
     }}
     
+    /* Glassmorphism nos Cards (Vidro Fosco de Luxo) */
     [data-testid="stMetric"] {{
-        background: {card_bg}; backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px); border: 1px solid {border_color};
-        border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+        background: {card_bg};
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid {border_color};
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
-    
-    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
-    
-    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
-        color: {metric_val_color} !important; font-weight: 900 !important;
-        font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
+    [data-testid="stMetric"]:hover {{
+        transform: translateY(-5px);
+        border: 1px solid rgba(0, 229, 255, 0.5);
     }}
+    
+    /* Cor do Título do Card */
+    [data-testid="stMetricLabel"] {{
+        color: {metric_label_color} !important;
+    }}
+    
+    /* Cor dos Valores (Ouro VIP Puro) */
+    [data-testid="stMetricValue"], 
+    [data-testid="stMetricValue"] div, 
+    [data-testid="stMetricValue"] span,
+    div[data-testid="stMetricValue"] {{
+        color: {metric_val_color} !important;
+        font-weight: 900 !important;
+        font-size: 2.2rem !important;
+        text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
+    }}
+
+    /* Cor dos textos gerais para acompanhar o tema */
+    p, div, span, label {{ color: {text_color}; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
+
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 # ==========================================================
