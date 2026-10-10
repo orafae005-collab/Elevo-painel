@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V4.4 - OURO VIP + SETA FLUTUANTE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.5 - OURO VIP + ÁGUIA FLUTUANTE)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -43,7 +43,7 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" # Dourado elegante para o modo claro (Não fica feio!)
+    metric_val_color = "#B8860B" # Dourado elegante claro
     metric_label_color = "#555555"
     seta_bg = "rgba(255, 255, 255, 0.9)"
     seta_cor = "#B8860B"
@@ -52,7 +52,7 @@ else:
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#FFD700" # OURO PURO NEON (Brilhante igual à V4)
+    metric_val_color = "#FFD700" # Ouro Neon Escuro
     metric_label_color = "#A0A0A0"
     seta_bg = "rgba(20, 20, 20, 0.9)"
     seta_cor = "#FFD700"
@@ -65,38 +65,47 @@ estilo_elevo = f"""
         font-family: 'Montserrat', sans-serif !important;
     }}
 
-    /* Forçar a cor de fundo independente do sistema */
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🎯 HACK DE ELITE: SETA ANIMADA FLUTUANTE NA ESQUERDA */
+    /* 🦅 HACK DA ÁGUIA: Esconde a seta padrão do sistema */
+    [data-testid="collapsedControl"] svg {{
+        display: none !important;
+    }}
+
+    /* Injeta a Águia como botão flutuante */
+    [data-testid="collapsedControl"]::after {{
+        content: "🦅";
+        font-size: 26px;
+        display: block;
+        line-height: 1;
+    }}
+
+    /* Estiliza a caixa flutuante da Águia */
     [data-testid="collapsedControl"] {{
         position: fixed !important;
-        top: 50vh !important; /* Fica exatamente no meio da tela */
+        top: 50vh !important; 
         left: 0px !important;
         background: {seta_bg} !important;
         border: 2px solid {seta_cor} !important;
         border-left: none !important;
-        border-radius: 0px 20px 20px 0px !important; /* Arredondado apenas na direita */
-        padding: 10px 15px 10px 5px !important;
+        border-radius: 0px 20px 20px 0px !important;
+        padding: 8px 12px 8px 8px !important;
         z-index: 999999 !important;
-        animation: pulo-seta 1s infinite alternate ease-in-out !important; /* Animação de movimento */
+        animation: pulo-seta 1s infinite alternate ease-in-out !important;
         box-shadow: 2px 0px 15px {border_color} !important;
         transition: all 0.3s ease !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
     }}
-    [data-testid="collapsedControl"] svg {{
-        fill: {seta_cor} !important;
-        color: {seta_cor} !important;
-        width: 30px !important;
-        height: 30px !important;
-    }}
-    /* A mágica do movimento da Seta */
+    
     @keyframes pulo-seta {{
         0% {{ transform: translateX(0px); }}
-        100% {{ transform: translateX(10px); }} /* Vai e volta suavemente */
+        100% {{ transform: translateX(10px); }}
     }}
 
-    /* Esconde menu inútil e cabeçalho */
+    /* Esconde menu padrão do topo */
     [data-testid="stToolbar"] {{ display: none !important; }}
     footer {{ display: none !important; }}
     [data-testid="stHeader"] {{ background-color: transparent !important; }}
@@ -130,7 +139,6 @@ estilo_elevo = f"""
         color: {text_color};
     }}
     
-    /* Glassmorphism nos Cards (Vidro Fosco) */
     [data-testid="stMetric"] {{
         background: {card_bg};
         backdrop-filter: blur(12px);
@@ -141,17 +149,11 @@ estilo_elevo = f"""
         box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
         transition: all 0.3s ease;
     }}
-    [data-testid="stMetric"]:hover {{
-        transform: translateY(-5px);
-        border: 1px solid rgba(0, 229, 255, 0.5);
-    }}
     
-    /* Cor do Título do Card */
     [data-testid="stMetricLabel"] {{
         color: {metric_label_color} !important;
     }}
     
-    /* 🔥 FORÇANDO O OURO VIP NOS VALORES (Destruindo o branco padrão) */
     [data-testid="stMetricValue"], 
     [data-testid="stMetricValue"] div, 
     [data-testid="stMetricValue"] span,
