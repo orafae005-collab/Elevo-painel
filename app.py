@@ -4,14 +4,28 @@ import time
 from datetime import datetime, timedelta
 import google.generativeai as genai
 from PIL import Image
+import gspread
+import re
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP
 # ==========================================================
-st.set_page_config(page_title="ÉLÉVO | Painel de Vendas", page_icon="🦅", layout="wide")
+st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V3.0", page_icon="🦅", layout="wide")
 
 CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
+
+# Conexão do Robô (GCP) com o Google Sheets
+@st.cache_resource
+def conectar_robo():
+    try:
+        credenciais = dict(st.secrets["gcp_service_account"])
+        gc = gspread.service_account_from_dict(credenciais)
+        return gc
+    except Exception as e:
+        return None
+
+robo_sheets = conectar_robo()
 
 # ==========================================================
 # 2. DESIGN BLACK, GOLD & NEON
@@ -55,19 +69,54 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 3. CONEXÃO DIRETA COM O GOOGLE DRIVE (PLANILHA ONLINE)
+# 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
-SHEET_ID = "1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y"
-url_google_sheets = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/export?format=csv"
+st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
+
+opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
+canal_selecionado = st.sidebar.selectbox("🎯 Selecione a Conta", opcoes_canais)
+
+if canal_selecionado == "➕ Adicionar Novo Canal":
+    nome_canal_ativo = st.sidebar.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
+    link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
+else:
+    nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
+    link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
+
+filtro_periodo = st.sidebar.selectbox(
+    "📅 Filtrar Período",
+    ["Tudo", "Hoje", "Ontem", "Últimos 3 Dias", "Últimos 7 Dias", "Últimos 30 Dias"]
+)
+
+prints_comissao = st.sidebar.file_uploader(
+    "Suba os Prints do TikTok Shop (Até 20 arquivos)", 
+    type=["png", "jpg", "jpeg"], 
+    accept_multiple_files=True
+)
+
+# ==========================================================
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS
+# ==========================================================
+def extrair_id_planilha(url):
+    match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+    return match.group(1) if match else None
 
 @st.cache_data(ttl=60)
-def carregar_dados_drive():
+def carregar_dados_dinamicos(url):
+    if not url:
+        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+    
+    sheet_id = extrair_id_planilha(url)
+    if not sheet_id:
+        return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+        
+    url_csv = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     try:
-        return pd.read_csv(url_google_sheets)
+        return pd.read_csv(url_csv)
     except Exception:
         return pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
 
-df = carregar_dados_drive()
+df = carregar_dados_dinamicos(link_planilha_ativa)
 
 # Padroniza e limpa os dados da base
 if not df.empty:
@@ -84,49 +133,8 @@ if not df.empty:
     else:
         df["Comissao_R$"] = 0.0
 
-    # =================================================================
-    # CORREÇÃO AQUI: Lógica inteligente para ler períodos na planilha!
-    # Se ele achar "08/09 a 07/10/2026", ele pega só o "07/10/2026" para o cálculo matemático
-    # =================================================================
-    df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
-    df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")# Padroniza e limpa os dados da base
-if not df.empty:
-    if "Quantidade" in df.columns:
-        df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
-    else:
-        df["Quantidade"] = 0
-
-    if "Comissao_R$" in df.columns:
-        df["Comissao_R$"] = pd.to_numeric(
-            df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
-            errors="coerce"
-        ).fillna(0)
-    else:
-        df["Comissao_R$"] = 0.0
-
-    # =================================================================
-    # CORREÇÃO AQUI: Lógica inteligente para ler períodos na planilha!
-    # Se ele achar "08/09 a 07/10/2026", ele pega só o "07/10/2026" para o cálculo matemático
-    # =================================================================
     df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
     df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
-
-# ==========================================================
-# 4. BARRA LATERAL (FILTRO DE PERÍODO E UPLOAD DE PRINTS)
-# ==========================================================
-st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
-
-filtro_periodo = st.sidebar.selectbox(
-    "📅 Filtrar Período",
-    ["Tudo", "Hoje", "Ontem", "Últimos 3 Dias", "Últimos 7 Dias", "Últimos 30 Dias"]
-)
-
-prints_comissao = st.sidebar.file_uploader(
-    "Suba os Prints do TikTok Shop (Até 20 arquivos)", 
-    type=["png", "jpg", "jpeg"], 
-    accept_multiple_files=True
-)
-
 # ==========================================================
 # 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE
 # ==========================================================
@@ -153,118 +161,121 @@ if df_filtrado.empty and filtro_periodo != "Tudo":
     df_filtrado = df.copy()
 
 # ==========================================================
-# 6. CÁLCULO INTELIGENTE DO PAINEL FINANCEIRO E PRODUTO CAMPEÃO
+# 6. DASHBOARD FINANCEIRO E GRÁFICO (VERSÃO 3.0)
 # ==========================================================
-if not df_filtrado.empty:
-    aprovado = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
-    pendente = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("pendente", na=False)]["Comissao_R$"].sum()
-    
-    df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
-    if not df_validos.empty:
-        df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
-        df_campeao = df_campeao.sort_values(by=["Quantidade", "Comissao_R$"], ascending=False)
-        produto_campeao = df_campeao.iloc[0]["Produto"] if not df_campeao.empty else "Nenhum"
-    else:
-        produto_campeao = "Nenhum"
+if not link_planilha_ativa:
+    st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'. O painel ficará branco até a planilha ser conectada.")
 else:
-    aprovado = 0.0
-    pendente = 0.0
-    produto_campeao = "Nenhum"
+    if not df_filtrado.empty:
+        aprovado = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
+        pendente = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("pendente", na=False)]["Comissao_R$"].sum()
+        
+        df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+        if not df_validos.empty:
+            df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
+            df_campeao = df_campeao.sort_values(by=["Comissao_R$"], ascending=False)
+            produto_campeao = df_campeao.iloc[0]["Produto"]
+        else:
+            df_campeao = pd.DataFrame()
+            produto_campeao = "Nenhum"
+    else:
+        aprovado = 0.0
+        pendente = 0.0
+        df_campeao = pd.DataFrame()
+        produto_campeao = "Nenhum"
 
-st.markdown(f"### 📊 Faturamento do Período (Filtro: {filtro_periodo})")
-col1, col2, col3 = st.columns(3)
-col1.metric("💰 Lucro Aprovado", f"R$ {aprovado:,.2f}", f"Sincronizado com o Drive")
-col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
-col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de vendas")
+    st.markdown(f"### 📊 Faturamento: {nome_canal_ativo} (Filtro: {filtro_periodo})")
+    col1, col2, col3 = st.columns(3)
+    col1.metric("💰 Lucro Aprovado", f"R$ {aprovado:,.2f}", "Sincronizado")
+    col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
+    col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
+
+    # GRÁFICO VISUAL DO PRODUTO CAMPEÃO
+    if not df_campeao.empty:
+        st.markdown("##### 📈 Top Produtos por Comissão (R$)")
+        df_grafico = df_campeao.set_index("Produto")["Comissao_R$"]
+        st.bar_chart(df_grafico, color="#D4AF37")
 
 st.divider()
-
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (CALIBRADA PARA 6 COLUNAS)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (VERSÃO 3.0)
 # ==========================================================
-def extrair_dados_do_print(imagem_upload):
-    # CORREÇÃO APLICADA: Nome do modelo oficial para leitura rápida de imagens
+def extrair_dados_do_print(imagem_upload, nome_canal):
     modelo = genai.GenerativeModel('gemini-1.5-flash')
     imagem_pil = Image.open(imagem_upload)
     
-    prompt = """
+    prompt = f"""
     Analise esta imagem do painel de dados ou produtos do TikTok Shop.
-    Extraia as informações e retorne APENAS os dados brutos, sem markdown, sem cabeçalhos e sem formatação.
-    Formato OBRIGATÓRIO de cada linha separada por ponto e vírgula:
-    DD/MM/AAAA;Nome do Produto;TikTok;Status;Quantidade;ValorDaComissao
-    
-    Exemplo exato do que você deve retornar (e nada mais):
-    08/10/2026;Reconstrutor Novex Max Keratin;TikTok;Aprovado;240;450.00
+    Extraia as informações e retorne APENAS os dados brutos, sem markdown.
+    Formato OBRIGATÓRIO (separado por ponto e vírgula):
+    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
     try:
         resposta = modelo.generate_content([prompt, imagem_pil])
-        texto_limpo = resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
-        return texto_limpo
+        return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
 
 # ==========================================================
-# 8. GALERIA E BOTÃO DE ATIVAÇÃO DA IA
+# 8. GALERIA, AUDITORIA IA E INJEÇÃO NO DRIVE (ROBÔ)
 # ==========================================================
-st.markdown("### 🖼️ Auditoria de Comissões por IA")
+# Memória para guardar os dados antes de injetar
+if "dados_prontos" not in st.session_state:
+    st.session_state["dados_prontos"] = []
+
+st.markdown("### 🖼️ Auditoria e Injeção de Dados (Robô)")
 if prints_comissao:
-    if len(prints_comissao) > 20:
-        st.error("⚠️ Máximo de 20 prints por vez!")
-    else:
-        st.success(f"📸 {len(prints_comissao)} print(s) na fila.")
+    if st.button("🚀 Processar Prints pela IA", type="primary"):
+        st.session_state["dados_prontos"] = []
+        barra_progresso = st.progress(0)
         
-        if st.button("🚀 Processar Prints", type="primary"):
-            novos_dados = []
-            erros_encontrados = False
-            
-            barra_progresso = st.progress(0)
-            total_arquivos = len(prints_comissao)
-            
-            with st.spinner("A IA está a auditar os prints... (Lembre-se de colar os novos dados na planilha do Google Drive para fixar na base oficial)"):
-                for idx, arquivo in enumerate(prints_comissao):
-                    texto_ia = extrair_dados_do_print(arquivo)
-                    time.sleep(4)
-                    
-                    if "ERRO_API:" in texto_ia:
-                        st.error(f"❌ Erro no print '{arquivo.name}': {texto_ia}")
-                        erros_encontrados = True
-                        continue
-                    
-                    if texto_ia:
-                        linhas = texto_ia.split('\n')
-                        for linha in linhas:
-                            linha = linha.strip()
-                            if not linha or "Data;" in linha or "Produto;" in linha:
-                                continue
-                                
-                            itens = linha.split(';')
-                            if len(itens) >= 6:
-                                novos_dados.append({
-                                    "Data": itens[0].strip(),
-                                    "Produto": itens[1].strip(),
-                                    "Canal": itens[2].strip(),
-                                    "Status": itens[3].strip(),
-                                    "Quantidade": itens[4].strip(),
-                                    "Comissao_R$": itens[5].strip()
-                                })
-                    
-                    barra_progresso.progress((idx + 1) / total_arquivos)
+        with st.spinner("A IA está dissecando as imagens..."):
+            for idx, arquivo in enumerate(prints_comissao):
+                texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
+                time.sleep(3)
                 
-            if novos_dados:
-                st.success("✨ Prints auditados com sucesso pela IA! Copie as linhas geradas abaixo e cole na sua planilha do Google Drive:")
-                df_novos = pd.DataFrame(novos_dados)
-                st.dataframe(df_novos, use_container_width=True)
-            elif not erros_encontrados:
-                st.warning("A IA processou as imagens, mas não encontrou o padrão exato de comissão.")
+                if "ERRO_API:" not in texto_ia and texto_ia:
+                    linhas = texto_ia.split('\n')
+                    for linha in linhas:
+                        linha = linha.strip()
+                        if not linha or "Data;" in linha or "Produto;" in linha: continue
+                        itens = linha.split(';')
+                        if len(itens) >= 6:
+                            st.session_state["dados_prontos"].append({
+                                "Data": itens[0].strip(),
+                                "Produto": itens[1].strip(),
+                                "Canal": itens[2].strip(),
+                                "Status": itens[3].strip(),
+                                "Quantidade": itens[4].strip(),
+                                "Comissao_R$": itens[5].strip()
+                            })
+                barra_progresso.progress((idx + 1) / len(prints_comissao))
 
-        cols = st.columns(4)
-        for i, arquivo in enumerate(prints_comissao):
-            with cols[i % 4]:
-                st.image(arquivo, caption=f"Print {i+1}", use_container_width=True)
-else:
-    st.info("Envie os teus prints na barra lateral para começar a auditoria automática.")
-
-st.divider()
+if st.session_state["dados_prontos"]:
+    st.success("✨ Prints lidos com sucesso! Verifique os dados abaixo:")
+    df_novos = pd.DataFrame(st.session_state["dados_prontos"])
+    st.dataframe(df_novos, use_container_width=True)
+    
+    if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
+        if not link_planilha_ativa:
+            st.error("⚠️ Cole o link da planilha na barra lateral primeiro!")
+        elif not robo_sheets:
+            st.error("⚠️ Robô não conectado. Verifique os Secrets.")
+        else:
+            with st.spinner("Injetando dados no Google Drive..."):
+                try:
+                    sheet_id = extrair_id_planilha(link_planilha_ativa)
+                    planilha = robo_sheets.open_by_key(sheet_id)
+                    aba = planilha.sheet1
+                    
+                    linhas_inserir = [[d["Data"], d["Produto"], d["Canal"], d["Status"], d["Quantidade"], d["Comissao_R$"]] for d in st.session_state["dados_prontos"]]
+                    aba.append_rows(linhas_inserir, value_input_option="USER_ENTERED")
+                    
+                    st.success("🔥 SUCESSO! Planilha atualizada automaticamente!")
+                    st.balloons()
+                    st.session_state["dados_prontos"] = [] # Limpa a tela
+                except Exception as e:
+                    st.error(f"❌ Erro ao escrever. O robô é Editor na planilha? Erro: {e}")
 
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO
