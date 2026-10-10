@@ -6,7 +6,7 @@ import google.generativeai as genai
 from PIL import Image
 import gspread
 import re
-import plotly.express as px  # 🔥 NOVA BIBLIOTECA PARA O GRÁFICO PREMIUM
+import plotly.express as px
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP
@@ -185,8 +185,9 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         mes_passado = hoje.month - 1 if hoje.month > 1 else 12
         ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
+
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICO (🔥 VERSÃO LINHA DO TEMPO)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 LINHA DO TEMPO + PRODUTOS)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -198,21 +199,23 @@ else:
         df_validos = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
         
         if not df_validos.empty:
-            # Calcula o Produto Campeão Geral
+            # 1. Dados para o Produto Campeão e Gráfico de Barras
             df_campeao = df_validos.groupby("Produto")[["Quantidade", "Comissao_R$"]].sum().reset_index()
             df_campeao = df_campeao.sort_values(by=["Comissao_R$"], ascending=False)
             produto_campeao = df_campeao.iloc[0]["Produto"]
             
-            # Prepara os dados diários para a Linha do Tempo
+            # 2. Dados para a Linha do Tempo
             df_timeline = df_validos.groupby("Data_Parsed")["Comissao_R$"].sum().reset_index()
             df_timeline.sort_values("Data_Parsed", inplace=True)
             df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
         else:
+            df_campeao = pd.DataFrame()
             df_timeline = pd.DataFrame()
             produto_campeao = "Nenhum"
     else:
         aprovado = 0.0
         pendente = 0.0
+        df_campeao = pd.DataFrame()
         df_timeline = pd.DataFrame()
         produto_campeao = "Nenhum"
 
@@ -222,38 +225,66 @@ else:
     col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
     col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
 
-    # 🔥 GRÁFICO INTERATIVO PLOTLY - LINHA DO TEMPO
-    if not df_timeline.empty:
-        st.markdown("##### 📈 Curva de Crescimento (Lucro por Dia)")
+    if not df_timeline.empty and not df_campeao.empty:
+        # Divide a tela em duas colunas para os dois gráficos
+        col_graf1, col_graf2 = st.columns(2)
         
-        fig = px.line(
-            df_timeline, 
-            x="Data_Formatada", 
-            y="Comissao_R$", 
-            markers=True, # Adiciona os pontos nos dias
-            text="Comissao_R$" # Mostra o valor em cima do ponto
-        )
-        
-        fig.update_traces(
-            textposition='top center',
-            texttemplate='R$ %{text:,.2f}', 
-            line=dict(color="#00E5FF", width=4), # Linha Azul Neon grossa
-            marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)), # Pontos Dourados
-            textfont=dict(color="#D4AF37", size=12, weight="bold")
-        )
-        
-        fig.update_layout(
-            plot_bgcolor="rgba(0,0,0,0)",
-            paper_bgcolor="rgba(0,0,0,0)",
-            font=dict(color="#A0A0A0"),
-            xaxis=dict(showgrid=False, title="", visible=True, tickangle=0),
-            yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False), # Grade sutil no fundo
-            margin=dict(l=0, r=0, t=40, b=30),
-            height=350,
-            hovermode="x unified" # O hover mostra uma linha guia elegante
-        )
-        
-        st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+        with col_graf1:
+            st.markdown("##### 📈 Curva de Crescimento Diário")
+            fig_line = px.line(
+                df_timeline, 
+                x="Data_Formatada", 
+                y="Comissao_R$", 
+                markers=True, 
+                text="Comissao_R$"
+            )
+            fig_line.update_traces(
+                textposition='top center',
+                texttemplate='R$ %{text:,.2f}', 
+                line=dict(color="#00E5FF", width=4),
+                marker=dict(color="#D4AF37", size=10, line=dict(color="white", width=1)),
+                textfont=dict(color="#D4AF37", size=12, weight="bold")
+            )
+            fig_line.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#A0A0A0"),
+                xaxis=dict(showgrid=False, title="", visible=True, tickangle=0),
+                yaxis=dict(showgrid=True, gridcolor="rgba(212, 175, 55, 0.1)", title="", visible=False, zeroline=False),
+                margin=dict(l=0, r=0, t=40, b=30),
+                height=350,
+                hovermode="x unified"
+            )
+            st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+            
+        with col_graf2:
+            st.markdown("##### 🏆 Top 10 Produtos Mais Vendidos")
+            df_grafico_bar = df_campeao.head(10).copy()
+            fig_bar = px.bar(
+                df_grafico_bar, 
+                x="Comissao_R$", 
+                y="Produto", 
+                orientation='h',
+                text="Comissao_R$",
+                color_discrete_sequence=["#D4AF37"]
+            )
+            fig_bar.update_traces(
+                texttemplate='R$ %{text:,.2f}', 
+                textposition='outside', 
+                marker_line_color='#00E5FF', 
+                marker_line_width=1.5, 
+                opacity=0.9
+            )
+            fig_bar.update_layout(
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#A0A0A0"),
+                xaxis=dict(showgrid=False, title="", visible=False),
+                yaxis=dict(showgrid=False, title="", autorange="reversed"),
+                margin=dict(l=0, r=0, t=40, b=0),
+                height=350
+            )
+            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA
@@ -417,6 +448,7 @@ if not df_filtrado.empty:
             st.dataframe(df_tabela, use_container_width=True)
 else:
     st.info("Nenhum dado encontrado para o período selecionado.")
+
 # ==========================================================
 # 10. MOTOR DE ELITE: GAMIFICAÇÃO & DISCIPLINA
 # ==========================================================
