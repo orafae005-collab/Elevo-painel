@@ -680,14 +680,53 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do seu Analytics (vídeos em alta, termos de pesquisa) e adicione o contexto. A IA vai montar seu funil de escala.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do seu Analytics e a IA vai montar seu funil de escala. Ele ficará salvo no sistema até você apagar.</p>", unsafe_allow_html=True)
+
+aba_raiox = None
+historico_raiox = []
+
+# Acesso à memória do Raio-X via Robô (Google Sheets)
+if link_planilha_ativa and robo_sheets:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_raiox = planilha.worksheet("Memoria_RaioX")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_raiox = planilha.add_worksheet(title="Memoria_RaioX", rows="1000", cols="2")
+            aba_raiox.append_row(["Data", "Funil"])
+        historico_raiox = aba_raiox.get_all_records()
+    except Exception:
+        pass
 
 col_raiox1, col_raiox2 = st.columns([1, 2])
 
 with col_raiox1:
-    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5 imagens)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img")
-    texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha do Novex. As pessoas estão buscando muito por 'como recuperar cabelo elástico'...")
+    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img")
+    texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
     btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
+    
+    # Exibe os botões de Download e Lixeira apenas se houver um mapa salvo na memória
+    if historico_raiox:
+        st.markdown("### 💾 Ações do Funil")
+        ultimo_funil = historico_raiox[-1]["Funil"]
+        
+        st.download_button(
+            label="📥 Baixar Mapa Mental (.txt)",
+            data=ultimo_funil,
+            file_name=f"Estrategia_Elevo_{agora_brasil.strftime('%Y%m%d')}.txt",
+            mime="text/plain",
+            use_container_width=True
+        )
+        
+        if st.button("🗑️ Apagar Mapa Salvo", use_container_width=True):
+            if aba_raiox is not None:
+                with st.spinner("Apagando estratégia do banco de dados..."):
+                    aba_raiox.clear()
+                    aba_raiox.append_row(["Data", "Funil"])
+                    st.success("🧹 Memória limpa com sucesso!")
+                    time.sleep(1)
+                    st.rerun()
 
 with col_raiox2:
     if btn_raiox:
@@ -723,7 +762,6 @@ with col_raiox2:
                 
                 conteudo_geracao = [prompt_raiox]
                 
-                # 🔥 A BARRA DE PROGRESSO ENTRA AQUI
                 barra_raiox = st.progress(0, text="Iniciando a Engenharia Reversa...")
                 
                 if imgs_analytics:
@@ -731,22 +769,30 @@ with col_raiox2:
                     for idx, img in enumerate(imgs_analytics):
                         imagem_pil_raiox = Image.open(img)
                         conteudo_geracao.append(imagem_pil_raiox)
-                        time.sleep(0.5) # Um leve respiro para o visual fluir
-                        progresso_atual = int(((idx + 1) / total_imgs) * 50) # Vai até 50% lendo imagens
+                        time.sleep(0.5)
+                        progresso_atual = int(((idx + 1) / total_imgs) * 50)
                         barra_raiox.progress(progresso_atual, text=f"Lendo print {idx + 1} de {total_imgs}...")
                 
                 barra_raiox.progress(75, text="🧠 Prints lidos! Cruzando os dados e montando o Funil...")
                 
-                # Chamada para a IA
                 resposta_raiox = modelo_raiox.generate_content(conteudo_geracao)
                 
-                barra_raiox.progress(100, text="✅ Análise concluída!")
-                time.sleep(1)
-                barra_raiox.empty() # A mágica acontece: a barra some para dar espaço ao texto!
+                # Salva o resultado no banco de dados para não sumir ao fechar o app
+                if aba_raiox is not None:
+                    aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox.text])
                 
-                st.success("✅ Raio-X concluído. Aqui está o projeto do seu funil de escala!")
-                st.markdown(resposta_raiox.text)
+                barra_raiox.progress(100, text="✅ Análise concluída e salva!")
+                time.sleep(1)
+                barra_raiox.empty() 
+                
+                st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
+                st.rerun()
             except Exception as e:
                 st.error(f"Erro na IA: {e}")
     else:
-        st.info("👈 Envie seus dados (até 5 prints) e o contexto. Depois clique no botão para criar o funil de vendas.")
+        # Se o botão não foi clicado, mostra o que está salvo na memória
+        if historico_raiox:
+            st.info("💡 **Seu Mapa Mental salvo no sistema:**")
+            st.markdown(historico_raiox[-1]["Funil"])
+        else:
+            st.info("👈 A memória está vazia. Envie seus dados para criar e salvar o seu primeiro funil de vendas.")
