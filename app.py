@@ -31,9 +31,8 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 UI/UX DE LUXO V4.2)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V4.3 - OURO VIP + DIA/NOITE)
 # ==========================================================
-# Botão de Tema no Canto Direito
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -44,13 +43,15 @@ if modo_claro:
     text_color = "#333333"
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" # Ouro escuro puro para ler no fundo branco
+    metric_val_color = "#B8860B" # Dourado mais escuro e elegante para fundo branco
+    metric_label_color = "#555555"
 else:
     bg_color = "#0E1117"
     text_color = "#A0A0A0"
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#D4AF37" # Ouro neon para fundo preto
+    metric_val_color = "#D4AF37" # Ouro neon brilhante da V4 (O que gostou!)
+    metric_label_color = "#A0A0A0"
 
 estilo_elevo = f"""
 <style>
@@ -60,14 +61,13 @@ estilo_elevo = f"""
         font-family: 'Montserrat', sans-serif !important;
     }}
 
-    /* Forçar a cor de fundo do app e da barra lateral independente do PC */
+    /* Forçar a cor de fundo do ecrã e da barra lateral */
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
-    .subtitulo, p, div, span, label {{ color: {text_color}; }}
-
-    /* HACK DE ELITE: Esconder menu direito (Deploy/Github) mas manter a Seta da esquerda! */
-    [data-testid="stToolbar"] {{ visibility: hidden !important; }}
-    footer {{ visibility: hidden !important; }}
+    
+    /* HACK DA SETINHA: Esconde apenas o menu direito, mantém a seta esquerda intacta! */
+    [data-testid="stToolbar"] {{ display: none !important; }}
+    footer {{ display: none !important; }}
     [data-testid="stHeader"] {{ background-color: transparent !important; }}
 
     /* Título Animado ÉLÉVO */
@@ -96,9 +96,10 @@ estilo_elevo = f"""
         font-weight: 300;
         letter-spacing: 2px;
         text-transform: uppercase;
+        color: {text_color};
     }}
     
-    /* Glassmorphism nos Cards */
+    /* Glassmorphism nos Cards (Vidro Fosco) */
     [data-testid="stMetric"] {{
         background: {card_bg};
         backdrop-filter: blur(12px);
@@ -113,11 +114,24 @@ estilo_elevo = f"""
         transform: translateY(-5px);
         border: 1px solid rgba(0, 229, 255, 0.5);
     }}
+    
+    /* Cor do Título do Card (Ex: Lucro Aprovado) */
+    [data-testid="stMetricLabel"] {{
+        color: {metric_label_color} !important;
+    }}
+    
+    /* Cor do Valor (Ouro VIP) */
     [data-testid="stMetricValue"] {{
         color: {metric_val_color} !important;
         font-weight: 600;
         font-size: 2.2rem !important;
     }}
+    div[data-testid="stMetricValue"] > div {{
+        color: {metric_val_color} !important;
+    }}
+    
+    /* Cor dos textos gerais */
+    p, div, span, label {{ color: {text_color}; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
