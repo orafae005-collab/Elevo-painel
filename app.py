@@ -1292,13 +1292,26 @@ if st.session_state.get("live_rodando"):
                 audio_b64 = gerar_audio_base64(resposta)
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-    # REPRODUTOR DE ÁUDIO VISÍVEL
+    # REPRODUTOR DE ÁUDIO VISÍVEL (COM INJEÇÃO JAVASCRIPT PARA AUTOPLAY FORÇADO)
     if len(st.session_state["fila_audios"]) > 0:
         audio_tocar = st.session_state["fila_audios"].pop(0)
         st.markdown("### 🔊 Voz da Aurora")
-        st.info("A Aurora está a falar. (Se não ouvir nada automaticamente, clique no botão de Play/Tocar abaixo)")
-        html_player = f'<audio controls autoplay src="data:audio/mp3;base64,{audio_tocar}" style="width: 100%; border-radius: 8px; border: 2px solid #FF0040;"></audio>'
-        st.markdown(html_player, unsafe_allow_html=True)
-    
-    time.sleep(3)
-    st.rerun()
+        st.info("A Aurora está a falar no automático.")
+        
+        # O truque: Injetamos HTML + JavaScript. O JS força o '.play()' no elemento de áudio
+        # assim que ele é renderizado na tela, driblando a maioria dos bloqueios mobile.
+        html_player = f"""
+        <audio id="aurora_audio" controls style="width: 100%; border-radius: 8px; border: 2px solid #FF0040;">
+            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
+        </audio>
+        <script>
+            // Tenta tocar imediatamente via código
+            var audio = document.getElementById("aurora_audio");
+            audio.play().catch(function(error) {{
+                console.log("Autoplay bloqueado pelo navegador, aguardando interação.");
+            }});
+        </script>
+        """
+        # A flag components.v1.html é melhor que st.markdown para executar scripts puros
+        import streamlit.components.v1 as components
+        components.html(html_player, height=70)
