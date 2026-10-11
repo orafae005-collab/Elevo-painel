@@ -17,6 +17,7 @@ CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
 genai.configure(api_key=CHAVE_ATIVACAO)
 
 MODELO_ATIVO = 'gemini-3.8-flash'
+modelo_ia = genai.GenerativeModel(MODELO_ATIVO) # 🔥 Otimização: Carrega o cérebro da IA apenas uma vez
 
 # Conexão do Robô (GCP) com o Google Sheets
 @st.cache_resource
@@ -42,14 +43,14 @@ with col_tema:
 # Inteligência de Cores (Dia/Noite)
 if modo_claro:
     bg_color = "#F4F4F9"
-    text_color = "#333333" # Escuro para ler no fundo claro
+    text_color = "#333333" 
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
     metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
 else:
     bg_color = "#0E1117"
-    text_color = "#F0F0F0" # 🔥 PRATA CLARO (Alto Contraste para leitura perfeita)
+    text_color = "#F0F0F0" 
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
     metric_val_color = "#FFD700" 
@@ -67,7 +68,7 @@ estilo_elevo = f"""
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; min-height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* 🚨 CONTRASTE ABSOLUTO (Pegando listas, negritos e itálicos da IA) 🚨 */
+    /* 🚨 CONTRASTE ABSOLUTO */
     [data-testid="stMarkdownContainer"] *,
     [data-testid="stMarkdownContainer"] h1, 
     [data-testid="stMarkdownContainer"] h2, 
@@ -124,77 +125,24 @@ st.markdown(estilo_elevo, unsafe_allow_html=True)
 js_moeda = """
 <script>
     const parent = window.parent.document;
-    
     if (!parent.getElementById("moeda-aguia-vip")) {
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        
         btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 26px; background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF8DC; box-shadow: 0px 0px 15px rgba(255,215,0,0.6); cursor: pointer; user-select: none; touch-action: none;";
-        
         parent.body.appendChild(btn);
-
         const style = parent.createElement('style');
         style.innerHTML = `
-            @keyframes girar-moeda-3d {
-                0% { transform: perspective(400px) rotateY(0deg); }
-                40% { transform: perspective(400px) rotateY(0deg); }
-                60% { transform: perspective(400px) rotateY(360deg); }
-                100% { transform: perspective(400px) rotateY(360deg); }
-            }
+            @keyframes girar-moeda-3d { 0% { transform: perspective(400px) rotateY(0deg); } 40% { transform: perspective(400px) rotateY(0deg); } 60% { transform: perspective(400px) rotateY(360deg); } 100% { transform: perspective(400px) rotateY(360deg); } }
             #moeda-aguia-vip { animation: girar-moeda-3d 4s infinite ease-in-out; }
             #moeda-aguia-vip.dragging { animation: none !important; opacity: 0.9; transform: scale(1.1); }
         `;
         parent.head.appendChild(style);
-
-        let isDragging = false;
-        let startX, startY, initialLeft, initialTop;
-        
-        btn.addEventListener('touchstart', function(e) {
-            isDragging = false;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            initialLeft = btn.offsetLeft;
-            initialTop = btn.offsetTop;
-            btn.classList.add('dragging');
-        }, {passive: false});
-
-        parent.addEventListener('touchmove', function(e) {
-            if (!btn.classList.contains('dragging')) return;
-            
-            let dx = e.touches[0].clientX - startX;
-            let dy = e.touches[0].clientY - startY;
-            
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-                isDragging = true;
-                e.preventDefault(); 
-                btn.style.left = (initialLeft + dx) + "px";
-                btn.style.top = (initialTop + dy) + "px";
-            }
-        }, {passive: false});
-
-        parent.addEventListener('touchend', function(e) {
-            if (!btn.classList.contains('dragging')) return;
-            btn.classList.remove('dragging');
-            
-            if (!isDragging) {
-                toggleSidebar();
-            }
-            isDragging = false;
-        });
-
-        function toggleSidebar() {
-            const openBtn = parent.querySelector('[data-testid="collapsedControl"]');
-            if (openBtn) {
-                openBtn.click();
-            } else {
-                const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]');
-                if (sidebarHeader) {
-                    const closeBtn = sidebarHeader.querySelector('button');
-                    if (closeBtn) closeBtn.click();
-                }
-            }
-        }
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+        btn.addEventListener('touchstart', function(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.classList.add('dragging'); }, {passive: false});
+        parent.addEventListener('touchmove', function(e) { if (!btn.classList.contains('dragging')) return; let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }, {passive: false});
+        parent.addEventListener('touchend', function(e) { if (!btn.classList.contains('dragging')) return; btn.classList.remove('dragging'); if (!isDragging) toggleSidebar(); isDragging = false; });
+        function toggleSidebar() { const openBtn = parent.querySelector('[data-testid="collapsedControl"]'); if (openBtn) { openBtn.click(); } else { const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]'); if (sidebarHeader) { const closeBtn = sidebarHeader.querySelector('button'); if (closeBtn) closeBtn.click(); } } }
     }
 </script>
 """
@@ -202,6 +150,7 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
 # ==========================================================
 # 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
@@ -279,7 +228,7 @@ if "Comissao_R$" in df.columns:
     df["Comissao_R$"] = pd.to_numeric(
         df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
         errors="coerce"
-    ).fillna(0)
+    ).fillna(0.0)
 else:
     df["Comissao_R$"] = 0.0
 
@@ -318,7 +267,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V5.7 - GRÁFICOS BLINDADOS MOBILE)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V5.7 - BLINDADOS MOBILE)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -357,11 +306,10 @@ else:
     st.markdown("<br>", unsafe_allow_html=True)
 
     if not df_timeline.empty and not df_campeao.empty:
-        # 🔥 INJEÇÃO MOBILE: Botão expansível para guardar os gráficos
+        # 🔥 AQUI ESTÁ O EXPANDER PARA GUARDAR OS GRÁFICOS E LIMPAR A TELA
         with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
             col_graf1, col_graf2 = st.columns(2)
             
-            # Cores Dinâmicas dos Gráficos
             if modo_claro:
                 cor_linha = "#005C66"
                 cor_ponto = "#B8860B"
@@ -391,18 +339,13 @@ else:
                     marker=dict(color=cor_ponto, size=10, line=dict(color="white", width=1)),
                     textfont=dict(color=cor_ponto, size=12, weight="bold")
                 )
-                
-                # 🔥 REMOVIDO o rangeslider (que bugava o dedo no celular) e zoom travado
                 fig_line.update_xaxes(showgrid=False, title="", fixedrange=True)
                 fig_line.update_yaxes(showgrid=True, gridcolor=grid_color, title="", visible=False, zeroline=False, fixedrange=True)
                 fig_line.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color=cor_texto_grafico),
-                    margin=dict(l=0, r=0, t=40, b=10),
-                    height=380, 
-                    hovermode="x unified",
-                    dragmode=False # 🔥 TRAVA ABSOLUTA: Impede o gráfico de roubar o touch do celular
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico), margin=dict(l=0, r=0, t=40, b=10),
+                    height=380, hovermode="x unified",
+                    dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
                 )
                 st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
                 
@@ -425,17 +368,12 @@ else:
                     marker_line_width=1.5, 
                     opacity=0.9
                 )
-                
-                # 🔥 Zoom travado também no gráfico de barras
                 fig_bar.update_xaxes(showgrid=False, title="", visible=False, fixedrange=True)
                 fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
                 fig_bar.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)",
-                    paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color=cor_texto_grafico),
-                    margin=dict(l=0, r=80, t=40, b=0),
-                    height=380,
-                    dragmode=False # 🔥 TRAVA ABSOLUTA
+                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico), margin=dict(l=0, r=80, t=40, b=0),
+                    height=380, dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
                 )
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
@@ -443,10 +381,7 @@ else:
 # 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.6 - CÉREBRO TIKTOK SHOP)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
-    modelo = genai.GenerativeModel(MODELO_ATIVO)
     imagem_pil = Image.open(imagem_upload)
-    
-    # 🔥 CÉREBRO DE ELITE: Ensinando a IA a não cair na pegadinha do GMV
     prompt = f"""
     Você é um auditor financeiro de elite operando um painel do TikTok Shop.
     Sua missão é extrair os dados de vendas da imagem com 100% de precisão, lidando com as pegadinhas da interface do TikTok.
@@ -462,16 +397,13 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
     Formato OBRIGATÓRIO linha por linha (separado por ponto e vírgula):
     DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
-    
     try:
-        resposta = modelo.generate_content([prompt, imagem_pil])
+        resposta = modelo_ia.generate_content([prompt, imagem_pil])
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
-    modelo = genai.GenerativeModel(MODELO_ATIVO)
-    
     prompt = f"""
     Você é um auditor financeiro de elite operando um painel do TikTok Shop.
     
@@ -488,9 +420,8 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
     Formato OBRIGATÓRIO (separado por ponto e vírgula):
     DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
-    
     try:
-        resposta = modelo.generate_content(prompt)
+        resposta = modelo_ia.generate_content(prompt)
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
@@ -613,7 +544,6 @@ st.markdown(f"### 🚀 Curva de Evolução dos Produtos ({filtro_periodo})")
 if not df_filtrado.empty:
     colunas_visiveis = [c for c in df_filtrado.columns if c != "Data_Parsed"]
     df_tabela = df_filtrado[colunas_visiveis].copy()
-    
     df_tabela = df_tabela.iloc[::-1].reset_index(drop=True)
     
     st.dataframe(df_tabela.head(10), use_container_width=True)
@@ -675,7 +605,6 @@ with col_mindset:
     
 with col_missao:
     st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
-    
     missao_cumprida = st.button("✅ CONCLUIR MISSÃO DE HOJE", type="primary", use_container_width=True)
     
     if missao_cumprida:
@@ -686,7 +615,6 @@ with col_missao:
                 try:
                     sheet_id = extrair_id_planilha(link_planilha_ativa)
                     planilha = robo_sheets.open_by_key(sheet_id)
-                    
                     try:
                         aba_historico = planilha.worksheet("Historico_Missoes")
                     except gspread.exceptions.WorksheetNotFound:
@@ -792,7 +720,6 @@ with col_mem1:
 
 with col_mem2:
     st.markdown(f"<h4 style='text-align: center; color: #D4AF37;'>⚡ {buscas_restantes}/2 Restantes</h4>", unsafe_allow_html=True)
-    
     if st.button("🗑️ Limpar Radar", use_container_width=True):
         if aba_radar is not None:
             with st.spinner("A limpar a memória da Aurora..."):
@@ -808,29 +735,22 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
     else:
         with st.spinner(f"A Aurora (Modelo {MODELO_ATIVO}) está minerando produtos secretos do TikTok..."):
             try:
-                modelo_radar = genai.GenerativeModel(MODELO_ATIVO)
-                
                 prompt_radar = """
                 Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
                 Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem.
-                
                 Sua missão: Recomendar 3 produtos de beleza/cabelo que estão com potencial de viralização.
                 Para CADA produto, forneça:
                 1. **Nome do Produto** (ex: Máscara reconstrutora densa).
                 2. **Por que está bombando?** (O desejo/dor que ele atende).
                 3. **Ideia de Roteiro Rápido:** Pitch usando verbos sensoriais. PROIBIDO: 'cura', 'elimina', 'conserta'. USE: 'Sensação de', 'Promove', 'Efeito desmaiado', 'Toque de seda'.
-                4. **Como encontrar no TikTok Shop (Palavras-Chave):** Forneça o nome exato do produto e 3 palavras-chave curtas e precisas para facilitar a minha busca lá dentro (ex: Busca: "Kit Cronograma Capilar", "efeito salão", "cabelo brilhante"). NÃO GERE LINKS DE INTERNET.
-                
+                4. **Como encontrar no TikTok Shop (Palavras-Chave):** Forneça o nome exato do produto e 3 palavras-chave curtas e precisas para facilitar a minha busca lá dentro. NÃO GERE LINKS DE INTERNET.
                 Encerre com: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
                 """
-                resposta_radar = modelo_radar.generate_content(prompt_radar)
-                
+                resposta_radar = modelo_ia.generate_content(prompt_radar)
                 if aba_radar is not None:
                     aba_radar.append_row([hoje_str_radar, resposta_radar.text])
-                
                 st.success("✨ Tendências e palavras-chave mapeadas com sucesso!")
                 st.markdown(resposta_radar.text)
-                
                 time.sleep(2)
                 st.rerun()
             except Exception as e:
@@ -841,7 +761,7 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do seu Analytics e a IA vai montar seu funil de escala. Ele ficará salvo no sistema até você apagar.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie até 10 prints do seu Analytics e a IA vai montar seu funil de escala. Ele ficará salvo no sistema até você apagar.</p>", unsafe_allow_html=True)
 
 aba_raiox = None
 historico_raiox = []
@@ -862,22 +782,19 @@ if link_planilha_ativa and robo_sheets:
 col_raiox1, col_raiox2 = st.columns([1, 2])
 
 with col_raiox1:
-    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img")
+    # 🔥 LIMITE DE 10 IMAGENS EXCLUSIVO PARA O RAIO-X
+    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 10)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img_vip")
     texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
     btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
     
     if historico_raiox:
         st.markdown("### 💾 Ações do Funil")
         ultimo_funil = historico_raiox[-1]["Funil"]
-        
         st.download_button(
-            label="📥 Baixar Mapa Mental (.txt)",
-            data=ultimo_funil,
+            label="📥 Baixar Mapa Mental (.txt)", data=ultimo_funil,
             file_name=f"Estrategia_Elevo_{agora_brasil.strftime('%Y%m%d')}.txt",
-            mime="text/plain",
-            use_container_width=True
+            mime="text/plain", use_container_width=True
         )
-        
         if st.button("🗑️ Apagar Mapa Salvo", use_container_width=True):
             if aba_raiox is not None:
                 with st.spinner("Apagando estratégia do banco de dados..."):
@@ -891,50 +808,38 @@ with col_raiox2:
     if btn_raiox:
         if not texto_contexto and not imgs_analytics:
             st.warning("⚠️ Forneça pelo menos uma imagem do Analytics ou escreva o contexto para a IA conseguir trabalhar!")
-        elif imgs_analytics and len(imgs_analytics) > 5:
-            st.error("🚨 Limite excedido! Por favor, selecione no máximo 5 imagens para não sobrecarregar a análise.")
+        elif imgs_analytics and len(imgs_analytics) > 10:
+            st.error("🚨 Limite excedido! Por favor, selecione no máximo 10 imagens para não sobrecarregar a análise.")
         else:
             try:
-                modelo_raiox = genai.GenerativeModel(MODELO_ATIVO)
-                
                 prompt_raiox = f"""
                 Atue como um estrategista mestre em TikTok Shop, Copywriting e Neuromarketing. 
                 Sua regra fundamental de operação é: 'Eu não vendo produtos. Eu vendo decisões.'
-                
-                O usuário está analisando os dados do PRÓPRIO canal (vídeos que mais venderam, palavras-chave em alta) para otimizar e escalar o funil de vendas.
                 Contexto fornecido pelo usuário: {texto_contexto if texto_contexto else 'Nenhum texto extra fornecido.'}
-                
                 Sua missão:
                 Analise as informações (e as imagens do painel de dados, se foram enviadas). Descubra o padrão de sucesso do usuário e monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL para ele escalar esses resultados.
-                
                 Estrutura obrigatória da sua resposta:
                 1. 🧠 **O Padrão de Ouro:** O que está fazendo a audiência do usuário comprar neste momento? Qual o gatilho principal que deu certo?
                 2. 🌪️ **O Funil Escalável:** 
                    - **Topo (Atenção):** Como replicar essa captura de atenção?
                    - **Meio (Conexão):** Como alinhar os próximos vídeos com as palavras-chave que as pessoas já estão buscando no canal dele?
-                   - **Fundo (Ação):** Como otimizar a Chamada para Ação (CTA) para aumentar ainda mais a conversão?
-                3. 🎣 **3 Ganchos (Hooks) Prontos:** Baseado no que já deu certo, crie 3 novos inícios de roteiro magnéticos usando as palavras-chave validadas.
-                4. 💎 **Estratégia de Dominação:** Uma dica avançada para ele cercar e dominar essas palavras-chave específicas no TikTok.
-                
+                   - **Fundo (Ação):** Como otimizar a Chamada para Ação (CTA)?
+                3. 🎣 **3 Ganchos (Hooks) Prontos:** Baseado no que já deu certo, crie 3 novos inícios de roteiro magnéticos.
+                4. 💎 **Estratégia de Dominação:** Uma dica avançada para dominar essas palavras-chave específicas no TikTok.
                 Use emojis. Seja frio, analítico, direto e 100% focado na arquitetura de conversão.
                 """
-                
                 conteudo_geracao = [prompt_raiox]
-                
                 barra_raiox = st.progress(0, text="Iniciando a Engenharia Reversa...")
-                
                 if imgs_analytics:
                     total_imgs = len(imgs_analytics)
                     for idx, img in enumerate(imgs_analytics):
                         imagem_pil_raiox = Image.open(img)
                         conteudo_geracao.append(imagem_pil_raiox)
                         time.sleep(0.5)
-                        progresso_atual = int(((idx + 1) / total_imgs) * 50)
-                        barra_raiox.progress(progresso_atual, text=f"Lendo print {idx + 1} de {total_imgs}...")
+                        barra_raiox.progress(int(((idx + 1) / total_imgs) * 50), text=f"Lendo print {idx + 1} de {total_imgs}...")
                 
                 barra_raiox.progress(75, text="🧠 Prints lidos! Cruzando os dados e montando o Funil...")
-                
-                resposta_raiox = modelo_raiox.generate_content(conteudo_geracao)
+                resposta_raiox = modelo_ia.generate_content(conteudo_geracao)
                 
                 if aba_raiox is not None:
                     aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox.text])
@@ -942,7 +847,6 @@ with col_raiox2:
                 barra_raiox.progress(100, text="✅ Análise concluída e salva!")
                 time.sleep(1)
                 barra_raiox.empty() 
-                
                 st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
                 st.rerun()
             except Exception as e:
@@ -964,55 +868,42 @@ st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa TODO o 
 if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primary", use_container_width=True):
     with st.spinner("Analisando faturamento, tendências, missões e funil... Forjando roteiros de elite..."):
         try:
-            # 1. CAPTURA DE DADOS DE TODO O SISTEMA (Visão 360º)
             alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Ainda sem dados. Sugira um produto genérico de beleza feminino."
             vendas_atuais = f"R$ {aprovado:,.2f}"
             tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência mapeada ainda."
             ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco total na curiosidade e escassez."
             missao_atual = missao_hoje
 
-            # 2. IA DE COPYWRITING DE ELITE COM CONTEXTO TOTAL
-            modelo_roteiro = genai.GenerativeModel(MODELO_ATIVO)
             prompt_roteiro = f"""
             Atue como um Copywriter de Elite focado em TikTok Shop para o público feminino ("Buscadora de Atalhos", 18-40 anos, ama levar vantagem).
-            
-            DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO (Use isso para entender o contexto e alinhar a estratégia):
+            DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO:
             📊 Faturamento Aprovado no Filtro Atual: {vendas_atuais}
-            🏆 Produto Campeão (O que mais está botando dinheiro no bolso): {alvo_campeao}
-            🔮 Última Tendência do Mercado (Mapeada pela Aurora): {tendencia_aurora}
-            🧬 Nosso Funil e Ganchos Validados (Raio-X): {ultimo_funil_texto}
+            🏆 Produto Campeão: {alvo_campeao}
+            🔮 Última Tendência do Mercado: {tendencia_aurora}
+            🧬 Nosso Funil e Ganchos Validados: {ultimo_funil_texto}
             🎯 Missão de Execução de Hoje: {missao_atual}
             
-            DIRETRIZES DE BLINDAGEM (CONFORMIDADE ESTRATÉGICA TIKTOK):
-            - PROIBIDO ABSOLUTO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original" (se não for marca oficial), "Derrete", "Apaga", "Milagre".
-            - OBRIGATÓRIO (Substitutos Sensoriais): "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Auxilia na redução do aspecto de", "Toque de seda".
+            DIRETRIZES DE BLINDAGEM TIKTOK:
+            - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
+            - OBRIGATÓRIO: "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Toque de seda".
             
             AVATAR E TOM DE VOZ (AURORA):
-            - Amiga fofoqueira do bem, vibe de "conspiração feminina".
+            - Amiga fofoqueira do bem.
             - Hooks permitidos: "Amiga, para tudo!", "Vem cá, me conta uma coisa...", "Eu não deveria estar falando isso, mas...", "Gente, o pessoal do estoque vai me matar."
             - Assinatura final obrigatória: "Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?"
             
             MISSÃO:
             Baseado em TODOS OS DADOS da nossa operação fornecidos acima, crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [Produto Campeão].
-            
             ROTEIRO 1: O Choque de Preço (Erro no Sistema)
-            - Foco no valor absurdo comparado ao que o produto entrega. A sensação de levar muita vantagem.
+            ROTEIRO 2: O Segredo Revelado (Use a tendência se fizer sentido)
+            ROTEIRO 3: A Comparação Visual (Dor vs Solução sensorial)
             
-            ROTEIRO 2: O Segredo Revelado
-            - Foco em "o que as blogueiras usam e não te contam que custa barato". Tom de fofoca pura (use a tendência mapeada pela Aurora se fizer sentido).
-            
-            ROTEIRO 3: A Comparação Visual
-            - Foco em mostrar a dor e a solução sensorial sem prometer cura total (alinhado com o funil validado).
-            
-            Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio, direto e agressivo na retenção.
+            Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
             """
-            
-            resposta_roteiro = modelo_roteiro.generate_content(prompt_roteiro)
-            
+            resposta_roteiro = modelo_ia.generate_content(prompt_roteiro)
             st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
             st.markdown(resposta_roteiro.text)
             st.balloons()
-            
         except Exception as e:
             st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
 
@@ -1021,7 +912,6 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
 # ==========================================================
 st.divider()
 
-# Cálculo de Tendência (Últimos 7 dias vs 7 dias anteriores)
 crescimento = 0.0
 rev_7d = 0.0
 rev_prev_7d = 0.0
@@ -1034,37 +924,32 @@ if not df.empty and "Data_Parsed" in df.columns:
     limite_7d = hoje - timedelta(days=7)
     limite_14d = hoje - timedelta(days=14)
     
-    # Faturamento últimos 7 dias (Aprovado/Estimado)
     rev_7d = df[(df["Data_Parsed"] >= limite_7d) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
-    
-    # Faturamento dos 7 dias anteriores
     rev_prev_7d = df[(df["Data_Parsed"] >= limite_14d) & (df["Data_Parsed"] < limite_7d) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
     
     if rev_prev_7d > 0:
         crescimento = ((rev_7d - rev_prev_7d) / rev_prev_7d) * 100
     elif rev_7d > 0:
-        crescimento = 100.0  # Saiu do zero para o lucro
+        crescimento = 100.0  
     else:
         crescimento = 0.0
 
-    # Inteligência de Diagnóstico
     if crescimento > 5:
-        cor_anim = "#00FF7F" # Verde Primavera Neon
+        cor_anim = "#00FF7F" 
         sombra_anim = "rgba(0, 255, 127, 0.4)"
         nota_empresa = "A+"
         simbolo = "🚀 ESCALANDO (LUCRO)"
     elif crescimento < -5:
-        cor_anim = "#FF0040" # Vermelho Alerta
+        cor_anim = "#FF0040" 
         sombra_anim = "rgba(255, 0, 64, 0.4)"
         nota_empresa = "C-"
         simbolo = "🚨 ALERTA DE QUEDA"
     else:
-        cor_anim = "#FFD700" # Ouro VIP
+        cor_anim = "#FFD700" 
         sombra_anim = "rgba(212, 175, 55, 0.4)"
         nota_empresa = "B"
         simbolo = "⚖️ ESTÁVEL"
 
-# Renderização do Painel Animado via HTML/CSS
 html_coracao = f"""
 <div style="
     background: rgba(15, 15, 15, 0.6);
