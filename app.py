@@ -1245,11 +1245,16 @@ with st.container(border=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
-# --- REPRODUTOR DE ÁUDIO INVISÍVEL E LOOP FANTASMA ---
+# --- REPRODUTOR DE ÁUDIO VISÍVEL E LOOP FANTASMA ---
 if st.session_state.get("live_rodando"):
     if len(st.session_state["fila_audios"]) > 0:
         audio_tocar = st.session_state["fila_audios"].pop(0)
-        html_player = f'<audio autoplay src="data:audio/mp3;base64,{audio_tocar}"></audio>'
+        
+        st.markdown("### 🔊 Voz da Aurora")
+        st.info("Se o áudio não arrancar automaticamente devido ao bloqueio do telemóvel, clique no Play abaixo.")
+        
+        # Reprodutor visível com botões de controlo (força a permissão do navegador)
+        html_player = f'<audio controls autoplay src="data:audio/mp3;base64,{audio_tocar}" style="width: 100%; border-radius: 8px;"></audio>'
         st.markdown(html_player, unsafe_allow_html=True)
     
     time.sleep(3)
