@@ -1,10 +1,3 @@
-import threading
-import asyncio
-import base64
-import requests
-import time
-from TikTokLive import TikTokLiveClient
-from TikTokLive.events import ConnectEvent, CommentEvent
 import streamlit as st
 import pandas as pd
 import time
@@ -14,6 +7,13 @@ from PIL import Image
 import gspread
 import re
 import plotly.express as px
+import threading
+import asyncio
+import base64
+import requests
+import time
+from TikTokLive import TikTokLiveClient
+from TikTokLive.events import ConnectEvent, CommentEvent
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V4.0 VIP)
