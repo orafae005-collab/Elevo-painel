@@ -378,49 +378,8 @@ else:
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.91 - BLINDAGEM COM EXEMPLO)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V6.0 - FOCO TOTAL NO TEXTO)
 # ==========================================================
-def extrair_dados_do_print(imagem_upload, nome_canal):
-    imagem_pil = Image.open(imagem_upload)
-    
-    # Captura a data exata do momento para a IA não alucinar o ano
-    agora_brasil = datetime.utcnow() - timedelta(hours=3)
-    data_hoje = agora_brasil.strftime("%d/%m/%Y")
-    
-    # 🔥 CÉREBRO DA AURORA: Relógio sincronizado, matemática forçada e EXEMPLO DE OURO
-    prompt = f"""
-    Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
-    Sua missão é extrair os dados de vendas da imagem com 100% de precisão.
-    
-    INFORMAÇÕES DE SISTEMA (USE OBRIGATORIAMENTE):
-    - DATA DE HOJE: {data_hoje}
-    - CANAL: {nome_canal}
-    
-    REGRAS INQUEBRÁVEIS DE MATEMÁTICA E LEITURA:
-    1. A PEGADINHA DO 'GMV': A tela mostra o 'GMV atribuído' (faturamento bruto). NUNCA coloque esse valor na coluna de comissão. 
-    2. CÁLCULO OBRIGATÓRIO (PROIBIDO ZERAR): Você DEVE calcular a comissão de CADA produto listado. Multiplique o valor do GMV do produto por 0.15 (15%). NUNCA deixe a comissão zerada (0.00) se houver um GMV válido.
-    3. 🔥 REGRA DO PONTO DECIMAL: Use OBRIGATORIAMENTE o PONTO (.) para decimais e APENAS NÚMEROS. Exemplo de cálculo: GMV de 33.52 * 0.15 = 5.02. Escreva APENAS 5.02 (NUNCA escreva 5,02, nem R$5.02, nem letras).
-    4. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o número exato. Se for 0, ignore o produto (não coloque na tabela).
-    5. STATUS DE VENDA: Assuma SEMPRE 'Aprovado'.
-    6. DATA: Toda vez que ler a palavra "Hoje", utilize EXATAMENTE a DATA DE HOJE fornecida no sistema ({data_hoje}).
-    
-    🎯 EXEMPLO DE COMO VOCÊ DEVE PENSAR E RESPONDER:
-    Se você ler na imagem: "Kit 3 Henê Rená Preto Natural / GMV atribuído R$ 33,52 / Itens vendidos atribuídos 1"
-    Você fará a conta: 33.52 * 0.15 = 5.02
-    A sua resposta DEVE ser EXATAMENTE esta linha:
-    {data_hoje};Kit 3 Henê Rená Preto Natural;{nome_canal};Aprovado;1;5.02
-    
-    Extraia as informações e retorne APENAS as linhas de dados brutos, sem markdown.
-    Formato OBRIGATÓRIO linha por linha (separado por ponto e vírgula):
-    Data;Nome do Produto;Canal;Status;Quantidade;ValorDaComissao
-    """
-    
-    try:
-        resposta = modelo_ia.generate_content([prompt, imagem_pil])
-        return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
-    except Exception as e:
-        return f"ERRO_API: {str(e)}"
-
 def extrair_dados_do_texto(texto_bruto, nome_canal):
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
     data_hoje = agora_brasil.strftime("%d/%m/%Y")
@@ -452,6 +411,8 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
+
+
 # ==========================================================
 # 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 AURORA & PROTOCOLO ÁGUIA)
 # ==========================================================
@@ -460,69 +421,38 @@ if "dados_prontos" not in st.session_state:
 
 st.markdown("### 🤖 Motor de Auditoria e Injeção (Aurora)")
 
-aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto (Plano B)"])
+st.write("📋 Copie o relatório de produtos do TikTok Shop e cole abaixo:")
+texto_copiado = st.text_area("Cole os dados brutos aqui:", height=150, placeholder="Cole aqui o texto copiado...")
 
-with aba_imagem:
-    if prints_comissao:
-        if len(prints_comissao) > 5:
-            st.error("🚨 Limite excedido! Por favor, selecione no máximo 5 imagens para não sobrecarregar o sistema.")
-        else:
-            if st.button("🚀 Extrair Dados das Imagens", type="primary"):
-                barra_progresso = st.progress(0)
-                # 🔥 NOVA IDENTIDADE: A Aurora assumiu o controle!
-                with st.spinner("🦅 A Aurora está usando Visão de Águia para auditar os seus lucros..."):
-                    for idx, arquivo in enumerate(prints_comissao):
-                        texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
-                        time.sleep(2)
-                        if "ERRO_API:" not in texto_ia and texto_ia:
-                            linhas = texto_ia.split('\n')
-                            for linha in linhas:
-                                linha = linha.strip()
-                                if not linha or "Data;" in linha or "Produto;" in linha: continue
-                                itens = linha.split(';')
-                                if len(itens) >= 6:
-                                    st.session_state["dados_prontos"].append({
-                                        "Data": itens[0].strip(),
-                                        "Produto": itens[1].strip(),
-                                        "Canal": itens[2].strip(),
-                                        "Status": itens[3].strip(),
-                                        "Quantidade": itens[4].strip(),
-                                        "Comissao_R$": itens[5].strip()
-                                    })
-                    barra_progresso.progress((idx + 1) / len(prints_comissao))
-
-with aba_texto:
-    st.write("Copie o relatório do TikTok Shop ou do WhatsApp e cole abaixo:")
-    texto_copiado = st.text_area("Cole os dados brutos aqui:", height=150)
-    
-    if st.button("🚀 Extrair Dados do Texto", type="primary"):
-        if texto_copiado.strip() == "":
-            st.warning("⚠️ Cole algum texto antes de pedir para a Aurora ler!")
-        else:
-            barra_progresso_texto = st.progress(10)
-            with st.spinner("🦅 A Aurora está organizando o seu fluxo de caixa..."):
-                texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
-                barra_progresso_texto.progress(60)
-                if "ERRO_API:" not in texto_ia and texto_ia:
-                    linhas = texto_ia.split('\n')
-                    for linha in linhas:
-                        linha = linha.strip()
-                        if not linha or "Data;" in linha or "Produto;" in linha: continue
-                        itens = linha.split(';')
-                        if len(itens) >= 6:
-                            st.session_state["dados_prontos"].append({
-                                "Data": itens[0].strip(),
-                                "Produto": itens[1].strip(),
-                                "Canal": itens[2].strip(),
-                                "Status": itens[3].strip(),
-                                "Quantidade": itens[4].strip(),
-                                "Comissao_R$": itens[5].strip()
-                            })
-                    barra_progresso_texto.progress(100)
-                    if len(st.session_state["dados_prontos"]) == 0:
-                        st.error("⚠️ A Aurora leu o texto, mas não encontrou os dados. Verifique a cópia!")
-                else:
-                    st.error(f"⚠️ Erro ao conectar com a Aurora: {texto_ia}")
+if st.button("🚀 Extrair Dados do Texto", type="primary", use_container_width=True):
+    if texto_copiado.strip() == "":
+        st.warning("⚠️ Cole algum texto antes de pedir para a Aurora ler!")
+    else:
+        barra_progresso_texto = st.progress(10)
+        with st.spinner("🦅 A Aurora está organizando o seu fluxo de caixa..."):
+            texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
+            barra_progresso_texto.progress(60)
+            
+            if "ERRO_API:" not in texto_ia and texto_ia:
+                linhas = texto_ia.split('\n')
+                for linha in linhas:
+                    linha = linha.strip()
+                    if not linha or "Data;" in linha or "Produto;" in linha: continue
+                    itens = linha.split(';')
+                    if len(itens) >= 6:
+                        st.session_state["dados_prontos"].append({
+                            "Data": itens[0].strip(),
+                            "Produto": itens[1].strip(),
+                            "Canal": itens[2].strip(),
+                            "Status": itens[3].strip(),
+                            "Quantidade": itens[4].strip(),
+                            "Comissao_R$": itens[5].strip()
+                        })
+                barra_progresso_texto.progress(100)
+                if len(st.session_state["dados_prontos"]) == 0:
+                    st.error("⚠️ A Aurora leu o texto, mas não encontrou os dados. Verifique a cópia!")
+            else:
+                st.error(f"⚠️ Erro ao conectar com a Aurora: {texto_ia}")
 
 if st.session_state["dados_prontos"]:
     # 🔥 ANIMAÇÃO DA TABELA: Efeito de deslizar e brilhar ao aparecer
@@ -542,7 +472,7 @@ if st.session_state["dados_prontos"]:
     """
     st.markdown(html_tabela_animada, unsafe_allow_html=True)
     
-    st.success("✨ Dados validados pela Aurora! ✍️ Confirme a tabela animada abaixo e Injet:")
+    st.success("✨ Dados validados pela Aurora! ✍️ Confirme a tabela animada abaixo e Injete:")
     
     col_tabela_1, col_tabela_2 = st.columns([4, 1])
     with col_tabela_2:
@@ -597,17 +527,16 @@ with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False)
                     planilha = robo_sheets.open_by_key(sheet_id)
                     aba = planilha.sheet1
                     
-                    coluna_datas = aba.col_values(1) # Pega a coluna de Datas
+                    coluna_datas = aba.col_values(1) 
                     agora_brasil = datetime.utcnow() - timedelta(hours=3)
                     hoje_str = agora_brasil.strftime("%d/%m/%Y")
                     
                     linhas_apagadas = 0
-                    # Deleta de baixo para cima para não quebrar a ordem da planilha
                     for i in range(len(coluna_datas), 1, -1):
                         if str(coluna_datas[i-1]).strip() == hoje_str:
                             aba.delete_rows(i)
                             linhas_apagadas += 1
-                            time.sleep(0.5) # Pausa estratégica para a API do Google não travar
+                            time.sleep(0.5) 
                             
                     if linhas_apagadas > 0:
                         st.success(f"🦅 SUCESSO! A Águia eliminou {linhas_apagadas} linhas corrompidas de hoje. Sua planilha está limpa e pronta para recomeçar!")
@@ -619,6 +548,7 @@ with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False)
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro no voo da Águia: {e}")
+
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
