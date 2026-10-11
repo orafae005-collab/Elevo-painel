@@ -432,7 +432,7 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
 
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 COM ANIMAÇÃO DA AURORA)
+# 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 AURORA & PROTOCOLO ÁGUIA)
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
@@ -558,6 +558,46 @@ if st.session_state["dados_prontos"]:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
+
+# ==========================================================
+# 🦅 PROTOCOLO DE EMERGÊNCIA (O BOTÃO DE PÂNICO)
+# ==========================================================
+st.markdown("<br>", unsafe_allow_html=True)
+with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False):
+    st.warning("⚠️ **Atenção:** Clicar no botão abaixo vai entrar na sua Planilha do Google e **APAGAR TODAS as vendas com a data de HOJE**. Use isso como um 'Botão de Pânico' para limpar erros da IA de uma vez só.")
+    
+    if st.button("🦅 ACIONAR ÁGUIA (Limpar Vendas de Hoje)", type="secondary", use_container_width=True):
+        if not link_planilha_ativa or not robo_sheets:
+            st.error("⚠️ Planilha não conectada.")
+        else:
+            with st.spinner("🦅 A Águia está voando pela planilha e apagando os erros um por um..."):
+                try:
+                    sheet_id = extrair_id_planilha(link_planilha_ativa)
+                    planilha = robo_sheets.open_by_key(sheet_id)
+                    aba = planilha.sheet1
+                    
+                    coluna_datas = aba.col_values(1) # Pega a coluna de Datas
+                    agora_brasil = datetime.utcnow() - timedelta(hours=3)
+                    hoje_str = agora_brasil.strftime("%d/%m/%Y")
+                    
+                    linhas_apagadas = 0
+                    # Deleta de baixo para cima para não quebrar a ordem da planilha
+                    for i in range(len(coluna_datas), 1, -1):
+                        if str(coluna_datas[i-1]).strip() == hoje_str:
+                            aba.delete_rows(i)
+                            linhas_apagadas += 1
+                            time.sleep(0.5) # Pausa estratégica para a API do Google não travar
+                            
+                    if linhas_apagadas > 0:
+                        st.success(f"🦅 SUCESSO! A Águia eliminou {linhas_apagadas} linhas corrompidas de hoje. Sua planilha está limpa e pronta para recomeçar!")
+                    else:
+                        st.info("🦅 A Águia não encontrou nenhum dado com a data de hoje para apagar.")
+                        
+                    carregar_dados_dinamicos.clear()
+                    time.sleep(3)
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Erro no voo da Águia: {e}")
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
