@@ -1094,7 +1094,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR BLINDADO VIP)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR SUPREMO VIP + RÁDIO)
 # ==========================================================
 import threading
 import asyncio
@@ -1146,6 +1146,8 @@ if "log_chat" not in st.session_state:
     st.session_state["log_chat"] = []
 if "caixa_de_correio" not in st.session_state:
     st.session_state["caixa_de_correio"] = queue.Queue()
+if "ultimo_audio_timestamp" not in st.session_state:
+    st.session_state["ultimo_audio_timestamp"] = time.time()
 
 # --- MOTOR DE VOZ INTELIGENTE (COM BACKUP GRATUITO) ---
 def gerar_audio_base64(texto):
@@ -1174,7 +1176,7 @@ def gerar_audio_base64(texto):
         except:
             return None
 
-# --- MENTE DA AURORA (ANTI-REPETIÇÃO E TRAVA DE PREÇO) ---
+# --- MENTE DA AURORA (COMENTÁRIOS) ---
 def processar_comentario_ia(arroba, comentario, produto):
     historico_recente = " | ".join(st.session_state["log_chat"][-4:]) if st.session_state["log_chat"] else "Nenhum"
     prompt_ia = f"""
@@ -1203,7 +1205,7 @@ def loop_tiktok_background(arroba, caixa_correio):
 
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        caixa_correio.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho!"})
+        caixa_correio.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho pra ver a promoção!"})
 
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
@@ -1245,7 +1247,6 @@ with st.container(border=True):
                 apagar_dossie_vip()
                 st.rerun()
                 
-        # A Aurora sempre vai ler da memória física do servidor
         produto_live = ler_dossie_vip()
 
     st.markdown("<br>", unsafe_allow_html=True)
@@ -1266,6 +1267,7 @@ with st.container(border=True):
             st.session_state["modo_teste"] = False
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = []
+            st.session_state["ultimo_audio_timestamp"] = time.time()
             while not st.session_state["caixa_de_correio"].empty():
                 st.session_state["caixa_de_correio"].get()
             thread_live = threading.Thread(target=loop_tiktok_background, args=(arroba_tiktok, st.session_state["caixa_de_correio"]), daemon=True)
@@ -1280,7 +1282,8 @@ with st.container(border=True):
             st.session_state["modo_teste"] = True
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
-            audio_teste = gerar_audio_base64("Oi sócio! O roteiro foi injetado com sucesso na matriz do sistema. Estou pronta!")
+            st.session_state["ultimo_audio_timestamp"] = time.time()
+            audio_teste = gerar_audio_base64("Oi sócio! O roteiro tá injetado. A rádio automática e a roleta de vendas estão 100% ativas!")
             if audio_teste: 
                 st.session_state["fila_audios"].append(audio_teste)
             st.rerun()
@@ -1316,23 +1319,62 @@ with st.container(border=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
-# --- O PROCESSADOR CENTRAL ---
+# --- O PROCESSADOR CENTRAL (COM RÁDIO AUTOMÁTICA E ROLETA) ---
 if st.session_state.get("live_rodando"):
     if not st.session_state["modo_teste"]:
+        teve_interacao = False
+        
+        # Lê a Caixa de Correio
         while not st.session_state["caixa_de_correio"].empty() and len(st.session_state["fila_audios"]) < 2:
             carta = st.session_state["caixa_de_correio"].get()
+            teve_interacao = True
+            
             if carta["tipo"] == "sistema":
                 st.session_state["log_chat"].append(f"🟢 [SISTEMA]: Live Iniciada!")
                 audio_b64 = gerar_audio_base64(carta["mensagem"])
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+                
             elif carta["tipo"] == "comentario":
                 st.session_state["log_chat"].append(f"💬 [{carta['nome']}]: {carta['texto']}")
                 resposta = processar_comentario_ia(carta['nome'], carta['texto'], produto_live)
                 audio_b64 = gerar_audio_base64(resposta)
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
+        # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA)
+        tempo_em_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
+        
+        if len(st.session_state["fila_audios"]) == 0 and tempo_em_silencio > 25.0 and not teve_interacao:
+            historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
+            
+            prompt_radio = f"""
+            Você é a Aurora, em live no TikTok. O chat está quieto há 25 segundos.
+            Quebre o gelo! Fale sozinha (sem citar comentários) de forma carismática e fofoqueira para vender o produto.
+            
+            Dossiê do Produto: {produto_live}.
+            
+            🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro, Reais ou números.
+            🚨 REGRA 2 (ANTI-PAPAGAIO): Você acabou de falar isto: [{historico}]. Dê a explicação do produto, mas use palavras e tons diferentes.
+            
+            🎯 ROLETA DE VENDAS (Alterne entre estes 3 ângulos):
+            1. QUALIDADE: Fale sobre como o produto resolve a vida e detalhes.
+            2. ESCASSEZ: Diga que restam pouquíssimas unidades no estoque.
+            3. URGÊNCIA: Avise que "quando a live fechar, o produto sai da promoção".
+            
+            Escolha UM desses ângulos. Seja curta (1 a 2 frases) e mande clicar no carrinho.
+            """
+            try:
+                texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
+                st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: Explicando produto...")
+                audio_b64 = gerar_audio_base64(texto_radio)
+                if audio_b64: 
+                    st.session_state["fila_audios"].append(audio_b64)
+                    st.session_state["ultimo_audio_timestamp"] = time.time()
+            except:
+                pass
+
     # REPRODUTOR DE ÁUDIO VISÍVEL COM AUTOPLAY JAVASCRIPT
     if len(st.session_state["fila_audios"]) > 0:
+        st.session_state["ultimo_audio_timestamp"] = time.time()
         audio_tocar = st.session_state["fila_audios"].pop(0)
         st.markdown("### 🔊 Voz da Aurora")
         
