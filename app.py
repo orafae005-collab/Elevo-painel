@@ -1091,10 +1091,15 @@ st.markdown(html_coracao, unsafe_allow_html=True)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de Transmissão VIP (Voz ao Vivo)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Coloque este celular ao lado do que está gravando. A Aurora assume a locução e as vendas.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Coloque este telemóvel ao lado do que está a gravar. A Aurora assume a locução e as vendas.</p>", unsafe_allow_html=True)
 
-# --- CHAVES DE ACESSO (Puxando do Cofre do Streamlit) ---
-CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
+# --- CHAVES DE ACESSO (Proteção anti-falha no Cofre) ---
+try:
+    CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
+except KeyError:
+    st.error("🚨 ALERTA: A chave da ElevenLabs não foi encontrada no cofre do Streamlit. Vá a Settings > Secrets e adicione 'ELEVENLABS_API_KEY'.")
+    st.stop() # Para a execução de forma limpa, sem ecrã de erro técnico
+
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
 # --- GERENCIADOR DE ESTADO DA LIVE ---
@@ -1226,7 +1231,7 @@ with st.container(border=True):
             audio_batalha = gerar_audio_base64("Atenção tropa, começou a batalha! Todo mundo dando dois toques rápidos na tela pra gente esmagar no placar!")
             if audio_batalha: st.session_state["fila_audios"].append(audio_batalha)
         if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
-            audio_venda = gerar_audio_base64("Gente, olha esse achadinho no carrinho! Clica aí embaixo agora que o estoque vai acabar antes da live terminar, tá muito barato!")
+            audio_venda = gerar_audio_base64("Gente, olha este achadinho no carrinho! Clica aí em baixo agora que o stock vai acabar antes da live terminar, está muito barato!")
             if audio_venda: st.session_state["fila_audios"].append(audio_venda)
 
         with st.expander("👁️ Ver Interações Recentes da Aurora", expanded=True):
