@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.2 - ALTO CONTRASTE VIP)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.3 - CONTRASTE ABSOLUTO)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -53,7 +53,7 @@ else:
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
     metric_val_color = "#FFD700" 
-    metric_label_color = "#E0E0E0" # 🔥 PRATA CLARO para os rótulos dos cartões
+    metric_label_color = "#E0E0E0" 
 
 estilo_elevo = f"""
 <style>
@@ -63,15 +63,23 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 O TRUQUE MESTRE PARA O CABEÇALHO (Moeda continua funcionando) 🔥 */
+    /* 🔥 O TRUQUE MESTRE PARA O CABEÇALHO 🔥 */
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; min-height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* FORÇANDO O ALTO CONTRASTE EM TODOS OS TEXTOS E TÍTULOS (Modo Escuro legível) */
+    /* 🚨 CONTRASTE ABSOLUTO (Pegando listas, negritos e itálicos da IA) 🚨 */
+    [data-testid="stMarkdownContainer"] *,
     [data-testid="stMarkdownContainer"] h1, 
     [data-testid="stMarkdownContainer"] h2, 
     [data-testid="stMarkdownContainer"] h3, 
+    [data-testid="stMarkdownContainer"] h4, 
     [data-testid="stMarkdownContainer"] p,
+    [data-testid="stMarkdownContainer"] li,
+    [data-testid="stMarkdownContainer"] span,
+    [data-testid="stMarkdownContainer"] strong,
+    [data-testid="stMarkdownContainer"] b,
+    [data-testid="stMarkdownContainer"] em,
+    [data-testid="stMarkdownContainer"] i,
     label {{
         color: {text_color} !important;
     }}
@@ -90,7 +98,7 @@ estilo_elevo = f"""
     .subtitulo {{
         text-align: center; font-size: 1.1rem; margin-bottom: 40px;
         font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
-        color: {text_color} !important; /* Prata claro aplicado aqui também */
+        color: {text_color} !important;
     }}
     
     [data-testid="stMetric"] {{
@@ -100,12 +108,10 @@ estilo_elevo = f"""
         transition: all 0.3s ease;
     }}
     
-    /* Garantindo a cor dos rótulos (Ex: Lucro Aprovado) */
     [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] div, [data-testid="stMetricLabel"] p {{ 
         color: {metric_label_color} !important; 
     }}
     
-    /* Os valores milionários continuam intocáveis (Ouro) */
     [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span {{
         color: {metric_val_color} !important; font-weight: 900 !important;
         font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
@@ -114,7 +120,7 @@ estilo_elevo = f"""
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (MANTIDA INTACTA)
+# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT
 js_moeda = """
 <script>
     const parent = window.parent.document;
