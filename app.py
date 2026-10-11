@@ -378,25 +378,29 @@ else:
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.6 - CÉREBRO TIKTOK SHOP)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.8 - CÉREBRO DA AURORA)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
     imagem_pil = Image.open(imagem_upload)
+    
+    # 🔥 CÉREBRO DA AURORA: Matemática rígida e ponto decimal forçado
     prompt = f"""
-    Você é um auditor financeiro de elite operando um painel do TikTok Shop.
-    Sua missão é extrair os dados de vendas da imagem com 100% de precisão, lidando com as pegadinhas da interface do TikTok.
+    Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
+    Sua missão é extrair os dados de vendas da imagem com 100% de precisão.
     
     REGRAS INQUEBRÁVEIS DE MATEMÁTICA E LEITURA:
-    1. A PEGADINHA DO 'GMV': A tela 'Pontuação de desempenho da promoção' mostra o 'GMV atribuído' (que é o valor bruto pago pelo cliente, ex: R$ 68,80). NUNCA COLOQUE O GMV NA COLUNA DE COMISSÃO. 
-    2. COMO CALCULAR A COMISSÃO: Se a tela não mostrar a comissão exata do produto, você DEVE calcular a comissão estimada multiplicando o GMV por 15% (GMV * 0.15). Exemplo: Se o GMV do produto for 68,80, a comissão que você vai preencher será 10,32. 
-    3. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o valor exato de itens vendidos para cada produto (ex: 3, 1, 5). Se não encontrar o número, preencha 1.
-    4. STATUS DE VENDA: Como essas telas de desempenho não mostram o status logístico, assuma SEMPRE que o status é 'Aprovado'. NUNCA deixe vazio ou com traços (-).
-    5. DATA: Se a tela mostrar "Hoje" ou não apresentar data, use a data atual no formato DD/MM/AAAA.
+    1. A PEGADINHA DO 'GMV': A tela mostra o 'GMV atribuído'. NUNCA COLOQUE O GMV NA COLUNA DE COMISSÃO. 
+    2. COMO CALCULAR A COMISSÃO: Se a tela não mostrar a comissão exata, calcule multiplicando o GMV por 15% (GMV * 0.15).
+    3. 🔥 REGRA ABSOLUTA DO PONTO DECIMAL: Você DEVE usar PONTO (.) para separar os centavos. É ESTRITAMENTE PROIBIDO USAR VÍRGULA. Exemplo: Se a comissão for 3 Reais e 81 centavos, escreva EXATAMENTE 3.81 (Nunca 3,81 ou 381).
+    4. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o valor exato (ex: 3, 1, 5). Se não encontrar, preencha 1.
+    5. STATUS DE VENDA: Como essas telas não mostram o status logístico, assuma SEMPRE 'Aprovado'.
+    6. DATA: Se a tela mostrar "Hoje", use a data atual no formato DD/MM/AAAA.
     
-    Extraia as informações e retorne APENAS as linhas de dados brutos, sem markdown (```csv), sem cabeçalho e sem texto adicional.
+    Extraia as informações e retorne APENAS as linhas de dados brutos, sem markdown.
     Formato OBRIGATÓRIO linha por linha (separado por ponto e vírgula):
     DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
+    
     try:
         resposta = modelo_ia.generate_content([prompt, imagem_pil])
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
@@ -405,13 +409,13 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
     prompt = f"""
-    Você é um auditor financeiro de elite operando um painel do TikTok Shop.
+    Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
     
     REGRAS INQUEBRÁVEIS:
-    1. PROIBIDO USAR GMV: O 'GMV atribuído' é o lucro da loja, não o seu. Nunca coloque o GMV como sua comissão.
-    2. CÁLCULO DE COMISSÃO: Se o texto mostrar o GMV, multiplique esse valor por 0.15 (15%) para achar a sua comissão real.
-    3. STATUS: Se não houver status claro, preencha como 'Aprovado'.
-    4. QUANTIDADE: Se houver indicação de itens vendidos, use esse número.
+    1. PROIBIDO USAR GMV: O 'GMV atribuído' é o lucro da loja, não o seu. 
+    2. CÁLCULO DE COMISSÃO: Se o texto mostrar o GMV, multiplique por 0.15 (15%).
+    3. 🔥 REGRA DO PONTO DECIMAL: Use SEMPRE ponto (.) para decimais. Exemplo: Escreva 5.03 e NUNCA 5,03.
+    4. STATUS: Preencha como 'Aprovado'.
     
     Texto copiado:
     {texto_bruto}
@@ -428,12 +432,12 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
 
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS
+# 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 COM ANIMAÇÃO DA AURORA)
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
 
-st.markdown("### 🤖 Motor de Auditoria e Injeção (IA)")
+st.markdown("### 🤖 Motor de Auditoria e Injeção (Aurora)")
 
 aba_imagem, aba_texto = st.tabs(["📸 Leitor de Prints", "📝 Leitor de Texto (Plano B)"])
 
@@ -444,10 +448,11 @@ with aba_imagem:
         else:
             if st.button("🚀 Extrair Dados das Imagens", type="primary"):
                 barra_progresso = st.progress(0)
-                with st.spinner(f"A IA ({MODELO_ATIVO}) está analisando as imagens..."):
+                # 🔥 NOVA IDENTIDADE: A Aurora assumiu o controle!
+                with st.spinner("🦅 A Aurora está usando Visão de Águia para auditar os seus lucros..."):
                     for idx, arquivo in enumerate(prints_comissao):
                         texto_ia = extrair_dados_do_print(arquivo, nome_canal_ativo)
-                        time.sleep(3)
+                        time.sleep(2)
                         if "ERRO_API:" not in texto_ia and texto_ia:
                             linhas = texto_ia.split('\n')
                             for linha in linhas:
@@ -471,10 +476,10 @@ with aba_texto:
     
     if st.button("🚀 Extrair Dados do Texto", type="primary"):
         if texto_copiado.strip() == "":
-            st.warning("⚠️ Cole algum texto antes de pedir para a IA ler!")
+            st.warning("⚠️ Cole algum texto antes de pedir para a Aurora ler!")
         else:
             barra_progresso_texto = st.progress(10)
-            with st.spinner(f"A IA ({MODELO_ATIVO}) está organizando o texto copiado..."):
+            with st.spinner("🦅 A Aurora está organizando o seu fluxo de caixa..."):
                 texto_ia = extrair_dados_do_texto(texto_copiado, nome_canal_ativo)
                 barra_progresso_texto.progress(60)
                 if "ERRO_API:" not in texto_ia and texto_ia:
@@ -494,12 +499,29 @@ with aba_texto:
                             })
                     barra_progresso_texto.progress(100)
                     if len(st.session_state["dados_prontos"]) == 0:
-                        st.error("⚠️ A IA leu o texto, mas não encontrou os dados. Verifique se copiou corretamente!")
+                        st.error("⚠️ A Aurora leu o texto, mas não encontrou os dados. Verifique a cópia!")
                 else:
-                    st.error(f"⚠️ Erro na IA ao ler o texto: {texto_ia}")
+                    st.error(f"⚠️ Erro ao conectar com a Aurora: {texto_ia}")
 
 if st.session_state["dados_prontos"]:
-    st.success("✨ Dados lidos com sucesso! ✍️ Pode EDITAR as células na tabela abaixo antes de enviar:")
+    # 🔥 ANIMAÇÃO DA TABELA: Efeito de deslizar e brilhar ao aparecer
+    html_tabela_animada = """
+    <style>
+        @keyframes slideInUp {
+            from { opacity: 0; transform: translateY(30px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        [data-testid="stDataFrame"] {
+            animation: slideInUp 0.6s ease-out;
+            border: 1px solid rgba(212, 175, 55, 0.4);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(212, 175, 55, 0.15);
+        }
+    </style>
+    """
+    st.markdown(html_tabela_animada, unsafe_allow_html=True)
+    
+    st.success("✨ Dados validados pela Aurora! ✍️ Confirme a tabela animada abaixo e Injet:")
     
     col_tabela_1, col_tabela_2 = st.columns([4, 1])
     with col_tabela_2:
@@ -536,7 +558,6 @@ if st.session_state["dados_prontos"]:
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro ao escrever na planilha. Detalhe: {e}")
-
 # ==========================================================
 # 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
 # ==========================================================
