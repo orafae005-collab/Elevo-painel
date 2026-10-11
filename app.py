@@ -893,36 +893,90 @@ with col_raiox2:
             st.info("👈 A memória está vazia. Envie seus dados para criar e salvar o seu primeiro funil de vendas.")
 
 # ==========================================================
-# 13. FÁBRICA DE ROTEIROS VIP (🔥 SOB DEMANDA - AURORA COPYWRITER)
+# 13. FÁBRICA DE ROTEIROS VIP (🔥 COM MEMÓRIA BLINDADA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Fábrica de Roteiros Sob Demanda</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Alimente a Aurora com a descrição do produto e ela forjará o script perfeito com os gatilhos validados.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Alimente a Aurora com a descrição e ela lembrará disso mesmo se você fechar o aplicativo.</p>", unsafe_allow_html=True)
+
+aba_roteiros = None
+historico_roteiros = []
+
+# 🔥 Conexão com o Banco de Dados para dar "Memória Fotográfica" à aba
+if link_planilha_ativa and robo_sheets:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_roteiros = planilha.worksheet("Memoria_Roteiros")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_roteiros = planilha.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="5")
+            aba_roteiros.append_row(["Publico", "Qtd", "Prod1", "Prod2", "Prod3"])
+        historico_roteiros = aba_roteiros.get_all_records()
+    except Exception:
+        pass
+
+# Puxar dados salvos do último uso
+mem_publico = ""
+mem_qtd = 1
+mem_p1 = ""
+mem_p2 = ""
+mem_p3 = ""
+
+if historico_roteiros:
+    ultima_mem = historico_roteiros[-1]
+    mem_publico = str(ultima_mem.get("Publico", ""))
+    mem_qtd = int(ultima_mem.get("Qtd", 1))
+    if mem_qtd not in [1, 2, 3]: mem_qtd = 1
+    mem_p1 = str(ultima_mem.get("Prod1", ""))
+    mem_p2 = str(ultima_mem.get("Prod2", ""))
+    mem_p3 = str(ultima_mem.get("Prod3", ""))
 
 with st.container(border=True):
+    col_limpar1, col_limpar2 = st.columns([4, 1])
+    with col_limpar2:
+        # A lixeira manual que você pediu!
+        if st.button("🗑️ Limpar Campos", use_container_width=True):
+            if aba_roteiros is not None:
+                with st.spinner("Limpando memória..."):
+                    aba_roteiros.clear()
+                    aba_roteiros.append_row(["Publico", "Qtd", "Prod1", "Prod2", "Prod3"])
+                st.success("Tudo limpo!")
+                time.sleep(1)
+                st.rerun()
+
     col_config1, col_config2 = st.columns([1, 1])
     
     with col_config1:
-        publico_alvo = st.text_input("🎯 Para quem estamos vendendo?", placeholder="Ex: Mulheres cacheadas que estão com o cabelo elástico...")
+        publico_alvo = st.text_input("🎯 Para quem estamos vendendo?", value=mem_publico, placeholder="Ex: Mulheres cacheadas...")
         
     with col_config2:
-        qtd_produtos = st.radio("📦 Quantos produtos neste vídeo?", [1, 2, 3], horizontal=True)
+        index_qtd = [1, 2, 3].index(mem_qtd)
+        qtd_produtos = st.radio("📦 Quantos produtos neste vídeo?", [1, 2, 3], index=index_qtd, horizontal=True)
 
     st.markdown("#### 📝 Detalhes do(s) Produto(s)")
     
     descricoes = []
+    mem_prods = [mem_p1, mem_p2, mem_p3]
     
     cols_produtos = st.columns(qtd_produtos)
     for i in range(qtd_produtos):
         with cols_produtos[i]:
-            # 🔥 A PONTE INVISÍVEL: A 'key' salva o texto na memória do app para a Live usar!
-            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", height=120, placeholder=f"Descreva os benefícios do Produto {i+1} aqui...", key=f"desc_prod_{i}")
+            # A caixa agora usa "value" para carregar o texto salvo
+            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", value=mem_prods[i], height=120, placeholder=f"Descreva os benefícios do Produto {i+1} aqui...", key=f"desc_prod_{i}")
             descricoes.append(desc)
 
     if st.button("⚡ FORJAR ROTEIROS DE ELITE", type="primary", use_container_width=True):
         if not publico_alvo or not any(descricoes):
             st.warning("⚠️ Sócio, preencha o público-alvo e pelo menos a descrição do primeiro produto para a Aurora conseguir escrever!")
         else:
+            # 🔥 Salva na memória do Google Sheets ANTES de gerar o roteiro
+            if aba_roteiros is not None:
+                p1_save = descricoes[0] if len(descricoes) > 0 else ""
+                p2_save = descricoes[1] if len(descricoes) > 1 else ""
+                p3_save = descricoes[2] if len(descricoes) > 2 else ""
+                aba_roteiros.append_row([publico_alvo, qtd_produtos, p1_save, p2_save, p3_save])
+
             with st.spinner("A Aurora está aplicando os gatilhos mentais e a blindagem do TikTok..."):
                 try:
                     produtos_str = ""
@@ -954,7 +1008,7 @@ with st.container(border=True):
                     Formate separando [AÇÃO NA TELA] de [VOZ DA AURORA].
                     """
                     resposta_copy = modelo_ia.generate_content(prompt_copy)
-                    st.success("✅ Roteiro gerado com sucesso!")
+                    st.success("✅ Roteiro gerado e dados salvos na memória com sucesso!")
                     st.markdown(resposta_copy.text)
                     st.balloons()
                 except Exception as e:
