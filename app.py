@@ -318,7 +318,7 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 ADAPTATIVO CLARO/ESCURO)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V5.7 - GRÁFICOS BLINDADOS MOBILE)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -357,79 +357,87 @@ else:
     st.markdown("<br>", unsafe_allow_html=True)
 
     if not df_timeline.empty and not df_campeao.empty:
-        col_graf1, col_graf2 = st.columns(2)
-        
-        # Cores Dinâmicas dos Gráficos
-        if modo_claro:
-            cor_linha = "#005C66" # Azul Teal elegante para modo claro
-            cor_ponto = "#B8860B" # Ouro escuro
-            cor_barra = "#005C66" # Barras azuis para destacar no branco
-            cor_texto_grafico = "#333333"
-            grid_color = "rgba(0, 0, 0, 0.05)"
-        else:
-            cor_linha = "#00E5FF" # Azul neon para modo escuro
-            cor_ponto = "#D4AF37" # Ouro neon
-            cor_barra = "#D4AF37" # Barras ouro original
-            cor_texto_grafico = "#A0A0A0"
-            grid_color = "rgba(212, 175, 55, 0.1)"
-        
-        with col_graf1:
-            st.markdown("##### 📈 Curva de Crescimento Diário")
-            fig_line = px.line(
-                df_timeline, 
-                x="Data_Formatada", 
-                y="Comissao_R$", 
-                markers=True, 
-                text="Comissao_R$"
-            )
-            fig_line.update_traces(
-                textposition='top center',
-                texttemplate='R$ %{text:,.2f}', 
-                line=dict(color=cor_linha, width=4),
-                marker=dict(color=cor_ponto, size=10, line=dict(color="white", width=1)),
-                textfont=dict(color=cor_ponto, size=12, weight="bold")
-            )
-            fig_line.update_xaxes(rangeslider_visible=True, showgrid=False, title="")
-            fig_line.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color=cor_texto_grafico),
-                yaxis=dict(showgrid=True, gridcolor=grid_color, title="", visible=False, zeroline=False),
-                margin=dict(l=0, r=0, t=40, b=10),
-                height=380, 
-                hovermode="x unified"
-            )
-            st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+        # 🔥 INJEÇÃO MOBILE: Botão expansível para guardar os gráficos
+        with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
+            col_graf1, col_graf2 = st.columns(2)
             
-        with col_graf2:
-            st.markdown("##### 🏆 Top 10 Produtos Mais Vendidos")
-            df_grafico_bar = df_campeao.head(10).copy()
-            fig_bar = px.bar(
-                df_grafico_bar, 
-                x="Comissao_R$", 
-                y="Produto", 
-                orientation='h',
-                text="Comissao_R$",
-                color_discrete_sequence=[cor_barra]
-            )
-            fig_bar.update_traces(
-                texttemplate='R$ %{text:,.2f}', 
-                textposition='outside',
-                cliponaxis=False, 
-                marker_line_color=cor_linha, 
-                marker_line_width=1.5, 
-                opacity=0.9
-            )
-            fig_bar.update_layout(
-                plot_bgcolor="rgba(0,0,0,0)",
-                paper_bgcolor="rgba(0,0,0,0)",
-                font=dict(color=cor_texto_grafico),
-                xaxis=dict(showgrid=False, title="", visible=False),
-                yaxis=dict(showgrid=False, title="", autorange="reversed"),
-                margin=dict(l=0, r=80, t=40, b=0),
-                height=380
-            )
-            st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+            # Cores Dinâmicas dos Gráficos
+            if modo_claro:
+                cor_linha = "#005C66"
+                cor_ponto = "#B8860B"
+                cor_barra = "#005C66"
+                cor_texto_grafico = "#333333"
+                grid_color = "rgba(0, 0, 0, 0.05)"
+            else:
+                cor_linha = "#00E5FF"
+                cor_ponto = "#D4AF37"
+                cor_barra = "#D4AF37"
+                cor_texto_grafico = "#A0A0A0"
+                grid_color = "rgba(212, 175, 55, 0.1)"
+            
+            with col_graf1:
+                st.markdown("##### 📈 Curva de Crescimento Diário")
+                fig_line = px.line(
+                    df_timeline, 
+                    x="Data_Formatada", 
+                    y="Comissao_R$", 
+                    markers=True, 
+                    text="Comissao_R$"
+                )
+                fig_line.update_traces(
+                    textposition='top center',
+                    texttemplate='R$ %{text:,.2f}', 
+                    line=dict(color=cor_linha, width=4),
+                    marker=dict(color=cor_ponto, size=10, line=dict(color="white", width=1)),
+                    textfont=dict(color=cor_ponto, size=12, weight="bold")
+                )
+                
+                # 🔥 REMOVIDO o rangeslider (que bugava o dedo no celular) e zoom travado
+                fig_line.update_xaxes(showgrid=False, title="", fixedrange=True)
+                fig_line.update_yaxes(showgrid=True, gridcolor=grid_color, title="", visible=False, zeroline=False, fixedrange=True)
+                fig_line.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico),
+                    margin=dict(l=0, r=0, t=40, b=10),
+                    height=380, 
+                    hovermode="x unified",
+                    dragmode=False # 🔥 TRAVA ABSOLUTA: Impede o gráfico de roubar o touch do celular
+                )
+                st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+                
+            with col_graf2:
+                st.markdown("##### 🏆 Top 10 Produtos Mais Vendidos")
+                df_grafico_bar = df_campeao.head(10).copy()
+                fig_bar = px.bar(
+                    df_grafico_bar, 
+                    x="Comissao_R$", 
+                    y="Produto", 
+                    orientation='h',
+                    text="Comissao_R$",
+                    color_discrete_sequence=[cor_barra]
+                )
+                fig_bar.update_traces(
+                    texttemplate='R$ %{text:,.2f}', 
+                    textposition='outside',
+                    cliponaxis=False, 
+                    marker_line_color=cor_linha, 
+                    marker_line_width=1.5, 
+                    opacity=0.9
+                )
+                
+                # 🔥 Zoom travado também no gráfico de barras
+                fig_bar.update_xaxes(showgrid=False, title="", visible=False, fixedrange=True)
+                fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
+                fig_bar.update_layout(
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico),
+                    margin=dict(l=0, r=80, t=40, b=0),
+                    height=380,
+                    dragmode=False # 🔥 TRAVA ABSOLUTA
+                )
+                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.6 - CÉREBRO TIKTOK SHOP)
