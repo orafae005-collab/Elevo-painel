@@ -1094,7 +1094,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR BLINDADO + DOSSIÊ INJETADO)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR BLINDADO VIP)
 # ==========================================================
 import threading
 import asyncio
@@ -1102,12 +1102,12 @@ import base64
 import requests
 import time
 import queue
+import os
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import ConnectEvent, CommentEvent
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de Transmissão VIP (Voz ao Vivo)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>A Aurora assume a locução, memoriza o texto e roda direto do código-fonte.</p>", unsafe_allow_html=True)
 
 # --- CHAVES DE ACESSO ---
 try:
@@ -1117,11 +1117,23 @@ except KeyError:
     st.stop()
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
-# 💉 === INJEÇÃO DIRETA DO PRODUTO (COLE O TEXTO DO CHAT AQUI) === 💉
-DOSSIE_DO_PRODUTO = """
-[O PRODUTO AINDA NÃO FOI INJETADO. AGUARDANDO O SÓCIO MANDAR O DOSSIÊ AQUI]
-"""
-# ================================================================
+# 💉 === SISTEMA DE INJEÇÃO FÍSICA NO SERVIDOR (COFRE DA ÁGUIA) === 💉
+ARQUIVO_DOSSIE = "memoria_dossie_aurora.txt"
+
+def ler_dossie_vip():
+    if os.path.exists(ARQUIVO_DOSSIE):
+        with open(ARQUIVO_DOSSIE, "r", encoding="utf-8") as f:
+            return f.read()
+    return ""
+
+def salvar_dossie_vip(texto):
+    with open(ARQUIVO_DOSSIE, "w", encoding="utf-8") as f:
+        f.write(texto)
+
+def apagar_dossie_vip():
+    if os.path.exists(ARQUIVO_DOSSIE):
+        os.remove(ARQUIVO_DOSSIE)
+# =====================================================================
 
 # --- GERENCIADOR DE ESTADO DA LIVE ---
 if "live_rodando" not in st.session_state:
@@ -1137,7 +1149,6 @@ if "caixa_de_correio" not in st.session_state:
 
 # --- MOTOR DE VOZ INTELIGENTE (COM BACKUP GRATUITO) ---
 def gerar_audio_base64(texto):
-    # TENTATIVA 1: VOZ PREMIUM (ElevenLabs)
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
     headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
     payload = {
@@ -1150,9 +1161,8 @@ def gerar_audio_base64(texto):
         if resp.status_code == 200:
             return base64.b64encode(resp.content).decode('utf-8')
         else:
-            raise Exception("Erro ou Limite na ElevenLabs")
+            raise Exception("Erro ElevenLabs")
     except:
-        # TENTATIVA 2: SISTEMA DE SOBREVIVÊNCIA (VOZ GRATUITA DO GOOGLE)
         try:
             from gtts import gTTS
             import io
@@ -1166,30 +1176,24 @@ def gerar_audio_base64(texto):
 
 # --- MENTE DA AURORA (ANTI-REPETIÇÃO E TRAVA DE PREÇO) ---
 def processar_comentario_ia(arroba, comentario, produto):
-    # Cérebro analisa as últimas 4 mensagens para NÃO REPETIR a mesma frase
     historico_recente = " | ".join(st.session_state["log_chat"][-4:]) if st.session_state["log_chat"] else "Nenhum"
-    
     prompt_ia = f"""
     Você é a Aurora, influenciadora carismática no TikTok Shop.
     Aja como a amiga fofoqueira do bem, sem emojis.
     
-    🚨 REGRA 1: SEGURANÇA MÁXIMA (PROIBIDO VALORES):
-    É ESTRITAMENTE PROIBIDO falar preços, dinheiro, Reais ou números de desconto. Diga APENAS para clicar no carrinho.
-    
-    🚨 REGRA 2: ANTI-PAPAGAIO (SEJA INÉDITA):
-    NUNCA repita a mesma frase ou argumento. Varie sempre o vocabulário.
-    Aqui está o que você acabou de falar (NÃO REPITA ISSO): {historico_recente}
+    🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais. Mande clicar no carrinho.
+    🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA ISSO: {historico_recente}
 
-    Dossiê do Produto na mesa: {produto}.
-    Comentário recebido de @{arroba}: '{comentario}'
+    Dossiê do Produto: {produto}.
+    Comentário de @{arroba}: '{comentario}'
     
-    Responda em 1 ou 2 frases curtas focadas em interagir de forma diferente e mandar clicar no carrinho.
+    Responda em 1 ou 2 frases curtas, interagindo e vendendo.
     """
     try:
         resposta = modelo_ia.generate_content(prompt_ia)
         return resposta.text.replace("*", "").replace("`", "").strip()
     except:
-        return f"Oi {arroba}, menina! O carrinho tá fixado, corre pra não perder o nosso achado secreto!"
+        return f"Oi {arroba}, menina! O carrinho tá fixado, corre lá!"
 
 # --- O FANTASMA OUVINTE ---
 def loop_tiktok_background(arroba, caixa_correio):
@@ -1199,7 +1203,7 @@ def loop_tiktok_background(arroba, caixa_correio):
 
     @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        caixa_correio.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Nossa live está no ar, clica no carrinho pra ver a promoção secreta de hoje!"})
+        caixa_correio.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho!"})
 
     @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
@@ -1207,7 +1211,6 @@ def loop_tiktok_background(arroba, caixa_correio):
             client.stop()
             return
         caixa_correio.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
-
     try:
         client.run()
     except:
@@ -1218,18 +1221,32 @@ with st.container(border=True):
     col_live1, col_live2 = st.columns([1, 2])
     
     with col_live1:
-        arroba_tiktok = st.text_input("👤 @ do TikTok (Sua Conta)", placeholder="Ex: oachado.secreto", key="memoria_arroba")
+        arroba_tiktok = st.text_input("👤 @ do TikTok", placeholder="Ex: oachado.secreto")
         if st.session_state["live_rodando"] and not st.session_state["modo_teste"]:
-            st.success("🟢 AURORA ONLINE (Conectada no TikTok)")
+            st.success("🟢 AURORA ONLINE")
         elif st.session_state["live_rodando"] and st.session_state["modo_teste"]:
-            st.warning("🟡 MODO DE TESTE (Offline)")
+            st.warning("🟡 MODO TESTE OFFLINE")
         else:
             st.error("🔴 AURORA OFFLINE")
 
     with col_live2:
-        st.info("📦 Dossiê do Produto Injetado via Código (Blindado)")
-        st.write("O sistema usará o texto estratégico injetado diretamente no código-fonte.")
-        produto_live = DOSSIE_DO_PRODUTO
+        st.markdown("<h4 style='color: #FFD700;'>🦅 Cofre de Injeção VIP</h4>", unsafe_allow_html=True)
+        dossie_atual = ler_dossie_vip()
+        
+        texto_injetado = st.text_area("Cole o Dossiê Estratégico aqui:", value=dossie_atual, height=120)
+        
+        col_btn_inj1, col_btn_inj2 = st.columns(2)
+        with col_btn_inj1:
+            if st.button("💉 Injetar no Sistema", use_container_width=True):
+                salvar_dossie_vip(texto_injetado)
+                st.rerun()
+        with col_btn_inj2:
+            if st.button("🦅 Lixeira VIP", use_container_width=True):
+                apagar_dossie_vip()
+                st.rerun()
+                
+        # A Aurora sempre vai ler da memória física do servidor
+        produto_live = ler_dossie_vip()
 
     st.markdown("<br>", unsafe_allow_html=True)
     col_btn_live1, col_btn_live2, col_btn_live3 = st.columns(3)
@@ -1242,8 +1259,8 @@ with st.container(border=True):
         btn_parar = st.button("⏹️ PARAR TUDO", use_container_width=True)
 
     if btn_iniciar:
-        if not arroba_tiktok:
-            st.warning("⚠️ Preencha o seu @ do TikTok!")
+        if not arroba_tiktok or not produto_live:
+            st.warning("⚠️ Preencha o @ do TikTok e injete o Dossiê!")
         else:
             st.session_state["live_rodando"] = True
             st.session_state["modo_teste"] = False
@@ -1251,20 +1268,22 @@ with st.container(border=True):
             st.session_state["log_chat"] = []
             while not st.session_state["caixa_de_correio"].empty():
                 st.session_state["caixa_de_correio"].get()
-                
             thread_live = threading.Thread(target=loop_tiktok_background, args=(arroba_tiktok, st.session_state["caixa_de_correio"]), daemon=True)
             thread_live.start()
             st.rerun()
 
     if btn_testar:
-        st.session_state["live_rodando"] = True
-        st.session_state["modo_teste"] = True
-        st.session_state["fila_audios"] = []
-        st.session_state["log_chat"] = ["🟡 [SISTEMA]: Teste Offline Iniciado."]
-        audio_teste = gerar_audio_base64("Oi sócio! Testando o estúdio. O roteiro tá salvo direto no código e a minha voz tá de prontidão. Bora vender!")
-        if audio_teste: 
-            st.session_state["fila_audios"].append(audio_teste)
-        st.rerun()
+        if not produto_live:
+            st.warning("⚠️ Injete o Dossiê VIP primeiro!")
+        else:
+            st.session_state["live_rodando"] = True
+            st.session_state["modo_teste"] = True
+            st.session_state["fila_audios"] = []
+            st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
+            audio_teste = gerar_audio_base64("Oi sócio! O roteiro foi injetado com sucesso na matriz do sistema. Estou pronta!")
+            if audio_teste: 
+                st.session_state["fila_audios"].append(audio_teste)
+            st.rerun()
 
     if btn_parar:
         st.session_state["live_rodando"] = False
@@ -1277,24 +1296,23 @@ with st.container(border=True):
         st.markdown("#### ⚡ Comandos Rápidos (Painel Tático)")
         col_tatico1, col_tatico2, col_tatico3 = st.columns(3)
         if col_tatico1.button("🗣️ Pedir Curtidas", use_container_width=True):
-            audio = gerar_audio_base64("Galera, dedo na telinha! Dois toques rápidos para bater a nossa meta de curtidas de hoje, bora!")
+            audio = gerar_audio_base64("Galera, dedo na telinha! Dois toques rápidos para bater a nossa meta de curtidas!")
             if audio: st.session_state["fila_audios"].append(audio)
             
         if col_tatico2.button("⚔️ Ativar Batalha (PK)", use_container_width=True):
-            audio = gerar_audio_base64("Atenção tropa, batalha rolando! Todo mundo esmagando a tela pra gente vencer!")
+            audio = gerar_audio_base64("Atenção tropa, batalha rolando! Todo mundo esmagando a tela!")
             if audio: st.session_state["fila_audios"].append(audio)
             
         if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
-            historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
-            prompt_venda = f"Crie 1 frase muito persuasiva vendendo com base neste dossiê: {produto_live}. SEJA INÉDITA, NÃO REPITA ISSO: {historico}. NÃO FALE O PREÇO. Mande clicar no carrinho."
+            prompt_venda = f"Crie 1 frase persuasiva de venda baseada no dossiê: {produto_live}. NÃO FALE PREÇO. Seja inédita."
             try:
                 texto_venda = modelo_ia.generate_content(prompt_venda).text.replace("*", "").strip()
             except:
-                texto_venda = "Gente, clica no carrinho agora que o estoque desse achadinho vai sumir, aproveitem!"
+                texto_venda = "Gente, clica no carrinho agora que o estoque vai sumir, aproveitem!"
             audio = gerar_audio_base64(texto_venda)
             if audio: st.session_state["fila_audios"].append(audio)
 
-        with st.expander("👁️ Ver Interações Recentes da Aurora", expanded=True):
+        with st.expander("👁️ Ver Interações Recentes", expanded=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
@@ -1303,33 +1321,28 @@ if st.session_state.get("live_rodando"):
     if not st.session_state["modo_teste"]:
         while not st.session_state["caixa_de_correio"].empty() and len(st.session_state["fila_audios"]) < 2:
             carta = st.session_state["caixa_de_correio"].get()
-            
             if carta["tipo"] == "sistema":
                 st.session_state["log_chat"].append(f"🟢 [SISTEMA]: Live Iniciada!")
                 audio_b64 = gerar_audio_base64(carta["mensagem"])
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
-                
             elif carta["tipo"] == "comentario":
                 st.session_state["log_chat"].append(f"💬 [{carta['nome']}]: {carta['texto']}")
                 resposta = processar_comentario_ia(carta['nome'], carta['texto'], produto_live)
                 audio_b64 = gerar_audio_base64(resposta)
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-    # REPRODUTOR DE ÁUDIO VISÍVEL (COM INJEÇÃO JAVASCRIPT PARA AUTOPLAY NO CELULAR/PC)
+    # REPRODUTOR DE ÁUDIO VISÍVEL COM AUTOPLAY JAVASCRIPT
     if len(st.session_state["fila_audios"]) > 0:
         audio_tocar = st.session_state["fila_audios"].pop(0)
         st.markdown("### 🔊 Voz da Aurora")
-        st.info("A Aurora está falando. O Play automático está ativo.")
         
         html_player = f"""
-        <audio id="aurora_audio" controls style="width: 100%; border-radius: 8px; border: 2px solid #FF0040;">
+        <audio id="aurora_audio" controls style="width: 100%; border-radius: 8px; border: 2px solid #FFD700;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
         <script>
             var audio = document.getElementById("aurora_audio");
-            audio.play().catch(function(error) {{
-                console.log("Autoplay bloqueado pelo navegador.");
-            }});
+            audio.play().catch(function(e) {{ console.log("Aguardando play no celular."); }});
         </script>
         """
         import streamlit.components.v1 as components
