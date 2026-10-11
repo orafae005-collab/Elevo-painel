@@ -31,7 +31,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.1 - MOEDA VIP DRAGGABLE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.2 - ALTO CONTRASTE VIP)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -42,18 +42,18 @@ with col_tema:
 # Inteligência de Cores (Dia/Noite)
 if modo_claro:
     bg_color = "#F4F4F9"
-    text_color = "#333333"
+    text_color = "#333333" # Escuro para ler no fundo claro
     card_bg = "rgba(255, 255, 255, 0.9)"
     border_color = "rgba(0, 0, 0, 0.1)"
     metric_val_color = "#B8860B" 
     metric_label_color = "#555555"
 else:
     bg_color = "#0E1117"
-    text_color = "#A0A0A0"
+    text_color = "#F0F0F0" # 🔥 PRATA CLARO (Alto Contraste para leitura perfeita)
     card_bg = "rgba(20, 20, 20, 0.4)"
     border_color = "rgba(212, 175, 55, 0.15)"
     metric_val_color = "#FFD700" 
-    metric_label_color = "#A0A0A0"
+    metric_label_color = "#E0E0E0" # 🔥 PRATA CLARO para os rótulos dos cartões
 
 estilo_elevo = f"""
 <style>
@@ -63,12 +63,20 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* 🔥 O TRUQUE MESTRE PARA O CABEÇALHO 🔥 */
-    /* Deixamos ele invisível, mas VIVO no código, para a moeda poder clicar nele! */
+    /* 🔥 O TRUQUE MESTRE PARA O CABEÇALHO (Moeda continua funcionando) 🔥 */
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; min-height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* Títulos e Cards VIP */
+    /* FORÇANDO O ALTO CONTRASTE EM TODOS OS TEXTOS E TÍTULOS (Modo Escuro legível) */
+    [data-testid="stMarkdownContainer"] h1, 
+    [data-testid="stMarkdownContainer"] h2, 
+    [data-testid="stMarkdownContainer"] h3, 
+    [data-testid="stMarkdownContainer"] p,
+    label {{
+        color: {text_color} !important;
+    }}
+
+    /* Títulos Principais e Cards VIP */
     .titulo-elevo {{
         font-size: 4rem; font-weight: 900; text-align: center;
         background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
@@ -82,7 +90,7 @@ estilo_elevo = f"""
     .subtitulo {{
         text-align: center; font-size: 1.1rem; margin-bottom: 40px;
         font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
-        color: {text_color};
+        color: {text_color} !important; /* Prata claro aplicado aqui também */
     }}
     
     [data-testid="stMetric"] {{
@@ -92,9 +100,13 @@ estilo_elevo = f"""
         transition: all 0.3s ease;
     }}
     
-    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; }}
+    /* Garantindo a cor dos rótulos (Ex: Lucro Aprovado) */
+    [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] div, [data-testid="stMetricLabel"] p {{ 
+        color: {metric_label_color} !important; 
+    }}
     
-    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span, div[data-testid="stMetricValue"] {{
+    /* Os valores milionários continuam intocáveis (Ouro) */
+    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span {{
         color: {metric_val_color} !important; font-weight: 900 !important;
         font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
     }}
@@ -102,7 +114,7 @@ estilo_elevo = f"""
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT
+# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (MANTIDA INTACTA)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -112,12 +124,10 @@ js_moeda = """
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
         
-        // Estilo da Moeda Dourada
         btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 26px; background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF8DC; box-shadow: 0px 0px 15px rgba(255,215,0,0.6); cursor: pointer; user-select: none; touch-action: none;";
         
         parent.body.appendChild(btn);
 
-        // CSS da animação de giro 3D
         const style = parent.createElement('style');
         style.innerHTML = `
             @keyframes girar-moeda-3d {
@@ -131,11 +141,9 @@ js_moeda = """
         `;
         parent.head.appendChild(style);
 
-        // VARIÁVEIS DO SISTEMA DRAG & DROP (Mover a Moeda)
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
         
-        // Quando o dedo toca na moeda
         btn.addEventListener('touchstart', function(e) {
             isDragging = false;
             startX = e.touches[0].clientX;
@@ -145,42 +153,35 @@ js_moeda = """
             btn.classList.add('dragging');
         }, {passive: false});
 
-        // Quando o dedo arrasta a moeda
         parent.addEventListener('touchmove', function(e) {
             if (!btn.classList.contains('dragging')) return;
             
             let dx = e.touches[0].clientX - startX;
             let dy = e.touches[0].clientY - startY;
             
-            // Se mover mais de 5 pixels, o sistema entende que é "Arraste" e não "Clique"
             if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
                 isDragging = true;
-                e.preventDefault(); // Impede a tela de rolar junto
+                e.preventDefault(); 
                 btn.style.left = (initialLeft + dx) + "px";
                 btn.style.top = (initialTop + dy) + "px";
             }
         }, {passive: false});
 
-        // Quando o dedo solta a moeda
         parent.addEventListener('touchend', function(e) {
             if (!btn.classList.contains('dragging')) return;
             btn.classList.remove('dragging');
             
-            // Se NÃO foi arrastado, significa que foi um CLIQUE!
             if (!isDragging) {
                 toggleSidebar();
             }
             isDragging = false;
         });
 
-        // FUNÇÃO DE ABRIR/FECHAR A ABA LATERAL
         function toggleSidebar() {
-            // Tenta clicar no botão invisível original do Streamlit
             const openBtn = parent.querySelector('[data-testid="collapsedControl"]');
             if (openBtn) {
                 openBtn.click();
             } else {
-                // Se estiver aberto, procura o botão de fechar dentro da barra lateral
                 const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]');
                 if (sidebarHeader) {
                     const closeBtn = sidebarHeader.querySelector('button');
