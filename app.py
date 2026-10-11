@@ -266,8 +266,9 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
+
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V5.7 - BLINDADOS MOBILE)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V6.1 - VIP LATERAL ANIMADO)
 # ==========================================================
 if not link_planilha_ativa:
     st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
@@ -297,16 +298,85 @@ else:
         df_timeline = pd.DataFrame()
         produto_campeao = "Nenhum"
 
-    st.markdown(f"### 📊 Faturamento: {nome_canal_ativo} (Filtro: {filtro_periodo})")
-    col1, col2, col3 = st.columns(3)
-    col1.metric("💰 Lucro Aprovado", f"R$ {aprovado:,.2f}", "Sincronizado")
-    col2.metric("⏳ Em Trânsito (Pendente)", f"R$ {pendente:,.2f}", "Aguardando entrega")
-    col3.metric("🏆 Produto Campeão", str(produto_campeao), "Maior volume de lucro")
+    st.markdown(f"<h3 style='color: {text_color}; font-size: 1.2rem; margin-bottom: 15px;'>📊 Faturamento: {nome_canal_ativo}</h3>", unsafe_allow_html=True)
+
+    # Formatação de Moeda Padrão BR (Ponto e Vírgula corretos na tela)
+    aprovado_str = f"{aprovado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    pendente_str = f"{pendente:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+    # 🔥 CARROSSEL LATERAL VIP (HTML/CSS INJETADO)
+    html_cards_vip = f"""
+    <style>
+        .scroll-lateral {{
+            display: flex; flex-direction: row; gap: 12px; overflow-x: auto; 
+            padding-bottom: 12px; scroll-snap-type: x mandatory;
+            -ms-overflow-style: none; scrollbar-width: none; /* Esconde scrollbar no Firefox/IE */
+        }}
+        .scroll-lateral::-webkit-scrollbar {{ display: none; }} /* Esconde scrollbar no Chrome/Safari */
+        
+        .vip-card-lateral {{
+            flex: 0 0 auto;
+            width: 145px; /* Tamanho compacto e elegante */
+            background: {card_bg};
+            backdrop-filter: blur(12px);
+            border: 1px solid {border_color};
+            border-radius: 16px;
+            padding: 12px 15px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            scroll-snap-align: start;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            cursor: pointer;
+        }}
+        
+        .vip-card-lateral:active {{ transform: scale(0.94); }} /* Efeito de apertar o botão */
+        
+        /* O efeito do "Brilho" varrendo o card */
+        .vip-card-lateral::after {{
+            content: ''; position: absolute; top: 0; left: -100%;
+            width: 50%; height: 100%;
+            background: linear-gradient(to right, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+            transform: skewX(-25deg); animation: brilho-lateral 5s infinite;
+        }}
+        @keyframes brilho-lateral {{ 0% {{ left: -100%; }} 15% {{ left: 200%; }} 100% {{ left: 200%; }} }}
+        
+        /* Destaque no Card Principal de Lucro */
+        .vip-card-ouro {{ border-color: rgba(212, 175, 55, 0.6); box-shadow: 0 0 15px rgba(212, 175, 55, 0.15); }}
+    </style>
+
+    <div class="scroll-lateral">
+        <!-- CARD 1: LUCRO -->
+        <div class="vip-card-lateral vip-card-ouro">
+            <div style="font-size: 1.1rem; margin-bottom: 2px;">💰</div>
+            <div style="font-size: 0.65rem; color: {metric_label_color}; font-weight: 600; text-transform: uppercase;">Lucro Aprovado</div>
+            <div style="font-size: 1.3rem; font-weight: 900; color: {metric_val_color}; margin: 2px 0;">R$ {aprovado_str}</div>
+            <div style="font-size: 0.6rem; color: #00FF7F; font-weight: bold;">↑ Sincronizado</div>
+        </div>
+        
+        <!-- CARD 2: PENDENTE -->
+        <div class="vip-card-lateral">
+            <div style="font-size: 1.1rem; margin-bottom: 2px;">⏳</div>
+            <div style="font-size: 0.65rem; color: {metric_label_color}; font-weight: 600; text-transform: uppercase;">Pendente</div>
+            <div style="font-size: 1.3rem; font-weight: 900; color: {metric_val_color}; margin: 2px 0;">R$ {pendente_str}</div>
+            <div style="font-size: 0.6rem; color: #FFA500; font-weight: bold;">↑ Aguardando</div>
+        </div>
+        
+        <!-- CARD 3: CAMPEÃO -->
+        <div class="vip-card-lateral">
+            <div style="font-size: 1.1rem; margin-bottom: 2px;">🏆</div>
+            <div style="font-size: 0.65rem; color: {metric_label_color}; font-weight: 600; text-transform: uppercase;">O Campeão</div>
+            <div style="font-size: 0.95rem; font-weight: 900; color: #00E5FF; margin: 4px 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 5px rgba(0,229,255,0.3);">{produto_campeao}</div>
+            <div style="font-size: 0.6rem; color: #00FF7F; font-weight: bold;">↑ Top Vendas</div>
+        </div>
+    </div>
+    """
+    st.markdown(html_cards_vip, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
+    # Gráficos guardados e blindados (Abaixo do Carrossel)
     if not df_timeline.empty and not df_campeao.empty:
-        # 🔥 AQUI ESTÁ O EXPANDER PARA GUARDAR OS GRÁFICOS E LIMPAR A TELA
         with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
             col_graf1, col_graf2 = st.columns(2)
             
@@ -342,10 +412,13 @@ else:
                 fig_line.update_xaxes(showgrid=False, title="", fixedrange=True)
                 fig_line.update_yaxes(showgrid=True, gridcolor=grid_color, title="", visible=False, zeroline=False, fixedrange=True)
                 fig_line.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color=cor_texto_grafico), margin=dict(l=0, r=0, t=40, b=10),
-                    height=380, hovermode="x unified",
-                    dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico),
+                    margin=dict(l=0, r=0, t=40, b=10),
+                    height=380, 
+                    hovermode="x unified",
+                    dragmode=False 
                 )
                 st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
                 
@@ -371,11 +444,15 @@ else:
                 fig_bar.update_xaxes(showgrid=False, title="", visible=False, fixedrange=True)
                 fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
                 fig_bar.update_layout(
-                    plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
-                    font=dict(color=cor_texto_grafico), margin=dict(l=0, r=80, t=40, b=0),
-                    height=380, dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
+                    plot_bgcolor="rgba(0,0,0,0)",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    font=dict(color=cor_texto_grafico),
+                    margin=dict(l=0, r=80, t=40, b=0),
+                    height=380,
+                    dragmode=False 
                 )
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+
 
 # ==========================================================
 # 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V6.0 - FOCO TOTAL NO TEXTO)
