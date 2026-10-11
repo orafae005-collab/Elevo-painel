@@ -893,53 +893,72 @@ with col_raiox2:
             st.info("👈 A memória está vazia. Envie seus dados para criar e salvar o seu primeiro funil de vendas.")
 
 # ==========================================================
-# 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
+# 13. FÁBRICA DE ROTEIROS VIP (🔥 SOB DEMANDA - AURORA COPYWRITER)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa TODO o seu aplicativo (Faturamento, Produto Campeão, Tendências da Aurora e Funil) para forjar 3 roteiros impossíveis de ignorar.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Fábrica de Roteiros Sob Demanda</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Alimente a Aurora com a descrição do produto e ela forjará o script perfeito com os gatilhos validados.</p>", unsafe_allow_html=True)
 
-if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primary", use_container_width=True):
-    with st.spinner("Analisando faturamento, tendências, missões e funil... Forjando roteiros de elite..."):
-        try:
-            alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Ainda sem dados. Sugira um produto genérico de beleza feminino."
-            vendas_atuais = f"R$ {aprovado:,.2f}"
-            tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência mapeada ainda."
-            ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco total na curiosidade e escassez."
-            missao_atual = missao_hoje
+with st.container(border=True):
+    col_config1, col_config2 = st.columns([1, 1])
+    
+    with col_config1:
+        publico_alvo = st.text_input("🎯 Para quem estamos vendendo?", placeholder="Ex: Mulheres cacheadas que estão com o cabelo elástico...")
+        
+    with col_config2:
+        qtd_produtos = st.radio("📦 Quantos produtos neste vídeo?", [1, 2, 3], horizontal=True)
 
-            prompt_roteiro = f"""
-            Atue como um Copywriter de Elite focado em TikTok Shop para o público feminino ("Buscadora de Atalhos", 18-40 anos, ama levar vantagem).
-            DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO:
-            📊 Faturamento Aprovado no Filtro Atual: {vendas_atuais}
-            🏆 Produto Campeão: {alvo_campeao}
-            🔮 Última Tendência do Mercado: {tendencia_aurora}
-            🧬 Nosso Funil e Ganchos Validados: {ultimo_funil_texto}
-            🎯 Missão de Execução de Hoje: {missao_atual}
-            
-            DIRETRIZES DE BLINDAGEM TIKTOK:
-            - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
-            - OBRIGATÓRIO: "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Toque de seda".
-            
-            AVATAR E TOM DE VOZ (AURORA):
-            - Amiga fofoqueira do bem.
-            - Hooks permitidos: "Amiga, para tudo!", "Vem cá, me conta uma coisa...", "Eu não deveria estar falando isso, mas...", "Gente, o pessoal do estoque vai me matar."
-            - Assinatura final obrigatória: "Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?"
-            
-            MISSÃO:
-            Baseado em TODOS OS DADOS da nossa operação fornecidos acima, crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [Produto Campeão].
-            ROTEIRO 1: O Choque de Preço (Erro no Sistema)
-            ROTEIRO 2: O Segredo Revelado (Use a tendência se fizer sentido)
-            ROTEIRO 3: A Comparação Visual (Dor vs Solução sensorial)
-            
-            Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
-            """
-            resposta_roteiro = modelo_ia.generate_content(prompt_roteiro)
-            st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
-            st.markdown(resposta_roteiro.text)
-            st.balloons()
-        except Exception as e:
-            st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
+    st.markdown("#### 📝 Detalhes do(s) Produto(s)")
+    
+    descricoes = []
+    
+    cols_produtos = st.columns(qtd_produtos)
+    for i in range(qtd_produtos):
+        with cols_produtos[i]:
+            # 🔥 A PONTE INVISÍVEL: A 'key' salva o texto na memória do app para a Live usar!
+            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", height=120, placeholder=f"Descreva os benefícios do Produto {i+1} aqui...", key=f"desc_prod_{i}")
+            descricoes.append(desc)
+
+    if st.button("⚡ FORJAR ROTEIROS DE ELITE", type="primary", use_container_width=True):
+        if not publico_alvo or not any(descricoes):
+            st.warning("⚠️ Sócio, preencha o público-alvo e pelo menos a descrição do primeiro produto para a Aurora conseguir escrever!")
+        else:
+            with st.spinner("A Aurora está aplicando os gatilhos mentais e a blindagem do TikTok..."):
+                try:
+                    produtos_str = ""
+                    for i, d in enumerate(descricoes):
+                        if d.strip():
+                            produtos_str += f"\n- PRODUTO {i+1}: {d.strip()}"
+
+                    prompt_copy = f"""
+                    Atue como Aurora, uma Copywriter de Elite focada em TikTok Shop e influenciadora virtual.
+                    Seu tom de voz é de "conspiração feminina", a amiga fofoqueira do bem.
+                    DADOS DO PROJETO:
+                    - Canal: {nome_canal_ativo}
+                    - Público-Alvo: {publico_alvo}
+                    - Produtos a serem vendidos neste vídeo: {produtos_str}
+
+                    DIRETRIZES DE BLINDAGEM TIKTOK (OBRIGATÓRIO):
+                    - PROIBIDO ABSOLUTO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
+                    - SUBSTITUTOS OBRIGATÓRIOS (Verbos Sensoriais): "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Toque de seda".
+
+                    Sua missão:
+                    Crie UM roteiro de vídeo magnético focado na curiosidade e escassez.
+                    Se houver mais de 1 produto, faça em formato de lista (Ex: "Top {qtd_produtos} achadinhos secretos...").
+                    
+                    ESTRUTURA DO ROTEIRO:
+                    1. GANCHO (0-3s): Capture a atenção imediatamente.
+                    2. CORPO: Apresente o(s) produto(s) focando no desejo da audiência.
+                    3. CTA: Finalize com sua assinatura ("Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?").
+                    
+                    Formate separando [AÇÃO NA TELA] de [VOZ DA AURORA].
+                    """
+                    resposta_copy = modelo_ia.generate_content(prompt_copy)
+                    st.success("✅ Roteiro gerado com sucesso!")
+                    st.markdown(resposta_copy.text)
+                    st.balloons()
+                except Exception as e:
+                    st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
 
 # ==========================================================
 # 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
@@ -1012,3 +1031,62 @@ html_coracao = f"""
 """
 
 st.markdown(html_coracao, unsafe_allow_html=True)
+
+# ==========================================================
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VOZ AO VIVO)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de Transmissão VIP (Voz ao Vivo)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Coloque este celular ao lado do celular que está gravando a live. A Aurora vai assumir o comando da locução, interagir com o chat e vender seu produto.</p>", unsafe_allow_html=True)
+
+with st.container(border=True):
+    col_live1, col_live2 = st.columns([1, 2])
+    
+    with col_live1:
+        arroba_tiktok = st.text_input("👤 @ do TikTok (Sua Conta)", placeholder="Ex: oachado.secreto")
+        
+        if "live_rodando" not in st.session_state:
+            st.session_state["live_rodando"] = False
+            
+        if st.session_state["live_rodando"]:
+            st.success("🟢 AURORA ONLINE (Conectada e Falando)")
+        else:
+            st.error("🔴 AURORA OFFLINE")
+
+    with col_live2:
+        # 🔥 PUXANDO A MEMÓRIA: Ele lê sozinho o que você digitou no Produto 1 do Bloco 13!
+        texto_automatico = st.session_state.get("desc_prod_0", "")
+        
+        produto_live = st.text_area("📦 Qual produto está na mesa agora?", value=texto_automatico, placeholder="Ex: Máscara Reconstrutora Novex...", height=100)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    col_btn_live1, col_btn_live2 = st.columns(2)
+    
+    with col_btn_live1:
+        btn_iniciar_live = st.button("▶️ INICIAR VOZ DA AURORA", type="primary", use_container_width=True)
+    with col_btn_live2:
+        btn_parar_live = st.button("⏹️ PARAR TRANSMISSÃO", use_container_width=True)
+
+    if btn_iniciar_live:
+        if not arroba_tiktok or not produto_live:
+            st.warning("⚠️ Sócio, preencha o seu @ do TikTok e a descrição do produto para a Aurora saber o que ela está vendendo!")
+        else:
+            st.session_state["live_rodando"] = True
+            st.toast(f"🚀 Iniciando conexão com @{arroba_tiktok}...", icon="🎙️")
+            st.rerun()
+
+    if btn_parar_live:
+        st.session_state["live_rodando"] = False
+        st.toast("🛑 Transmissão interrompida. A Aurora foi silenciada.", icon="🔇")
+        st.rerun()
+
+    if st.session_state["live_rodando"]:
+        st.markdown("#### ⚡ Comandos Rápidos (Painel Tático)")
+        col_tatico1, col_tatico2, col_tatico3 = st.columns(3)
+        if col_tatico1.button("🗣️ Pedir Curtidas", use_container_width=True):
+            st.toast("A Aurora vai pedir para a galera curtir a tela!", icon="❤️")
+        if col_tatico2.button("⚔️ Ativar Batalha (PK)", use_container_width=True):
+            st.toast("A Aurora entrou em modo de Guerra (Batalha PK)!", icon="⚔️")
+        if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
+            st.toast("A Aurora vai fazer um Pitch Agressivo do produto agora!", icon="💰")
