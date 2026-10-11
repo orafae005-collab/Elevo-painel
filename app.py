@@ -923,3 +923,143 @@ with col_raiox2:
             st.markdown(historico_raiox[-1]["Funil"])
         else:
             st.info("👈 A memória está vazia. Envie seus dados para criar e salvar o seu primeiro funil de vendas.")
+
+# ==========================================================
+# 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa TODO o seu aplicativo (Faturamento, Produto Campeão, Tendências da Aurora e Funil) para forjar 3 roteiros impossíveis de ignorar.</p>", unsafe_allow_html=True)
+
+if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primary", use_container_width=True):
+    with st.spinner("Analisando faturamento, tendências, missões e funil... Forjando roteiros de elite..."):
+        try:
+            # 1. CAPTURA DE DADOS DE TODO O SISTEMA (Visão 360º)
+            alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Ainda sem dados. Sugira um produto genérico de beleza feminino."
+            vendas_atuais = f"R$ {aprovado:,.2f}"
+            tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência mapeada ainda."
+            ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco total na curiosidade e escassez."
+            missao_atual = missao_hoje
+
+            # 2. IA DE COPYWRITING DE ELITE COM CONTEXTO TOTAL
+            modelo_roteiro = genai.GenerativeModel(MODELO_ATIVO)
+            prompt_roteiro = f"""
+            Atue como um Copywriter de Elite focado em TikTok Shop para o público feminino ("Buscadora de Atalhos", 18-40 anos, ama levar vantagem).
+            
+            DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO (Use isso para entender o contexto e alinhar a estratégia):
+            📊 Faturamento Aprovado no Filtro Atual: {vendas_atuais}
+            🏆 Produto Campeão (O que mais está botando dinheiro no bolso): {alvo_campeao}
+            🔮 Última Tendência do Mercado (Mapeada pela Aurora): {tendencia_aurora}
+            🧬 Nosso Funil e Ganchos Validados (Raio-X): {ultimo_funil_texto}
+            🎯 Missão de Execução de Hoje: {missao_atual}
+            
+            DIRETRIZES DE BLINDAGEM (CONFORMIDADE ESTRATÉGICA TIKTOK):
+            - PROIBIDO ABSOLUTO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original" (se não for marca oficial), "Derrete", "Apaga", "Milagre".
+            - OBRIGATÓRIO (Substitutos Sensoriais): "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Auxilia na redução do aspecto de", "Toque de seda".
+            
+            AVATAR E TOM DE VOZ (AURORA):
+            - Amiga fofoqueira do bem, vibe de "conspiração feminina".
+            - Hooks permitidos: "Amiga, para tudo!", "Vem cá, me conta uma coisa...", "Eu não deveria estar falando isso, mas...", "Gente, o pessoal do estoque vai me matar."
+            - Assinatura final obrigatória: "Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?"
+            
+            MISSÃO:
+            Baseado em TODOS OS DADOS da nossa operação fornecidos acima, crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [Produto Campeão].
+            
+            ROTEIRO 1: O Choque de Preço (Erro no Sistema)
+            - Foco no valor absurdo comparado ao que o produto entrega. A sensação de levar muita vantagem.
+            
+            ROTEIRO 2: O Segredo Revelado
+            - Foco em "o que as blogueiras usam e não te contam que custa barato". Tom de fofoca pura (use a tendência mapeada pela Aurora se fizer sentido).
+            
+            ROTEIRO 3: A Comparação Visual
+            - Foco em mostrar a dor e a solução sensorial sem prometer cura total (alinhado com o funil validado).
+            
+            Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio, direto e agressivo na retenção.
+            """
+            
+            resposta_roteiro = modelo_roteiro.generate_content(prompt_roteiro)
+            
+            st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
+            st.markdown(resposta_roteiro.text)
+            st.balloons()
+            
+        except Exception as e:
+            st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
+
+# ==========================================================
+# 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
+# ==========================================================
+st.divider()
+
+# Cálculo de Tendência (Últimos 7 dias vs 7 dias anteriores)
+crescimento = 0.0
+rev_7d = 0.0
+rev_prev_7d = 0.0
+nota_empresa = "N/A"
+cor_anim = "#FFD700"
+sombra_anim = "rgba(255, 215, 0, 0.4)"
+simbolo = "⏳ CARREGANDO DADOS"
+
+if not df.empty and "Data_Parsed" in df.columns:
+    limite_7d = hoje - timedelta(days=7)
+    limite_14d = hoje - timedelta(days=14)
+    
+    # Faturamento últimos 7 dias (Aprovado/Estimado)
+    rev_7d = df[(df["Data_Parsed"] >= limite_7d) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
+    
+    # Faturamento dos 7 dias anteriores
+    rev_prev_7d = df[(df["Data_Parsed"] >= limite_14d) & (df["Data_Parsed"] < limite_7d) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
+    
+    if rev_prev_7d > 0:
+        crescimento = ((rev_7d - rev_prev_7d) / rev_prev_7d) * 100
+    elif rev_7d > 0:
+        crescimento = 100.0  # Saiu do zero para o lucro
+    else:
+        crescimento = 0.0
+
+    # Inteligência de Diagnóstico
+    if crescimento > 5:
+        cor_anim = "#00FF7F" # Verde Primavera Neon
+        sombra_anim = "rgba(0, 255, 127, 0.4)"
+        nota_empresa = "A+"
+        simbolo = "🚀 ESCALANDO (LUCRO)"
+    elif crescimento < -5:
+        cor_anim = "#FF0040" # Vermelho Alerta
+        sombra_anim = "rgba(255, 0, 64, 0.4)"
+        nota_empresa = "C-"
+        simbolo = "🚨 ALERTA DE QUEDA"
+    else:
+        cor_anim = "#FFD700" # Ouro VIP
+        sombra_anim = "rgba(212, 175, 55, 0.4)"
+        nota_empresa = "B"
+        simbolo = "⚖️ ESTÁVEL"
+
+# Renderização do Painel Animado via HTML/CSS
+html_coracao = f"""
+<div style="
+    background: rgba(15, 15, 15, 0.6);
+    backdrop-filter: blur(10px);
+    border: 2px solid {cor_anim};
+    border-radius: 20px;
+    padding: 30px;
+    text-align: center;
+    box-shadow: 0 0 20px {sombra_anim};
+    animation: pulse-coração 2s infinite ease-in-out;
+    margin-top: 20px;
+    margin-bottom: 20px;
+">
+    <h2 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: 2px; margin: 0; font-size: 1.5rem;">STATUS DA OPERAÇÃO</h2>
+    <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 4.5rem; font-weight: 900; margin: 10px 0; text-shadow: 0px 0px 15px {sombra_anim};">NOTA {nota_empresa}</h1>
+    <h3 style="color: #FFFFFF; font-family: 'Montserrat', sans-serif; font-weight: 600; margin: 10px 0;">{simbolo} | {crescimento:+.1f}%</h3>
+    <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; margin-bottom: 0;">Comparativo de lucro dos últimos 7 dias contra a semana anterior.</p>
+</div>
+<style>
+    @keyframes pulse-coração {{
+        0% {{ box-shadow: 0 0 10px {sombra_anim}; transform: scale(1); }}
+        50% {{ box-shadow: 0 0 35px {cor_anim}; transform: scale(1.02); }}
+        100% {{ box-shadow: 0 0 10px {sombra_anim}; transform: scale(1); }}
+    }}
+</style>
+"""
+
+st.markdown(html_coracao, unsafe_allow_html=True)
