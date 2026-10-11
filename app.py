@@ -266,7 +266,6 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
         ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
         df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
-
 # ==========================================================
 # 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V6.1 - VIP LATERAL ANIMADO)
 # ==========================================================
