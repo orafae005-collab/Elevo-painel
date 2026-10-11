@@ -432,17 +432,29 @@ else:
             st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.6 - CÉREBRO TIKTOK SHOP)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
     modelo = genai.GenerativeModel(MODELO_ATIVO)
     imagem_pil = Image.open(imagem_upload)
+    
+    # 🔥 CÉREBRO DE ELITE: Ensinando a IA a não cair na pegadinha do GMV
     prompt = f"""
-    Analise esta imagem do painel de dados ou produtos do TikTok Shop.
-    Extraia as informações e retorne APENAS os dados brutos, sem markdown.
-    Formato OBRIGATÓRIO (separado por ponto e vírgula):
+    Você é um auditor financeiro de elite operando um painel do TikTok Shop.
+    Sua missão é extrair os dados de vendas da imagem com 100% de precisão, lidando com as pegadinhas da interface do TikTok.
+    
+    REGRAS INQUEBRÁVEIS DE MATEMÁTICA E LEITURA:
+    1. A PEGADINHA DO 'GMV': A tela 'Pontuação de desempenho da promoção' mostra o 'GMV atribuído' (que é o valor bruto pago pelo cliente, ex: R$ 68,80). NUNCA COLOQUE O GMV NA COLUNA DE COMISSÃO. 
+    2. COMO CALCULAR A COMISSÃO: Se a tela não mostrar a comissão exata do produto, você DEVE calcular a comissão estimada multiplicando o GMV por 15% (GMV * 0.15). Exemplo: Se o GMV do produto for 68,80, a comissão que você vai preencher será 10,32. 
+    3. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o valor exato de itens vendidos para cada produto (ex: 3, 1, 5). Se não encontrar o número, preencha 1.
+    4. STATUS DE VENDA: Como essas telas de desempenho não mostram o status logístico, assuma SEMPRE que o status é 'Aprovado'. NUNCA deixe vazio ou com traços (-).
+    5. DATA: Se a tela mostrar "Hoje" ou não apresentar data, use a data atual no formato DD/MM/AAAA.
+    
+    Extraia as informações e retorne APENAS as linhas de dados brutos, sem markdown (```csv), sem cabeçalho e sem texto adicional.
+    Formato OBRIGATÓRIO linha por linha (separado por ponto e vírgula):
     DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
+    
     try:
         resposta = modelo.generate_content([prompt, imagem_pil])
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
@@ -451,20 +463,30 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
     modelo = genai.GenerativeModel(MODELO_ATIVO)
+    
     prompt = f"""
-    Analise o texto abaixo copiado de um painel de vendas.
-    Extraia as informações e retorne APENAS os dados brutos, sem markdown.
-    Formato OBRIGATÓRIO de cada linha (separado por ponto e vírgula):
-    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
+    Você é um auditor financeiro de elite operando um painel do TikTok Shop.
+    
+    REGRAS INQUEBRÁVEIS:
+    1. PROIBIDO USAR GMV: O 'GMV atribuído' é o lucro da loja, não o seu. Nunca coloque o GMV como sua comissão.
+    2. CÁLCULO DE COMISSÃO: Se o texto mostrar o GMV, multiplique esse valor por 0.15 (15%) para achar a sua comissão real.
+    3. STATUS: Se não houver status claro, preencha como 'Aprovado'.
+    4. QUANTIDADE: Se houver indicação de itens vendidos, use esse número.
     
     Texto copiado:
     {texto_bruto}
+    
+    Retorne APENAS as linhas de dados brutos, sem markdown.
+    Formato OBRIGATÓRIO (separado por ponto e vírgula):
+    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
+    
     try:
         resposta = modelo.generate_content(prompt)
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
+
 
 # ==========================================================
 # 8. AUDITORIA E INJEÇÃO DE DADOS
