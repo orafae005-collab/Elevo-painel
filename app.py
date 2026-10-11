@@ -378,27 +378,41 @@ else:
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.8 - CÉREBRO DA AURORA)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V5.91 - BLINDAGEM COM EXEMPLO)
 # ==========================================================
 def extrair_dados_do_print(imagem_upload, nome_canal):
     imagem_pil = Image.open(imagem_upload)
     
-    # 🔥 CÉREBRO DA AURORA: Matemática rígida e ponto decimal forçado
+    # Captura a data exata do momento para a IA não alucinar o ano
+    agora_brasil = datetime.utcnow() - timedelta(hours=3)
+    data_hoje = agora_brasil.strftime("%d/%m/%Y")
+    
+    # 🔥 CÉREBRO DA AURORA: Relógio sincronizado, matemática forçada e EXEMPLO DE OURO
     prompt = f"""
     Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
     Sua missão é extrair os dados de vendas da imagem com 100% de precisão.
     
+    INFORMAÇÕES DE SISTEMA (USE OBRIGATORIAMENTE):
+    - DATA DE HOJE: {data_hoje}
+    - CANAL: {nome_canal}
+    
     REGRAS INQUEBRÁVEIS DE MATEMÁTICA E LEITURA:
-    1. A PEGADINHA DO 'GMV': A tela mostra o 'GMV atribuído'. NUNCA COLOQUE O GMV NA COLUNA DE COMISSÃO. 
-    2. COMO CALCULAR A COMISSÃO: Se a tela não mostrar a comissão exata, calcule multiplicando o GMV por 15% (GMV * 0.15).
-    3. 🔥 REGRA ABSOLUTA DO PONTO DECIMAL: Você DEVE usar PONTO (.) para separar os centavos. É ESTRITAMENTE PROIBIDO USAR VÍRGULA. Exemplo: Se a comissão for 3 Reais e 81 centavos, escreva EXATAMENTE 3.81 (Nunca 3,81 ou 381).
-    4. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o valor exato (ex: 3, 1, 5). Se não encontrar, preencha 1.
-    5. STATUS DE VENDA: Como essas telas não mostram o status logístico, assuma SEMPRE 'Aprovado'.
-    6. DATA: Se a tela mostrar "Hoje", use a data atual no formato DD/MM/AAAA.
+    1. A PEGADINHA DO 'GMV': A tela mostra o 'GMV atribuído' (faturamento bruto). NUNCA coloque esse valor na coluna de comissão. 
+    2. CÁLCULO OBRIGATÓRIO (PROIBIDO ZERAR): Você DEVE calcular a comissão de CADA produto listado. Multiplique o valor do GMV do produto por 0.15 (15%). NUNCA deixe a comissão zerada (0.00) se houver um GMV válido.
+    3. 🔥 REGRA DO PONTO DECIMAL: Use OBRIGATORIAMENTE o PONTO (.) para decimais e APENAS NÚMEROS. Exemplo de cálculo: GMV de 33.52 * 0.15 = 5.02. Escreva APENAS 5.02 (NUNCA escreva 5,02, nem R$5.02, nem letras).
+    4. QUANTIDADE ('Itens vendidos atribuídos'): Pegue o número exato. Se for 0, ignore o produto (não coloque na tabela).
+    5. STATUS DE VENDA: Assuma SEMPRE 'Aprovado'.
+    6. DATA: Toda vez que ler a palavra "Hoje", utilize EXATAMENTE a DATA DE HOJE fornecida no sistema ({data_hoje}).
+    
+    🎯 EXEMPLO DE COMO VOCÊ DEVE PENSAR E RESPONDER:
+    Se você ler na imagem: "Kit 3 Henê Rená Preto Natural / GMV atribuído R$ 33,52 / Itens vendidos atribuídos 1"
+    Você fará a conta: 33.52 * 0.15 = 5.02
+    A sua resposta DEVE ser EXATAMENTE esta linha:
+    {data_hoje};Kit 3 Henê Rená Preto Natural;{nome_canal};Aprovado;1;5.02
     
     Extraia as informações e retorne APENAS as linhas de dados brutos, sem markdown.
     Formato OBRIGATÓRIO linha por linha (separado por ponto e vírgula):
-    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
+    Data;Nome do Produto;Canal;Status;Quantidade;ValorDaComissao
     """
     
     try:
@@ -408,29 +422,36 @@ def extrair_dados_do_print(imagem_upload, nome_canal):
         return f"ERRO_API: {str(e)}"
 
 def extrair_dados_do_texto(texto_bruto, nome_canal):
+    agora_brasil = datetime.utcnow() - timedelta(hours=3)
+    data_hoje = agora_brasil.strftime("%d/%m/%Y")
+    
     prompt = f"""
     Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
     
+    INFORMAÇÕES DE SISTEMA:
+    - DATA DE HOJE: {data_hoje}
+    
     REGRAS INQUEBRÁVEIS:
-    1. PROIBIDO USAR GMV: O 'GMV atribuído' é o lucro da loja, não o seu. 
-    2. CÁLCULO DE COMISSÃO: Se o texto mostrar o GMV, multiplique por 0.15 (15%).
-    3. 🔥 REGRA DO PONTO DECIMAL: Use SEMPRE ponto (.) para decimais. Exemplo: Escreva 5.03 e NUNCA 5,03.
-    4. STATUS: Preencha como 'Aprovado'.
+    1. PROIBIDO USAR GMV: Multiplique o GMV por 0.15 (15%) para achar sua comissão real. NUNCA zere a comissão.
+    2. 🔥 REGRA DO PONTO DECIMAL: Use SEMPRE ponto (.) para decimais e não coloque 'R$'. Exemplo: 5.02.
+    3. STATUS: Preencha como 'Aprovado'.
+    4. DATA: Substitua "Hoje" por {data_hoje}.
+    
+    🎯 EXEMPLO DE RESPOSTA OBRIGATÓRIA:
+    {data_hoje};Nome do Produto;{nome_canal};Aprovado;1;5.02
     
     Texto copiado:
     {texto_bruto}
     
     Retorne APENAS as linhas de dados brutos, sem markdown.
     Formato OBRIGATÓRIO (separado por ponto e vírgula):
-    DD/MM/AAAA;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
+    Data;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
     try:
         resposta = modelo_ia.generate_content(prompt)
         return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
     except Exception as e:
         return f"ERRO_API: {str(e)}"
-
-
 # ==========================================================
 # 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 AURORA & PROTOCOLO ÁGUIA)
 # ==========================================================
