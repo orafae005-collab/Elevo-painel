@@ -905,109 +905,53 @@ with col_raiox2:
         else:
             st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
 # ==========================================================
-# 13. FÁBRICA DE ROTEIROS VIP (🔥 MOTOR OPENAI)
+# 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Fábrica de Roteiros Sob Demanda</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Alimente a Aurora com a descrição e ela lembrará disso mesmo se você fechar o aplicativo.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa TODO o seu aplicativo (Faturamento, Produto Campeão, Tendências da Aurora e Funil) para forjar 3 roteiros impossíveis de ignorar.</p>", unsafe_allow_html=True)
 
-aba_roteiros = None
-historico_roteiros = []
-
-if link_planilha_ativa and robo_sheets:
-    try:
-        sheet_id = extrair_id_planilha(link_planilha_ativa)
-        planilha = robo_sheets.open_by_key(sheet_id)
+if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primary", use_container_width=True):
+    with st.spinner("Analisando faturamento, tendências, missões e funil... Forjando roteiros de elite..."):
         try:
-            aba_roteiros = planilha.worksheet("Memoria_Roteiros")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_roteiros = planilha.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="5")
-            aba_roteiros.append_row(["Publico", "Qtd", "Prod1", "Prod2", "Prod3"])
-        historico_roteiros = aba_roteiros.get_all_records()
-    except Exception:
-        pass
+            alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Ainda sem dados. Sugira um produto genérico de beleza feminino."
+            vendas_atuais = f"R$ {aprovado:,.2f}"
+            tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência mapeada ainda."
+            ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco total na curiosidade e escassez."
+            missao_atual = missao_hoje
 
-mem_publico = ""
-mem_qtd = 1
-mem_p1 = ""
-mem_p2 = ""
-mem_p3 = ""
-
-if historico_roteiros:
-    ultima_mem = historico_roteiros[-1]
-    mem_publico = str(ultima_mem.get("Publico", ""))
-    mem_qtd = int(ultima_mem.get("Qtd", 1))
-    if mem_qtd not in [1, 2, 3]: mem_qtd = 1
-    mem_p1 = str(ultima_mem.get("Prod1", ""))
-    mem_p2 = str(ultima_mem.get("Prod2", ""))
-    mem_p3 = str(ultima_mem.get("Prod3", ""))
-
-with st.container(border=True):
-    col_limpar1, col_limpar2 = st.columns([4, 1])
-    with col_limpar2:
-        if st.button("🗑️ Limpar Campos", use_container_width=True):
-            if aba_roteiros is not None:
-                with st.spinner("Limpando memória..."):
-                    aba_roteiros.clear()
-                    aba_roteiros.append_row(["Publico", "Qtd", "Prod1", "Prod2", "Prod3"])
-                st.success("Tudo limpo!")
-                time.sleep(1)
-                st.rerun()
-
-    col_config1, col_config2 = st.columns([1, 1])
-    with col_config1:
-        publico_alvo = st.text_input("🎯 Para quem estamos vendendo?", value=mem_publico, placeholder="Ex: Mulheres cacheadas...")
-    with col_config2:
-        index_qtd = [1, 2, 3].index(mem_qtd)
-        qtd_produtos = st.radio("📦 Quantos produtos neste vídeo?", [1, 2, 3], index=index_qtd, horizontal=True)
-
-    st.markdown("#### 📝 Detalhes do(s) Produto(s)")
-    descricoes = []
-    mem_prods = [mem_p1, mem_p2, mem_p3]
-    cols_produtos = st.columns(qtd_produtos)
-    for i in range(qtd_produtos):
-        with cols_produtos[i]:
-            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", value=mem_prods[i], height=120, key=f"desc_prod_{i}")
-            descricoes.append(desc)
-
-    if st.button("⚡ FORJAR ROTEIROS DE ELITE", type="primary", use_container_width=True):
-        if not publico_alvo or not any(descricoes):
-            st.warning("⚠️ Sócio, preencha o público-alvo e pelo menos a descrição do primeiro produto!")
-        else:
-            if aba_roteiros is not None:
-                p1_save = descricoes[0] if len(descricoes) > 0 else ""
-                p2_save = descricoes[1] if len(descricoes) > 1 else ""
-                p3_save = descricoes[2] if len(descricoes) > 2 else ""
-                aba_roteiros.append_row([publico_alvo, qtd_produtos, p1_save, p2_save, p3_save])
-
-            with st.spinner("A Aurora (OpenAI) está aplicando os gatilhos mentais..."):
-                produtos_str = ""
-                for i, d in enumerate(descricoes):
-                    if d.strip(): produtos_str += f"\n- PRODUTO {i+1}: {d.strip()}"
-
-                sistema_copy = "Você é Aurora, uma Copywriter de Elite focada em TikTok Shop e influenciadora virtual. Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem."
-                prompt_copy = f"""
-                DADOS DO PROJETO:
-                - Canal: {nome_canal_ativo}
-                - Público-Alvo: {publico_alvo}
-                - Produtos: {produtos_str}
-
-                DIRETRIZES DE BLINDAGEM TIKTOK:
-                - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Derrete", "Apaga".
-                - SUBSTITUTOS OBRIGATÓRIOS: "Sensação de", "Uso contínuo", "Efeito desmaiado", "Toque de seda".
-
-                Crie UM roteiro de vídeo magnético focado na curiosidade. Formato de lista se for mais de 1 produto.
-                ESTRUTURA:
-                1. GANCHO (0-3s): Capture a atenção imediatamente.
-                2. CORPO: Apresente o(s) produto(s) focando no desejo da audiência.
-                3. CTA: Finalize com "Já garanti o meu, corre no carrinho!"
-                Formate separando [AÇÃO NA TELA] de [VOZ DA AURORA].
-                """
-                resposta_copy = chamar_ia_global(prompt_copy, sistema_copy)
-                st.success("✅ Roteiro gerado e dados salvos na memória com sucesso!")
-                st.markdown(resposta_copy)
-                st.balloons()
-
+            prompt_roteiro = f"""
+            Atue como um Copywriter de Elite focado em TikTok Shop para o público feminino ("Buscadora de Atalhos", 18-40 anos, ama levar vantagem).
+            DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO:
+            📊 Faturamento Aprovado no Filtro Atual: {vendas_atuais}
+            🏆 Produto Campeão: {alvo_campeao}
+            🔮 Última Tendência do Mercado: {tendencia_aurora}
+            🧬 Nosso Funil e Ganchos Validados: {ultimo_funil_texto}
+            🎯 Missão de Execução de Hoje: {missao_atual}
+            
+            DIRETRIZES DE BLINDAGEM TIKTOK:
+            - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
+            - OBRIGATÓRIO: "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Toque de seda".
+            
+            AVATAR E TOM DE VOZ (AURORA):
+            - Amiga fofoqueira do bem.
+            - Hooks permitidos: "Amiga, para tudo!", "Vem cá, me conta uma coisa...", "Eu não deveria estar falando isso, mas...", "Gente, o pessoal do estoque vai me matar."
+            - Assinatura final obrigatória: "Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?"
+            
+            MISSÃO:
+            Baseado em TODOS OS DADOS da nossa operação fornecidos acima, crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [Produto Campeão].
+            ROTEIRO 1: O Choque de Preço (Erro no Sistema)
+            ROTEIRO 2: O Segredo Revelado (Use a tendência se fizer sentido)
+            ROTEIRO 3: A Comparação Visual (Dor vs Solução sensorial)
+            
+            Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
+            """
+            resposta_roteiro = modelo_ia.generate_content(prompt_roteiro)
+            st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
+            st.markdown(resposta_roteiro.text)
+            st.balloons()
+        except Exception as e:
+            st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
 # ==========================================================
 # 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
 # ==========================================================
@@ -1080,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE & CONSELHEIRO PESSOAL (🔥 CHAT INTELIGENTE DA AURORA)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS & VOZ DA AURORA (🔥 ESTILO WHATSAPP VIP)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos & Motivação (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Escreva sua dúvida, dilema ou busca por motivação. A Aurora vai analisar friamente e dar o conselho estratégico em texto e áudio.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>O seu canal direto de alta performance com a Aurora. Envie sua mensagem como no WhatsApp e ouça o conselho estratégico ao vivo.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1094,77 +1038,102 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
-# Histórico de conversas do Mentor na sessão
-if "historico_mentor" not in st.session_state:
-    st.session_state["historico_mentor"] = []
+if "historico_whatsapp" not in st.session_state:
+    st.session_state["historico_whatsapp"] = [
+        {"role": "assistant", "content": "E aí, sócio! Estou pronta na escuta. Qual é o dilema de negócio ou o foco de hoje? Manda o papo."}
+    ]
 
-# Container principal do Chat
+if "ultimo_audio_whatsapp_b64" not in st.session_state:
+    st.session_state["ultimo_audio_whatsapp_b64"] = None
+
 with st.container(border=True):
-    # Exibe o histórico de mensagens trocadas
-    for mensagem in st.session_state["historico_mentor"]:
-        if mensagem["role"] == "user":
-            st.markdown(f"**👤 Você:** {mensagem['content']}")
-        else:
-            st.markdown(f"**🎙️ Aurora (Mentora):** {mensagem['content']}")
-            
+    chat_container = st.container(height=400)
+    
+    with chat_container:
+        for msg in st.session_state["historico_whatsapp"]:
+            if msg["role"] == "user":
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
+                    <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+            else:
+                st.markdown(f"""
+                <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
+                    <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; font-family: 'Montserrat', sans-serif; border-left: 4px solid #00FFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🎙️ Aurora (Mentora VIP)</p>
+                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Campo de entrada para o usuário conversar com a mentora
-    pergunta_usuario = st.text_input("💬 Digite seu dilema, dúvida de negócio ou pedido de motivação:", placeholder="Ex: Sócio, estou desanimado hoje com os vídeos, o que eu faço para destravar?")
-    
-    col_env1, col_env2 = st.columns([1, 4])
-    if col_env1.button("🚀 Pedir Conselho", type="primary", use_container_width=True):
-        if pergunta_usuario.strip():
-            # Adiciona a pergunta do usuário no histórico
-            st.session_state["historico_mentor"].append({"role": "user", "content": pergunta_usuario})
+    with st.form(key="form_whatsapp_mentor", clear_on_submit=True):
+        col_input, col_send = st.columns([5, 1])
+        with col_input:
+            pergunta_zap = st.text_input("Mensagem para a Aurora...", placeholder="Digite sua dúvida ou ideia...", label_visibility="collapsed")
+        with col_send:
+            enviar_msg = st.form_submit_button("➤", use_container_width=True)
             
-            with st.spinner("🧠 A Aurora está processando a estratégia com base na Mente de Marketing..."):
-                try:
-                    # Sistema de Contexto e Visão de Negócios (Mente de Marketing fria e estratégica)
-                    sistema_mentor = (
-                        "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
-                        "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
-                        "Dê conselhos práticos, direcionamentos de marketing, tiradas inteligentes ou doses de motivação cirúrgicas. "
-                        "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
-                    )
+        if enviar_msg and pergunta_zap.strip():
+            st.session_state["historico_whatsapp"].append({"role": "user", "content": pergunta_zap})
+            
+            try:
+                sistema_mentor = (
+                    "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
+                    "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
+                    "Dê conselhos práticos, direcionamentos de marketing, tiradas inteligentes ou doses de motivação cirúrgicas. "
+                    "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
+                )
+                
+                chat_sessao = modelo_ia.start_chat(history=[])
+                resposta_objeto = chat_sessao.send_message(f"{sistema_mentor}\n\nPergunta do sócio: {pergunta_zap}")
+                resposta_mentor = resposta_objeto.text.replace("*", "").strip()
+                
+                st.session_state["historico_whatsapp"].append({"role": "assistant", "content": resposta_mentor})
+                
+                url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                
+                resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                if resp_voz.status_code == 200:
+                    st.session_state["ultimo_audio_mentor_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                else:
+                    st.session_state["ultimo_audio_mentor_b64"] = None
                     
-                    # Chamada direta à OpenAI GPT-4o-mini
-                    response = cliente_openai.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": sistema_mentor},
-                            {"role": "user", "content": pergunta_usuario}
-                        ],
-                        max_tokens=150,
-                        temperature=0.7
-                    )
-                    resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
-                    
-                    # Adiciona a resposta da Aurora no histórico
-                    st.session_state["historico_mentor"].append({"role": "assistant", "content": resposta_mentor})
-                    
-                    # Gera o áudio com a ElevenLabs (ou gTTS reserva) para você ouvir o conselho
-                    url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                    headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                    payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                    
-                    resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                    if resp_voz.status_code == 200:
-                        audio_b64 = base64.b64encode(resp_voz.content).decode('utf-8')
-                        
-                        # Bloco de reprodução automática do áudio do conselho
-                        html_audio_mentor = f"""
-                        <audio id="audio_conselho" autoplay>
-                            <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mpeg">
-                        </audio>
-                        """
-                        import streamlit.components.v1 as components
-                        components.html(html_audio_mentor, height=0)
-                        
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao gerar conselho: {e}")
+                st.rerun()
+            except Exception as e:
+                st.error(f"Erro ao processar: {e}")
 
-    if col_env2.button("🗑️ Limpar Conversa", use_container_width=True):
-        st.session_state["historico_mentor"] = []
+    if st.button("🗑️ Limpar Conversa", use_container_width=True):
+        st.session_state["historico_whatsapp"] = [
+            {"role": "assistant", "content": "Conversa reiniciada. O que vamos estruturar agora, sócio?"}
+        ]
+        st.session_state["ultimo_audio_mentor_b64"] = None
         st.rerun()
+
+if st.session_state["ultimo_audio_mentor_b64"]:
+    audio_tocar = st.session_state["ultimo_audio_mentor_b64"]
+    html_ondas_sonoras = f"""
+    <style>
+        .bar {{ width: 12px; height: 10px; background: #00FFFF; border-radius: 4px; display: inline-block; animation: bounce 0.4s infinite alternate; }}
+        .bar:nth-child(2) {{ animation-delay: 0.1s; background: #00BFFF; }}
+        .bar:nth-child(3) {{ animation-delay: 0.2s; background: #1E90FF; }}
+        .bar:nth-child(4) {{ animation-delay: 0.3s; background: #00BFFF; }}
+        .bar:nth-child(5) {{ animation-delay: 0.4s; background: #00FFFF; }}
+        @keyframes bounce {{ from {{ height: 10px; opacity: 0.5; }} to {{ height: 45px; opacity: 1; }} }}
+    </style>
+    <div style="background-color: #1a1a1a; padding: 20px; border-radius: 14px; text-align: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.3); margin-top: 20px;">
+        <h4 style="color: #00FFFF; margin: 0 0 15px 0; font-family: sans-serif;">🎙️ VOZ DA AURORA FALANDO</h4>
+        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 50px;">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <audio id="aurora_audio" autoplay>
+            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
+        </audio>
+    </div>"""
+    components.html(html_ondas_sonoras, height=140)
