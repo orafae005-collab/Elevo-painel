@@ -16,9 +16,11 @@ import queue
 import os
 import random
 from openai import OpenAI
+import io
+from gtts import gTTS
 
 # ==========================================================
-# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V5.0 - MOTOR OPENAI)
+# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V5.0 - MOTOR OPENAI + VOZ RESERVA)
 # ==========================================================
 st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V5.0", page_icon="🦅", layout="wide")
 
@@ -1048,12 +1050,18 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + OPENAI GPT-4o-MINI)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + OPENAI + VOZ RESERVA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🎙️ Estúdio VIP Aurora (Painel Profissional)</h3>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
+
+try:
+    CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
+except KeyError:
+    st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
+    st.stop()
 
 if st.session_state.get("erro_chave"):
     st.error("🚨 ERRO CRÍTICO DE CONEXÃO.")
@@ -1113,14 +1121,29 @@ if "limite_silencio" not in st.session_state: st.session_state["limite_silencio"
 if "ultimo_join" not in st.session_state: st.session_state["ultimo_join"] = 0.0
 if "ultimo_like" not in st.session_state: st.session_state["ultimo_like"] = 0.0
 
-# --- MOTORES NUCLEARES (COM OPENAI) ---
+# --- MOTORES NUCLEARES (COM OPENAI + GTTS) ---
 def gerar_audio_base64(texto):
+    # TENTATIVA 1: Voz VIP (ElevenLabs)
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
     headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
     payload = {"text": texto, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-    resp = requests.post(url, json=payload, headers=headers, timeout=8)
-    if resp.status_code == 200: return base64.b64encode(resp.content).decode('utf-8')
-    else: raise Exception(f"Falha Voz: {resp.text}")
+    
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=8)
+        if resp.status_code == 200: 
+            return base64.b64encode(resp.content).decode('utf-8')
+        else:
+            raise Exception("Limite VIP esgotado")
+    except:
+        # TENTATIVA 2: Tanque de Reserva Gratuito (Google TTS)
+        try:
+            tts = gTTS(text=texto, lang='pt', tld='com.br')
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            return base64.b64encode(fp.read()).decode('utf-8')
+        except:
+            return None
 
 def processar_comentario_ia(arroba, comentario, produto):
     historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
@@ -1202,7 +1225,7 @@ with st.container(border=True):
         if produto_live:
             st.session_state.update({"live_rodando": True, "modo_teste": True, "fila_audios": [], "log_chat": ["🟡 Teste Offline."]})
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            try: st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o cérebro da OpenAI está online e operante em todo o aplicativo!"))
+            try: st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o cérebro da OpenAI está online e o Tanque de Reserva de voz está operante!"))
             except Exception as e: st.session_state["erro_chave"] = str(e)
             st.rerun()
 
