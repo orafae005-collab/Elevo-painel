@@ -1213,11 +1213,17 @@ with st.container(border=True):
         st.rerun()
 
 # ==========================================================
-# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO
+# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO CORRIGIDA
 # ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
+    hash_atual = st.session_state["ultimo_hash_audio"]
+    
+    # Injetamos o hash como um comentário invisível (<!-- -->) no HTML.
+    # Assim, o Streamlit entende que o player mudou apenas quando for um áudio realmente novo, 
+    # evitando recarregar e tocar sozinho do nada!
     html_ondas_inteligentes = f"""
+    <!-- CHAVE UNICA DO AUDIO: {hash_atual} -->
     <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
         <h4 style="color: #00FFFF; margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif;">🦅 TRANSMISSÃO DA AURORA</h4>
         <div id="visualizer" style="display: flex; justify-content: center; align-items: center; gap: 4px; height: 60px;">
@@ -1246,5 +1252,6 @@ if st.session_state["ultimo_audio_b64"]:
     </script>
     """
     
-    chave_unica_player = f"player_vip_{st.session_state['ultimo_hash_audio']}"
-    components.html(html_ondas_inteligentes, height=200, key=chave_unica_player)
+    # Removido o 'key=' para acabar com o erro TypeError. 
+    # O Streamlit já fará a checagem automática pela string HTML criada acima!
+    components.html(html_ondas_inteligentes, height=200)
