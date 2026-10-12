@@ -6,3 +6,4 @@ gspread
 plotly
 TikTokLive
 requests
+gTTS
