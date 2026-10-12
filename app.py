@@ -1046,6 +1046,10 @@ if "historico_viva_voz" not in st.session_state:
 if "ultimo_audio_b64" not in st.session_state:
     st.session_state["ultimo_audio_b64"] = None
 
+# 🔥 CORREÇÃO DO LOOP INFINITO: Memória para saber se o áudio já foi processado
+if "ultimo_hash_audio" not in st.session_state:
+    st.session_state["ultimo_hash_audio"] = None
+
 with st.container(border=True):
     chat_container = st.container(height=350)
     
@@ -1078,59 +1082,68 @@ with st.container(border=True):
         audio_bytes = audio_gravado.read()
         
         if audio_bytes:
-            with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
-                try:
-                    # 1. Transcreve o áudio usando o Whisper da OpenAI
-                    transcricao_obj = cliente_openai.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=("audio_usuario.wav", audio_bytes, "audio/wav")
-                    )
-                    texto_falado = transcricao_obj.text
-                    
-                    if texto_falado.strip():
-                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
-                        
-                        sistema_mentor = (
-                            "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
-                            "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
-                            "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
-                            "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
+            import hashlib
+            # Cria uma "impressão digital" única do áudio para não repetir
+            audio_hash = hashlib.md5(audio_bytes).hexdigest()
+            
+            # 🔥 SÓ PROCESSA SE FOR UM ÁUDIO NOVO
+            if audio_hash != st.session_state["ultimo_hash_audio"]:
+                st.session_state["ultimo_hash_audio"] = audio_hash # Salva o áudio na memória
+                
+                with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
+                    try:
+                        # 1. Transcreve o áudio usando o Whisper da OpenAI
+                        transcricao_obj = cliente_openai.audio.transcriptions.create(
+                            model="whisper-1",
+                            file=("audio_usuario.wav", audio_bytes, "audio/wav")
                         )
+                        texto_falado = transcricao_obj.text
                         
-                        # 2. Resposta via ChatGPT (OpenAI oficial)
-                        response = cliente_openai.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": sistema_mentor},
-                                {"role": "user", "content": f"O sócio disse por voz: {texto_falado}"}
-                            ],
-                            max_tokens=150,
-                            temperature=0.7
-                        )
-                        resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
-                        
-                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
-                        
-                        # 3. Geração de voz na ElevenLabs com a chave VIP do cofre
-                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                        
-                        resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                        if resp_voz.status_code == 200:
-                            st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                        else:
-                            st.session_state["ultimo_audio_b64"] = None
+                        if texto_falado.strip():
+                            st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
                             
-                        st.rerun()
-                except Exception as e:
-                    st.error(f"Erro ao processar o microfone: {e}")
+                            sistema_mentor = (
+                                "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
+                                "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
+                                "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
+                                "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
+                            )
+                            
+                            # 2. Resposta via ChatGPT (OpenAI oficial)
+                            response = cliente_openai.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=[
+                                    {"role": "system", "content": sistema_mentor},
+                                    {"role": "user", "content": f"O sócio disse por voz: {texto_falado}"}
+                                ],
+                                max_tokens=150,
+                                temperature=0.7
+                            )
+                            resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
+                            
+                            st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
+                            
+                            # 3. Geração de voz na ElevenLabs com a chave VIP do cofre
+                            url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                            headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                            payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                            
+                            resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                            if resp_voz.status_code == 200:
+                                st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                            else:
+                                st.session_state["ultimo_audio_b64"] = None
+                                
+                            st.rerun()
+                    except Exception as e:
+                        st.error(f"Erro ao processar o microfone: {e}")
 
     if st.button("🗑️ Limpar Conversa de Voz", use_container_width=True):
         st.session_state["historico_viva_voz"] = [
             {"role": "assistant", "content": "Conversa reiniciada. Podes mandar novo áudio, sócio!"}
         ]
         st.session_state["ultimo_audio_b64"] = None
+        st.session_state["ultimo_hash_audio"] = None
         st.rerun()
 
 # 🎛️ PAINEL DE ÁUDIO COM ANIMADOR DE ONDAS SONORAS
