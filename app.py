@@ -1094,8 +1094,9 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR SUPREMO VIP + BUNKER TIKTOK)
+# 👑 ESTÚDIO VIP DA AURORA (MOTOR NATIVO DE DESKTOP) 👑
 # ==========================================================
+import customtkinter as ctk
 import threading
 import asyncio
 import base64
@@ -1104,315 +1105,244 @@ import time
 import queue
 import os
 import random
+import pygame
 import google.generativeai as genai
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import ConnectEvent, CommentEvent
 
-st.divider()
-st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de Transmissão VIP (Voz ao Vivo)</h3>", unsafe_allow_html=True)
-
-# --- CHAVES DE ACESSO (🔒 O CADEADO DO STREAMLIT) ---
-try:
-    CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
-    CHAVE_GEMINI_VIP = st.secrets.get("GEMINI_API_KEY") or st.secrets["GOOGLE_API_KEY"]
-except KeyError:
-    st.error("🚨 ALERTA: Faltam chaves no cadeado (Secrets). Adicione a chave da voz e a chave da IA (GEMINI_API_KEY).")
-    st.stop()
-
-genai.configure(api_key=CHAVE_GEMINI_VIP)
-modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
-
+# --- 1. CHAVES DE ACESSO (COLE AS SUAS AQUI) ---
+CHAVE_GEMINI = "SUA_CHAVE_GEMINI_AQUI"
+CHAVE_ELEVENLABS = "SUA_CHAVE_ELEVENLABS_AQUI"
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
-# 💉 === SISTEMA DE INJEÇÃO FÍSICA NO SERVIDOR (COFRE DA ÁGUIA) === 💉
-ARQUIVO_DOSSIE = "memoria_dossie_aurora.txt"
+# --- 2. CONFIGURAÇÕES INICIAIS ---
+genai.configure(api_key=CHAVE_GEMINI)
+modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
+pygame.mixer.init() # O motor que força o áudio a tocar sozinho!
 
-def ler_dossie_vip():
-    if os.path.exists(ARQUIVO_DOSSIE):
-        with open(ARQUIVO_DOSSIE, "r", encoding="utf-8") as f:
-            return f.read()
-    return ""
+# Variáveis Globais de Estado
+live_rodando = False
+ultimo_tempo_fala = time.time()
+caixa_de_correio = queue.Queue()
+historico_chat = []
+produto_atual = ""
 
-def salvar_dossie_vip(texto):
-    with open(ARQUIVO_DOSSIE, "w", encoding="utf-8") as f:
-        f.write(texto)
-
-def apagar_dossie_vip():
-    if os.path.exists(ARQUIVO_DOSSIE):
-        os.remove(ARQUIVO_DOSSIE)
-# =====================================================================
-
-# --- GERENCIADOR DE ESTADO DA LIVE ---
-if "live_rodando" not in st.session_state:
-    st.session_state["live_rodando"] = False
-if "modo_teste" not in st.session_state:
-    st.session_state["modo_teste"] = False
-if "fila_audios" not in st.session_state:
-    st.session_state["fila_audios"] = []
-if "log_chat" not in st.session_state:
-    st.session_state["log_chat"] = []
-if "ultimo_audio_timestamp" not in st.session_state:
-    st.session_state["ultimo_audio_timestamp"] = time.time()
-
-# --- MOTOR DE VOZ INTELIGENTE (COM BACKUP GRATUITO) ---
-def gerar_audio_base64(texto):
+# --- 3. MOTOR DE VOZ COM ELEVENLABS E PYGAME ---
+def falar_texto_automatico(texto):
+    global ultimo_tempo_fala
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-    headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+    headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS}
     payload = {
         "text": texto,
         "model_id": "eleven_turbo_v2_5",
         "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}
     }
+    
+    arquivo_temp = f"voz_aurora_{int(time.time())}.mp3"
+    
     try:
+        atualizar_log("⚙️ Gerando áudio da Aurora...")
         resp = requests.post(url, json=payload, headers=headers, timeout=5)
         if resp.status_code == 200:
-            return base64.b64encode(resp.content).decode('utf-8')
-        else:
-            raise Exception("Erro ElevenLabs")
-    except:
-        try:
-            from gtts import gTTS
-            import io
-            tts = gTTS(text=texto, lang='pt', tld='com.br')
-            fp = io.BytesIO()
-            tts.write_to_fp(fp)
-            fp.seek(0)
-            return base64.b64encode(fp.read()).decode('utf-8')
-        except:
-            return None
+            with open(arquivo_temp, "wb") as f:
+                f.write(resp.content)
+            
+            # Toca sozinho sem apertar botão!
+            pygame.mixer.music.load(arquivo_temp)
+            pygame.mixer.music.play()
+            
+            # Aguarda a fala terminar para o programa não atropelar os áudios
+            while pygame.mixer.music.get_busy():
+                time.sleep(0.1)
+                
+            pygame.mixer.music.unload()
+            os.remove(arquivo_temp)
+    except Exception as e:
+        atualizar_log(f"⚠️ Erro na voz: {e}")
+    finally:
+        ultimo_tempo_fala = time.time() # Reseta o relógio cronometrado (3 a 8 segundos)
 
-# --- MENTE DA AURORA (COMENTÁRIOS) ---
-def processar_comentario_ia(arroba, comentario, produto):
-    historico_recente = " | ".join(st.session_state["log_chat"][-4:]) if st.session_state["log_chat"] else "Nenhum"
-    prompt_ia = f"""
-    Você é a Aurora, influenciadora carismática no TikTok Shop. Aja como a amiga fofoqueira do bem.
-    🚨 REGRA 1: É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais. Mande clicar no carrinho.
-    🚨 REGRA 2: NÃO REPITA ISSO: {historico_recente}
-    Dossiê do Produto: {produto}.
-    Comentário de @{arroba}: '{comentario}'
-    Responda em 1 ou 2 frases. Valide o ego da pessoa, explique um benefício do produto e mande clicar no carrinho.
+# --- 4. MENTE DA IA (COMENTÁRIOS E RÁDIO) ---
+def gerar_resposta_comentario(arroba, comentario):
+    historico = " | ".join(historico_chat[-3:])
+    prompt = f"""
+    Você é Aurora, vendedora no TikTok. Aja como amiga fofoqueira.
+    Produto: {produto_atual}. Comentário de @{arroba}: '{comentario}'.
+    🚨 PROIBIDO VALORES: Não fale preço, dinheiro ou Reais. Mande clicar no carrinho.
+    🚨 NÃO REPITA: {historico}
+    Responda diretamente em 1 frase curta focando no ego ou benefício.
     """
     try:
-        resposta = modelo_ia.generate_content(prompt_ia)
-        return resposta.text.replace("*", "").replace("`", "").strip()
+        return modelo_ia.generate_content(prompt).text.replace("*", "").strip()
     except:
-        return f"Oi {arroba}, amiga! Essa furadeira tá com um desconto irreal no sistema, corre no carrinho antes que suma!"
+        return f"Oi {arroba}, menina! O carrinho tá fixado, corre pra ver o desconto irreal!"
 
-# 🛡️ O BUNKER DE THREAD (A SOLUÇÃO PARA A NUVEM) 🛡️
-@st.cache_resource
-def iniciar_ouvinte_blindado(arroba):
-    # Este bunker protege o cliente de ser assassinado pelo recarregamento do Streamlit
-    caixa = queue.Queue()
-    cliente = TikTokLiveClient(unique_id=arroba)
+def gerar_fala_radio():
+    historico = " | ".join(historico_chat[-3:])
+    prompt = f"""
+    Você é Aurora. O chat tá quieto. Fale sozinha de forma fofoqueira para vender.
+    Produto: {produto_atual}.
+    🚨 PROIBIDO VALORES: NUNCA fale preços.
+    🚨 NÃO REPITA: [{historico}]. Mude completamente o argumento!
+    🎯 ROLETA: Escolha UM (1. Qualidade Premium, 2. Poucas Unidades no Estoque, 3. Promoção vai fechar).
+    Crie 1 frase curta e mande clicar no carrinho.
+    """
+    try:
+        return modelo_ia.generate_content(prompt).text.replace("*", "").strip()
+    except:
+        frases = [
+            "Meninas, o estoque dessa maleta tá voando, garantam no carrinho fixado!",
+            "Gente, a qualidade dessa ferramenta é de saldar o ego, clica no link agora!"
+        ]
+        return random.choice(frases)
 
-    @cliente.on(ConnectEvent)
+# --- 5. O CÉREBRO (ORQUESTRADOR DE THREAD) ---
+def motor_de_processamento():
+    global ultimo_tempo_fala
+    while True:
+        if live_rodando:
+            # 1. Processa os comentários que chegaram
+            if not caixa_de_correio.empty():
+                carta = caixa_de_correio.get()
+                if carta["tipo"] == "comentario":
+                    atualizar_log(f"💬 [{carta['nome']}]: {carta['texto']}")
+                    resposta = gerar_resposta_comentario(carta['nome'], carta['texto'])
+                    atualizar_log(f"🎙️ Aurora: {resposta}")
+                    falar_texto_automatico(resposta)
+                    
+            # 2. A RÁDIO AUTOMÁTICA (O Gatilho Rápido: 3 a 8 segundos)
+            else:
+                tempo_silencio = time.time() - ultimo_tempo_fala
+                limite_silencio = random.uniform(3.0, 8.0) # Varia como uma pessoa real
+                
+                if tempo_silencio > limite_silencio and not pygame.mixer.music.get_busy():
+                    atualizar_log(f"🕒 Rádio Automática acionada ({limite_silencio:.1f}s de silêncio)...")
+                    fala_radio = gerar_fala_radio()
+                    atualizar_log(f"🎙️ Aurora: {fala_radio}")
+                    falar_texto_automatico(fala_radio)
+                    
+        time.sleep(0.5)
+
+# --- 6. CONEXÃO COM O TIKTOK ---
+def loop_tiktok(arroba):
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    client = TikTokLiveClient(unique_id=arroba)
+
+    @client.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        caixa.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho pra ver a promoção!"})
+        atualizar_log("🟢 CONECTADO AO TIKTOK COM SUCESSO!")
 
-    @cliente.on(CommentEvent)
+    @client.on(CommentEvent)
     async def on_comment(event: CommentEvent):
-        caixa.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
+        if live_rodando:
+            caixa_de_correio.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
 
-    def _rodar():
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        try:
-            cliente.run()
-        except:
-            pass # Em caso de bloqueio, cai no silêncio, mas a Rádio Automática continua a vender
+    try:
+        client.run()
+    except Exception as e:
+        atualizar_log(f"⚠️ Erro de conexão: {e}")
 
-    t = threading.Thread(target=_rodar, daemon=True)
-    t.start()
-    return cliente, caixa
+# --- 7. INTERFACE GRÁFICA VIP (CUSTOMTKINTER) ---
+ctk.set_appearance_mode("dark")
+ctk.set_default_color_theme("dark-blue")
 
-# --- INTERFACE VISUAL DO ESTÚDIO ---
-with st.container(border=True):
-    col_live1, col_live2 = st.columns([1, 2])
+app = ctk.CTk()
+app.geometry("800x650")
+app.title("🎙️ Estúdio de Transmissão VIP - AURORA")
+
+# Funções da Interface
+def atualizar_log(mensagem):
+    historico_chat.append(mensagem)
+    caixa_log.configure(state="normal")
+    caixa_log.insert("end", mensagem + "\n")
+    caixa_log.see("end")
+    caixa_log.configure(state="disabled")
+
+def animacao_vip_linha():
+    # A Mágica da "Linha Mexendo" com a voz!
+    if pygame.mixer.music.get_busy():
+        if animacao_barra.get() == 0:
+            animacao_barra.start()
+    else:
+        animacao_barra.stop()
+    app.after(100, animacao_vip_linha)
+
+def iniciar_live():
+    global live_rodando, produto_atual, ultimo_tempo_fala
+    arroba = input_arroba.get().strip()
+    produto_atual = input_dossie.get("1.0", "end").strip()
     
-    with col_live1:
-        arroba_tiktok = st.text_input("👤 @ do TikTok", placeholder="Ex: oachado.secreto")
-        if st.session_state["live_rodando"] and not st.session_state["modo_teste"]:
-            st.success("🟢 AURORA ONLINE")
-        elif st.session_state["live_rodando"] and st.session_state["modo_teste"]:
-            st.warning("🟡 MODO TESTE OFFLINE")
-        else:
-            st.error("🔴 AURORA OFFLINE")
-
-    with col_live2:
-        st.markdown("<h4 style='color: #FFD700;'>🦅 Cofre de Injeção VIP</h4>", unsafe_allow_html=True)
-        dossie_atual = ler_dossie_vip()
+    if not arroba or not produto_atual:
+        atualizar_log("❌ ERRO: Preencha o @ do TikTok e o Dossiê do Produto!")
+        return
         
-        texto_injetado = st.text_area("Cole o Dossiê Estratégico aqui:", value=dossie_atual, height=120)
-        
-        col_btn_inj1, col_btn_inj2 = st.columns(2)
-        with col_btn_inj1:
-            if st.button("💉 Injetar no Sistema", use_container_width=True):
-                salvar_dossie_vip(texto_injetado)
-                st.rerun()
-        with col_btn_inj2:
-            if st.button("🦅 Lixeira VIP", use_container_width=True):
-                apagar_dossie_vip()
-                st.rerun()
-                
-        produto_live = ler_dossie_vip()
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    col_btn_live1, col_btn_live2, col_btn_live3 = st.columns(3)
+    live_rodando = True
+    ultimo_tempo_fala = time.time()
+    btn_iniciar.configure(state="disabled")
+    btn_parar.configure(state="normal")
+    atualizar_log(f"🚀 Iniciando motor da Aurora para @{arroba}...")
     
-    with col_btn_live1:
-        btn_iniciar = st.button("▶️ INICIAR LIVE", type="primary", use_container_width=True)
-    with col_btn_live2:
-        btn_testar = st.button("🛠️ TESTAR OFFLINE", use_container_width=True)
-    with col_btn_live3:
-        btn_parar = st.button("⏹️ PARAR TUDO", use_container_width=True)
+    # Inicia a escuta do TikTok no fundo
+    threading.Thread(target=loop_tiktok, args=(arroba,), daemon=True).start()
 
-    if btn_iniciar:
-        if not arroba_tiktok or not produto_live:
-            st.warning("⚠️ Preencha o @ do TikTok sem arroba e injete o Dossiê!")
-        else:
-            st.session_state["live_rodando"] = True
-            st.session_state["modo_teste"] = False
-            st.session_state["fila_audios"] = []
-            st.session_state["log_chat"] = []
-            st.session_state["ultimo_audio_timestamp"] = time.time()
-            st.rerun()
+def parar_live():
+    global live_rodando
+    live_rodando = False
+    btn_iniciar.configure(state="normal")
+    btn_parar.configure(state="disabled")
+    pygame.mixer.music.stop()
+    atualizar_log("🛑 Live Pausada pelo Sócio.")
 
-    if btn_testar:
-        if not produto_live:
-            st.warning("⚠️ Injete o Dossiê VIP primeiro!")
-        else:
-            st.session_state["live_rodando"] = True
-            st.session_state["modo_teste"] = True
-            st.session_state["fila_audios"] = []
-            st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
-            st.session_state["ultimo_audio_timestamp"] = time.time()
-            audio_teste = gerar_audio_base64("Oi sócio! O bunker de conexão está pronto. A roleta anti-silêncio vai atuar a cada 25 segundos!")
-            if audio_teste: 
-                st.session_state["fila_audios"].append(audio_teste)
-            st.rerun()
+def forcar_venda():
+    if live_rodando:
+        atualizar_log("🔥 Forçando argumento de venda...")
+        caixa_de_correio.put({"tipo": "comentario", "nome": "Sócio", "texto": "Fale da qualidade do produto rápido!"})
 
-    if btn_parar:
-        st.session_state["live_rodando"] = False
-        st.session_state["modo_teste"] = False
-        st.session_state["fila_audios"] = []
-        st.cache_resource.clear() # Limpa o bunker e mata o robô anterior
-        st.rerun()
+# Layout da Tela
+titulo = ctk.CTkLabel(app, text="🦅 COFRE DA ÁGUIA - ESTÚDIO AURORA", font=("Arial", 20, "bold"), text_color="#FFD700")
+titulo.pack(pady=10)
 
-    # --- COMANDOS RÁPIDOS ---
-    if st.session_state["live_rodando"]:
-        st.markdown("#### ⚡ Comandos Rápidos (Painel Tático)")
-        col_tatico1, col_tatico2, col_tatico3 = st.columns(3)
-        if col_tatico1.button("🗣️ Pedir Curtidas", use_container_width=True):
-            audio = gerar_audio_base64("Galera, dedo na telinha! Dois toques rápidos para bater a nossa meta de curtidas!")
-            if audio: 
-                st.session_state["fila_audios"].append(audio)
-                st.session_state["ultimo_audio_timestamp"] = time.time()
-            
-        if col_tatico2.button("⚔️ Ativar Batalha (PK)", use_container_width=True):
-            audio = gerar_audio_base64("Atenção tropa, batalha rolando! Todo mundo esmagando a tela!")
-            if audio: 
-                st.session_state["fila_audios"].append(audio)
-                st.session_state["ultimo_audio_timestamp"] = time.time()
-            
-        if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
-            historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
-            prompt_venda = f"""
-            Aja como Aurora. Faça um argumento de venda (2 frases) baseado no dossiê: {produto_live}.
-            NÃO FALE PREÇO. NÃO REPITA NADA DISSO: {historico}.
-            Toque no EGO: Explique um detalhe do produto que traga facilidade, qualidade premium ou status, e mande clicar no carrinho.
-            """
-            try:
-                texto_venda = modelo_ia.generate_content(prompt_venda).text.replace("*", "").strip()
-            except:
-                frases_emergencia = [
-                    "Gente, a qualidade dessa maleta é surreal, vai resolver a vida de vocês, clica no carrinho!",
-                    "Amiga, o pessoal do estoque avisou que tá acabando, garante a sua nesse carrinho fixado!",
-                    "Meninas, olha essa praticidade. O desconto no carrinho fixado tá um erro do sistema, corre!",
-                    "Para tudo! Esse kit é a melhor dica de presente de longe, garante no link!"
-                ]
-                texto_venda = random.choice(frases_emergencia)
-                
-            audio = gerar_audio_base64(texto_venda)
-            if audio: 
-                st.session_state["fila_audios"].append(audio)
-                st.session_state["ultimo_audio_timestamp"] = time.time()
+frame_topo = ctk.CTkFrame(app)
+frame_topo.pack(pady=10, padx=20, fill="x")
 
-        with st.expander("👁️ Ver Interações Recentes", expanded=True):
-            for log in reversed(st.session_state["log_chat"][-5:]):
-                st.write(log)
+input_arroba = ctk.CTkEntry(frame_topo, placeholder_text="Digite o @ do TikTok (sem o @)", width=300)
+input_arroba.pack(side="left", padx=10, pady=10)
 
-# --- O PROCESSADOR CENTRAL (COM BUNKER E RÁDIO BLINDADA) ---
-if st.session_state.get("live_rodando"):
-    teve_interacao = False
-    
-    if not st.session_state["modo_teste"]:
-        # Invoca a conexão do bunker seguro (não cria um novo a cada refresh)
-        cliente_tiktok, caixa_correio = iniciar_ouvinte_blindado(arroba_tiktok)
-        
-        while not caixa_correio.empty() and len(st.session_state["fila_audios"]) < 2:
-            carta = caixa_correio.get()
-            teve_interacao = True
-            
-            if carta["tipo"] == "sistema":
-                st.session_state["log_chat"].append(f"🟢 [SISTEMA]: Live Iniciada!")
-                audio_b64 = gerar_audio_base64(carta["mensagem"])
-                if audio_b64: st.session_state["fila_audios"].append(audio_b64)
-                
-            elif carta["tipo"] == "comentario":
-                st.session_state["log_chat"].append(f"💬 [{carta['nome']}]: {carta['texto']}")
-                resposta = processar_comentario_ia(carta['nome'], carta['texto'], produto_live)
-                audio_b64 = gerar_audio_base64(resposta)
-                if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+btn_iniciar = ctk.CTkButton(frame_topo, text="▶️ INICIAR LIVE", fg_color="#28a745", hover_color="#218838", command=iniciar_live)
+btn_iniciar.pack(side="left", padx=5)
 
-    # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA - 25 SEGUNDOS)
-    tempo_em_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
-    
-    if len(st.session_state["fila_audios"]) == 0 and tempo_em_silencio > 25.0 and not teve_interacao:
-        historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
-        
-        prompt_radio = f"""
-        Você é a Aurora, em live. O chat está quieto há 5 segundos.
-        Fale sozinha de forma carismática e fofoqueira para explicar e vender o produto.
-        Dossiê do Produto: {produto_live}.
-        🚨 REGRA 1 (PROIBIDO VALORES): NUNCA fale preços, dinheiro, Reais ou números.
-        🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA NADA DISSO: [{historico}]. Mude completamente a frase!
-        Seja curta (máximo 2 frases), fale sobre a utilidade e mande clicar no carrinho.
-        """
-        try:
-            texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
-            st.session_state["log_chat"].append(f"🎙️ [RÁDIO IA]: Explicando produto e tocando no ego...")
-        except:
-            frases_radio_emergencia = [
-                "Meninas, e essa maleta incrível aqui? Já vem completinha, é o achado de ouro pro marido!",
-                "Gente, eu não deveria falar, mas o desconto dessa furadeira tá irreal. Clica no carrinho pra ver!",
-                "Amiga, se você precisa de praticidade em casa, olha esse kit de 48V. O estoque tá sumindo!",
-                "Vem cá, me conta uma coisa... vocês já viram um kit tão premium por esse valor? Corre no link!"
-            ]
-            texto_radio = random.choice(frases_radio_emergencia)
-            st.session_state["log_chat"].append(f"🎙️ [RÁDIO BACKUP]: Explicando (Modo Sobrevivência)...")
-            
-        audio_b64 = gerar_audio_base64(texto_radio)
-        if audio_b64: 
-            st.session_state["fila_audios"].append(audio_b64)
-            st.session_state["ultimo_audio_timestamp"] = time.time()
+btn_parar = ctk.CTkButton(frame_topo, text="⏹️ PARAR", fg_color="#dc3545", hover_color="#c82333", state="disabled", command=parar_live)
+btn_parar.pack(side="left", padx=5)
 
-    # REPRODUTOR DE ÁUDIO VISÍVEL COM AUTOPLAY JAVASCRIPT
-    if len(st.session_state["fila_audios"]) > 0:
-        st.session_state["ultimo_audio_timestamp"] = time.time()
-        audio_tocar = st.session_state["fila_audios"].pop(0)
-        st.markdown("### 🔊 Voz da Aurora")
-        
-        html_player = f"""
-        <audio id="aurora_audio" controls style="width: 100%; border-radius: 8px; border: 2px solid #FFD700;">
-            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
-        </audio>
-        <script>
-            var audio = document.getElementById("aurora_audio");
-            audio.play().catch(function(e) {{ console.log("Aguardando play no celular."); }});
-        </script>
-        """
-        import streamlit.components.v1 as components
-        components.html(html_player, height=70)
-    
-    time.sleep(3)
-    st.rerun()
+btn_venda = ctk.CTkButton(frame_topo, text="🔥 FORÇAR VENDA", fg_color="#ff8c00", hover_color="#e67e22", command=forcar_venda)
+btn_venda.pack(side="left", padx=5)
+
+label_dossie = ctk.CTkLabel(app, text="💉 Dossiê VIP do Produto:", font=("Arial", 14))
+label_dossie.pack(anchor="w", padx=20)
+
+input_dossie = ctk.CTkTextbox(app, height=100)
+input_dossie.pack(padx=20, pady=5, fill="x")
+input_dossie.insert("1.0", "PRODUTO PRINCIPAL: Furadeira 48V. FOCO: Vender como um achado premium e ótimo presente. PROIBIDO: Falar preço.")
+
+label_animacao = ctk.CTkLabel(app, text="🔊 VOZ DA AURORA (VIP MONITOR):", font=("Arial", 12, "bold"), text_color="#00FFFF")
+label_animacao.pack(pady=(15, 0))
+
+# A LINHA QUE SE MOVE (EQUALIZADOR VIP)
+animacao_barra = ctk.CTkProgressBar(app, orientation="horizontal", mode="indeterminate", width=600, progress_color="#00FFFF")
+animacao_barra.pack(pady=5)
+animacao_barra.set(0)
+
+label_log = ctk.CTkLabel(app, text="👁️ Monitoramento em Tempo Real:", font=("Arial", 14))
+label_log.pack(anchor="w", padx=20, pady=(10,0))
+
+caixa_log = ctk.CTkTextbox(app, height=200, state="disabled", fg_color="#1e1e1e", text_color="#00FF00")
+caixa_log.pack(padx=20, pady=5, fill="both", expand=True)
+
+# Inicializa as Threads do Motor
+threading.Thread(target=motor_de_processamento, daemon=True).start()
+app.after(100, animacao_vip_linha) # Inicia a fiscalização da linha VIP
+
+# Roda o Aplicativo
+if __name__ == "__main__":
+    app.mainloop()
