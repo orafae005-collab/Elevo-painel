@@ -1024,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ & ONDAS SONORAS)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ & OPENAI)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos por Viva Voz (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Fale diretamente com a Aurora usando o microfone. Ela vai escutar, analisar com a Mente de Marketing e responder com a voz oficial e as ondas sonoras ativas!</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Fale diretamente com a Aurora usando o microfone. Ela vai escutar, analisar com a OpenAI e responder com a voz oficial e as ondas sonoras ativas!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1038,7 +1038,6 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
-# Inicialização blindada de todas as variáveis de estado para evitar KeyError
 if "historico_viva_voz" not in st.session_state:
     st.session_state["historico_viva_voz"] = [
         {"role": "assistant", "content": "E aí, sócio! Estou a ouvir. Clica no gravador abaixo, manda a tua dúvida por voz e vamos escalar este negócio!"}
@@ -1047,7 +1046,6 @@ if "historico_viva_voz" not in st.session_state:
 if "ultimo_audio_b64" not in st.session_state:
     st.session_state["ultimo_audio_b64"] = None
 
-# Container principal do Chat de Voz
 with st.container(border=True):
     chat_container = st.container(height=350)
     
@@ -1073,17 +1071,15 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 🎤 GRAVADOR DE VIVA VOZ NATIVO DO STREAMLIT
     audio_gravado = st.audio_input("🎙️ Clica para falar com a Aurora:")
     
     if audio_gravado is not None:
-        # Lê os bytes do áudio enviado pelo microfone do telemóvel/PC
         audio_bytes = audio_gravado.read()
         
         if audio_bytes:
             with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
                 try:
-                    # Como o Whisper da OpenAI transcreve o áudio gravado em texto perfeito:
+                    # Transcreve a voz usando o Whisper da OpenAI
                     transcricao_obj = cliente_openai.audio.transcriptions.create(
                         model="whisper-1",
                         file=("audio_usuario.wav", audio_bytes, "audio/wav")
@@ -1093,7 +1089,6 @@ with st.container(border=True):
                     if texto_falado.strip():
                         st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
                         
-                        # Processamento via Cérebro da Mente de Marketing
                         sistema_mentor = (
                             "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
                             "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
@@ -1101,13 +1096,21 @@ with st.container(border=True):
                             "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
                         )
                         
-                        chat_sessao = modelo_ia.start_chat(history=[])
-                        resposta_objeto = chat_sessao.send_message(f"{sistema_mentor}\n\nO sócio disse por voz: {texto_falado}")
-                        resposta_mentor = resposta_objeto.text.replace("*", "").strip()
+                        # Processa usando o motor da OpenAI (cliente_openai)
+                        response = cliente_openai.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": sistema_mentor},
+                                {"role": "user", "content": f"O sócio disse por voz: {texto_falado}"}
+                            ],
+                            max_tokens=150,
+                            temperature=0.7
+                        )
+                        resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
                         
                         st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
                         
-                        # Geração da voz na ElevenLabs
+                        # Gera a voz na ElevenLabs
                         url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                         headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                         payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
@@ -1129,7 +1132,6 @@ with st.container(border=True):
         st.session_state["ultimo_audio_b64"] = None
         st.rerun()
 
-# 🎛️ PAINEL DE ÁUDIO COM ANIMADOR DE ONDAS SONORAS (IGUAL À LIVE)
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
     html_ondas_sonoras = f"""
