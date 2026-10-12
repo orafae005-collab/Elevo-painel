@@ -798,10 +798,11 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
             st.rerun()
 
 # ==========================================================
-# 12. RAIO-X DA OPERAÇÃO 
+# 12. RAIO-X DA OPERAÇÃO (🔥 VISÃO OPENAI ATIVADA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie até 5 prints do seu Analytics e a IA vai hackear o padrão de sucesso.</p>", unsafe_allow_html=True)
 
 aba_raiox = None
 historico_raiox = []
@@ -822,8 +823,8 @@ if link_planilha_ativa and robo_sheets:
 col_raiox1, col_raiox2 = st.columns([1, 2])
 
 with col_raiox1:
-    st.info("⚠️ No motor OpenAI, o Raio-X funciona analisando seu texto estratégico (não lê imagens no modelo mini).")
-    texto_contexto = st.text_area("✍️ Descreva os dados do seu Analytics ou Contexto", placeholder="Ex: O vídeo que mais vendeu teve 50% de retenção e focava na dor da queda de cabelo...")
+    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img_vip")
+    texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
     btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
     
     if historico_raiox:
@@ -845,35 +846,56 @@ with col_raiox1:
 
 with col_raiox2:
     if btn_raiox:
-        if not texto_contexto:
-            st.warning("⚠️ Forneça o contexto para a IA conseguir trabalhar!")
+        if not texto_contexto and not imgs_analytics:
+            st.warning("⚠️ Forneça pelo menos uma imagem do Analytics ou escreva o contexto para a IA conseguir trabalhar!")
+        elif imgs_analytics and len(imgs_analytics) > 5:
+            st.error("🚨 Limite excedido! Envie no máximo 5 imagens.")
         else:
-            with st.spinner("Iniciando a Engenharia Reversa com OpenAI..."):
-                sistema_raiox = "Atue como um estrategista mestre em TikTok Shop, Copywriting e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
-                prompt_raiox = f"""
-                Contexto fornecido pelo usuário: {texto_contexto}
-                Sua missão: Descubra o padrão de sucesso do usuário e monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.
-                Estrutura obrigatória:
-                1. 🧠 O Padrão de Ouro: O que está fazendo a audiência comprar?
-                2. 🌪️ O Funil Escalável: Topo, Meio e Fundo.
-                3. 🎣 3 Ganchos Prontos: Baseado no que deu certo.
-                4. 💎 Estratégia de Dominação: Dica avançada para o TikTok.
-                Use emojis. Seja frio, analítico e direto.
-                """
-                resposta_raiox = chamar_ia_global(prompt_raiox, sistema_raiox)
-                
-                if aba_raiox is not None:
-                    aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox])
-                
-                st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
-                st.rerun()
+            with st.spinner("Iniciando a Engenharia Reversa com a Visão da OpenAI..."):
+                try:
+                    sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
+                    
+                    # Prepara o pacote de dados misturando Texto + Imagens
+                    conteudo_prompt = []
+                    conteudo_prompt.append({
+                        "type": "text", 
+                        "text": f"Contexto do usuário: {texto_contexto}\nSua missão: Descubra o padrão de sucesso analisando os dados e imagens enviadas. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
+                    })
+                    
+                    # Converte os prints para o formato que a OpenAI entende (Base64)
+                    if imgs_analytics:
+                        for img in imgs_analytics:
+                            img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
+                            conteudo_prompt.append({
+                                "type": "image_url",
+                                "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
+                            })
+                    
+                    # Chama o cérebro
+                    response = cliente_openai.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": sistema_raiox},
+                            {"role": "user", "content": conteudo_prompt}
+                        ],
+                        max_tokens=1500,
+                        temperature=0.7
+                    )
+                    resposta_raiox = response.choices[0].message.content.replace("*", "").strip()
+                    
+                    if aba_raiox is not None:
+                        aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox])
+                    
+                    st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"❌ Erro na visão da IA: {e}")
     else:
         if historico_raiox:
             st.info("💡 **Seu Mapa Mental salvo no sistema:**")
             st.markdown(historico_raiox[-1]["Funil"])
         else:
-            st.info("👈 A memória está vazia. Descreva seu Analytics para criar o funil de vendas.")
-
+            st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
 # ==========================================================
 # 13. FÁBRICA DE ROTEIROS VIP (🔥 MOTOR OPENAI)
 # ==========================================================
