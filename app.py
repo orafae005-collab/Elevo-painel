@@ -1024,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ COM BOTÃO DE ÁUDIO & OPENAI)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ COM MEMÓRIA GLOBAL)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos por Viva Voz (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Clica no botão de microfone abaixo, fala com a Aurora. Ela vai escutar com o Whisper, pensar com o ChatGPT e responder com a tua voz VIP e ondas sonoras!</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>A Aurora agora tem acesso ao banco de dados completo da sua operação e lembra de tudo o que vocês conversam.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1038,15 +1038,17 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
+# Inicializa o histórico da conversa
 if "historico_viva_voz" not in st.session_state:
     st.session_state["historico_viva_voz"] = [
-        {"role": "assistant", "content": "E aí, sócio! Estou à escuta. Clica no microfone abaixo, manda o teu áudio e vamos fechar esse negócio!"}
+        {"role": "assistant", "content": "E aí, sócio! Estou conectada ao banco de dados completo da operação. Clica no microfone, manda o teu áudio e vamos escalar isso!"}
     ]
 
+# Armazena o áudio gerado para a animação
 if "ultimo_audio_b64" not in st.session_state:
     st.session_state["ultimo_audio_b64"] = None
 
-# 🔥 CORREÇÃO DO LOOP INFINITO: Memória para saber se o áudio já foi processado
+# 🔥 CADEADO DE CRÉDITOS: Evita que o mesmo áudio seja processado duas vezes
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
@@ -1059,7 +1061,7 @@ with st.container(border=True):
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                     <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Mensagem de Voz:</b> {msg['content']}</p>
+                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Sócio:</b> {msg['content']}</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1067,7 +1069,7 @@ with st.container(border=True):
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
                     <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; font-family: 'Montserrat', sans-serif; border-left: 4px solid #00FFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🎙️ Aurora (Mentora VIP)</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🎙️ Aurora (Estrategista)</p>
                         <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
                     </div>
                 </div>
@@ -1075,24 +1077,24 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 🎙️ BOTÃO DE GRAVAÇÃO DE VOZ NATIVO
-    audio_gravado = st.audio_input("🎙️ Clica no microfone para falar com a Aurora:")
+    # 🎙️ BOTÃO DE GRAVAÇÃO DE VOZ
+    audio_gravado = st.audio_input("🎙️ Fale com a Aurora (o sistema salva seus créditos blindando áudios repetidos):")
     
     if audio_gravado is not None:
         audio_bytes = audio_gravado.read()
         
         if audio_bytes:
             import hashlib
-            # Cria uma "impressão digital" única do áudio para não repetir
+            # Cria a "impressão digital" (hash) do áudio para travar repetições
             audio_hash = hashlib.md5(audio_bytes).hexdigest()
             
-            # 🔥 SÓ PROCESSA SE FOR UM ÁUDIO NOVO
+            # 🔥 SÓ PROCESSA SE FOR UM ÁUDIO NOVO (Proteção total de API)
             if audio_hash != st.session_state["ultimo_hash_audio"]:
-                st.session_state["ultimo_hash_audio"] = audio_hash # Salva o áudio na memória
+                st.session_state["ultimo_hash_audio"] = audio_hash 
                 
-                with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
+                with st.spinner("🧠 A Aurora está consultando todo o banco de dados e pensando..."):
                     try:
-                        # 1. Transcreve o áudio usando o Whisper da OpenAI
+                        # 1. Transcreve o áudio (Whisper)
                         transcricao_obj = cliente_openai.audio.transcriptions.create(
                             model="whisper-1",
                             file=("audio_usuario.wav", audio_bytes, "audio/wav")
@@ -1100,30 +1102,50 @@ with st.container(border=True):
                         texto_falado = transcricao_obj.text
                         
                         if texto_falado.strip():
+                            # Salva a fala do usuário no histórico contínuo
                             st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
                             
-                            sistema_mentor = (
-                                "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
-                                "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
-                                "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
-                                "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
-                            )
+                            # ==========================================
+                            # 🧠 INJEÇÃO DO BANCO DE DADOS GLOBAL NA IA
+                            # ==========================================
+                            # Calcula dados de TODA a planilha (ignorando o filtro lateral de dias)
+                            fat_total_historico = df["Comissao_R$"].sum() if not df.empty and "Comissao_R$" in df.columns else 0.0
+                            qtd_total_historico = df["Quantidade"].sum() if not df.empty and "Quantidade" in df.columns else 0
+                            ultimo_funil_raiox = historico_raiox[-1]["Funil"] if 'historico_raiox' in locals() and historico_raiox else "Nenhum funil mapeado ainda."
                             
-                            # 2. Resposta via ChatGPT (OpenAI oficial)
+                            sistema_mentor = f"""
+                            Você é a Aurora, uma inteligência artificial que atua como Mentora de Elite e Sócia Estratégica da operação de TikTok Shop e afiliação.
+                            Você é fria, analítica, focada em métricas e alta performance. Seu tom é direto, realista, encorajador e focado em escala ("vendemos decisões, não produtos").
+                            
+                            [ACESSO TOTAL AO BANCO DE DADOS DA OPERAÇÃO - HISTÓRICO GLOBAL]:
+                            - Faturamento Histórico Total (Toda a existência): R$ {fat_total_historico:,.2f}
+                            - Total de Unidades Vendidas: {qtd_total_historico}
+                            - Produto Campeão Atual: {produto_campeao}
+                            - Último Raio-X (Engenharia de Funil) feito na operação: {ultimo_funil_raiox}
+                            
+                            Regras para resposta:
+                            1. Responda DIRETAMENTE ao áudio do usuário levando em consideração o contexto de negócio.
+                            2. Aja como se você estivesse olhando para a tela de métricas junto com o usuário.
+                            3. Seja conversacional, use tom de mentoria por voz (sem emojis ou marcações pesadas no texto, pois será lido por voz).
+                            4. Responda em no máximo 3 ou 4 frases curtas e de impacto para gerar um áudio rápido e não consumir muitos créditos da API de voz.
+                            """
+                            
+                            # 2. Chama o ChatGPT enviando o SISTEMA + TODO O HISTÓRICO DE CONVERSA
+                            mensagens_api = [{"role": "system", "content": sistema_mentor}]
+                            mensagens_api.extend(st.session_state["historico_viva_voz"]) # Memória contínua da conversa
+                            
                             response = cliente_openai.chat.completions.create(
                                 model="gpt-4o-mini",
-                                messages=[
-                                    {"role": "system", "content": sistema_mentor},
-                                    {"role": "user", "content": f"O sócio disse por voz: {texto_falado}"}
-                                ],
-                                max_tokens=150,
+                                messages=mensagens_api,
+                                max_tokens=250,
                                 temperature=0.7
                             )
                             resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
                             
+                            # Salva a resposta da IA no histórico
                             st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
                             
-                            # 3. Geração de voz na ElevenLabs com a chave VIP do cofre
+                            # 3. Geração de Voz (ElevenLabs)
                             url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                             payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
@@ -1136,11 +1158,14 @@ with st.container(border=True):
                                 
                             st.rerun()
                     except Exception as e:
-                        st.error(f"Erro ao processar o microfone: {e}")
+                        st.error(f"Erro na Sala de Conselhos: {e}")
+            else:
+                # O cadeado entrou em ação: informa ao usuário que ignorou o áudio para salvar créditos
+                st.info("🔒 Áudio já processado. Aguardando você enviar um novo áudio para gastar créditos.")
 
-    if st.button("🗑️ Limpar Conversa de Voz", use_container_width=True):
+    if st.button("🗑️ Limpar Memória de Voz", use_container_width=True):
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "Conversa reiniciada. Podes mandar novo áudio, sócio!"}
+            {"role": "assistant", "content": "Conversa reiniciada. A minha memória de voz foi limpa, mas ainda vejo todo o seu banco de dados. Pode falar!"}
         ]
         st.session_state["ultimo_audio_b64"] = None
         st.session_state["ultimo_hash_audio"] = None
