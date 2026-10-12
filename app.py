@@ -4,27 +4,46 @@ import base64
 import requests
 import time
 from TikTokLive import TikTokLiveClient
-from TikTokLive.events import ConnectEvent, CommentEvent
+from TikTokLive.events import ConnectEvent, CommentEvent, LikeEvent, JoinEvent, FollowEvent, ShareEvent
 import streamlit as st
 import pandas as pd
-import time
 from datetime import datetime, timedelta
-import google.generativeai as genai
 from PIL import Image
 import gspread
 import re
 import plotly.express as px
+import queue
+import os
+import random
+from openai import OpenAI
 
 # ==========================================================
-# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V4.0 VIP)
+# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V5.0 - MOTOR OPENAI)
 # ==========================================================
-st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V4.0", page_icon="🦅", layout="wide")
+st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V5.0", page_icon="🦅", layout="wide")
 
-CHAVE_ATIVACAO = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=CHAVE_ATIVACAO)
+# Inicializa o cérebro global da OpenAI
+try:
+    CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
+    cliente_openai = OpenAI(api_key=CHAVE_OPENAI_VIP)
+except KeyError:
+    st.error("🚨 ALERTA: Falta a chave OPENAI_API_KEY no cadeado (Secrets).")
+    st.stop()
 
-MODELO_ATIVO = 'gemini-3.8-flash'
-modelo_ia = genai.GenerativeModel(MODELO_ATIVO) # 🔥 Otimização: Carrega o cérebro da IA apenas uma vez
+# Função global para chamar o ChatGPT em todo o aplicativo
+def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
+    try:
+        response = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": sistema_contexto},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        return response.choices[0].message.content.replace("*", "").strip()
+    except Exception as e:
+        return f"ERRO_API: {str(e)}"
 
 # Conexão do Robô (GCP) com o Google Sheets
 @st.cache_resource
@@ -314,7 +333,7 @@ else:
     if len(campeao_str) > 12:
         campeao_str = campeao_str[:12] + "..."
 
-    # 🔥 DESIGN NATIVO PARA CELULAR: Lado a lado, fonte elegante, sem caixotes brancos
+    # 🔥 DESIGN NATIVO PARA CELULAR
     cor_texto_valor = "#D4AF37" if not modo_claro else "#B8860B"
     cor_texto_titulo = "#A0A0A0" if not modo_claro else "#555555"
 
@@ -335,7 +354,7 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Gráficos guardados e blindados (Abaixo das Métricas)
+    # Gráficos guardados e blindados
     if not df_timeline.empty and not df_campeao.empty:
         with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
             col_graf1, col_graf2 = st.columns(2)
@@ -375,7 +394,7 @@ else:
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                     font=dict(color=cor_texto_grafico), margin=dict(l=0, r=0, t=40, b=10),
                     height=380, hovermode="x unified",
-                    dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
+                    dragmode=False
                 )
                 st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
                 
@@ -403,19 +422,19 @@ else:
                 fig_bar.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                     font=dict(color=cor_texto_grafico), margin=dict(l=0, r=80, t=40, b=0),
-                    height=380, dragmode=False # 🔥 TRAVA ABSOLUTA MOBILE
+                    height=380, dragmode=False
                 )
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 V6.0 - FOCO TOTAL NO TEXTO)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 OPENAI)
 # ==========================================================
 def extrair_dados_do_texto(texto_bruto, nome_canal):
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
     data_hoje = agora_brasil.strftime("%d/%m/%Y")
     
+    sistema = "Você é Aurora, a Auditora Financeira de Elite do painel ÉLÉVO."
     prompt = f"""
-    Atue como Aurora, a Auditora Financeira de Elite do painel ÉLÉVO.
-    
     INFORMAÇÕES DE SISTEMA:
     - DATA DE HOJE: {data_hoje}
     
@@ -431,19 +450,13 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
     Texto copiado:
     {texto_bruto}
     
-    Retorne APENAS as linhas de dados brutos, sem markdown.
-    Formato OBRIGATÓRIO (separado por ponto e vírgula):
+    Retorne APENAS as linhas de dados brutos, sem markdown. Formato (separado por ponto e vírgula):
     Data;Nome do Produto;{nome_canal};Status;Quantidade;ValorDaComissao
     """
-    try:
-        resposta = modelo_ia.generate_content(prompt)
-        return resposta.text.replace("```csv", "").replace("```text", "").replace("```", "").strip()
-    except Exception as e:
-        return f"ERRO_API: {str(e)}"
-
+    return chamar_ia_global(prompt, sistema)
 
 # ==========================================================
-# 8. AUDITORIA E INJEÇÃO DE DADOS (🔥 AURORA & PROTOCOLO ÁGUIA)
+# 8. AUDITORIA E INJEÇÃO DE DADOS 
 # ==========================================================
 if "dados_prontos" not in st.session_state:
     st.session_state["dados_prontos"] = []
@@ -484,7 +497,6 @@ if st.button("🚀 Extrair Dados do Texto", type="primary", use_container_width=
                 st.error(f"⚠️ Erro ao conectar com a Aurora: {texto_ia}")
 
 if st.session_state["dados_prontos"]:
-    # 🔥 ANIMAÇÃO DA TABELA: Efeito de deslizar e brilhar ao aparecer
     html_tabela_animada = """
     <style>
         @keyframes slideInUp {
@@ -544,7 +556,7 @@ if st.session_state["dados_prontos"]:
 # ==========================================================
 st.markdown("<br>", unsafe_allow_html=True)
 with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False):
-    st.warning("⚠️ **Atenção:** Clicar no botão abaixo vai entrar na sua Planilha do Google e **APAGAR TODAS as vendas com a data de HOJE**. Use isso como um 'Botão de Pânico' para limpar erros da IA de uma vez só.")
+    st.warning("⚠️ **Atenção:** Clicar no botão abaixo vai entrar na sua Planilha do Google e **APAGAR TODAS as vendas com a data de HOJE**.")
     
     if st.button("🦅 ACIONAR ÁGUIA (Limpar Vendas de Hoje)", type="secondary", use_container_width=True):
         if not link_planilha_ativa or not robo_sheets:
@@ -568,7 +580,7 @@ with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False)
                             time.sleep(0.5) 
                             
                     if linhas_apagadas > 0:
-                        st.success(f"🦅 SUCESSO! A Águia eliminou {linhas_apagadas} linhas corrompidas de hoje. Sua planilha está limpa e pronta para recomeçar!")
+                        st.success(f"🦅 SUCESSO! A Águia eliminou {linhas_apagadas} linhas corrompidas de hoje.")
                     else:
                         st.info("🦅 A Águia não encontrou nenhum dado com a data de hoje para apagar.")
                         
@@ -579,7 +591,7 @@ with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False)
                     st.error(f"❌ Erro no voo da Águia: {e}")
 
 # ==========================================================
-# 9. TABELA DA CURVA DE EVOLUÇÃO (🔥 LIMITADA COM EXPANSOR)
+# 9. TABELA DA CURVA DE EVOLUÇÃO 
 # ==========================================================
 st.markdown(f"### 🚀 Curva de Evolução dos Produtos ({filtro_periodo})")
 if not df_filtrado.empty:
@@ -609,29 +621,21 @@ frases_motivacionais = [
     "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
     "A constância é a chave que abre a porta da escala.",
     "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
-    "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!",
-    "Se você não construir o seu sonho, alguém vai te contratar para construir o dele.",
-    "Foco no processo. O resultado é só uma consequência natural."
+    "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!"
 ]
 
 missoes = [
     "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
     "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
     "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
-    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje.",
-    "Responder a 10 comentários de seguidores para engajar o algoritmo.",
-    "Fazer 1 vídeo longo detalhado (mais de 1 minuto) sobre os benefícios de um produto.",
-    "Passar 30 minutos estudando vídeos gringos para pegar referências novas."
+    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje."
 ]
 
 dicas_investimento = [
     "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
     "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
     "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
-    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?",
-    "O melhor investimento no começo é em conhecimento. Estude copy e retenção de público.",
-    "Separe o dinheiro da pessoa física do dinheiro da empresa (operação TikTok).",
-    "Não aumente seu custo de vida só porque as primeiras comissões entraram. Tenha visão de longo prazo."
+    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?"
 ]
 
 frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
@@ -666,7 +670,7 @@ with col_missao:
                     registros = aba_historico.col_values(1)
                     
                     if hoje_str in registros:
-                        st.warning("⚠️ Você já cumpriu e registrou a missão de hoje! Vá descansar ou grave mais um bônus.")
+                        st.warning("⚠️ Você já cumpriu e registrou a missão de hoje!")
                     else:
                         aba_historico.append_row([hoje_str, "Concluída"])
                         st.success("🔥 SENSACIONAL! Missão cravada. O algoritmo e o seu bolso agradecem!")
@@ -716,17 +720,15 @@ if link_planilha_ativa and robo_sheets:
             st.success("STATUS ELITE: Você é uma máquina. Continue empilhando vitórias!")
         elif taxa_acerto >= 50:
             col_stat3.markdown("<h1 style='text-align: center;'>😐⚖️</h1>", unsafe_allow_html=True)
-            st.warning("STATUS MEDIANO: Você está no empate. O algoritmo exige mais consistência. Acelere!")
         else:
             col_stat3.markdown("<h1 style='text-align: center;'>😟📉</h1>", unsafe_allow_html=True)
-            st.error("STATUS ALERTA VERMELHO: Sócio, a concorrência está gravando enquanto você descansa. Retome o controle AGORA!")
             
         st.bar_chart(df_plot, color="#00E5FF")
     else:
-        st.info("Nenhum histórico de missões ainda. Aperte no botão para concluir a missão de hoje e dar start no seu termômetro de 30 dias!")
+        st.info("Nenhum histórico de missões ainda.")
 
 # ==========================================================
-# 11. RADAR DE TENDÊNCIAS DA AURORA (🔥 COM MEMÓRIA, LIMITES E LIXEIRA)
+# 11. RADAR DE TENDÊNCIAS DA AURORA (🔥 MOTOR OPENAI)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
@@ -746,7 +748,7 @@ if link_planilha_ativa and robo_sheets:
             aba_radar.append_row(["Data", "Conteudo"])
         historico_radar = aba_radar.get_all_records()
     except Exception as e:
-        st.warning("⚠️ Planilha não conectada. O Radar funcionará sem memória e limites.")
+        st.warning("⚠️ Planilha não conectada.")
 
 buscas_hoje = [req for req in historico_radar if str(req.get("Data", "")) == hoje_str_radar]
 buscas_restantes = max(0, 2 - len(buscas_hoje))
@@ -774,35 +776,30 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
     if buscas_restantes <= 0:
         st.error("🚫 Amiga, a cota de segredos de hoje já esgotou. Volta amanhã para mais fofoca lucrativa!")
     else:
-        with st.spinner(f"A Aurora (Modelo {MODELO_ATIVO}) está minerando produtos secretos do TikTok..."):
-            try:
-                prompt_radar = """
-                Atue como Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (focada no nicho de beleza, cabelo e achados femininos).
-                Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem.
-                Sua missão: Recomendar 3 produtos de beleza/cabelo que estão com potencial de viralização.
-                Para CADA produto, forneça:
-                1. **Nome do Produto** (ex: Máscara reconstrutora densa).
-                2. **Por que está bombando?** (O desejo/dor que ele atende).
-                3. **Ideia de Roteiro Rápido:** Pitch usando verbos sensoriais. PROIBIDO: 'cura', 'elimina', 'conserta'. USE: 'Sensação de', 'Promove', 'Efeito desmaiado', 'Toque de seda'.
-                4. **Como encontrar no TikTok Shop (Palavras-Chave):** Forneça o nome exato do produto e 3 palavras-chave curtas e precisas para facilitar a minha busca lá dentro. NÃO GERE LINKS DE INTERNET.
-                Encerre com: 'Já garanti o meu, corre no carrinho!' ou 'Depois não diz que eu não avisei, hein?'
-                """
-                resposta_radar = modelo_ia.generate_content(prompt_radar)
-                if aba_radar is not None:
-                    aba_radar.append_row([hoje_str_radar, resposta_radar.text])
-                st.success("✨ Tendências e palavras-chave mapeadas com sucesso!")
-                st.markdown(resposta_radar.text)
-                time.sleep(2)
-                st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao buscar tendências: {e}")
+        with st.spinner("A Aurora (GPT-4o-Mini) está minerando produtos secretos do TikTok..."):
+            sistema_radar = "Você é Aurora, uma influenciadora virtual e especialista em tendências do TikTok Shop (nicho de beleza e cabelo). Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem."
+            prompt_radar = """
+            Sua missão: Recomendar 3 produtos de beleza/cabelo que estão com potencial de viralização.
+            Para CADA produto, forneça:
+            1. **Nome do Produto** (ex: Máscara reconstrutora densa).
+            2. **Por que está bombando?** (O desejo/dor que ele atende).
+            3. **Ideia de Roteiro Rápido:** Pitch usando verbos sensoriais. PROIBIDO: 'cura', 'elimina'. USE: 'Sensação de', 'Efeito desmaiado'.
+            4. **Palavras-Chave:** 3 palavras curtas para busca no TikTok Shop.
+            Encerre com: 'Já garanti o meu, corre no carrinho!'
+            """
+            resposta_radar = chamar_ia_global(prompt_radar, sistema_radar)
+            if aba_radar is not None:
+                aba_radar.append_row([hoje_str_radar, resposta_radar])
+            st.success("✨ Tendências e palavras-chave mapeadas com sucesso!")
+            st.markdown(resposta_radar)
+            time.sleep(2)
+            st.rerun()
 
 # ==========================================================
-# 12. RAIO-X DA OPERAÇÃO (OTIMIZAÇÃO DO PRÓPRIO FUNIL)
+# 12. RAIO-X DA OPERAÇÃO 
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie até 10 prints do seu Analytics e a IA vai montar seu funil de escala. Ele ficará salvo no sistema até você apagar.</p>", unsafe_allow_html=True)
 
 aba_raiox = None
 historico_raiox = []
@@ -823,9 +820,8 @@ if link_planilha_ativa and robo_sheets:
 col_raiox1, col_raiox2 = st.columns([1, 2])
 
 with col_raiox1:
-    # 🔥 LIMITE DE 10 IMAGENS EXCLUSIVO PARA O RAIO-X
-    imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 10)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img_vip")
-    texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
+    st.info("⚠️ No motor OpenAI, o Raio-X funciona analisando seu texto estratégico (não lê imagens no modelo mini).")
+    texto_contexto = st.text_area("✍️ Descreva os dados do seu Analytics ou Contexto", placeholder="Ex: O vídeo que mais vendeu teve 50% de retenção e focava na dor da queda de cabelo...")
     btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
     
     if historico_raiox:
@@ -847,60 +843,37 @@ with col_raiox1:
 
 with col_raiox2:
     if btn_raiox:
-        if not texto_contexto and not imgs_analytics:
-            st.warning("⚠️ Forneça pelo menos uma imagem do Analytics ou escreva o contexto para a IA conseguir trabalhar!")
-        elif imgs_analytics and len(imgs_analytics) > 10:
-            st.error("🚨 Limite excedido! Por favor, selecione no máximo 10 imagens para não sobrecarregar a análise.")
+        if not texto_contexto:
+            st.warning("⚠️ Forneça o contexto para a IA conseguir trabalhar!")
         else:
-            try:
+            with st.spinner("Iniciando a Engenharia Reversa com OpenAI..."):
+                sistema_raiox = "Atue como um estrategista mestre em TikTok Shop, Copywriting e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
                 prompt_raiox = f"""
-                Atue como um estrategista mestre em TikTok Shop, Copywriting e Neuromarketing. 
-                Sua regra fundamental de operação é: 'Eu não vendo produtos. Eu vendo decisões.'
-                Contexto fornecido pelo usuário: {texto_contexto if texto_contexto else 'Nenhum texto extra fornecido.'}
-                Sua missão:
-                Analise as informações (e as imagens do painel de dados, se foram enviadas). Descubra o padrão de sucesso do usuário e monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL para ele escalar esses resultados.
-                Estrutura obrigatória da sua resposta:
-                1. 🧠 **O Padrão de Ouro:** O que está fazendo a audiência do usuário comprar neste momento? Qual o gatilho principal que deu certo?
-                2. 🌪️ **O Funil Escalável:** 
-                   - **Topo (Atenção):** Como replicar essa captura de atenção?
-                   - **Meio (Conexão):** Como alinhar os próximos vídeos com as palavras-chave que as pessoas já estão buscando no canal dele?
-                   - **Fundo (Ação):** Como otimizar a Chamada para Ação (CTA)?
-                3. 🎣 **3 Ganchos (Hooks) Prontos:** Baseado no que já deu certo, crie 3 novos inícios de roteiro magnéticos.
-                4. 💎 **Estratégia de Dominação:** Uma dica avançada para dominar essas palavras-chave específicas no TikTok.
-                Use emojis. Seja frio, analítico, direto e 100% focado na arquitetura de conversão.
+                Contexto fornecido pelo usuário: {texto_contexto}
+                Sua missão: Descubra o padrão de sucesso do usuário e monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.
+                Estrutura obrigatória:
+                1. 🧠 O Padrão de Ouro: O que está fazendo a audiência comprar?
+                2. 🌪️ O Funil Escalável: Topo, Meio e Fundo.
+                3. 🎣 3 Ganchos Prontos: Baseado no que deu certo.
+                4. 💎 Estratégia de Dominação: Dica avançada para o TikTok.
+                Use emojis. Seja frio, analítico e direto.
                 """
-                conteudo_geracao = [prompt_raiox]
-                barra_raiox = st.progress(0, text="Iniciando a Engenharia Reversa...")
-                if imgs_analytics:
-                    total_imgs = len(imgs_analytics)
-                    for idx, img in enumerate(imgs_analytics):
-                        imagem_pil_raiox = Image.open(img)
-                        conteudo_geracao.append(imagem_pil_raiox)
-                        time.sleep(0.5)
-                        barra_raiox.progress(int(((idx + 1) / total_imgs) * 50), text=f"Lendo print {idx + 1} de {total_imgs}...")
-                
-                barra_raiox.progress(75, text="🧠 Prints lidos! Cruzando os dados e montando o Funil...")
-                resposta_raiox = modelo_ia.generate_content(conteudo_geracao)
+                resposta_raiox = chamar_ia_global(prompt_raiox, sistema_raiox)
                 
                 if aba_raiox is not None:
-                    aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox.text])
+                    aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox])
                 
-                barra_raiox.progress(100, text="✅ Análise concluída e salva!")
-                time.sleep(1)
-                barra_raiox.empty() 
                 st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
                 st.rerun()
-            except Exception as e:
-                st.error(f"Erro na IA: {e}")
     else:
         if historico_raiox:
             st.info("💡 **Seu Mapa Mental salvo no sistema:**")
             st.markdown(historico_raiox[-1]["Funil"])
         else:
-            st.info("👈 A memória está vazia. Envie seus dados para criar e salvar o seu primeiro funil de vendas.")
+            st.info("👈 A memória está vazia. Descreva seu Analytics para criar o funil de vendas.")
 
 # ==========================================================
-# 13. FÁBRICA DE ROTEIROS VIP (🔥 COM MEMÓRIA BLINDADA)
+# 13. FÁBRICA DE ROTEIROS VIP (🔥 MOTOR OPENAI)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Fábrica de Roteiros Sob Demanda</h3>", unsafe_allow_html=True)
@@ -909,7 +882,6 @@ st.markdown("<p style='text-align: center; color: #A0A0A0;'>Alimente a Aurora co
 aba_roteiros = None
 historico_roteiros = []
 
-# 🔥 Conexão com o Banco de Dados para dar "Memória Fotográfica" à aba
 if link_planilha_ativa and robo_sheets:
     try:
         sheet_id = extrair_id_planilha(link_planilha_ativa)
@@ -923,7 +895,6 @@ if link_planilha_ativa and robo_sheets:
     except Exception:
         pass
 
-# Puxar dados salvos do último uso
 mem_publico = ""
 mem_qtd = 1
 mem_p1 = ""
@@ -942,7 +913,6 @@ if historico_roteiros:
 with st.container(border=True):
     col_limpar1, col_limpar2 = st.columns([4, 1])
     with col_limpar2:
-        # A lixeira manual que você pediu!
         if st.button("🗑️ Limpar Campos", use_container_width=True):
             if aba_roteiros is not None:
                 with st.spinner("Limpando memória..."):
@@ -953,73 +923,58 @@ with st.container(border=True):
                 st.rerun()
 
     col_config1, col_config2 = st.columns([1, 1])
-    
     with col_config1:
         publico_alvo = st.text_input("🎯 Para quem estamos vendendo?", value=mem_publico, placeholder="Ex: Mulheres cacheadas...")
-        
     with col_config2:
         index_qtd = [1, 2, 3].index(mem_qtd)
         qtd_produtos = st.radio("📦 Quantos produtos neste vídeo?", [1, 2, 3], index=index_qtd, horizontal=True)
 
     st.markdown("#### 📝 Detalhes do(s) Produto(s)")
-    
     descricoes = []
     mem_prods = [mem_p1, mem_p2, mem_p3]
-    
     cols_produtos = st.columns(qtd_produtos)
     for i in range(qtd_produtos):
         with cols_produtos[i]:
-            # A caixa agora usa "value" para carregar o texto salvo
-            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", value=mem_prods[i], height=120, placeholder=f"Descreva os benefícios do Produto {i+1} aqui...", key=f"desc_prod_{i}")
+            desc = st.text_area(f"Produto {i+1} (Nome e o que ele faz)", value=mem_prods[i], height=120, key=f"desc_prod_{i}")
             descricoes.append(desc)
 
     if st.button("⚡ FORJAR ROTEIROS DE ELITE", type="primary", use_container_width=True):
         if not publico_alvo or not any(descricoes):
-            st.warning("⚠️ Sócio, preencha o público-alvo e pelo menos a descrição do primeiro produto para a Aurora conseguir escrever!")
+            st.warning("⚠️ Sócio, preencha o público-alvo e pelo menos a descrição do primeiro produto!")
         else:
-            # 🔥 Salva na memória do Google Sheets ANTES de gerar o roteiro
             if aba_roteiros is not None:
                 p1_save = descricoes[0] if len(descricoes) > 0 else ""
                 p2_save = descricoes[1] if len(descricoes) > 1 else ""
                 p3_save = descricoes[2] if len(descricoes) > 2 else ""
                 aba_roteiros.append_row([publico_alvo, qtd_produtos, p1_save, p2_save, p3_save])
 
-            with st.spinner("A Aurora está aplicando os gatilhos mentais e a blindagem do TikTok..."):
-                try:
-                    produtos_str = ""
-                    for i, d in enumerate(descricoes):
-                        if d.strip():
-                            produtos_str += f"\n- PRODUTO {i+1}: {d.strip()}"
+            with st.spinner("A Aurora (OpenAI) está aplicando os gatilhos mentais..."):
+                produtos_str = ""
+                for i, d in enumerate(descricoes):
+                    if d.strip(): produtos_str += f"\n- PRODUTO {i+1}: {d.strip()}"
 
-                    prompt_copy = f"""
-                    Atue como Aurora, uma Copywriter de Elite focada em TikTok Shop e influenciadora virtual.
-                    Seu tom de voz é de "conspiração feminina", a amiga fofoqueira do bem.
-                    DADOS DO PROJETO:
-                    - Canal: {nome_canal_ativo}
-                    - Público-Alvo: {publico_alvo}
-                    - Produtos a serem vendidos neste vídeo: {produtos_str}
+                sistema_copy = "Você é Aurora, uma Copywriter de Elite focada em TikTok Shop e influenciadora virtual. Seu tom de voz é de 'conspiração feminina', a amiga fofoqueira do bem."
+                prompt_copy = f"""
+                DADOS DO PROJETO:
+                - Canal: {nome_canal_ativo}
+                - Público-Alvo: {publico_alvo}
+                - Produtos: {produtos_str}
 
-                    DIRETRIZES DE BLINDAGEM TIKTOK (OBRIGATÓRIO):
-                    - PROIBIDO ABSOLUTO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
-                    - SUBSTITUTOS OBRIGATÓRIOS (Verbos Sensoriais): "Sensação de", "Contribui para", "Uso contínuo", "Efeito desmaiado", "Achado de ouro", "Qualidade premium", "Promove um aspecto de", "Toque de seda".
+                DIRETRIZES DE BLINDAGEM TIKTOK:
+                - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Derrete", "Apaga".
+                - SUBSTITUTOS OBRIGATÓRIOS: "Sensação de", "Uso contínuo", "Efeito desmaiado", "Toque de seda".
 
-                    Sua missão:
-                    Crie UM roteiro de vídeo magnético focado na curiosidade e escassez.
-                    Se houver mais de 1 produto, faça em formato de lista (Ex: "Top {qtd_produtos} achadinhos secretos...").
-                    
-                    ESTRUTURA DO ROTEIRO:
-                    1. GANCHO (0-3s): Capture a atenção imediatamente.
-                    2. CORPO: Apresente o(s) produto(s) focando no desejo da audiência.
-                    3. CTA: Finalize com sua assinatura ("Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?").
-                    
-                    Formate separando [AÇÃO NA TELA] de [VOZ DA AURORA].
-                    """
-                    resposta_copy = modelo_ia.generate_content(prompt_copy)
-                    st.success("✅ Roteiro gerado e dados salvos na memória com sucesso!")
-                    st.markdown(resposta_copy.text)
-                    st.balloons()
-                except Exception as e:
-                    st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
+                Crie UM roteiro de vídeo magnético focado na curiosidade. Formato de lista se for mais de 1 produto.
+                ESTRUTURA:
+                1. GANCHO (0-3s): Capture a atenção imediatamente.
+                2. CORPO: Apresente o(s) produto(s) focando no desejo da audiência.
+                3. CTA: Finalize com "Já garanti o meu, corre no carrinho!"
+                Formate separando [AÇÃO NA TELA] de [VOZ DA AURORA].
+                """
+                resposta_copy = chamar_ia_global(prompt_copy, sistema_copy)
+                st.success("✅ Roteiro gerado e dados salvos na memória com sucesso!")
+                st.markdown(resposta_copy)
+                st.balloons()
 
 # ==========================================================
 # 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
@@ -1090,37 +1045,14 @@ html_coracao = f"""
     }}
 </style>
 """
-
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
 # 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + OPENAI GPT-4o-MINI)
 # ==========================================================
-import threading
-import asyncio
-import base64
-import requests
-import time
-import queue
-import os
-import random
-from openai import OpenAI
-from TikTokLive import TikTokLiveClient
-from TikTokLive.events import ConnectEvent, CommentEvent, LikeEvent, JoinEvent, FollowEvent, ShareEvent
-
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🎙️ Estúdio VIP Aurora (Painel Profissional)</h3>", unsafe_allow_html=True)
 
-# --- CAPTAÇÃO DAS CHAVES ---
-try:
-    CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
-    CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
-except KeyError:
-    st.error("🚨 ALERTA: Faltam chaves no cadeado. Verifique ELEVENLABS_API_KEY e OPENAI_API_KEY.")
-    st.stop()
-
-# Inicializa o cérebro da OpenAI
-cliente_openai = OpenAI(api_key=CHAVE_OPENAI_VIP)
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
 if st.session_state.get("erro_chave"):
@@ -1190,26 +1122,11 @@ def gerar_audio_base64(texto):
     if resp.status_code == 200: return base64.b64encode(resp.content).decode('utf-8')
     else: raise Exception(f"Falha Voz: {resp.text}")
 
-def gerar_texto_ia_blindado(prompt, sistema_contexto):
-    try:
-        response = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": sistema_contexto},
-                {"role": "user", "content": prompt}
-            ],
-            max_tokens=70,
-            temperature=0.7
-        )
-        return response.choices[0].message.content.replace("*", "").strip()
-    except Exception as e:
-        raise Exception(f"Falha na OpenAI: {str(e)}")
-
 def processar_comentario_ia(arroba, comentario, produto):
     historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
     sistema = f"Você é Aurora, uma amiga fofoqueira vendendo: {produto}. PROIBIDO falar preços, valores, 'Reais' ou a palavra 'link'. Mande a pessoa no carrinho fixado. Max 2 frases curtas."
     prompt = f"O usuário @{arroba} comentou: '{comentario}'. Responda ele. Não repita: {historico}"
-    return gerar_texto_ia_blindado(prompt, sistema)
+    return chamar_ia_global(prompt, sistema)
 
 # 🛡️ O BUNKER DE THREAD (RADAR COMPLETO) 🛡️
 @st.cache_resource
@@ -1285,7 +1202,7 @@ with st.container(border=True):
         if produto_live:
             st.session_state.update({"live_rodando": True, "modo_teste": True, "fila_audios": [], "log_chat": ["🟡 Teste Offline."]})
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            try: st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o cérebro da OpenAI está online e operante!"))
+            try: st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o cérebro da OpenAI está online e operante em todo o aplicativo!"))
             except Exception as e: st.session_state["erro_chave"] = str(e)
             st.rerun()
 
@@ -1377,7 +1294,7 @@ if st.session_state.get("live_rodando"):
             sistema_radio = f"Você é Aurora em live. Produto: {produto_live}. PROIBIDO PREÇOS E PALAVRA 'LINK'. NÃO REPITA: [{historico}]. Mande ir no CARRINHO."
             prompt_radio = "O chat está quieto há alguns segundos. Fale sozinha focada num benefício do produto ou urgência de estoque. Use no máximo 2 frases curtas."
             
-            texto_radio = gerar_texto_ia_blindado(prompt_radio, sistema_radio)
+            texto_radio = chamar_ia_global(prompt_radio, sistema_radio)
             st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: {texto_radio}")
             audio_b64 = gerar_audio_base64(texto_radio)
             if audio_b64: st.session_state["fila_audios"].append(audio_b64)
