@@ -1343,11 +1343,18 @@ if st.session_state.get("live_rodando"):
         tempo_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
         limite_atual = st.session_state["limite_silencio"]
         
-        # 🎯 A SEGUNDA LINHA FICA AQUI DENTRO DO 'IF':
         if len(st.session_state["fila_audios"]) == 0 and tempo_silencio > limite_atual and not teve_interacao:
             st.session_state["limite_silencio"] = random.uniform(5.0, 10.0) 
             historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
             sistema_radio = f"Você é Aurora em live. Produto: {produto_live}. PROIBIDO PREÇOS E PALAVRA 'LINK'. NÃO REPITA: [{historico}]. Mande ir no CARRINHO."
+            prompt_radio = "O chat está quieto há alguns segundos. Fale sozinha focada num benefício do produto ou urgência de estoque. Use no máximo 2 frases curtas."
+            
+            texto_radio = chamar_ia_global(prompt_radio, sistema_radio)
+            st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: {texto_radio}")
+            audio_b64 = gerar_audio_base64(texto_radio)
+            if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+
+    except Exception as e:
 
     # 🎛️ PAINEL VIP DE ÁUDIO
     if len(st.session_state["fila_audios"]) > 0:
