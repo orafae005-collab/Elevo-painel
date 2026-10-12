@@ -1146,7 +1146,9 @@ for key in ["live_rodando", "modo_teste"]:
 for key in ["fila_audios", "log_chat"]:
     if key not in st.session_state: st.session_state[key] = []
 if "ultimo_audio_timestamp" not in st.session_state: st.session_state["ultimo_audio_timestamp"] = time.time()
-if "limite_silencio" not in st.session_state: st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
+
+# 🎯 A PRIMEIRA LINHA FICA AQUI:
+if "limite_silencio" not in st.session_state: st.session_state["limite_silencio"] = random.uniform(5.0, 10.0) 
 
 if "ultimo_join" not in st.session_state: st.session_state["ultimo_join"] = 0.0
 if "ultimo_like" not in st.session_state: st.session_state["ultimo_like"] = 0.0
@@ -1341,23 +1343,11 @@ if st.session_state.get("live_rodando"):
         tempo_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
         limite_atual = st.session_state["limite_silencio"]
         
+        # 🎯 A SEGUNDA LINHA FICA AQUI DENTRO DO 'IF':
         if len(st.session_state["fila_audios"]) == 0 and tempo_silencio > limite_atual and not teve_interacao:
-            st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
+            st.session_state["limite_silencio"] = random.uniform(5.0, 10.0) 
             historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
             sistema_radio = f"Você é Aurora em live. Produto: {produto_live}. PROIBIDO PREÇOS E PALAVRA 'LINK'. NÃO REPITA: [{historico}]. Mande ir no CARRINHO."
-            prompt_radio = "O chat está quieto há alguns segundos. Fale sozinha focada num benefício do produto ou urgência de estoque. Use no máximo 2 frases curtas."
-            
-            texto_radio = chamar_ia_global(prompt_radio, sistema_radio)
-            st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: {texto_radio}")
-            audio_b64 = gerar_audio_base64(texto_radio)
-            if audio_b64: st.session_state["fila_audios"].append(audio_b64)
-
-    except Exception as e:
-        st.session_state["erro_chave"] = str(e)
-        st.session_state["live_rodando"] = False
-        st.session_state["fila_audios"] = []
-        st.cache_resource.clear()
-        st.rerun()
 
     # 🎛️ PAINEL VIP DE ÁUDIO
     if len(st.session_state["fila_audios"]) > 0:
