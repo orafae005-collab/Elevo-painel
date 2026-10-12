@@ -1103,18 +1103,27 @@ import requests
 import time
 import queue
 import os
+import random
+import google.generativeai as genai
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import ConnectEvent, CommentEvent
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de Transmissão VIP (Voz ao Vivo)</h3>", unsafe_allow_html=True)
 
-# --- CHAVES DE ACESSO ---
+# --- CHAVES DE ACESSO (🔒 O CADEADO DO STREAMLIT) ---
 try:
     CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
+    # Força o sistema a usar APENAS a chave que está presa no cadeado do aplicativo
+    CHAVE_GEMINI_VIP = st.secrets.get("GEMINI_API_KEY") or st.secrets["GOOGLE_API_KEY"]
 except KeyError:
-    st.error("🚨 ALERTA: A chave da ElevenLabs não foi encontrada no cofre.")
+    st.error("🚨 ALERTA: Faltam chaves no cadeado (Secrets). Adicione a chave da voz e a chave da IA (GEMINI_API_KEY).")
     st.stop()
+
+# Injetando a mente da IA usando a chave do cadeado
+genai.configure(api_key=CHAVE_GEMINI_VIP)
+modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
+
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
 # 💉 === SISTEMA DE INJEÇÃO FÍSICA NO SERVIDOR (COFRE DA ÁGUIA) === 💉
@@ -1180,22 +1189,18 @@ def gerar_audio_base64(texto):
 def processar_comentario_ia(arroba, comentario, produto):
     historico_recente = " | ".join(st.session_state["log_chat"][-4:]) if st.session_state["log_chat"] else "Nenhum"
     prompt_ia = f"""
-    Você é a Aurora, influenciadora carismática no TikTok Shop.
-    Aja como a amiga fofoqueira do bem, sem emojis.
-    
-    🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais.
-    🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA ISSO: {historico_recente}
-
+    Você é a Aurora, influenciadora carismática no TikTok Shop. Aja como a amiga fofoqueira do bem.
+    🚨 REGRA 1: É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais. Mande clicar no carrinho.
+    🚨 REGRA 2: NÃO REPITA ISSO: {historico_recente}
     Dossiê do Produto: {produto}.
     Comentário de @{arroba}: '{comentario}'
-    
     Responda em 1 ou 2 frases. Valide o ego da pessoa, explique um benefício do produto e mande clicar no carrinho.
     """
     try:
         resposta = modelo_ia.generate_content(prompt_ia)
         return resposta.text.replace("*", "").replace("`", "").strip()
     except:
-        return f"Oi {arroba}, menina! Esse produto é a nossa salvação, o carrinho tá fixado!"
+        return f"Oi {arroba}, amiga! Essa furadeira tá com um desconto irreal no sistema, corre no carrinho antes que suma!"
 
 # --- O FANTASMA OUVINTE ---
 def loop_tiktok_background(arroba, caixa_correio):
@@ -1283,7 +1288,7 @@ with st.container(border=True):
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            audio_teste = gerar_audio_base64("Oi sócio! Teste offline rodando. Se eu ficar em silêncio por 25 segundos, vou começar a explicar o produto sozinha focando no ego da galera!")
+            audio_teste = gerar_audio_base64("Oi sócio! A chave do cadeado está conectada. Vou vender sozinha a cada 25 segundos!")
             if audio_teste: 
                 st.session_state["fila_audios"].append(audio_teste)
             st.rerun()
@@ -1320,7 +1325,14 @@ with st.container(border=True):
             try:
                 texto_venda = modelo_ia.generate_content(prompt_venda).text.replace("*", "").strip()
             except:
-                texto_venda = "Gente, a qualidade dessa maleta é surreal, vai resolver a vida de vocês, clica no carrinho!"
+                frases_emergencia = [
+                    "Gente, a qualidade dessa maleta é surreal, vai resolver a vida de vocês, clica no carrinho!",
+                    "Amiga, o pessoal do estoque avisou que tá acabando, garante a sua nesse carrinho fixado!",
+                    "Meninas, olha essa praticidade. O desconto no carrinho fixado tá um erro do sistema, corre!",
+                    "Para tudo! Esse kit é a melhor dica de presente de longe, garante no link!"
+                ]
+                texto_venda = random.choice(frases_emergencia)
+                
             audio = gerar_audio_base64(texto_venda)
             if audio: 
                 st.session_state["fila_audios"].append(audio)
@@ -1330,11 +1342,10 @@ with st.container(border=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
-# --- O PROCESSADOR CENTRAL (COM RÁDIO PARA MODO LIVE E MODO TESTE) ---
+# --- O PROCESSADOR CENTRAL (COM RÁDIO E ROLETA BLINDADA) ---
 if st.session_state.get("live_rodando"):
     teve_interacao = False
     
-    # A Caixa de Correio (comentários) só é lida na Live Real
     if not st.session_state["modo_teste"]:
         while not st.session_state["caixa_de_correio"].empty() and len(st.session_state["fila_audios"]) < 2:
             carta = st.session_state["caixa_de_correio"].get()
@@ -1351,37 +1362,37 @@ if st.session_state.get("live_rodando"):
                 audio_b64 = gerar_audio_base64(resposta)
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-    # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA - RODA NO MODO TESTE TAMBÉM!)
+    # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA - 25 SEGUNDOS)
     tempo_em_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
     
     if len(st.session_state["fila_audios"]) == 0 and tempo_em_silencio > 25.0 and not teve_interacao:
         historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
         
         prompt_radio = f"""
-        Você é a Aurora, em live no TikTok. O chat está quieto há 25 segundos.
+        Você é a Aurora, em live. O chat está quieto há 25 segundos.
         Fale sozinha de forma carismática e fofoqueira para explicar e vender o produto.
-        
         Dossiê do Produto: {produto_live}.
-        
         🚨 REGRA 1 (PROIBIDO VALORES): NUNCA fale preços, dinheiro, Reais ou números.
         🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA NADA DISSO: [{historico}]. Mude completamente a frase!
-        
-        🎯 ROLETA DE VENDAS (Escolha apenas 1 ângulo agora):
-        1. EGO & EXPLICAÇÃO: Fale de um detalhe premium do produto que traz status (ex: ser um ótimo presente ou resolver a vida em casa).
-        2. ESCASSEZ: Diga que restam pouquíssimas unidades na maleta.
-        3. URGÊNCIA: Avise que "quando a live fechar, sai da promoção".
-        
-        Seja curta (máximo 2 frases) e mande clicar no carrinho.
+        Seja curta (máximo 2 frases), fale sobre a utilidade e mande clicar no carrinho.
         """
         try:
             texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
-            st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: Explicando produto e tocando no ego...")
-            audio_b64 = gerar_audio_base64(texto_radio)
-            if audio_b64: 
-                st.session_state["fila_audios"].append(audio_b64)
-                st.session_state["ultimo_audio_timestamp"] = time.time()
+            st.session_state["log_chat"].append(f"🎙️ [RÁDIO IA]: Explicando produto e tocando no ego...")
         except:
-            pass
+            frases_radio_emergencia = [
+                "Meninas, e essa maleta incrível aqui? Já vem completinha, é o achado de ouro pro marido!",
+                "Gente, eu não deveria falar, mas o desconto dessa furadeira tá irreal. Clica no carrinho pra ver!",
+                "Amiga, se você precisa de praticidade em casa, olha esse kit de 48V. O estoque tá sumindo!",
+                "Vem cá, me conta uma coisa... vocês já viram um kit tão premium por esse valor? Corre no link!"
+            ]
+            texto_radio = random.choice(frases_radio_emergencia)
+            st.session_state["log_chat"].append(f"🎙️ [RÁDIO BACKUP]: Explicando (Modo Sobrevivência)...")
+            
+        audio_b64 = gerar_audio_base64(texto_radio)
+        if audio_b64: 
+            st.session_state["fila_audios"].append(audio_b64)
+            st.session_state["ultimo_audio_timestamp"] = time.time()
 
     # REPRODUTOR DE ÁUDIO VISÍVEL COM AUTOPLAY JAVASCRIPT
     if len(st.session_state["fila_audios"]) > 0:
