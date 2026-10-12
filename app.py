@@ -216,13 +216,14 @@ prints_comissao = st.sidebar.file_uploader(
 )
 
 # ==========================================================
-# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS 
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
 # ==========================================================
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
     return match.group(1) if match else None
 
-@st.cache_data(ttl=60)
+# 🔥 Correção da Lentidão: Cache estendido para 300 segundos (5 minutos)
+@st.cache_data(ttl=300)
 def carregar_dados_dinamicos(url):
     if not url or not robo_sheets:
         return pd.DataFrame()
@@ -262,7 +263,9 @@ else:
 
 if "Data" in df.columns:
     df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
+    # 🔥 Leitor Blindado: Consegue entender as datas mesmo se o Sheets as bagunçar
     df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
+    df["Data_Parsed"] = df["Data_Parsed"].fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
 else:
     df["Data_Parsed"] = pd.NaT
 
@@ -274,25 +277,30 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
     hoje = pd.Timestamp(agora_brasil.date())
     
-    df_filtrado["Data_Parsed"] = df_filtrado["Data_Parsed"].dt.normalize()
-    
-    if filtro_periodo == "Hoje":
-        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == hoje]
-    elif filtro_periodo == "Ontem":
-        ontem = hoje - timedelta(days=1)
-        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == ontem]
-    elif filtro_periodo == "Últimos 7 Dias":
-        limite = hoje - timedelta(days=7)
-        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
-    elif filtro_periodo == "Últimos 30 Dias":
-        limite = hoje - timedelta(days=30)
-        df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
-    elif filtro_periodo == "Mês Atual":
-        df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == hoje.month) & (df_filtrado["Data_Parsed"].dt.year == hoje.year)]
-    elif filtro_periodo == "Mês Passado":
-        mes_passado = hoje.month - 1 if hoje.month > 1 else 12
-        ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
-        df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
+    # Limpa as datas vazias apenas se não for o filtro "Tudo"
+    if filtro_periodo != "Tudo":
+        df_filtrado = df_filtrado.dropna(subset=["Data_Parsed"])
+        
+    if not df_filtrado.empty:
+        df_filtrado["Data_Parsed"] = df_filtrado["Data_Parsed"].dt.normalize()
+        
+        if filtro_periodo == "Hoje":
+            df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == hoje]
+        elif filtro_periodo == "Ontem":
+            ontem = hoje - timedelta(days=1)
+            df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] == ontem]
+        elif filtro_periodo == "Últimos 7 Dias":
+            limite = hoje - timedelta(days=7)
+            df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
+        elif filtro_periodo == "Últimos 30 Dias":
+            limite = hoje - timedelta(days=30)
+            df_filtrado = df_filtrado[df_filtrado["Data_Parsed"] >= limite]
+        elif filtro_periodo == "Mês Atual":
+            df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == hoje.month) & (df_filtrado["Data_Parsed"].dt.year == hoje.year)]
+        elif filtro_periodo == "Mês Passado":
+            mes_passado = hoje.month - 1 if hoje.month > 1 else 12
+            ano_passado = hoje.year if hoje.month > 1 else hoje.year - 1
+            df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
 # 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V6.3 - VIP NATIVO CELULAR)
