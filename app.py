@@ -1369,7 +1369,7 @@ if st.session_state.get("live_rodando"):
         historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
         
         prompt_radio = f"""
-        Você é a Aurora, em live. O chat está quieto há 25 segundos.
+        Você é a Aurora, em live. O chat está quieto há 10 segundos.
         Fale sozinha de forma carismática e fofoqueira para explicar e vender o produto.
         Dossiê do Produto: {produto_live}.
         🚨 REGRA 1 (PROIBIDO VALORES): NUNCA fale preços, dinheiro, Reais ou números.
