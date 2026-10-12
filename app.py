@@ -1094,7 +1094,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + KILL SWITCH)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + IA GLOBAL)
 # ==========================================================
 import threading
 import asyncio
@@ -1104,23 +1104,20 @@ import time
 import queue
 import os
 import random
-import google.generativeai as genai
 from TikTokLive import TikTokLiveClient
 from TikTokLive.events import ConnectEvent, CommentEvent
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🎙️ Estúdio VIP Aurora (Painel Profissional)</h3>", unsafe_allow_html=True)
 
-# --- CHAVES DE ACESSO ---
+# --- CHAVE DE VOZ ---
+# ⚠️ A IA (modelo_ia) já foi configurada perfeitamente no topo do seu app.py!
+# Aqui precisamos apenas verificar a chave da voz.
 try:
     CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
-    CHAVE_GEMINI_VIP = st.secrets.get("GEMINI_API_KEY") or st.secrets["GOOGLE_API_KEY"]
 except KeyError:
-    st.error("🚨 ALERTA: Faltam chaves no cadeado (Secrets).")
+    st.error("🚨 ALERTA: Falta a chave da ElevenLabs no cadeado (Secrets).")
     st.stop()
-
-genai.configure(api_key=CHAVE_GEMINI_VIP)
-modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1128,11 +1125,11 @@ ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 if st.session_state.get("erro_chave"):
     st.error("🚨 ERRO CRÍTICO DE CONEXÃO: O SISTEMA FOI PARADO DE VEZ.")
     st.warning(f"Detalhe Técnico: {st.session_state['erro_chave']}")
-    st.info("Motivos: O limite de uso da Chave de IA pode ter acabado, a internet falhou, ou a chave está inválida. O aplicativo foi travado para impedir que a Aurora fique repetindo frases vazias.")
+    st.info("Motivos: A internet falhou, a chave de voz expirou, ou a IA (configurada no topo) travou.")
     if st.button("🔄 Reconectar e Limpar Erro", type="primary"):
         del st.session_state["erro_chave"]
         st.rerun()
-    st.stop() # Mata a execução do aplicativo aqui mesmo!
+    st.stop()
 
 # 💉 === COFRE DE INJEÇÃO FÍSICA === 💉
 ARQUIVO_DOSSIE = "memoria_dossie_aurora.txt"
@@ -1174,8 +1171,7 @@ if "ultimo_audio_timestamp" not in st.session_state:
 if "limite_silencio" not in st.session_state:
     st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
 
-# --- MOTORES NUCLEARES (SEM MÁSCARA DE ERRO) ---
-# Se estes motores falharem, o erro explode e trava o aplicativo.
+# --- MOTOR DE VOZ ---
 def gerar_audio_base64(texto):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
     headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
@@ -1193,6 +1189,7 @@ def gerar_audio_base64(texto):
 def processar_comentario_ia(arroba, comentario, produto):
     historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
     prompt = f"Aurora, amiga fofoqueira vendendo {produto}. Responda @{arroba} sobre: '{comentario}'. PROIBIDO PREÇOS E PALAVRA LINK. NÃO REPITA: {historico}. Max 2 frases. Mande ir no CARRINHO."
+    # Usa a variável modelo_ia do topo do seu código!
     return modelo_ia.generate_content(prompt).text.replace("*", "").strip()
 
 # 🛡️ O BUNKER DE THREAD 🛡️
@@ -1261,7 +1258,7 @@ with st.container(border=True):
             st.session_state.update({"live_rodando": True, "modo_teste": True, "fila_audios": [], "log_chat": ["🟡 Teste Offline Iniciado."]})
             st.session_state["ultimo_audio_timestamp"] = time.time()
             try:
-                st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, a trava de emergência tá online. Se as chaves falharem, eu paro o sistema na hora!"))
+                st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o erro sumiu! Estou conectada ao cérebro central do seu aplicativo."))
             except Exception as e:
                 st.session_state["erro_chave"] = str(e)
             st.rerun()
@@ -1301,7 +1298,7 @@ with st.container(border=True):
                 st.session_state["erro_chave"] = str(e)
                 st.rerun()
 
-# --- PROCESSADOR CENTRAL E GATILHOS (COM TOLERÂNCIA ZERO) ---
+# --- PROCESSADOR CENTRAL E GATILHOS ---
 if st.session_state.get("live_rodando"):
     teve_interacao = False
     
@@ -1322,7 +1319,7 @@ if st.session_state.get("live_rodando"):
                     audio_b64 = gerar_audio_base64(carta["mensagem"])
                     if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-        # 🕒 A MÁGICA DA HUMANIZAÇÃO (Respiro de 3 a 8 segundos)
+        # 🕒 A MÁGICA DA HUMANIZAÇÃO
         tempo_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
         limite_atual = st.session_state["limite_silencio"]
         
@@ -1335,7 +1332,6 @@ if st.session_state.get("live_rodando"):
             PROIBIDO PREÇOS E PALAVRA LINK. NÃO REPITA: [{historico}]. 
             Use 1 ângulo (Qualidade premium OU estoque no fim). 1 a 2 frases curtas, mande ir no carrinho/sacolinha.
             """
-            # Se a IA ou a Voz derem erro aqui, o sistema explode pro bloco except embaixo
             texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
             st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: {texto_radio}")
             audio_b64 = gerar_audio_base64(texto_radio)
@@ -1344,7 +1340,6 @@ if st.session_state.get("live_rodando"):
                 st.session_state["fila_audios"].append(audio_b64)
 
     except Exception as e:
-        # ATIVA O DESLIGAMENTO DE EMERGÊNCIA
         st.session_state["erro_chave"] = str(e)
         st.session_state["live_rodando"] = False
         st.session_state["fila_audios"] = []
