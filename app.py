@@ -1,21 +1,15 @@
-import threading
-import asyncio
 import base64
 import requests
 import time
-from TikTokLive import TikTokLiveClient
-from TikTokLive.events import ConnectEvent, CommentEvent, LikeEvent, JoinEvent, FollowEvent, ShareEvent
 import streamlit as st
+import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime, timedelta
-from PIL import Image
 import gspread
 import re
 import plotly.express as px
-import queue
-import os
-import random
 from openai import OpenAI
+import hashlib
 import io
 from gtts import gTTS
 
@@ -58,7 +52,6 @@ def conectar_robo():
         return None
 
 robo_sheets = conectar_robo()
-
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.3 - CONTRASTE ABSOLUTO)
 # ==========================================================
