@@ -1094,7 +1094,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR SUPREMO VIP + RÁDIO)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 MOTOR SUPREMO VIP + BUNKER TIKTOK)
 # ==========================================================
 import threading
 import asyncio
@@ -1114,13 +1114,11 @@ st.markdown("<h3 style='text-align: center; color: #FF0040;'>🎙️ Estúdio de
 # --- CHAVES DE ACESSO (🔒 O CADEADO DO STREAMLIT) ---
 try:
     CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
-    # Força o sistema a usar APENAS a chave que está presa no cadeado do aplicativo
     CHAVE_GEMINI_VIP = st.secrets.get("GEMINI_API_KEY") or st.secrets["GOOGLE_API_KEY"]
 except KeyError:
     st.error("🚨 ALERTA: Faltam chaves no cadeado (Secrets). Adicione a chave da voz e a chave da IA (GEMINI_API_KEY).")
     st.stop()
 
-# Injetando a mente da IA usando a chave do cadeado
 genai.configure(api_key=CHAVE_GEMINI_VIP)
 modelo_ia = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -1153,8 +1151,6 @@ if "fila_audios" not in st.session_state:
     st.session_state["fila_audios"] = []
 if "log_chat" not in st.session_state:
     st.session_state["log_chat"] = []
-if "caixa_de_correio" not in st.session_state:
-    st.session_state["caixa_de_correio"] = queue.Queue()
 if "ultimo_audio_timestamp" not in st.session_state:
     st.session_state["ultimo_audio_timestamp"] = time.time()
 
@@ -1202,26 +1198,32 @@ def processar_comentario_ia(arroba, comentario, produto):
     except:
         return f"Oi {arroba}, amiga! Essa furadeira tá com um desconto irreal no sistema, corre no carrinho antes que suma!"
 
-# --- O FANTASMA OUVINTE ---
-def loop_tiktok_background(arroba, caixa_correio):
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    client = TikTokLiveClient(unique_id=arroba)
+# 🛡️ O BUNKER DE THREAD (A SOLUÇÃO PARA A NUVEM) 🛡️
+@st.cache_resource
+def iniciar_ouvinte_blindado(arroba):
+    # Este bunker protege o cliente de ser assassinado pelo recarregamento do Streamlit
+    caixa = queue.Queue()
+    cliente = TikTokLiveClient(unique_id=arroba)
 
-    @client.on(ConnectEvent)
+    @cliente.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        caixa_correio.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho pra ver a promoção!"})
+        caixa.put({"tipo": "sistema", "mensagem": "E aí galera, a Aurora chegou! Live no ar, clica no carrinho pra ver a promoção!"})
 
-    @client.on(CommentEvent)
+    @cliente.on(CommentEvent)
     async def on_comment(event: CommentEvent):
-        if not st.session_state.get("live_rodando", False) or st.session_state.get("modo_teste", False): 
-            client.stop()
-            return
-        caixa_correio.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
-    try:
-        client.run()
-    except:
-        pass
+        caixa.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
+
+    def _rodar():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            cliente.run()
+        except:
+            pass # Em caso de bloqueio, cai no silêncio, mas a Rádio Automática continua a vender
+
+    t = threading.Thread(target=_rodar, daemon=True)
+    t.start()
+    return cliente, caixa
 
 # --- INTERFACE VISUAL DO ESTÚDIO ---
 with st.container(border=True):
@@ -1266,17 +1268,13 @@ with st.container(border=True):
 
     if btn_iniciar:
         if not arroba_tiktok or not produto_live:
-            st.warning("⚠️ Preencha o @ do TikTok e injete o Dossiê!")
+            st.warning("⚠️ Preencha o @ do TikTok sem arroba e injete o Dossiê!")
         else:
             st.session_state["live_rodando"] = True
             st.session_state["modo_teste"] = False
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = []
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            while not st.session_state["caixa_de_correio"].empty():
-                st.session_state["caixa_de_correio"].get()
-            thread_live = threading.Thread(target=loop_tiktok_background, args=(arroba_tiktok, st.session_state["caixa_de_correio"]), daemon=True)
-            thread_live.start()
             st.rerun()
 
     if btn_testar:
@@ -1288,7 +1286,7 @@ with st.container(border=True):
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            audio_teste = gerar_audio_base64("Oi sócio! A chave do cadeado está conectada. Vou vender sozinha a cada 25 segundos!")
+            audio_teste = gerar_audio_base64("Oi sócio! O bunker de conexão está pronto. A roleta anti-silêncio vai atuar a cada 25 segundos!")
             if audio_teste: 
                 st.session_state["fila_audios"].append(audio_teste)
             st.rerun()
@@ -1297,6 +1295,7 @@ with st.container(border=True):
         st.session_state["live_rodando"] = False
         st.session_state["modo_teste"] = False
         st.session_state["fila_audios"] = []
+        st.cache_resource.clear() # Limpa o bunker e mata o robô anterior
         st.rerun()
 
     # --- COMANDOS RÁPIDOS ---
@@ -1342,13 +1341,16 @@ with st.container(border=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
-# --- O PROCESSADOR CENTRAL (COM RÁDIO E ROLETA BLINDADA) ---
+# --- O PROCESSADOR CENTRAL (COM BUNKER E RÁDIO BLINDADA) ---
 if st.session_state.get("live_rodando"):
     teve_interacao = False
     
     if not st.session_state["modo_teste"]:
-        while not st.session_state["caixa_de_correio"].empty() and len(st.session_state["fila_audios"]) < 2:
-            carta = st.session_state["caixa_de_correio"].get()
+        # Invoca a conexão do bunker seguro (não cria um novo a cada refresh)
+        cliente_tiktok, caixa_correio = iniciar_ouvinte_blindado(arroba_tiktok)
+        
+        while not caixa_correio.empty() and len(st.session_state["fila_audios"]) < 2:
+            carta = caixa_correio.get()
             teve_interacao = True
             
             if carta["tipo"] == "sistema":
@@ -1369,7 +1371,7 @@ if st.session_state.get("live_rodando"):
         historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
         
         prompt_radio = f"""
-        Você é a Aurora, em live. O chat está quieto há 10 segundos.
+        Você é a Aurora, em live. O chat está quieto há 25 segundos.
         Fale sozinha de forma carismática e fofoqueira para explicar e vender o produto.
         Dossiê do Produto: {produto_live}.
         🚨 REGRA 1 (PROIBIDO VALORES): NUNCA fale preços, dinheiro, Reais ou números.
