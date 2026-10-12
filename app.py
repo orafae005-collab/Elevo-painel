@@ -1183,19 +1183,19 @@ def processar_comentario_ia(arroba, comentario, produto):
     Você é a Aurora, influenciadora carismática no TikTok Shop.
     Aja como a amiga fofoqueira do bem, sem emojis.
     
-    🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais. Mande clicar no carrinho.
+    🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro ou Reais.
     🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA ISSO: {historico_recente}
 
     Dossiê do Produto: {produto}.
     Comentário de @{arroba}: '{comentario}'
     
-    Responda em 1 ou 2 frases curtas, interagindo e vendendo.
+    Responda em 1 ou 2 frases. Valide o ego da pessoa, explique um benefício do produto e mande clicar no carrinho.
     """
     try:
         resposta = modelo_ia.generate_content(prompt_ia)
         return resposta.text.replace("*", "").replace("`", "").strip()
     except:
-        return f"Oi {arroba}, menina! O carrinho tá fixado, corre lá!"
+        return f"Oi {arroba}, menina! Esse produto é a nossa salvação, o carrinho tá fixado!"
 
 # --- O FANTASMA OUVINTE ---
 def loop_tiktok_background(arroba, caixa_correio):
@@ -1283,7 +1283,7 @@ with st.container(border=True):
             st.session_state["fila_audios"] = []
             st.session_state["log_chat"] = ["🟡 Teste Offline Iniciado."]
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            audio_teste = gerar_audio_base64("Oi sócio! O roteiro tá injetado. A rádio automática e a roleta de vendas estão 100% ativas!")
+            audio_teste = gerar_audio_base64("Oi sócio! Teste offline rodando. Se eu ficar em silêncio por 25 segundos, vou começar a explicar o produto sozinha focando no ego da galera!")
             if audio_teste: 
                 st.session_state["fila_audios"].append(audio_teste)
             st.rerun()
@@ -1300,31 +1300,42 @@ with st.container(border=True):
         col_tatico1, col_tatico2, col_tatico3 = st.columns(3)
         if col_tatico1.button("🗣️ Pedir Curtidas", use_container_width=True):
             audio = gerar_audio_base64("Galera, dedo na telinha! Dois toques rápidos para bater a nossa meta de curtidas!")
-            if audio: st.session_state["fila_audios"].append(audio)
+            if audio: 
+                st.session_state["fila_audios"].append(audio)
+                st.session_state["ultimo_audio_timestamp"] = time.time()
             
         if col_tatico2.button("⚔️ Ativar Batalha (PK)", use_container_width=True):
             audio = gerar_audio_base64("Atenção tropa, batalha rolando! Todo mundo esmagando a tela!")
-            if audio: st.session_state["fila_audios"].append(audio)
+            if audio: 
+                st.session_state["fila_audios"].append(audio)
+                st.session_state["ultimo_audio_timestamp"] = time.time()
             
         if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
-            prompt_venda = f"Crie 1 frase persuasiva de venda baseada no dossiê: {produto_live}. NÃO FALE PREÇO. Seja inédita."
+            historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
+            prompt_venda = f"""
+            Aja como Aurora. Faça um argumento de venda (2 frases) baseado no dossiê: {produto_live}.
+            NÃO FALE PREÇO. NÃO REPITA NADA DISSO: {historico}.
+            Toque no EGO: Explique um detalhe do produto que traga facilidade, qualidade premium ou status, e mande clicar no carrinho.
+            """
             try:
                 texto_venda = modelo_ia.generate_content(prompt_venda).text.replace("*", "").strip()
             except:
-                texto_venda = "Gente, clica no carrinho agora que o estoque vai sumir, aproveitem!"
+                texto_venda = "Gente, a qualidade dessa maleta é surreal, vai resolver a vida de vocês, clica no carrinho!"
             audio = gerar_audio_base64(texto_venda)
-            if audio: st.session_state["fila_audios"].append(audio)
+            if audio: 
+                st.session_state["fila_audios"].append(audio)
+                st.session_state["ultimo_audio_timestamp"] = time.time()
 
         with st.expander("👁️ Ver Interações Recentes", expanded=True):
             for log in reversed(st.session_state["log_chat"][-5:]):
                 st.write(log)
 
-# --- O PROCESSADOR CENTRAL (COM RÁDIO AUTOMÁTICA E ROLETA) ---
+# --- O PROCESSADOR CENTRAL (COM RÁDIO PARA MODO LIVE E MODO TESTE) ---
 if st.session_state.get("live_rodando"):
+    teve_interacao = False
+    
+    # A Caixa de Correio (comentários) só é lida na Live Real
     if not st.session_state["modo_teste"]:
-        teve_interacao = False
-        
-        # Lê a Caixa de Correio
         while not st.session_state["caixa_de_correio"].empty() and len(st.session_state["fila_audios"]) < 2:
             carta = st.session_state["caixa_de_correio"].get()
             teve_interacao = True
@@ -1340,37 +1351,37 @@ if st.session_state.get("live_rodando"):
                 audio_b64 = gerar_audio_base64(resposta)
                 if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-        # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA)
-        tempo_em_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
+    # 🕒 O GATILHO DE TEMPO (RÁDIO AUTOMÁTICA - RODA NO MODO TESTE TAMBÉM!)
+    tempo_em_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
+    
+    if len(st.session_state["fila_audios"]) == 0 and tempo_em_silencio > 25.0 and not teve_interacao:
+        historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
         
-        if len(st.session_state["fila_audios"]) == 0 and tempo_em_silencio > 25.0 and not teve_interacao:
-            historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
-            
-            prompt_radio = f"""
-            Você é a Aurora, em live no TikTok. O chat está quieto há 25 segundos.
-            Quebre o gelo! Fale sozinha (sem citar comentários) de forma carismática e fofoqueira para vender o produto.
-            
-            Dossiê do Produto: {produto_live}.
-            
-            🚨 REGRA 1 (PROIBIDO VALORES): É ESTRITAMENTE PROIBIDO falar preços, dinheiro, Reais ou números.
-            🚨 REGRA 2 (ANTI-PAPAGAIO): Você acabou de falar isto: [{historico}]. Dê a explicação do produto, mas use palavras e tons diferentes.
-            
-            🎯 ROLETA DE VENDAS (Alterne entre estes 3 ângulos):
-            1. QUALIDADE: Fale sobre como o produto resolve a vida e detalhes.
-            2. ESCASSEZ: Diga que restam pouquíssimas unidades no estoque.
-            3. URGÊNCIA: Avise que "quando a live fechar, o produto sai da promoção".
-            
-            Escolha UM desses ângulos. Seja curta (1 a 2 frases) e mande clicar no carrinho.
-            """
-            try:
-                texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
-                st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: Explicando produto...")
-                audio_b64 = gerar_audio_base64(texto_radio)
-                if audio_b64: 
-                    st.session_state["fila_audios"].append(audio_b64)
-                    st.session_state["ultimo_audio_timestamp"] = time.time()
-            except:
-                pass
+        prompt_radio = f"""
+        Você é a Aurora, em live no TikTok. O chat está quieto há 25 segundos.
+        Fale sozinha de forma carismática e fofoqueira para explicar e vender o produto.
+        
+        Dossiê do Produto: {produto_live}.
+        
+        🚨 REGRA 1 (PROIBIDO VALORES): NUNCA fale preços, dinheiro, Reais ou números.
+        🚨 REGRA 2 (ANTI-PAPAGAIO): NÃO REPITA NADA DISSO: [{historico}]. Mude completamente a frase!
+        
+        🎯 ROLETA DE VENDAS (Escolha apenas 1 ângulo agora):
+        1. EGO & EXPLICAÇÃO: Fale de um detalhe premium do produto que traz status (ex: ser um ótimo presente ou resolver a vida em casa).
+        2. ESCASSEZ: Diga que restam pouquíssimas unidades na maleta.
+        3. URGÊNCIA: Avise que "quando a live fechar, sai da promoção".
+        
+        Seja curta (máximo 2 frases) e mande clicar no carrinho.
+        """
+        try:
+            texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
+            st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: Explicando produto e tocando no ego...")
+            audio_b64 = gerar_audio_base64(texto_radio)
+            if audio_b64: 
+                st.session_state["fila_audios"].append(audio_b64)
+                st.session_state["ultimo_audio_timestamp"] = time.time()
+        except:
+            pass
 
     # REPRODUTOR DE ÁUDIO VISÍVEL COM AUTOPLAY JAVASCRIPT
     if len(st.session_state["fila_audios"]) > 0:
