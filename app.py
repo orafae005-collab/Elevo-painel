@@ -1094,7 +1094,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + IA GLOBAL)
+# 15. ESTÚDIO DE TRANSMISSÃO DA AURORA (🔥 VIP + OPENAI GPT-4o-MINI)
 # ==========================================================
 import threading
 import asyncio
@@ -1104,95 +1104,114 @@ import time
 import queue
 import os
 import random
+from openai import OpenAI
 from TikTokLive import TikTokLiveClient
-from TikTokLive.events import ConnectEvent, CommentEvent
+from TikTokLive.events import ConnectEvent, CommentEvent, LikeEvent, JoinEvent, FollowEvent, ShareEvent
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🎙️ Estúdio VIP Aurora (Painel Profissional)</h3>", unsafe_allow_html=True)
 
-# --- CHAVE DE VOZ ---
-# ⚠️ A IA (modelo_ia) já foi configurada perfeitamente no topo do seu app.py!
-# Aqui precisamos apenas verificar a chave da voz.
+# --- CAPTAÇÃO DAS CHAVES ---
 try:
     CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
+    CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
 except KeyError:
-    st.error("🚨 ALERTA: Falta a chave da ElevenLabs no cadeado (Secrets).")
+    st.error("🚨 ALERTA: Faltam chaves no cadeado. Verifique ELEVENLABS_API_KEY e OPENAI_API_KEY.")
     st.stop()
 
+# Inicializa o cérebro da OpenAI
+cliente_openai = OpenAI(api_key=CHAVE_OPENAI_VIP)
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
-# --- SISTEMA DE DESLIGAMENTO DE EMERGÊNCIA (KILL SWITCH) ---
 if st.session_state.get("erro_chave"):
-    st.error("🚨 ERRO CRÍTICO DE CONEXÃO: O SISTEMA FOI PARADO DE VEZ.")
+    st.error("🚨 ERRO CRÍTICO DE CONEXÃO.")
     st.warning(f"Detalhe Técnico: {st.session_state['erro_chave']}")
-    st.info("Motivos: A internet falhou, a chave de voz expirou, ou a IA (configurada no topo) travou.")
     if st.button("🔄 Reconectar e Limpar Erro", type="primary"):
         del st.session_state["erro_chave"]
         st.rerun()
     st.stop()
 
-# 💉 === COFRE DE INJEÇÃO FÍSICA === 💉
+# 💉 === COFRE DE INJEÇÃO E FUNÇÕES BASE === 💉
 ARQUIVO_DOSSIE = "memoria_dossie_aurora.txt"
 
 def ler_dossie_vip():
     if os.path.exists(ARQUIVO_DOSSIE):
-        with open(ARQUIVO_DOSSIE, "r", encoding="utf-8") as f:
-            return f.read()
+        with open(ARQUIVO_DOSSIE, "r", encoding="utf-8") as f: return f.read()
     return ""
 
 def salvar_dossie_vip(texto):
-    with open(ARQUIVO_DOSSIE, "w", encoding="utf-8") as f:
-        f.write(texto)
+    with open(ARQUIVO_DOSSIE, "w", encoding="utf-8") as f: f.write(texto)
 
 def apagar_dossie_vip():
-    if os.path.exists(ARQUIVO_DOSSIE):
-        os.remove(ARQUIVO_DOSSIE)
+    if os.path.exists(ARQUIVO_DOSSIE): os.remove(ARQUIVO_DOSSIE)
 
 def extrair_usuario_do_link(entrada):
     if "tiktok.com" in entrada:
-        try:
-            parte = entrada.split("@")[-1]
-            return parte.split("/")[0].split("?")[0]
-        except:
-            return entrada.replace("@", "").strip()
+        try: return entrada.split("@")[-1].split("/")[0].split("?")[0]
+        except: return entrada.replace("@", "").strip()
     return entrada.replace("@", "").strip()
 
-# --- ESTADO DA LIVE ---
-if "live_rodando" not in st.session_state:
-    st.session_state["live_rodando"] = False
-if "modo_teste" not in st.session_state:
-    st.session_state["modo_teste"] = False
-if "fila_audios" not in st.session_state:
-    st.session_state["fila_audios"] = []
-if "log_chat" not in st.session_state:
-    st.session_state["log_chat"] = []
-if "ultimo_audio_timestamp" not in st.session_state:
-    st.session_state["ultimo_audio_timestamp"] = time.time()
-if "limite_silencio" not in st.session_state:
-    st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
+# 🛡️ EXTRATOR BLINDADO DE DADOS 🛡️
+def extrair_dados_evento(event):
+    nome = "Amiga"
+    texto = ""
+    for attr in ["comment", "text", "content"]:
+        if hasattr(event, attr) and getattr(event, attr):
+            texto = str(getattr(event, attr))
+            break
+    user_obj = getattr(event, "user", None) or getattr(event, "user_info", None)
+    if user_obj:
+        for attr in ["nickname", "nick_name", "display_name", "unique_id"]:
+            val = getattr(user_obj, attr, None)
+            if val:
+                nome = str(val)
+                break
+    if nome.lower().startswith("user") and any(c.isdigit() for c in nome):
+        nome = "Amiga"
+    return nome, texto
 
-# --- MOTOR DE VOZ ---
+# --- ESTADO DA LIVE E COOLDOWNS ---
+for key in ["live_rodando", "modo_teste"]:
+    if key not in st.session_state: st.session_state[key] = False
+for key in ["fila_audios", "log_chat"]:
+    if key not in st.session_state: st.session_state[key] = []
+if "ultimo_audio_timestamp" not in st.session_state: st.session_state["ultimo_audio_timestamp"] = time.time()
+if "limite_silencio" not in st.session_state: st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
+
+if "ultimo_join" not in st.session_state: st.session_state["ultimo_join"] = 0.0
+if "ultimo_like" not in st.session_state: st.session_state["ultimo_like"] = 0.0
+
+# --- MOTORES NUCLEARES (COM OPENAI) ---
 def gerar_audio_base64(texto):
     url = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
     headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-    payload = {
-        "text": texto,
-        "model_id": "eleven_turbo_v2_5",
-        "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}
-    }
+    payload = {"text": texto, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
     resp = requests.post(url, json=payload, headers=headers, timeout=8)
-    if resp.status_code == 200:
-        return base64.b64encode(resp.content).decode('utf-8')
-    else:
-        raise Exception(f"Falha na Chave de Voz (ElevenLabs): {resp.text}")
+    if resp.status_code == 200: return base64.b64encode(resp.content).decode('utf-8')
+    else: raise Exception(f"Falha Voz: {resp.text}")
+
+def gerar_texto_ia_blindado(prompt, sistema_contexto):
+    try:
+        response = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": sistema_contexto},
+                {"role": "user", "content": prompt}
+            ],
+            max_tokens=70,
+            temperature=0.7
+        )
+        return response.choices[0].message.content.replace("*", "").strip()
+    except Exception as e:
+        raise Exception(f"Falha na OpenAI: {str(e)}")
 
 def processar_comentario_ia(arroba, comentario, produto):
-    historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
-    prompt = f"Aurora, amiga fofoqueira vendendo {produto}. Responda @{arroba} sobre: '{comentario}'. PROIBIDO PREÇOS E PALAVRA LINK. NÃO REPITA: {historico}. Max 2 frases. Mande ir no CARRINHO."
-    # Usa a variável modelo_ia do topo do seu código!
-    return modelo_ia.generate_content(prompt).text.replace("*", "").strip()
+    historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
+    sistema = f"Você é Aurora, uma amiga fofoqueira vendendo: {produto}. PROIBIDO falar preços, valores, 'Reais' ou a palavra 'link'. Mande a pessoa no carrinho fixado. Max 2 frases curtas."
+    prompt = f"O usuário @{arroba} comentou: '{comentario}'. Responda ele. Não repita: {historico}"
+    return gerar_texto_ia_blindado(prompt, sistema)
 
-# 🛡️ O BUNKER DE THREAD 🛡️
+# 🛡️ O BUNKER DE THREAD (RADAR COMPLETO) 🛡️
 @st.cache_resource
 def iniciar_ouvinte_blindado(arroba_real):
     caixa = queue.Queue()
@@ -1200,144 +1219,168 @@ def iniciar_ouvinte_blindado(arroba_real):
 
     @cliente.on(ConnectEvent)
     async def on_connect(event: ConnectEvent):
-        caixa.put({"tipo": "sistema", "mensagem": "Conectei na live, meninas! O fantasma entrou na sala!"})
+        caixa.put({"tipo": "sistema", "mensagem": "Conectei na live! Motor OpenAI ativado."})
 
     @cliente.on(CommentEvent)
     async def on_comment(event: CommentEvent):
-        caixa.put({"tipo": "comentario", "nome": event.user.nickname, "texto": event.comment})
+        nome, texto = extrair_dados_evento(event)
+        if texto: caixa.put({"tipo": "comentario", "nome": nome, "texto": texto})
+
+    @cliente.on(LikeEvent)
+    async def on_like(event: LikeEvent):
+        nome, _ = extrair_dados_evento(event)
+        caixa.put({"tipo": "like", "nome": nome})
+
+    @cliente.on(JoinEvent)
+    async def on_join(event: JoinEvent):
+        nome, _ = extrair_dados_evento(event)
+        caixa.put({"tipo": "join", "nome": nome})
+        
+    @cliente.on(FollowEvent)
+    async def on_follow(event: FollowEvent):
+        nome, _ = extrair_dados_evento(event)
+        caixa.put({"tipo": "follow", "nome": nome})
+
+    @cliente.on(ShareEvent)
+    async def on_share(event: ShareEvent):
+        nome, _ = extrair_dados_evento(event)
+        caixa.put({"tipo": "share", "nome": nome})
 
     def _rodar():
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        try:
-            cliente.run()
-        except:
-            pass 
+        try: cliente.run()
+        except: pass 
 
-    t = threading.Thread(target=_rodar, daemon=True)
-    t.start()
+    threading.Thread(target=_rodar, daemon=True).start()
     return cliente, caixa
 
 # --- INTERFACE DO APLICATIVO ---
 with st.container(border=True):
     col_live1, col_live2 = st.columns([1, 2])
-    
     with col_live1:
         st.markdown("**🔗 Cole o Link da Live ou o @:**")
-        entrada_tiktok = st.text_input("Link ou @", placeholder="https://www.tiktok.com/@.../live", label_visibility="collapsed")
-        
+        entrada_tiktok = st.text_input("Link ou @", placeholder="https://www.tiktok.com/@...", label_visibility="collapsed")
         if st.session_state["live_rodando"] and not st.session_state["modo_teste"]:
-            st.success("🟢 AURORA ONLINE (VIP)")
-        elif st.session_state["live_rodando"] and st.session_state["modo_teste"]:
-            st.warning("🟡 MODO TESTE OFFLINE")
+            st.success("🟢 AURORA ONLINE (GPT-4o-Mini)")
+        elif st.session_state["live_rodando"] and st.session_state["modo_teste"]: st.warning("🟡 MODO TESTE")
 
     with col_live2:
-        dossie_atual = ler_dossie_vip()
-        texto_injetado = st.text_area("🦅 Injetar Dossiê do Produto:", value=dossie_atual, height=90)
-        col_btn_inj1, col_btn_inj2 = st.columns(2)
-        if col_btn_inj1.button("💉 Gravar Dossiê", use_container_width=True):
-            salvar_dossie_vip(texto_injetado)
-            st.rerun()
-        if col_btn_inj2.button("🗑️ Limpar Dossiê", use_container_width=True):
-            apagar_dossie_vip()
-            st.rerun()
+        texto_injetado = st.text_area("🦅 Injetar Dossiê do Produto:", value=ler_dossie_vip(), height=90)
+        c1, c2 = st.columns(2)
+        if c1.button("💉 Gravar Dossiê", use_container_width=True): salvar_dossie_vip(texto_injetado); st.rerun()
+        if c2.button("🗑️ Limpar Dossiê", use_container_width=True): apagar_dossie_vip(); st.rerun()
         produto_live = ler_dossie_vip()
 
     st.markdown("<br>", unsafe_allow_html=True)
-    col_btn_live1, col_btn_live2, col_btn_live3 = st.columns(3)
-    
-    if col_btn_live1.button("▶️ INICIAR LIVE", type="primary", use_container_width=True):
+    c_btn1, c_btn2, c_btn3 = st.columns(3)
+    if c_btn1.button("▶️ INICIAR LIVE", type="primary", use_container_width=True):
         if entrada_tiktok and produto_live:
-            arroba_extraido = extrair_usuario_do_link(entrada_tiktok)
-            st.session_state.update({"live_rodando": True, "modo_teste": False, "fila_audios": [], "log_chat": [f"🔍 Buscando sala de: {arroba_extraido}"], "arroba_alvo": arroba_extraido})
+            arroba = extrair_usuario_do_link(entrada_tiktok)
+            st.session_state.update({"live_rodando": True, "modo_teste": False, "fila_audios": [], "log_chat": [f"🔍 Buscando sala de: {arroba}"], "arroba_alvo": arroba})
             st.session_state["ultimo_audio_timestamp"] = time.time()
             st.rerun()
 
-    if col_btn_live2.button("🛠️ TESTAR OFFLINE", use_container_width=True):
+    if c_btn2.button("🛠️ TESTAR OFFLINE", use_container_width=True):
         if produto_live:
-            st.session_state.update({"live_rodando": True, "modo_teste": True, "fila_audios": [], "log_chat": ["🟡 Teste Offline Iniciado."]})
+            st.session_state.update({"live_rodando": True, "modo_teste": True, "fila_audios": [], "log_chat": ["🟡 Teste Offline."]})
             st.session_state["ultimo_audio_timestamp"] = time.time()
-            try:
-                st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o erro sumiu! Estou conectada ao cérebro central do seu aplicativo."))
-            except Exception as e:
-                st.session_state["erro_chave"] = str(e)
+            try: st.session_state["fila_audios"].append(gerar_audio_base64("Sócio, o cérebro da OpenAI está online e operante!"))
+            except Exception as e: st.session_state["erro_chave"] = str(e)
             st.rerun()
 
-    if col_btn_live3.button("⏹️ PARAR TUDO", use_container_width=True):
+    if c_btn3.button("⏹️ PARAR TUDO", use_container_width=True):
         st.session_state.update({"live_rodando": False, "modo_teste": False, "fila_audios": []})
         st.cache_resource.clear()
         st.rerun()
 
     # --- CHAT VISUAL VIP ---
     if st.session_state["live_rodando"]:
-        st.markdown("### 💬 Chat ao Vivo (Monitor do Fantasma)")
+        st.markdown("### 💬 Monitor do Fantasma (Radar de Dados)")
         chat_html = "<div style='height: 180px; overflow-y: auto; background-color: #1a1a1a; padding: 10px; border-radius: 8px; border: 1px solid #333; display: flex; flex-direction: column-reverse;'>"
         for log in reversed(st.session_state["log_chat"][-15:]):
-            cor = "#00FFFF" if "SISTEMA" in log or "RÁDIO" in log else "#FFFFFF"
+            cor = "#FF0040" if "⚠️" in log else "#00FF00" if "❤️" in log or "👀" in log or "🌟" in log or "🚀" in log else "#00FFFF" if "SISTEMA" in log or "RÁDIO" in log else "#FFFFFF"
             chat_html += f"<p style='color: {cor}; margin: 3px 0; font-family: monospace; font-size: 14px;'>{log}</p>"
         chat_html += "</div>"
         st.markdown(chat_html, unsafe_allow_html=True)
-        
-        st.markdown("<br>", unsafe_allow_html=True)
-        col_tatico1, col_tatico2, col_tatico3 = st.columns(3)
-        if col_tatico1.button("🗣️ Curtidas", use_container_width=True):
-            try:
-                st.session_state["fila_audios"].append(gerar_audio_base64("Galera, dedo na telinha! Dois toques rápidos!"))
-            except Exception as e:
-                st.session_state["erro_chave"] = str(e)
-                st.rerun()
-                
-        if col_tatico3.button("🔥 Forçar Venda", use_container_width=True):
-            try:
-                historico = " | ".join(st.session_state["log_chat"][-2:]) if st.session_state["log_chat"] else ""
-                prompt_venda = f"Aja como Aurora. Faça um argumento de venda (2 frases) baseado no dossiê: {produto_live}. PROIBIDO PREÇO E LINK. NÃO REPITA: {historico}."
-                texto_venda = modelo_ia.generate_content(prompt_venda).text.replace("*", "").strip()
-                audio = gerar_audio_base64(texto_venda)
-                if audio: st.session_state["fila_audios"].append(audio)
-            except Exception as e:
-                st.session_state["erro_chave"] = str(e)
-                st.rerun()
 
 # --- PROCESSADOR CENTRAL E GATILHOS ---
 if st.session_state.get("live_rodando"):
     teve_interacao = False
-    
     try:
         if not st.session_state["modo_teste"]:
             cliente_tiktok, caixa_correio = iniciar_ouvinte_blindado(st.session_state["arroba_alvo"])
             while not caixa_correio.empty() and len(st.session_state["fila_audios"]) < 2:
                 carta = caixa_correio.get()
                 teve_interacao = True
-                st.session_state["log_chat"].append(f"[{carta.get('nome', 'SISTEMA')}]: {carta.get('texto', carta.get('mensagem'))}")
+                agora = time.time()
                 
-                if carta["tipo"] == "comentario":
+                if carta["tipo"] == "sistema":
+                    st.session_state["log_chat"].append(f"🟢 [SISTEMA]: {carta['mensagem']}")
+                    audio_b64 = gerar_audio_base64(carta["mensagem"])
+                    if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+
+                elif carta["tipo"] == "comentario":
+                    st.session_state["log_chat"].append(f"[{carta['nome']}]: {carta['texto']}")
                     resposta = processar_comentario_ia(carta['nome'], carta['texto'], produto_live)
                     st.session_state["log_chat"].append(f"🎙️ [AURORA]: Respondendo {carta['nome']}...")
                     audio_b64 = gerar_audio_base64(resposta)
                     if audio_b64: st.session_state["fila_audios"].append(audio_b64)
-                else:
-                    audio_b64 = gerar_audio_base64(carta["mensagem"])
+                
+                # --- INTERAÇÕES SOCIAIS (CUSTO ZERO NA IA) ---
+                elif carta["tipo"] == "join":
+                    if agora - st.session_state["ultimo_join"] > 18.0:
+                        st.session_state["ultimo_join"] = agora
+                        nome = carta["nome"]
+                        if nome != "Amiga":
+                            frases_join = [
+                                f"Oi {nome}, seja muito bem-vinda, amiga! Já dá uma olhadinha no nosso carrinho fixado!",
+                                f"Olha quem acabou de chegar! Bem-vinda, {nome}! Se tiver alguma dúvida, me manda aqui no chat!",
+                                f"Oiê {nome}, que bom que você entrou! Toca na sacolinha aqui embaixo para conferir os achados!"
+                            ]
+                            texto = random.choice(frases_join)
+                            st.session_state["log_chat"].append(f"👀 {nome} entrou na sala.")
+                            audio_b64 = gerar_audio_base64(texto)
+                            if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+                            
+                elif carta["tipo"] == "like":
+                    if agora - st.session_state["ultimo_like"] > 25.0:
+                        st.session_state["ultimo_like"] = agora
+                        nome = carta["nome"]
+                        frases_like = [
+                            f"Obrigada pelas curtidas na live, {nome}! Quem ainda não conferiu o nosso produto no carrinho, corre lá!",
+                            f"Amei o carinho aí no coraçãozinho, {nome}! Muito obrigada, amiga!",
+                            f"Olha a {nome} enchendo a nossa tela de coração! Obrigada pelo apoio, lindeza!"
+                        ]
+                        texto = random.choice(frases_like)
+                        st.session_state["log_chat"].append(f"❤️ {nome} curtiu a live!")
+                        audio_b64 = gerar_audio_base64(texto)
+                        if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+                
+                elif carta["tipo"] == "follow":
+                    st.session_state["log_chat"].append(f"🌟 {carta['nome']} começou a seguir!")
+                    audio_b64 = gerar_audio_base64(f"Amiga, para tudo! Muito obrigada por seguir o nosso perfil, {carta['nome']}!")
+                    if audio_b64: st.session_state["fila_audios"].append(audio_b64)
+                    
+                elif carta["tipo"] == "share":
+                    st.session_state["log_chat"].append(f"🚀 {carta['nome']} compartilhou a live!")
+                    audio_b64 = gerar_audio_base64(f"Gente, muito obrigada por compartilhar a nossa live, {carta['nome']}! Você é ouro!")
                     if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
-        # 🕒 A MÁGICA DA HUMANIZAÇÃO
+        # 🕒 A MÁGICA DA HUMANIZAÇÃO (Rádio Automática OpenAI)
         tempo_silencio = time.time() - st.session_state.get("ultimo_audio_timestamp", time.time())
         limite_atual = st.session_state["limite_silencio"]
         
         if len(st.session_state["fila_audios"]) == 0 and tempo_silencio > limite_atual and not teve_interacao:
             st.session_state["limite_silencio"] = random.uniform(3.0, 8.0) 
-            historico = " | ".join(st.session_state["log_chat"][-3:]) if st.session_state["log_chat"] else ""
+            historico = " | ".join([l for l in st.session_state["log_chat"][-3:] if "❤️" not in l and "👀" not in l])
+            sistema_radio = f"Você é Aurora em live. Produto: {produto_live}. PROIBIDO PREÇOS E PALAVRA 'LINK'. NÃO REPITA: [{historico}]. Mande ir no CARRINHO."
+            prompt_radio = "O chat está quieto há alguns segundos. Fale sozinha focada num benefício do produto ou urgência de estoque. Use no máximo 2 frases curtas."
             
-            prompt_radio = f"""
-            Aurora, em live. Chat quieto há {limite_atual:.1f} seg. Fale sozinha focada no produto: {produto_live}.
-            PROIBIDO PREÇOS E PALAVRA LINK. NÃO REPITA: [{historico}]. 
-            Use 1 ângulo (Qualidade premium OU estoque no fim). 1 a 2 frases curtas, mande ir no carrinho/sacolinha.
-            """
-            texto_radio = modelo_ia.generate_content(prompt_radio).text.replace("*", "").strip()
+            texto_radio = gerar_texto_ia_blindado(prompt_radio, sistema_radio)
             st.session_state["log_chat"].append(f"🎙️ [RÁDIO]: {texto_radio}")
             audio_b64 = gerar_audio_base64(texto_radio)
-            
-            if audio_b64: 
-                st.session_state["fila_audios"].append(audio_b64)
+            if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
     except Exception as e:
         st.session_state["erro_chave"] = str(e)
@@ -1350,7 +1393,6 @@ if st.session_state.get("live_rodando"):
     if len(st.session_state["fila_audios"]) > 0:
         st.session_state["ultimo_audio_timestamp"] = time.time()
         audio_tocar = st.session_state["fila_audios"].pop(0)
-        
         html_vip = f"""
         <style>
             .bar {{ width: 12px; height: 10px; background: #00FFFF; border-radius: 4px; display: inline-block; animation: bounce 0.4s infinite alternate; }}
@@ -1361,29 +1403,16 @@ if st.session_state.get("live_rodando"):
             @keyframes bounce {{ from {{ height: 10px; opacity: 0.5; }} to {{ height: 40px; opacity: 1; }} }}
             .paused .bar {{ animation: none; height: 10px; background: #444; }}
         </style>
-        
         <div style="background-color: #1a1a1a; padding: 15px; border-radius: 12px; text-align: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 15px rgba(0, 255, 255, 0.2);">
             <h4 style="color: #00FFFF; margin: 0 0 15px 0; font-family: sans-serif;">🎙️ VOZ DA AURORA ATIVA</h4>
-            
             <div id="visualizer" class="" style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 50px;">
                 <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             </div>
-            
-            <audio id="aurora_audio" autoplay 
-                   onplay="document.getElementById('visualizer').classList.remove('paused')" 
-                   onended="document.getElementById('visualizer').classList.add('paused')">
+            <audio id="aurora_audio" autoplay onplay="document.getElementById('visualizer').classList.remove('paused')" onended="document.getElementById('visualizer').classList.add('paused')">
                 <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
             </audio>
-            
-            <script>
-                var player = document.getElementById("aurora_audio");
-                var playPromise = player.play();
-                if (playPromise !== undefined) {{
-                    playPromise.catch(function(error) {{ console.log("Toque na tela."); }});
-                }}
-            </script>
-        </div>
-        """
+            <script>var player = document.getElementById("aurora_audio"); var playPromise = player.play(); if (playPromise !== undefined) {{ playPromise.catch(function(error) {{ console.log("Toque na tela."); }}); }}</script>
+        </div>"""
         import streamlit.components.v1 as components
         components.html(html_vip, height=130)
     
