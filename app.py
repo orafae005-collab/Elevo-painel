@@ -1024,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS & VOZ DA AURORA (🔥 ESTILO WHATSAPP VIP)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ & ONDAS SONORAS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos & Motivação (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>O seu canal direto de alta performance com a Aurora. Envie sua mensagem como no WhatsApp e ouça o conselho estratégico ao vivo.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos por Viva Voz (Aurora)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Fale diretamente com a Aurora usando o microfone. Ela vai escutar, analisar com a Mente de Marketing e responder com a voz oficial e as ondas sonoras ativas!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1038,24 +1038,26 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
-if "historico_whatsapp" not in st.session_state:
-    st.session_state["historico_whatsapp"] = [
-        {"role": "assistant", "content": "E aí, sócio! Estou pronta na escuta. Qual é o dilema de negócio ou o foco de hoje? Manda o papo."}
+# Inicialização blindada de todas as variáveis de estado para evitar KeyError
+if "historico_viva_voz" not in st.session_state:
+    st.session_state["historico_viva_voz"] = [
+        {"role": "assistant", "content": "E aí, sócio! Estou a ouvir. Clica no gravador abaixo, manda a tua dúvida por voz e vamos escalar este negócio!"}
     ]
 
-if "ultimo_audio_whatsapp_b64" not in st.session_state:
-    st.session_state["ultimo_audio_whatsapp_b64"] = None
+if "ultimo_audio_b64" not in st.session_state:
+    st.session_state["ultimo_audio_b64"] = None
 
+# Container principal do Chat de Voz
 with st.container(border=True):
-    chat_container = st.container(height=400)
+    chat_container = st.container(height=350)
     
     with chat_container:
-        for msg in st.session_state["historico_whatsapp"]:
+        for msg in st.session_state["historico_viva_voz"]:
             if msg["role"] == "user":
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                     <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
+                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Mensagem de Voz:</b> {msg['content']}</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1071,53 +1073,65 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    with st.form(key="form_whatsapp_mentor", clear_on_submit=True):
-        col_input, col_send = st.columns([5, 1])
-        with col_input:
-            pergunta_zap = st.text_input("Mensagem para a Aurora...", placeholder="Digite sua dúvida ou ideia...", label_visibility="collapsed")
-        with col_send:
-            enviar_msg = st.form_submit_button("➤", use_container_width=True)
-            
-        if enviar_msg and pergunta_zap.strip():
-            st.session_state["historico_whatsapp"].append({"role": "user", "content": pergunta_zap})
-            
-            try:
-                sistema_mentor = (
-                    "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
-                    "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
-                    "Dê conselhos práticos, direcionamentos de marketing, tiradas inteligentes ou doses de motivação cirúrgicas. "
-                    "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
-                )
-                
-                chat_sessao = modelo_ia.start_chat(history=[])
-                resposta_objeto = chat_sessao.send_message(f"{sistema_mentor}\n\nPergunta do sócio: {pergunta_zap}")
-                resposta_mentor = resposta_objeto.text.replace("*", "").strip()
-                
-                st.session_state["historico_whatsapp"].append({"role": "assistant", "content": resposta_mentor})
-                
-                url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                
-                resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                if resp_voz.status_code == 200:
-                    st.session_state["ultimo_audio_mentor_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                else:
-                    st.session_state["ultimo_audio_mentor_b64"] = None
+    # 🎤 GRAVADOR DE VIVA VOZ NATIVO DO STREAMLIT
+    audio_gravado = st.audio_input("🎙️ Clica para falar com a Aurora:")
+    
+    if audio_gravado is not None:
+        # Lê os bytes do áudio enviado pelo microfone do telemóvel/PC
+        audio_bytes = audio_gravado.read()
+        
+        if audio_bytes:
+            with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
+                try:
+                    # Como o Whisper da OpenAI transcreve o áudio gravado em texto perfeito:
+                    transcricao_obj = cliente_openai.audio.transcriptions.create(
+                        model="whisper-1",
+                        file=("audio_usuario.wav", audio_bytes, "audio/wav")
+                    )
+                    texto_falado = transcricao_obj.text
                     
-                st.rerun()
-            except Exception as e:
-                st.error(f"Erro ao processar: {e}")
+                    if texto_falado.strip():
+                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
+                        
+                        # Processamento via Cérebro da Mente de Marketing
+                        sistema_mentor = (
+                            "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
+                            "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
+                            "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
+                            "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
+                        )
+                        
+                        chat_sessao = modelo_ia.start_chat(history=[])
+                        resposta_objeto = chat_sessao.send_message(f"{sistema_mentor}\n\nO sócio disse por voz: {texto_falado}")
+                        resposta_mentor = resposta_objeto.text.replace("*", "").strip()
+                        
+                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
+                        
+                        # Geração da voz na ElevenLabs
+                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                        
+                        resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                        if resp_voz.status_code == 200:
+                            st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                        else:
+                            st.session_state["ultimo_audio_b64"] = None
+                            
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Erro ao processar o microfone: {e}")
 
-    if st.button("🗑️ Limpar Conversa", use_container_width=True):
-        st.session_state["historico_whatsapp"] = [
-            {"role": "assistant", "content": "Conversa reiniciada. O que vamos estruturar agora, sócio?"}
+    if st.button("🗑️ Limpar Conversa de Voz", use_container_width=True):
+        st.session_state["historico_viva_voz"] = [
+            {"role": "assistant", "content": "Conversa reiniciada. Podes mandar novo áudio, sócio!"}
         ]
-        st.session_state["ultimo_audio_mentor_b64"] = None
+        st.session_state["ultimo_audio_b64"] = None
         st.rerun()
 
-if st.session_state["ultimo_audio_mentor_b64"]:
-    audio_tocar = st.session_state["ultimo_audio_mentor_b64"]
+# 🎛️ PAINEL DE ÁUDIO COM ANIMADOR DE ONDAS SONORAS (IGUAL À LIVE)
+if st.session_state["ultimo_audio_b64"]:
+    audio_tocar = st.session_state["ultimo_audio_b64"]
     html_ondas_sonoras = f"""
     <style>
         .bar {{ width: 12px; height: 10px; background: #00FFFF; border-radius: 4px; display: inline-block; animation: bounce 0.4s infinite alternate; }}
