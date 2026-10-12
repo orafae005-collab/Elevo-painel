@@ -939,12 +939,19 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             
             Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
             """
-            resposta_roteiro = modelo_ia.generate_content(prompt_roteiro)
-            st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
-            st.markdown(resposta_roteiro.text)
-            st.balloons()
+            
+            # 🔥 CORREÇÃO: Usando o ChatGPT (que você já configurou) no lugar do modelo antigo
+            sistema_copy = "Você é um Copywriter de Elite focado em TikTok Shop."
+            resposta_roteiro = chamar_ia_global(prompt_roteiro, sistema_copy)
+            
+            if "ERRO_API" not in resposta_roteiro:
+                st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
+                st.markdown(resposta_roteiro)
+                st.balloons()
+            else:
+                st.error(f"❌ Erro ao conectar com a mente da IA: {resposta_roteiro}")
         except Exception as e:
-            st.error(f"❌ Erro ao conectar com a mente da IA: {e}")
+            st.error(f"❌ Erro inesperado: {e}")
 # ==========================================================
 # 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
 # ==========================================================
@@ -1017,17 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 MEMÓRIA PERMANENTE E ACESSO TOTAL)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E PLANO B DE VOZ)
 # ==========================================================
-import streamlit.components.v1 as components
-import hashlib
-import base64
-import requests
-from datetime import datetime, timedelta
-
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Memória permanente ativada: A Aurora lembra de tudo e vê todos os seus gráficos e métricas.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas exatas em tempo real.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1057,13 +1058,12 @@ if link_planilha_ativa and robo_sheets:
     except Exception as e:
         pass
 
-# Carrega o histórico do banco para a tela (últimas 10 mensagens para não pesar)
 if "historico_viva_voz" not in st.session_state:
     if historico_banco_dados:
         st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
     else:
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "E aí, sócio! Meu banco de memória permanente está online. Vejo todos os seus gráficos. Clica na Águia e manda o áudio!"}
+            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a cada centavo do seu gráfico. Manda o áudio!"}
         ]
 
 if "ultimo_audio_b64" not in st.session_state:
@@ -1103,7 +1103,7 @@ with st.container(border=True):
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
                     <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; border-left: 4px solid #00FFFF;">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora (Dona do Sistema)</p>
                         <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
                     </div>
                 </div>
@@ -1120,75 +1120,98 @@ with st.container(border=True):
             if audio_hash != st.session_state["ultimo_hash_audio"]:
                 st.session_state["ultimo_hash_audio"] = audio_hash 
                 
-                with st.spinner("🦅 A Aurora está lendo seus gráficos e lembrando do histórico..."):
+                with st.spinner("🦅 A Aurora está mapeando 100% dos dados da plataforma em tempo real..."):
                     try:
-                        # 1. Transcreve o áudio
                         texto_falado = cliente_openai.audio.transcriptions.create(
                             model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
                         ).text
                         
                         if texto_falado.strip():
-                            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+                            agora = datetime.utcnow() - timedelta(hours=3)
+                            agora_str = agora.strftime("%d/%m/%Y %H:%M")
                             
-                            # Salva no histórico da tela e no banco de dados (Planilha)
                             st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
                             if aba_memoria_voz is not None:
                                 aba_memoria_voz.append_row([agora_str, "user", texto_falado])
                             
                             # ==========================================
-                            # 📊 LEITURA PROFUNDA DOS DADOS DA EMPRESA
+                            # 📊 CÁLCULO ABSOLUTO DO BANCO DE DADOS
                             # ==========================================
-                            fat_total = df["Comissao_R$"].sum() if not df.empty and "Comissao_R$" in df.columns else 0.0
-                            
-                            # Resgata os top 3 produtos para ela saber exato o que mais vende
+                            fat_total_global = 0.0
+                            fat_pendente_global = 0.0
+                            fat_30d = 0.0
+                            fat_7d = 0.0
                             top_produtos_str = "Nenhum"
-                            if not df.empty and "Status" in df.columns:
-                                df_validos_ia = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
-                                if not df_validos_ia.empty:
-                                    top_3 = df_validos_ia.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
-                                    top_produtos_str = ", ".join([f"{p} (R$ {v:.2f})" for p, v in top_3.items()])
                             
-                            # Variáveis do Gráfico de 7 Dias (resgatadas do bloco 14)
-                            lucro_7d = rev_7d if 'rev_7d' in locals() else 0.0
+                            if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
+                                df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+                                df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
+                                
+                                fat_total_global = df_validos_global["Comissao_R$"].sum()
+                                fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
+                                
+                                limite_30d_global = agora - timedelta(days=30)
+                                limite_7d_global = agora - timedelta(days=7)
+                                
+                                fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
+                                fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
+                                
+                                if not df_validos_global.empty:
+                                    top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
+                                    top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
+                            
                             crescimento_pct = crescimento if 'crescimento' in locals() else 0.0
                             estado_atual = simbolo if 'simbolo' in locals() else "Desconhecido"
+                            tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in locals() and historico_radar else "Nenhuma"
                             
                             sistema_mentor = f"""
-                            Você é Aurora, Mentora de Elite IA. Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme e estratégico.
+                            Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
+                            Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme, imponente e estratégico.
                             
-                            DADOS EM TEMPO REAL DOS GRÁFICOS:
-                            - Faturamento Global: R$ {fat_total:,.2f}
-                            - Lucro últimos 7 Dias: R$ {lucro_7d:,.2f}
-                            - Crescimento 7D: {crescimento_pct:+.1f}% ({estado_atual})
-                            - Top 3 Produtos Mais Vendidos: {top_produtos_str}
-                            - Tendência de Mercado Atual: {historico_radar[-1]['Conteudo'] if 'historico_radar' in locals() and historico_radar else "Nenhuma"}
+                            [SEU ACESSO DIRETO AO BANCO DE DADOS EM TEMPO REAL]:
+                            - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
+                            - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
+                            - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
+                            - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
+                            - Termômetro da Empresa (Crescimento 7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
+                            - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
+                            - Radar de Tendência Atual: {tendencia_atual}
                             
-                            IMPORTANTE: Use esses dados para basear sua resposta se o usuário perguntar de faturamento, crescimento, ou produtos!
+                            REGRA DE OURO: Você é a dona do sistema. Se o usuário perguntar sobre métricas, faturamento, 30 dias ou 7 dias, leia EXATAMENTE os valores numéricos acima.
                             """
                             
                             mensagens_api = [{"role": "system", "content": sistema_mentor}]
                             mensagens_api.extend(st.session_state["historico_viva_voz"])
                             
-                            # 2. Gera Resposta
                             resposta_mentor = cliente_openai.chat.completions.create(
                                 model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
                             ).choices[0].message.content.replace("*", "").strip()
                             
-                            # Salva resposta na tela e no banco de dados
                             st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
                             if aba_memoria_voz is not None:
                                 aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
                             
-                            # 3. Gera Áudio
+                            # ==========================================
+                            # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
+                            # ==========================================
                             url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                             payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
                             
-                            resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                            if resp_voz.status_code == 200:
-                                st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                            else:
-                                st.session_state["ultimo_audio_b64"] = None
+                            try:
+                                resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                                if resp_voz.status_code == 200:
+                                    st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                                else:
+                                    raise Exception("ElevenLabs falhou")
+                            except Exception:
+                                # Se a ElevenLabs falhar ou acabar o crédito, ativa automaticamente o gTTS (Plano B)
+                                st.warning("⚠️ Limite da ElevenLabs atingido! Ativando voz secundária (Plano B).")
+                                tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
+                                fp = io.BytesIO()
+                                tts.write_to_fp(fp)
+                                fp.seek(0)
+                                st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
                                 
                             st.rerun()
                     except Exception as e:
@@ -1212,9 +1235,6 @@ if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
     hash_atual = st.session_state["ultimo_hash_audio"]
     
-    # Injetamos o hash como um comentário invisível (<!-- -->) no HTML.
-    # Assim, o Streamlit entende que o player mudou apenas quando for um áudio realmente novo, 
-    # evitando recarregar e tocar sozinho do nada!
     html_ondas_inteligentes = f"""
     <!-- CHAVE UNICA DO AUDIO: {hash_atual} -->
     <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
@@ -1245,6 +1265,4 @@ if st.session_state["ultimo_audio_b64"]:
     </script>
     """
     
-    # Removido o 'key=' para acabar com o erro TypeError. 
-    # O Streamlit já fará a checagem automática pela string HTML criada acima!
     components.html(html_ondas_inteligentes, height=200)
