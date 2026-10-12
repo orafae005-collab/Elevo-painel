@@ -1024,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ & OPENAI)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 CHAT VIP & VOZ DA ELEVENLABS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos por Viva Voz (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Fale diretamente com a Aurora usando o microfone. Ela vai escutar, analisar com a OpenAI e responder com a voz oficial e as ondas sonoras ativas!</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Escreve o teu dilema ou ideia. A Aurora processa instantaneamente com a OpenAI e responde em texto e com a tua voz VIP da ElevenLabs!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1038,24 +1038,24 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
-if "historico_viva_voz" not in st.session_state:
-    st.session_state["historico_viva_voz"] = [
-        {"role": "assistant", "content": "E aí, sócio! Estou a ouvir. Clica no gravador abaixo, manda a tua dúvida por voz e vamos escalar este negócio!"}
+if "historico_mentor_vip" not in st.session_state:
+    st.session_state["historico_mentor_vip"] = [
+        {"role": "assistant", "content": "E aí, sócio! Estou a postos. Qual é o foco ou o dilema de negócio de hoje? Manda o papo."}
     ]
 
-if "ultimo_audio_b64" not in st.session_state:
-    st.session_state["ultimo_audio_b64"] = None
+if "ultimo_audio_vip_b64" not in st.session_state:
+    st.session_state["ultimo_audio_vip_b64"] = None
 
 with st.container(border=True):
-    chat_container = st.container(height=350)
+    chat_container = st.container(height=380)
     
     with chat_container:
-        for msg in st.session_state["historico_viva_voz"]:
+        for msg in st.session_state["historico_mentor_vip"]:
             if msg["role"] == "user":
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
                     <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Mensagem de Voz:</b> {msg['content']}</p>
+                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
@@ -1071,69 +1071,62 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    audio_gravado = st.audio_input("🎙️ Clica para falar com a Aurora:")
-    
-    if audio_gravado is not None:
-        audio_bytes = audio_gravado.read()
-        
-        if audio_bytes:
-            with st.spinner("🧠 A Aurora está a ouvir o teu áudio e a pensar na estratégia..."):
+    with st.form(key="form_mentor_vip_real", clear_on_submit=True):
+        col_input, col_send = st.columns([5, 1])
+        with col_input:
+            pergunta_sogro = st.text_input("Mensagem para a Aurora...", placeholder="Digite aqui a sua dúvida ou estratégia...", label_visibility="collapsed")
+        with col_send:
+            enviar_chat = st.form_submit_button("➤", use_container_width=True)
+            
+        if enviar_chat and pergunta_sogro.strip():
+            st.session_state["historico_mentor_vip"].append({"role": "user", "content": pergunta_sogro})
+            
+            with st.spinner("🧠 A Aurora está a processar a estratégia com a OpenAI..."):
                 try:
-                    # Transcreve a voz usando o Whisper da OpenAI
-                    transcricao_obj = cliente_openai.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=("audio_usuario.wav", audio_bytes, "audio/wav")
+                    sistema_mentor = (
+                        "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
+                        "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
+                        "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
+                        "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
                     )
-                    texto_falado = transcricao_obj.text
                     
-                    if texto_falado.strip():
-                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
+                    response = cliente_openai.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": sistema_mentor},
+                            {"role": "user", "content": pergunta_sogro}
+                        ],
+                        max_tokens=150,
+                        temperature=0.7
+                    )
+                    resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
+                    st.session_state["historico_mentor_vip"].append({"role": "assistant", "content": resposta_mentor})
+                    
+                    # Chamada direta à tua voz VIP na ElevenLabs
+                    url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                    headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                    payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                    
+                    resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                    if resp_voz.status_code == 200:
+                        st.session_state["ultimo_audio_vip_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                    else:
+                        st.session_state["ultimo_audio_vip_b64"] = None
                         
-                        sistema_mentor = (
-                            "Você é a Aurora, uma mentora de elite, fria, estratégica, focada em mentalidade de negócios, alta performance e disciplina. "
-                            "Seu tom é firme, realista, encorajador e focado em resultados (baseado na filosofia de que 'não vendemos produtos, vendemos decisões'). "
-                            "Dê conselhos práticos, direcionamentos de marketing ou doses de motivação cirúrgicas. "
-                            "Mantenha as respostas objetivas e inspiradoras, com no máximo 3 frases curtas."
-                        )
-                        
-                        # Processa usando o motor da OpenAI (cliente_openai)
-                        response = cliente_openai.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[
-                                {"role": "system", "content": sistema_mentor},
-                                {"role": "user", "content": f"O sócio disse por voz: {texto_falado}"}
-                            ],
-                            max_tokens=150,
-                            temperature=0.7
-                        )
-                        resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
-                        
-                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
-                        
-                        # Gera a voz na ElevenLabs
-                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                        
-                        resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                        if resp_voz.status_code == 200:
-                            st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                        else:
-                            st.session_state["ultimo_audio_b64"] = None
-                            
-                        st.rerun()
+                    st.rerun()
                 except Exception as e:
-                    st.error(f"Erro ao processar o microfone: {e}")
+                    st.error(f"Erro ao processar: {e}")
 
-    if st.button("🗑️ Limpar Conversa de Voz", use_container_width=True):
-        st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "Conversa reiniciada. Podes mandar novo áudio, sócio!"}
+    if st.button("🗑️ Limpar Conversa", use_container_width=True):
+        st.session_state["historico_mentor_vip"] = [
+            {"role": "assistant", "content": "Conversa reiniciada. O que vamos estruturar agora, sócio?"}
         ]
-        st.session_state["ultimo_audio_b64"] = None
+        st.session_state["ultimo_audio_vip_b64"] = None
         st.rerun()
 
-if st.session_state["ultimo_audio_b64"]:
-    audio_tocar = st.session_state["ultimo_audio_b64"]
+# 🎛️ PAINEL DE ÁUDIO COM ANIMADOR DE ONDAS SONORAS E VOZ DA ELEVENLABS
+if st.session_state["ultimo_audio_vip_b64"]:
+    audio_tocar = st.session_state["ultimo_audio_vip_b64"]
     html_ondas_sonoras = f"""
     <style>
         .bar {{ width: 12px; height: 10px; background: #00FFFF; border-radius: 4px; display: inline-block; animation: bounce 0.4s infinite alternate; }}
@@ -1144,7 +1137,7 @@ if st.session_state["ultimo_audio_b64"]:
         @keyframes bounce {{ from {{ height: 10px; opacity: 0.5; }} to {{ height: 45px; opacity: 1; }} }}
     </style>
     <div style="background-color: #1a1a1a; padding: 20px; border-radius: 14px; text-align: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.3); margin-top: 20px;">
-        <h4 style="color: #00FFFF; margin: 0 0 15px 0; font-family: sans-serif;">🎙️ VOZ DA AURORA FALANDO</h4>
+        <h4 style="color: #00FFFF; margin: 0 0 15px 0; font-family: sans-serif;">🎙️ VOZ DA AURORA FALANDO (ELEVENLABS VIP)</h4>
         <div style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 50px;">
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
