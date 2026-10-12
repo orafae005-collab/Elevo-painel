@@ -1146,8 +1146,6 @@ for key in ["live_rodando", "modo_teste"]:
 for key in ["fila_audios", "log_chat"]:
     if key not in st.session_state: st.session_state[key] = []
 if "ultimo_audio_timestamp" not in st.session_state: st.session_state["ultimo_audio_timestamp"] = time.time()
-
-# 🎯 A PRIMEIRA LINHA FICA AQUI:
 if "limite_silencio" not in st.session_state: st.session_state["limite_silencio"] = random.uniform(5.0, 10.0) 
 
 if "ultimo_join" not in st.session_state: st.session_state["ultimo_join"] = 0.0
@@ -1355,6 +1353,11 @@ if st.session_state.get("live_rodando"):
             if audio_b64: st.session_state["fila_audios"].append(audio_b64)
 
     except Exception as e:
+        st.session_state["erro_chave"] = str(e)
+        st.session_state["live_rodando"] = False
+        st.session_state["fila_audios"] = []
+        st.cache_resource.clear()
+        st.rerun()
 
     # 🎛️ PAINEL VIP DE ÁUDIO
     if len(st.session_state["fila_audios"]) > 0:
