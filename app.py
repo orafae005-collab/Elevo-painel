@@ -1026,9 +1026,14 @@ st.markdown(html_coracao, unsafe_allow_html=True)
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 VIVA VOZ COM MEMÓRIA GLOBAL)
 # ==========================================================
+import streamlit.components.v1 as components
+import hashlib
+import base64
+import requests
+
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🧠 Mentor de Elite: Sala de Conselhos por Viva Voz (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>A Aurora agora tem acesso ao banco de dados completo da sua operação e lembra de tudo o que vocês conversam.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Acesso total ao banco de dados. Fale com a Aurora e receba a estratégia em áudio.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1038,19 +1043,53 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado (Secrets).")
     st.stop()
 
-# Inicializa o histórico da conversa
+# Inicializa o histórico da conversa e variáveis de estado
 if "historico_viva_voz" not in st.session_state:
     st.session_state["historico_viva_voz"] = [
-        {"role": "assistant", "content": "E aí, sócio! Estou conectada ao banco de dados completo da operação. Clica no microfone, manda o teu áudio e vamos escalar isso!"}
+        {"role": "assistant", "content": "E aí, sócio! Estou conectada ao banco de dados completo. Clica na Águia, grava seu áudio e vamos escalar!"}
     ]
 
-# Armazena o áudio gerado para a animação
 if "ultimo_audio_b64" not in st.session_state:
     st.session_state["ultimo_audio_b64"] = None
 
-# 🔥 CADEADO DE CRÉDITOS: Evita que o mesmo áudio seja processado duas vezes
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
+
+# 🔥 ESTILO PREMIUM PARA O BOTÃO NATIVO DE ÁUDIO
+estilo_microfone_aguia = """
+<style>
+    /* Estiliza o container do gravador nativo do Streamlit */
+    [data-testid="stAudioInput"] {
+        background: linear-gradient(145deg, #101214, #1a1d21);
+        border: 1px solid #D4AF37 !important;
+        border-radius: 20px !important;
+        padding: 15px !important;
+        box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
+        transition: all 0.3s ease;
+    }
+    
+    [data-testid="stAudioInput"]:hover {
+        box-shadow: 0px 5px 25px rgba(0, 255, 255, 0.3) !important;
+        border-color: #00FFFF !important;
+    }
+
+    /* Modifica o botão de gravar para parecer uma Águia */
+    [data-testid="stAudioInput"] button[kind="secondary"] {
+        background-color: #D4AF37 !important;
+        border: none !important;
+        color: black !important;
+        font-weight: bold !important;
+        border-radius: 50% !important;
+        transition: transform 0.2s;
+    }
+    
+    [data-testid="stAudioInput"] button[kind="secondary"]:hover {
+        transform: scale(1.1);
+        background-color: #FFD700 !important;
+    }
+</style>
+"""
+st.markdown(estilo_microfone_aguia, unsafe_allow_html=True)
 
 with st.container(border=True):
     chat_container = st.container(height=350)
@@ -1069,7 +1108,7 @@ with st.container(border=True):
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
                     <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; font-family: 'Montserrat', sans-serif; border-left: 4px solid #00FFFF; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🎙️ Aurora (Estrategista)</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora (Estrategista VIP)</p>
                         <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
                     </div>
                 </div>
@@ -1077,24 +1116,20 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # 🎙️ BOTÃO DE GRAVAÇÃO DE VOZ
-    audio_gravado = st.audio_input("🎙️ Fale com a Aurora (o sistema salva seus créditos blindando áudios repetidos):")
+    # 🎙️ BOTÃO DE GRAVAÇÃO (Agora com estilo aplicado via CSS)
+    audio_gravado = st.audio_input("🦅 Grave sua mensagem para a Aurora:")
     
     if audio_gravado is not None:
         audio_bytes = audio_gravado.read()
         
         if audio_bytes:
-            import hashlib
-            # Cria a "impressão digital" (hash) do áudio para travar repetições
             audio_hash = hashlib.md5(audio_bytes).hexdigest()
             
-            # 🔥 SÓ PROCESSA SE FOR UM ÁUDIO NOVO (Proteção total de API)
             if audio_hash != st.session_state["ultimo_hash_audio"]:
                 st.session_state["ultimo_hash_audio"] = audio_hash 
                 
-                with st.spinner("🧠 A Aurora está consultando todo o banco de dados e pensando..."):
+                with st.spinner("🦅 A Aurora está processando os dados e forjando a resposta..."):
                     try:
-                        # 1. Transcreve o áudio (Whisper)
                         transcricao_obj = cliente_openai.audio.transcriptions.create(
                             model="whisper-1",
                             file=("audio_usuario.wav", audio_bytes, "audio/wav")
@@ -1102,37 +1137,27 @@ with st.container(border=True):
                         texto_falado = transcricao_obj.text
                         
                         if texto_falado.strip():
-                            # Salva a fala do usuário no histórico contínuo
                             st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
                             
-                            # ==========================================
-                            # 🧠 INJEÇÃO DO BANCO DE DADOS GLOBAL NA IA
-                            # ==========================================
-                            # Calcula dados de TODA a planilha (ignorando o filtro lateral de dias)
                             fat_total_historico = df["Comissao_R$"].sum() if not df.empty and "Comissao_R$" in df.columns else 0.0
                             qtd_total_historico = df["Quantidade"].sum() if not df.empty and "Quantidade" in df.columns else 0
-                            ultimo_funil_raiox = historico_raiox[-1]["Funil"] if 'historico_raiox' in locals() and historico_raiox else "Nenhum funil mapeado ainda."
+                            ultimo_funil_raiox = historico_raiox[-1]["Funil"] if 'historico_raiox' in locals() and historico_raiox else "Nenhum funil mapeado."
                             
                             sistema_mentor = f"""
-                            Você é a Aurora, uma inteligência artificial que atua como Mentora de Elite e Sócia Estratégica da operação de TikTok Shop e afiliação.
-                            Você é fria, analítica, focada em métricas e alta performance. Seu tom é direto, realista, encorajador e focado em escala ("vendemos decisões, não produtos").
+                            Você é a Aurora, uma inteligência artificial Mentora de Elite.
+                            Você é fria, analítica e focada em alta performance ("vendemos decisões, não produtos").
                             
-                            [ACESSO TOTAL AO BANCO DE DADOS DA OPERAÇÃO - HISTÓRICO GLOBAL]:
-                            - Faturamento Histórico Total (Toda a existência): R$ {fat_total_historico:,.2f}
-                            - Total de Unidades Vendidas: {qtd_total_historico}
-                            - Produto Campeão Atual: {produto_campeao}
-                            - Último Raio-X (Engenharia de Funil) feito na operação: {ultimo_funil_raiox}
+                            DADOS DA OPERAÇÃO:
+                            - Faturamento Histórico: R$ {fat_total_historico:,.2f}
+                            - Vendas Totais: {qtd_total_historico}
+                            - Campeão Atual: {produto_campeao}
+                            - Último Raio-X: {ultimo_funil_raiox}
                             
-                            Regras para resposta:
-                            1. Responda DIRETAMENTE ao áudio do usuário levando em consideração o contexto de negócio.
-                            2. Aja como se você estivesse olhando para a tela de métricas junto com o usuário.
-                            3. Seja conversacional, use tom de mentoria por voz (sem emojis ou marcações pesadas no texto, pois será lido por voz).
-                            4. Responda em no máximo 3 ou 4 frases curtas e de impacto para gerar um áudio rápido e não consumir muitos créditos da API de voz.
+                            Regras: Responda diretamente ao áudio em no máximo 3 frases. Seja conversacional, firme e visionária.
                             """
                             
-                            # 2. Chama o ChatGPT enviando o SISTEMA + TODO O HISTÓRICO DE CONVERSA
                             mensagens_api = [{"role": "system", "content": sistema_mentor}]
-                            mensagens_api.extend(st.session_state["historico_viva_voz"]) # Memória contínua da conversa
+                            mensagens_api.extend(st.session_state["historico_viva_voz"])
                             
                             response = cliente_openai.chat.completions.create(
                                 model="gpt-4o-mini",
@@ -1142,10 +1167,8 @@ with st.container(border=True):
                             )
                             resposta_mentor = response.choices[0].message.content.replace("*", "").strip()
                             
-                            # Salva a resposta da IA no histórico
                             st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
                             
-                            # 3. Geração de Voz (ElevenLabs)
                             url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                             headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                             payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
@@ -1160,36 +1183,83 @@ with st.container(border=True):
                     except Exception as e:
                         st.error(f"Erro na Sala de Conselhos: {e}")
             else:
-                # O cadeado entrou em ação: informa ao usuário que ignorou o áudio para salvar créditos
-                st.info("🔒 Áudio já processado. Aguardando você enviar um novo áudio para gastar créditos.")
+                st.info("🔒 Áudio já processado. Sistema aguardando nova gravação.")
 
     if st.button("🗑️ Limpar Memória de Voz", use_container_width=True):
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "Conversa reiniciada. A minha memória de voz foi limpa, mas ainda vejo todo o seu banco de dados. Pode falar!"}
+            {"role": "assistant", "content": "Memória limpa. A postos para a próxima estratégia!"}
         ]
         st.session_state["ultimo_audio_b64"] = None
         st.session_state["ultimo_hash_audio"] = None
         st.rerun()
 
-# 🎛️ PAINEL DE ÁUDIO COM ANIMADOR DE ONDAS SONORAS
+# ==========================================================
+# 🎛️ PLAYER DE ÁUDIO COM ONDAS INTELIGENTES (JS Sincronizado)
+# ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
-    html_ondas_sonoras = f"""
-    <style>
-        .bar {{ width: 12px; height: 10px; background: #00FFFF; border-radius: 4px; display: inline-block; animation: bounce 0.4s infinite alternate; }}
-        .bar:nth-child(2) {{ animation-delay: 0.1s; background: #00BFFF; }}
-        .bar:nth-child(3) {{ animation-delay: 0.2s; background: #1E90FF; }}
-        .bar:nth-child(4) {{ animation-delay: 0.3s; background: #00BFFF; }}
-        .bar:nth-child(5) {{ animation-delay: 0.4s; background: #00FFFF; }}
-        @keyframes bounce {{ from {{ height: 10px; opacity: 0.5; }} to {{ height: 45px; opacity: 1; }} }}
-    </style>
-    <div style="background-color: #1a1a1a; padding: 20px; border-radius: 14px; text-align: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.3); margin-top: 20px;">
-        <h4 style="color: #00FFFF; margin: 0 0 15px 0; font-family: sans-serif;">🎙️ VOZ DA AURORA FALANDO</h4>
-        <div style="display: flex; justify-content: center; align-items: flex-end; gap: 6px; height: 50px;">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    html_ondas_inteligentes = f"""
+    <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
+        <h4 style="color: #00FFFF; margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif; letter-spacing: 1px;">🦅 TRANSMISSÃO DA AURORA</h4>
+        
+        <div id="visualizer" style="display: flex; justify-content: center; align-items: center; gap: 4px; height: 60px;">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <audio id="aurora_audio" autoplay>
+        
+        <audio id="aurora_audio" autoplay controls style="margin-top: 20px; width: 100%; border-radius: 8px; outline: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
-    </div>"""
-    components.html(html_ondas_sonoras, height=140)
+    </div>
+
+    <style>
+        /* Estado Padrão (Linha Reta Profissional) */
+        .bar {{
+            width: 8px;
+            height: 4px;
+            background: #D4AF37;
+            border-radius: 4px;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }}
+
+        /* Estado Ativo (Ondas Sonoras) */
+        .bar.playing {{
+            background: #00FFFF;
+            animation: bounce 0.4s infinite alternate ease-in-out;
+        }}
+
+        .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }}
+        .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
+        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }}
+        .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
+        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }}
+        .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
+        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }}
+        .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
+
+        @keyframes bounce {{
+            0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }}
+            100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }}
+        }}
+    </style>
+
+    <script>
+        // Sincroniza a animação CSS com o Play/Pause do Áudio
+        const audio = document.getElementById('aurora_audio');
+        const bars = document.querySelectorAll('.bar');
+
+        audio.addEventListener('play', () => {{
+            bars.forEach(bar => bar.classList.add('playing'));
+        }});
+
+        audio.addEventListener('pause', () => {{
+            bars.forEach(bar => bar.classList.remove('playing'));
+        }});
+
+        audio.addEventListener('ended', () => {{
+            bars.forEach(bar => bar.classList.remove('playing'));
+        }});
+    </script>
+    """
+    components.html(html_ondas_inteligentes, height=200)
