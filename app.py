@@ -933,20 +933,29 @@ with col_conv:
 with col_feed:
     with st.container(border=True):
         st.markdown("<h4 style='color: #00FFFF;'>🗣️ Mente do Cliente</h4>", unsafe_allow_html=True)
-        texto_comentarios = st.text_area("Cole os comentários do TikTok aqui:", placeholder="Ex: 'É muito caro?', 'Será que funciona?', 'Amei!'", height=100)
+        
+        produto_alvo = st.text_input("📦 Nome do Produto em Análise:", placeholder="Ex: Máscara Novex...")
+        
+        texto_comentarios = st.text_area("Cole os comentários brutos aqui:", placeholder="Cole de qualquer jeito, sem formatar. A IA entende o caos.", height=100)
         
         if st.button("🧠 Hackear Sentimento (OpenAI)", use_container_width=True):
             if texto_comentarios.strip() == "":
                 st.warning("⚠️ Cole os comentários para a Aurora analisar.")
+            elif produto_alvo.strip() == "":
+                st.warning("⚠️ Digite o nome do produto para dar a mira certa à Aurora.")
             else:
                 with st.spinner("A analisar a mente dos clientes..."):
-                    sys_feedback = "Você é Aurora, Mentora de Elite especialista em Neuromarketing."
+                    sys_feedback = "Você é Aurora, Mentora de Elite especialista em Neuromarketing e análise de comportamento no TikTok Shop."
                     prompt_feedback = f"""
-                    Analise estes comentários do TikTok: {texto_comentarios}
+                    Produto em análise: {produto_alvo}
+                    Comentários brutos extraídos do vídeo (ignore erros de formatação): 
+                    {texto_comentarios}
+                    
+                    Analise a essência do que o público está dizendo.
                     Retorne EXATAMENTE neste formato direto e curto:
-                    🔥 MAIOR DESEJO: [1 frase]
-                    🚧 PRINCIPAL OBJEÇÃO: [Por que não compram - 1 frase]
-                    💡 GANCHO MATADOR PARA QUEBRAR A OBJEÇÃO: [1 frase de roteiro]
+                    🔥 MAIOR DESEJO: [1 frase curta sobre o que eles mais querem]
+                    🚧 PRINCIPAL OBJEÇÃO: [Por que estão com medo de comprar - 1 frase]
+                    💡 GANCHO MATADOR: [1 frase de roteiro para o próximo vídeo que quebre exatamente essa objeção e gere conversão]
                     """
                     resposta_feed = chamar_ia_global(prompt_feedback, sys_feedback)
                     st.session_state["ultimo_feedback_analisado"] = resposta_feed
