@@ -1015,11 +1015,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 3D VIP & BACKGROUND PROCESS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Processamento 100% em background. A Águia levanta voo quando a gravação começa!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1030,7 +1030,7 @@ except KeyError:
     st.stop()
 
 # ==========================================
-# 🧠 BANCO DE MEMÓRIA PERMANENTE (GOOGLE SHEETS)
+# 🧠 BANCO DE MEMÓRIA PERMANENTE INVISÍVEL
 # ==========================================
 aba_memoria_voz = None
 historico_banco_dados = []
@@ -1063,217 +1063,145 @@ if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
 # ==========================================================
-# 🔥 A "ROUPA" (PONTE VISUAL): ÁGUIA VOADORA E BORDA VIP
+# 🔥 CSS VIP 3D: CONSOLE NEUMÓRFICO E ÁGUIA REATIVA
 # ==========================================================
 st.markdown("""
 <style>
-    /* Oculta o player branco nativo de baixo */
+    /* 1. Mata o player nativo feio */
     audio { display: none !important; }
 
-    /* A "Roupa" do gravador - Container com borda VIP e espaço para o voo */
+    /* 2. Ocultar o texto do label original */
+    [data-testid="stAudioInput"] label { display: none !important; }
+
+    /* 3. A "Roupa" 3D VIP (Console Físico) */
     [data-testid="stAudioInput"] {
         position: relative;
-        background: linear-gradient(145deg, #101214, #1a1d21) !important;
+        background: linear-gradient(145deg, #15171a, #1b1e22) !important;
         border: 2px solid #D4AF37 !important;
-        border-radius: 16px !important;
-        padding: 45px 15px 15px 15px !important; /* Espaço no topo para a águia voar */
-        box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
-        overflow: hidden;
+        border-radius: 25px !important;
+        padding: 50px 20px 20px 20px !important; 
+        box-shadow: 
+            inset 5px 5px 15px rgba(0,0,0,0.8), 
+            inset -5px -5px 15px rgba(255,255,255,0.05),
+            10px 10px 30px rgba(0,0,0,0.9), 
+            -10px -10px 30px rgba(212, 175, 55, 0.1) !important;
+        margin: 40px auto 20px auto;
+        max-width: 400px;
+        overflow: visible !important;
+        transition: all 0.3s ease;
     }
 
-    /* A Águia animada voando de um lado para o outro (Nossa "Ponte" Visual) */
+    /* Borda acende quando clicas dentro */
+    [data-testid="stAudioInput"]:focus-within {
+        border-color: #00FFFF !important;
+        box-shadow: 0px 0px 40px rgba(0, 255, 255, 0.3) !important;
+    }
+
+    /* 4. A Águia Imponente Sentada (Estado Parado) */
     [data-testid="stAudioInput"]::before {
         content: "🦅";
-        font-size: 30px;
+        font-size: 45px;
         position: absolute;
-        top: 5px;
-        left: 5%;
-        animation: voo-da-aguia 4s linear infinite;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
         z-index: 10;
-        filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.5));
+        filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.9));
+        transition: all 0.3s ease-in-out;
     }
 
-    /* Animação de Voo de um lado para o outro */
-    @keyframes voo-da-aguia {
-        0%   { left: 5%;  transform: scaleX(1) translateY(0px); }
-        45%  { left: 85%; transform: scaleX(1) translateY(-5px); }
-        50%  { left: 85%; transform: scaleX(-1) translateY(0px); } /* Vira as costas */
-        95%  { left: 5%;  transform: scaleX(-1) translateY(-5px); }
-        100% { left: 5%;  transform: scaleX(1) translateY(0px); }
+    /* 5. A Águia ataca/voa APENAS quando interagimos com o gravador */
+    [data-testid="stAudioInput"]:focus-within::before,
+    [data-testid="stAudioInput"]:active::before {
+        animation: voo-ataque 1.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes voo-ataque {
+        0% { top: -50px; transform: translateX(-50%) scale(1.1) rotate(-5deg); filter: drop-shadow(0px 15px 15px rgba(0,255,255,0.4)); }
+        100% { top: -70px; transform: translateX(-50%) scale(1.4) rotate(5deg); filter: drop-shadow(0px 25px 25px rgba(0,255,255,0.8)); }
     }
 </style>
 """, unsafe_allow_html=True)
 
-with st.container(border=True):
-    chat_container = st.container(height=350)
-    with chat_container:
-        for msg in st.session_state["historico_viva_voz"]:
-            if msg["role"] == "user":
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                    <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif;">
-                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Sócio:</b> {msg['content']}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
-                    <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; border-left: 4px solid #00FFFF;">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora</p>
-                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+# Console invisível na UI (label_visibility="collapsed")
+audio_gravado = st.audio_input(" ", label_visibility="collapsed")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Gravador original vestido com a nossa "roupa"
-    audio_gravado = st.audio_input("Grave a sua mensagem:")
-    
-    if audio_gravado is not None:
-        audio_bytes = audio_gravado.read()
-        if audio_bytes:
-            audio_hash = hashlib.md5(audio_bytes).hexdigest()
+if audio_gravado is not None:
+    audio_bytes = audio_gravado.read()
+    if audio_bytes:
+        audio_hash = hashlib.md5(audio_bytes).hexdigest()
+        
+        if audio_hash != st.session_state["ultimo_hash_audio"]:
+            st.session_state["ultimo_hash_audio"] = audio_hash 
             
-            if audio_hash != st.session_state["ultimo_hash_audio"]:
-                st.session_state["ultimo_hash_audio"] = audio_hash 
-                
-                with st.spinner("🦅 A Aurora está mapeando 100% dos dados da plataforma em tempo real..."):
-                    try:
-                        texto_falado = cliente_openai.audio.transcriptions.create(
-                            model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
-                        ).text
+            with st.spinner("🦅 A Aurora está a analisar os teus dados em silêncio..."):
+                try:
+                    texto_falado = cliente_openai.audio.transcriptions.create(
+                        model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
+                    ).text
+                    
+                    if texto_falado.strip():
+                        agora = datetime.utcnow() - timedelta(hours=3)
+                        agora_str = agora.strftime("%d/%m/%Y %H:%M")
                         
-                        if texto_falado.strip():
-                            agora = datetime.utcnow() - timedelta(hours=3)
-                            agora_str = agora.strftime("%d/%m/%Y %H:%M")
+                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
+                        if aba_memoria_voz is not None:
+                            aba_memoria_voz.append_row([agora_str, "user", texto_falado])
+                        
+                        # ==========================================
+                        # 📊 CÁLCULO ABSOLUTO DO BANCO DE DADOS
+                        # ==========================================
+                        fat_total_global = 0.0
+                        fat_pendente_global = 0.0
+                        fat_30d = 0.0
+                        fat_7d = 0.0
+                        top_produtos_str = "Nenhum"
+                        
+                        if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
+                            df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+                            df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
                             
-                            st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
-                            if aba_memoria_voz is not None:
-                                aba_memoria_voz.append_row([agora_str, "user", texto_falado])
+                            fat_total_global = df_validos_global["Comissao_R$"].sum()
+                            fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
                             
-                            # ==========================================
-                            # 📊 CÁLCULO ABSOLUTO DO BANCO DE DADOS
-                            # ==========================================
-                            fat_total_global = 0.0
-                            fat_pendente_global = 0.0
-                            fat_30d = 0.0
-                            fat_7d = 0.0
-                            top_produtos_str = "Nenhum"
+                            limite_30d_global = agora - timedelta(days=30)
+                            limite_7d_global = agora - timedelta(days=7)
                             
-                            if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
-                                df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
-                                df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
-                                
-                                fat_total_global = df_validos_global["Comissao_R$"].sum()
-                                fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
-                                
-                                limite_30d_global = agora - timedelta(days=30)
-                                limite_7d_global = agora - timedelta(days=7)
-                                
-                                fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
-                                fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
-                                
-                                if not df_validos_global.empty:
-                                    top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
-                                    top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
+                            fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
+                            fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
                             
-                            crescimento_pct = crescimento if 'crescimento' in locals() else 0.0
-                            estado_atual = simbolo if 'simbolo' in locals() else "Desconhecido"
-                            tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in locals() and historico_radar else "Nenhuma"
-                            
-                            sistema_mentor = f"""
-                            Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
-                            Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme, imponente e estratégico.
-                            Evite dar continuidade a conversas superficiais; foque na alta performance.
-                            
-                            [SEU ACESSO DIRETO AO BANCO DE DADOS EM TEMPO REAL]:
-                            - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
-                            - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
-                            - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
-                            - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
-                            - Termômetro da Empresa (Crescimento 7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
-                            - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
-                            - Radar de Tendência Atual: {tendencia_atual}
-                            
-                            REGRA DE OURO: Você é a dona do sistema. Se o usuário perguntar sobre métricas, faturamento, 30 dias ou 7 dias, leia EXATAMENTE os valores numéricos acima.
-                            """
-                            
-                            mensagens_api = [{"role": "system", "content": sistema_mentor}]
-                            mensagens_api.extend(st.session_state["historico_viva_voz"])
-                            
-                            resposta_mentor = cliente_openai.chat.completions.create(
-                                model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
-                            ).choices[0].message.content.replace("*", "").strip()
-                            
-                            st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
-                            if aba_memoria_voz is not None:
-                                aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
-                            
-                            # ==========================================
-                            # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
-                            # ==========================================
-                            url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                            headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                            payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                            
-                            try:
-                                resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                                if resp_voz.status_code == 200:
-                                    st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                                else:
-                                    raise Exception("ElevenLabs falhou")
-                            except Exception:
-                                st.warning("⚠️ Limite da ElevenLabs atingido! Ativando voz secundária (Plano B).")
-                                tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
-                                fp = io.BytesIO()
-                                tts.write_to_fp(fp)
-                                fp.seek(0)
-                                st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
-                                
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro na Sala de Conselhos: {e}")
-            else:
-                st.info("🔒 Áudio já processado. Aguardando nova gravação.")
-
-# ==========================================================
-# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO (OCULTO E VIP)
-# ==========================================================
-if st.session_state["ultimo_audio_b64"]:
-    audio_tocar = st.session_state["ultimo_audio_b64"]
-    hash_atual = st.session_state["ultimo_hash_audio"]
-    
-    html_ondas_inteligentes = f"""
-    <!-- CHAVE UNICA DO AUDIO: {hash_atual} -->
-    <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
-        <h4 style="color: #00FFFF; margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif;">🦅 TRANSMISSÃO DA AURORA</h4>
-        <div id="visualizer" style="display: flex; justify-content: center; align-items: center; gap: 4px; height: 60px;">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </div>
-        <!-- 🔥 Player oculto invisível. Sem controlos brancos feios! -->
-        <audio id="aurora_audio" autoplay style="display: none;">
-            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
-        </audio>
-    </div>
-    <style>
-        .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
-        .bar.playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
-        .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }} .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
-        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
-        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }} .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
-        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
-        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
-    </style>
-    <script>
-        const audio = document.getElementById('aurora_audio');
-        const bars = document.querySelectorAll('.bar');
-        audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-        audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-        audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-    </script>
-    """
-    
-    components.html(html_ondas_inteligentes, height=200)
+                            if not df_validos_global.empty:
+                                top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
+                                top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
+                        
+                        crescimento_pct = crescimento if 'crescimento' in locals() else 0.0
+                        estado_atual = simbolo if 'simbolo' in locals() else "Desconhecido"
+                        tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in locals() and historico_radar else "Nenhuma"
+                        
+                        sistema_mentor = f"""
+                        Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
+                        Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme, imponente e estratégico.
+                        Evite dar continuidade a conversas superficiais; foque na alta performance.
+                        
+                        [SEU ACESSO DIRETO AO BANCO DE DADOS EM TEMPO REAL]:
+                        - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
+                        - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
+                        - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
+                        - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
+                        - Termômetro da Empresa (Crescimento 7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
+                        - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
+                        - Radar de Tendência Atual: {tendencia_atual}
+                        
+                        REGRA DE OURO: Você é a dona do sistema. Se o usuário perguntar sobre métricas, faturamento, 30 dias ou 7 dias, leia EXATAMENTE os valores numéricos acima.
+                        """
+                        
+                        mensagens_api = [{"role": "system", "content": sistema_mentor}]
+                        mensagens_api.extend(st.session_state["historico_viva_voz"])
+                        
+                        resposta_mentor = cliente_openai.chat.completions.create(
+                            model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
+                        ).choices[0].message.content.replace("*", "").strip()
+                        
+                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
+                        if aba_memoria_voz is not None:
+                            aba_memoria_voz.append
