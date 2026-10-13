@@ -54,88 +54,103 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.3 - CONTRASTE ABSOLUTO)
+# 2. DESIGN E TEMA DINÂMICO (🔥 VIP & ALTO CONTRASTE)
 # ==========================================================
+import streamlit.components.v1 as components
+
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-# Inteligência de Cores (Dia/Noite)
+# Inteligência de Cores (Alto Contraste e Dourado VIP)
 if modo_claro:
-    bg_color = "#F4F4F9"
-    text_color = "#333333" 
-    card_bg = "rgba(255, 255, 255, 0.9)"
-    border_color = "rgba(0, 0, 0, 0.1)"
-    metric_val_color = "#B8860B" 
-    metric_label_color = "#555555"
+    bg_color = "#F4F6F9"  # Fundo levemente cinza para não ofuscar
+    text_color = "#1A1A1A" # Preto bem forte para leitura
+    card_bg = "#FFFFFF"
+    border_color = "#D4AF37" # Dourado presente mesmo no claro
+    metric_val_color = "#D4AF37"
+    metric_label_color = "#333333"
+    btn_bg = "#1A1A1A"
+    btn_text = "#D4AF37"
 else:
-    bg_color = "#0E1117"
-    text_color = "#F0F0F0" 
-    card_bg = "rgba(20, 20, 20, 0.4)"
-    border_color = "rgba(212, 175, 55, 0.15)"
-    metric_val_color = "#FFD700" 
-    metric_label_color = "#E0E0E0" 
+    bg_color = "#0B0C10" # Fundo bem escuro
+    text_color = "#F8F8F8" # Branco gelo forte
+    card_bg = "#1F2833" # Fundo de card elevado
+    border_color = "#D4AF37" # Dourado VIP forte
+    metric_val_color = "#D4AF37" 
+    metric_label_color = "#C5C6C7"
+    btn_bg = "#D4AF37" # Botões dourados no dark mode
+    btn_text = "#0B0C10"
 
 estilo_elevo = f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
     
-    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; color: {text_color} !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
-    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
+    [data-testid="stSidebar"] {{ background-color: {bg_color}; border-right: 1px solid {border_color}; }}
     
-    /* 🔥 O TRUQUE MESTRE PARA O CABEÇALHO 🔥 */
-    [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; min-height: 0px !important; pointer-events: none !important; }}
+    /* Cabeçalho e Footer limpos */
+    [data-testid="stHeader"] {{ display: none !important; }}
     footer {{ display: none !important; }}
 
-    /* 🚨 CONTRASTE ABSOLUTO */
-    [data-testid="stMarkdownContainer"] *,
-    [data-testid="stMarkdownContainer"] h1, 
-    [data-testid="stMarkdownContainer"] h2, 
-    [data-testid="stMarkdownContainer"] h3, 
-    [data-testid="stMarkdownContainer"] h4, 
-    [data-testid="stMarkdownContainer"] p,
-    [data-testid="stMarkdownContainer"] li,
-    [data-testid="stMarkdownContainer"] span,
-    [data-testid="stMarkdownContainer"] strong,
-    [data-testid="stMarkdownContainer"] b,
-    [data-testid="stMarkdownContainer"] em,
-    [data-testid="stMarkdownContainer"] i,
-    label {{
+    /* Forçar visibilidade dos textos (Corrigindo o apagão) */
+    p, span, label, div[data-testid="stMarkdownContainer"] {{
         color: {text_color} !important;
     }}
 
-    /* Títulos Principais e Cards VIP */
-    .titulo-elevo {{
-        font-size: 4rem; font-weight: 900; text-align: center;
-        background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
-        background-size: 200% 200%; -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
-        margin-top: 15px;
+    /* Estilo VIP dos Títulos */
+    h1, h2, h3, h4, h5, h6 {{
+        color: {metric_val_color} !important;
+        font-weight: 800 !important;
     }}
-    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
+
+    /* Título Elevo Animado */
+    .titulo-elevo {{
+        font-size: 3.5rem; font-weight: 900; text-align: center;
+        background: linear-gradient(270deg, #D4AF37, #FFDF00, #D4AF37);
+        background-size: 200% 200%; -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; animation: brilho 3s ease infinite;
+        margin-bottom: -15px; letter-spacing: 5px; text-transform: uppercase;
+    }}
+    @keyframes brilho {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
     
     .subtitulo {{
-        text-align: center; font-size: 1.1rem; margin-bottom: 40px;
-        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
-        color: {text_color} !important;
+        text-align: center; font-size: 1rem; margin-bottom: 30px;
+        font-weight: 400; letter-spacing: 2px; color: {text_color} !important;
     }}
     
+    /* Cards (Métricas) */
     [data-testid="stMetric"] {{
-        background: {card_bg}; backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px); border: 1px solid {border_color};
-        border-radius: 16px; padding: 20px; box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
-        transition: all 0.3s ease;
+        background-color: {card_bg};
+        border: 1px solid {border_color};
+        border-radius: 12px; padding: 15px; 
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
     }}
     
-    [data-testid="stMetricLabel"], [data-testid="stMetricLabel"] div, [data-testid="stMetricLabel"] p {{ 
-        color: {metric_label_color} !important; 
+    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; font-weight: 600 !important; text-transform: uppercase; font-size: 0.8rem;}}
+    [data-testid="stMetricValue"] {{ color: {metric_val_color} !important; font-weight: 800 !important; font-size: 2rem !important; }}
+
+    /* Botões Primários Dourados */
+    .stButton > button {{
+        background-color: {btn_bg} !important;
+        color: {btn_text} !important;
+        border: 2px solid {btn_bg} !important;
+        font-weight: bold !important;
+        border-radius: 8px !important;
+        transition: all 0.2s ease;
+    }}
+    .stButton > button:hover {{
+        background-color: transparent !important;
+        color: {btn_bg} !important;
+        box-shadow: 0 0 15px {btn_bg} !important;
     }}
     
-    [data-testid="stMetricValue"], [data-testid="stMetricValue"] div, [data-testid="stMetricValue"] span {{
-        color: {metric_val_color} !important; font-weight: 900 !important;
-        font-size: 2.2rem !important; text-shadow: 0px 0px 10px rgba(212, 175, 55, 0.2) !important;
+    /* Text Areas e Inputs com borda visível */
+    .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
     }}
 </style>
 """
@@ -1032,7 +1047,7 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             st.error(f"❌ Erro inesperado: {e}")
 
 # ==========================================================
-# 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
+# 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO COMPACTO)
 # ==========================================================
 st.divider()
 
@@ -1062,46 +1077,46 @@ if not df.empty and "Data_Parsed" in df.columns:
         cor_anim = "#00FF7F" 
         sombra_anim = "rgba(0, 255, 127, 0.4)"
         nota_empresa = "A+"
-        simbolo = "🚀 ESCALANDO (LUCRO)"
+        simbolo = "🚀 ESCALANDO"
     elif crescimento < -5:
         cor_anim = "#FF0040" 
         sombra_anim = "rgba(255, 0, 64, 0.4)"
         nota_empresa = "C-"
         simbolo = "🚨 ALERTA DE QUEDA"
     else:
-        cor_anim = "#FFD700" 
+        cor_anim = "#D4AF37" 
         sombra_anim = "rgba(212, 175, 55, 0.4)"
         nota_empresa = "B"
         simbolo = "⚖️ ESTÁVEL"
 
 html_coracao = f"""
 <div style="
-    background: rgba(15, 15, 15, 0.6);
-    backdrop-filter: blur(10px);
-    border: 2px solid {cor_anim};
-    border-radius: 20px;
-    padding: 30px;
+    background: {card_bg};
+    border: 1px solid {cor_anim};
+    border-radius: 12px;
+    padding: 15px;
     text-align: center;
-    box-shadow: 0 0 20px {sombra_anim};
+    box-shadow: 0 0 15px {sombra_anim};
     animation: pulse-coração 2s infinite ease-in-out;
-    margin-top: 20px;
-    margin-bottom: 20px;
+    margin: 10px auto;
+    max-width: 500px;
 ">
-    <h2 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: 2px; margin: 0; font-size: 1.5rem;">STATUS DA OPERAÇÃO</h2>
-    <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 4.5rem; font-weight: 900; margin: 10px 0; text-shadow: 0px 0px 15px {sombra_anim};">NOTA {nota_empresa}</h1>
-    <h3 style="color: #FFFFFF; font-family: 'Montserrat', sans-serif; font-weight: 600; margin: 10px 0;">{simbolo} | {crescimento:+.1f}%</h3>
-    <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 0.9rem; margin-bottom: 0;">Comparativo de lucro dos últimos 7 dias contra a semana anterior.</p>
+    <h3 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 800; margin: 0; font-size: 1.1rem; text-transform: uppercase;">STATUS DA OPERAÇÃO</h3>
+    <div style="display: flex; justify-content: center; align-items: baseline; gap: 15px; margin: 5px 0;">
+        <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 2.5rem; font-weight: 900; margin: 0;">NOTA {nota_empresa}</h1>
+        <h4 style="color: {text_color}; font-family: 'Montserrat', sans-serif; font-size: 1.2rem; font-weight: 600; margin: 0;">{crescimento:+.1f}%</h4>
+    </div>
+    <p style="color: {metric_label_color}; font-family: 'Montserrat', sans-serif; font-size: 0.8rem; margin: 0; font-weight: bold;">{simbolo} (Últimos 7 dias vs Anterior)</p>
 </div>
 <style>
     @keyframes pulse-coração {{
-        0% {{ box-shadow: 0 0 10px {sombra_anim}; transform: scale(1); }}
-        50% {{ box-shadow: 0 0 35px {cor_anim}; transform: scale(1.02); }}
-        100% {{ box-shadow: 0 0 10px {sombra_anim}; transform: scale(1); }}
+        0% {{ box-shadow: 0 0 5px {sombra_anim}; }}
+        50% {{ box-shadow: 0 0 20px {cor_anim}; }}
+        100% {{ box-shadow: 0 0 5px {sombra_anim}; }}
     }}
 </style>
 """
 st.markdown(html_coracao, unsafe_allow_html=True)
-
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
