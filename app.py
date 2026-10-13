@@ -56,8 +56,6 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & NATURAL)
 # ==========================================================
-
-    .
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
 # 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BRILHO REDUZIDO)
