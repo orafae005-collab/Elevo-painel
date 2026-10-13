@@ -942,7 +942,7 @@ with col_feed:
         
         texto_comentarios = st.text_area("Cole os comentários brutos aqui:", placeholder="Cole de qualquer jeito, sem formatar. A IA entende o caos.", height=100)
         
-        if st.button("🧠 Hackear Sentimento (OpenAI)", use_container_width=True):
+        if st.button("🧠 Hackear Sentimento (🦅)", use_container_width=True):
             if texto_comentarios.strip() == "":
                 st.warning("⚠️ Cole os comentários para a Aurora analisar.")
             elif produto_alvo.strip() == "":
