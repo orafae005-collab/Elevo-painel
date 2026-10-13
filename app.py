@@ -54,7 +54,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.5 - VERDE VIP & ALTO CONTRASTE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & NATURAL)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -62,31 +62,33 @@ col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-# Inteligência de Cores VIP (Alto Contraste e Elegância)
+# Inteligência de Cores VIP (Premium, Discreto e Confortável)
 if modo_claro:
     bg_color = "#F4F4F9"
-    text_color = "#1E1E1E" 
-    card_bg = "rgba(255, 255, 255, 0.95)"
-    border_neon = "rgba(0, 150, 150, 0.4)"
-    btn_bg = "#FFFFFF"
-    btn_text = "#005C66"
-    btn_primary_bg = "linear-gradient(90deg, #00695C, #00897B)" # Verde Esmeralda
+    text_color = "#333333" 
+    card_bg = "#FFFFFF"
+    border_color = "rgba(0, 0, 0, 0.08)"
+    btn_bg = "#F9F9F9"
+    btn_text = "#333333"
+    btn_primary_bg = "#005C4B" # Verde fechado e elegante
     btn_primary_text = "#FFFFFF"
-    input_bg = "#FFFFFF"
+    input_bg = "#F9F9F9"
+    shadow_base = "rgba(0, 0, 0, 0.05)"
 else:
     bg_color = "#0E1117"
-    text_color = "#F0F0F0" 
-    card_bg = "rgba(20, 20, 20, 0.6)"
-    border_neon = "rgba(0, 255, 255, 0.4)"
+    text_color = "#E0E0E0" 
+    card_bg = "rgba(25, 27, 31, 0.8)"
+    border_color = "rgba(255, 255, 255, 0.05)" # Borda super discreta
     btn_bg = "#1A1C20"
-    btn_text = "#00FFFF"
-    btn_primary_bg = "linear-gradient(90deg, #004D40, #00BFA5)" # Verde VIP Escuro pro Claro
+    btn_text = "#C0C0C0"
+    btn_primary_bg = "#004D40" # Verde escuro sólido e natural
     btn_primary_text = "#FFFFFF"
     input_bg = "#15181C"
+    shadow_base = "rgba(0, 0, 0, 0.3)"
 
 estilo_elevo = f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
     
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
@@ -95,81 +97,80 @@ estilo_elevo = f"""
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* Garante que os textos normais fiquem com a cor certa */
+    /* Garante que os textos normais fiquem confortáveis */
     h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
 
-    /* Títulos Principais */
+    /* Títulos Principais - Sólido, elegante e sem animação carnavalesca */
     .titulo-elevo {{
-        font-size: 3.5rem; font-weight: 900; text-align: center;
-        background: linear-gradient(270deg, #00BFA5, #00E5FF, #00BFA5);
-        background-size: 200% 200%; -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
-        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
+        font-size: 3.2rem; font-weight: 800; text-align: center;
+        color: #00BFA5;
+        margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase;
         margin-top: 5px;
     }}
-    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
     
     .subtitulo {{
-        text-align: center; font-size: 1rem; margin-bottom: 30px;
-        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
-        color: {text_color} !important; opacity: 0.8;
+        text-align: center; font-size: 0.95rem; margin-bottom: 30px;
+        font-weight: 400; letter-spacing: 1px; text-transform: uppercase;
+        color: {text_color} !important; opacity: 0.6;
     }}
 
-    /* Caixas Neons (Containers e Métricas) */
+    /* Caixas Discretas e Naturais */
     [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
         background: {card_bg} !important;
-        border: 1px solid {border_neon} !important;
+        border: 1px solid {border_color} !important;
         border-radius: 12px !important;
-        box-shadow: 0 0 10px {border_neon} !important;
+        box-shadow: 0 4px 10px {shadow_base} !important;
     }}
 
-    /* Botões VIP Secundários (Transparentes com borda iluminada) */
+    /* Botões VIP Secundários (Clean e Sem Neon) */
     .stButton > button {{
         background: {btn_bg} !important;
         color: {btn_text} !important;
-        border: 1px solid {border_neon} !important;
+        border: 1px solid {border_color} !important;
         border-radius: 8px !important;
-        box-shadow: 0 2px 8px {border_neon} !important;
-        font-weight: 600 !important;
-        transition: all 0.3s ease !important;
+        box-shadow: 0 2px 5px {shadow_base} !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
     }}
     .stButton > button:hover {{
-        transform: translateY(-2px);
-        box-shadow: 0 6px 15px {border_neon} !important;
-        filter: brightness(1.2);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px {shadow_base} !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
     }}
 
-    /* Botões VIP Primários (O novo Verde Elegante) */
+    /* Botões VIP Primários (Verde Escuro e Sólido) */
     .stButton > button[kind="primary"] {{
         background: {btn_primary_bg} !important;
         color: {btn_primary_text} !important;
-        font-weight: 800 !important;
+        font-weight: 600 !important;
         border: none !important;
         border-radius: 8px !important;
-        box-shadow: 0 4px 15px rgba(0, 191, 165, 0.4) !important;
-        text-shadow: 0px 1px 2px rgba(0,0,0,0.5) !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
     }}
     .stButton > button[kind="primary"]:hover {{
-        box-shadow: 0 6px 25px rgba(0, 191, 165, 0.7) !important;
-        filter: brightness(1.1);
+        background: #00695C !important; /* Clareia levemente de forma natural */
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
     }}
 
-    /* Inputs e TextAreas Visíveis e Iluminados */
+    /* Inputs e TextAreas Discretos */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
         background-color: {input_bg} !important;
-        border: 1px solid {border_neon} !important;
+        border: 1px solid {border_color} !important;
         color: {text_color} !important;
         border-radius: 8px !important;
     }}
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
+        border-color: #00BFA5 !important; /* Foco sutil */
+    }}
     
     /* Proteção para as Métricas */
-    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 900 !important; }}
-    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.7; }}
+    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
+    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT
+# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BRILHO REDUZIDO)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -177,19 +178,13 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 26px; background: radial-gradient(circle, #00BFA5 0%, #004D40 80%, #000000 100%); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 15px rgba(0,255,255,0.6); cursor: pointer; user-select: none; touch-action: none;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none;";
         parent.body.appendChild(btn);
-        const style = parent.createElement('style');
-        style.innerHTML = `
-            @keyframes girar-moeda-3d { 0% { transform: perspective(400px) rotateY(0deg); } 40% { transform: perspective(400px) rotateY(0deg); } 60% { transform: perspective(400px) rotateY(360deg); } 100% { transform: perspective(400px) rotateY(360deg); } }
-            #moeda-aguia-vip { animation: girar-moeda-3d 4s infinite ease-in-out; }
-            #moeda-aguia-vip.dragging { animation: none !important; opacity: 0.9; transform: scale(1.1); }
-        `;
-        parent.head.appendChild(style);
+        
         let isDragging = false, startX, startY, initialLeft, initialTop;
-        btn.addEventListener('touchstart', function(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.classList.add('dragging'); }, {passive: false});
-        parent.addEventListener('touchmove', function(e) { if (!btn.classList.contains('dragging')) return; let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }, {passive: false});
-        parent.addEventListener('touchend', function(e) { if (!btn.classList.contains('dragging')) return; btn.classList.remove('dragging'); if (!isDragging) toggleSidebar(); isDragging = false; });
+        btn.addEventListener('touchstart', function(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.8'; }, {passive: false});
+        parent.addEventListener('touchmove', function(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }, {passive: false});
+        parent.addEventListener('touchend', function(e) { btn.style.opacity = '1'; if (!isDragging) toggleSidebar(); isDragging = false; });
         function toggleSidebar() { const openBtn = parent.querySelector('[data-testid="collapsedControl"]'); if (openBtn) { openBtn.click(); } else { const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]'); if (sidebarHeader) { const closeBtn = sidebarHeader.querySelector('button'); if (closeBtn) closeBtn.click(); } } }
     }
 </script>
