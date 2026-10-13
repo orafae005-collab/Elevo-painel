@@ -54,7 +54,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 VIP & ALTO CONTRASTE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.4 - NEON VIP & ALTO CONTRASTE)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -62,96 +62,105 @@ col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-# Inteligência de Cores (Alto Contraste e Dourado VIP)
+# Inteligência de Cores VIP (Alto Contraste)
 if modo_claro:
-    bg_color = "#F4F6F9"  # Fundo levemente cinza para não ofuscar
-    text_color = "#1A1A1A" # Preto bem forte para leitura
-    card_bg = "#FFFFFF"
-    border_color = "#D4AF37" # Dourado presente mesmo no claro
-    metric_val_color = "#D4AF37"
-    metric_label_color = "#333333"
-    btn_bg = "#1A1A1A"
-    btn_text = "#D4AF37"
+    bg_color = "#F4F4F9"
+    text_color = "#1E1E1E" 
+    card_bg = "rgba(255, 255, 255, 0.95)"
+    border_neon = "rgba(0, 150, 150, 0.4)"
+    btn_bg = "#FFFFFF"
+    btn_text = "#005C66"
+    btn_primary_bg = "#B8860B"
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#FFFFFF"
 else:
-    bg_color = "#0B0C10" # Fundo bem escuro
-    text_color = "#F8F8F8" # Branco gelo forte
-    card_bg = "#1F2833" # Fundo de card elevado
-    border_color = "#D4AF37" # Dourado VIP forte
-    metric_val_color = "#D4AF37" 
-    metric_label_color = "#C5C6C7"
-    btn_bg = "#D4AF37" # Botões dourados no dark mode
-    btn_text = "#0B0C10"
+    bg_color = "#0E1117"
+    text_color = "#F0F0F0" 
+    card_bg = "rgba(20, 20, 20, 0.6)"
+    border_neon = "rgba(0, 255, 255, 0.4)"
+    btn_bg = "#1A1C20"
+    btn_text = "#00FFFF"
+    btn_primary_bg = "linear-gradient(90deg, #D4AF37, #FFDF00)"
+    btn_primary_text = "#000000"
+    input_bg = "#111418"
 
 estilo_elevo = f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;900&display=swap');
     
-    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; color: {text_color} !important; }}
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
-    [data-testid="stSidebar"] {{ background-color: {bg_color}; border-right: 1px solid {border_color}; }}
+    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
     
-    /* Cabeçalho e Footer limpos */
-    [data-testid="stHeader"] {{ display: none !important; }}
+    [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* Forçar visibilidade dos textos (Corrigindo o apagão) */
-    p, span, label, div[data-testid="stMarkdownContainer"] {{
-        color: {text_color} !important;
-    }}
+    /* Garante que os textos normais fiquem com a cor certa sem estragar botões */
+    h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
 
-    /* Estilo VIP dos Títulos */
-    h1, h2, h3, h4, h5, h6 {{
-        color: {metric_val_color} !important;
-        font-weight: 800 !important;
-    }}
-
-    /* Título Elevo Animado */
+    /* Títulos Principais */
     .titulo-elevo {{
         font-size: 3.5rem; font-weight: 900; text-align: center;
-        background: linear-gradient(270deg, #D4AF37, #FFDF00, #D4AF37);
+        background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
         background-size: 200% 200%; -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent; animation: brilho 3s ease infinite;
-        margin-bottom: -15px; letter-spacing: 5px; text-transform: uppercase;
+        -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
+        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
+        margin-top: 5px;
     }}
-    @keyframes brilho {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
+    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
     
     .subtitulo {{
         text-align: center; font-size: 1rem; margin-bottom: 30px;
-        font-weight: 400; letter-spacing: 2px; color: {text_color} !important;
+        font-weight: 300; letter-spacing: 2px; text-transform: uppercase;
+        color: {text_color} !important; opacity: 0.8;
     }}
-    
-    /* Cards (Métricas) */
-    [data-testid="stMetric"] {{
-        background-color: {card_bg};
-        border: 1px solid {border_color};
-        border-radius: 12px; padding: 15px; 
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-    }}
-    
-    [data-testid="stMetricLabel"] {{ color: {metric_label_color} !important; font-weight: 600 !important; text-transform: uppercase; font-size: 0.8rem;}}
-    [data-testid="stMetricValue"] {{ color: {metric_val_color} !important; font-weight: 800 !important; font-size: 2rem !important; }}
 
-    /* Botões Primários Dourados */
+    /* Caixas Neons (Containers e Métricas) */
+    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
+        background: {card_bg} !important;
+        border: 1px solid {border_neon} !important;
+        border-radius: 12px !important;
+        box-shadow: 0 0 10px {border_neon} !important;
+    }}
+
+    /* Botões VIP Neon (Secundários) */
     .stButton > button {{
-        background-color: {btn_bg} !important;
+        background: {btn_bg} !important;
         color: {btn_text} !important;
-        border: 2px solid {btn_bg} !important;
-        font-weight: bold !important;
+        border: 1px solid {border_neon} !important;
         border-radius: 8px !important;
-        transition: all 0.2s ease;
+        box-shadow: 0 2px 8px {border_neon} !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
     }}
     .stButton > button:hover {{
-        background-color: transparent !important;
-        color: {btn_bg} !important;
-        box-shadow: 0 0 15px {btn_bg} !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 15px {border_neon} !important;
+        filter: brightness(1.2);
+    }}
+
+    /* Botões VIP Primários (Dourado de Alto Contraste) */
+    .stButton > button[kind="primary"] {{
+        background: {btn_primary_bg} !important;
+        color: {btn_primary_text} !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4) !important;
+    }}
+    .stButton > button[kind="primary"]:hover {{
+        box-shadow: 0 6px 25px rgba(212, 175, 55, 0.7) !important;
+    }}
+
+    /* Inputs e TextAreas Visíveis e Iluminados */
+    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
+        background-color: {input_bg} !important;
+        border: 1px solid {border_neon} !important;
+        color: {text_color} !important;
+        border-radius: 8px !important;
     }}
     
-    /* Text Areas e Inputs com borda visível */
-    .stTextInput>div>div>input, .stTextArea>div>div>textarea {{
-        background-color: {card_bg} !important;
-        color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-    }}
+    /* Proteção para as Métricas */
+    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 900 !important; }}
+    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.7; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
@@ -185,7 +194,6 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 # ==========================================================
 # 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
