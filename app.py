@@ -52,11 +52,10 @@ def conectar_robo():
         return None
 
 robo_sheets = conectar_robo()
+
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.3 - CONTRASTE ABSOLUTO)
 # ==========================================================
-import streamlit.components.v1 as components
-
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -215,7 +214,6 @@ def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
     return match.group(1) if match else None
 
-# 🔥 Correção da Lentidão: Cache estendido para 300 segundos (5 minutos)
 @st.cache_data(ttl=300)
 def carregar_dados_dinamicos(url):
     if not url or not robo_sheets:
@@ -256,7 +254,6 @@ else:
 
 if "Data" in df.columns:
     df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
-    # 🔥 Leitor Blindado: Consegue entender as datas mesmo se o Sheets as bagunçar
     df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
     df["Data_Parsed"] = df["Data_Parsed"].fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
 else:
@@ -270,7 +267,6 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
     hoje = pd.Timestamp(agora_brasil.date())
     
-    # Limpa as datas vazias apenas se não for o filtro "Tudo"
     if filtro_periodo != "Tudo":
         df_filtrado = df_filtrado.dropna(subset=["Data_Parsed"])
         
@@ -328,7 +324,6 @@ else:
 
     st.markdown(f"### 📊 Faturamento: {nome_canal_ativo}")
 
-    # Formatação de Moeda Padrão BR
     aprovado_str = f"R$ {aprovado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     pendente_str = f"R$ {pendente:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     
@@ -336,7 +331,6 @@ else:
     if len(campeao_str) > 12:
         campeao_str = campeao_str[:12] + "..."
 
-    # 🔥 DESIGN NATIVO PARA CELULAR
     cor_texto_valor = "#D4AF37" if not modo_claro else "#B8860B"
     cor_texto_titulo = "#A0A0A0" if not modo_claro else "#555555"
 
@@ -357,7 +351,6 @@ else:
         </div>
     """, unsafe_allow_html=True)
 
-    # Gráficos guardados e blindados
     if not df_timeline.empty and not df_campeao.empty:
         with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
             col_graf1, col_graf2 = st.columns(2)
@@ -856,14 +849,12 @@ with col_raiox2:
                 try:
                     sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
                     
-                    # Prepara o pacote de dados misturando Texto + Imagens
                     conteudo_prompt = []
                     conteudo_prompt.append({
                         "type": "text", 
                         "text": f"Contexto do usuário: {texto_contexto}\nSua missão: Descubra o padrão de sucesso analisando os dados e imagens enviadas. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
                     })
                     
-                    # Converte os prints para o formato que a OpenAI entende (Base64)
                     if imgs_analytics:
                         for img in imgs_analytics:
                             img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
@@ -872,7 +863,6 @@ with col_raiox2:
                                 "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
                             })
                     
-                    # Chama o cérebro
                     response = cliente_openai.chat.completions.create(
                         model="gpt-4o-mini",
                         messages=[
@@ -897,6 +887,7 @@ with col_raiox2:
             st.markdown(historico_raiox[-1]["Funil"])
         else:
             st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
+
 # ==========================================================
 # 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
 # ==========================================================
@@ -940,7 +931,6 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
             """
             
-            # 🔥 CORREÇÃO: Usando o ChatGPT (que você já configurou) no lugar do modelo antigo
             sistema_copy = "Você é um Copywriter de Elite focado em TikTok Shop."
             resposta_roteiro = chamar_ia_global(prompt_roteiro, sistema_copy)
             
@@ -952,6 +942,7 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
                 st.error(f"❌ Erro ao conectar com a mente da IA: {resposta_roteiro}")
         except Exception as e:
             st.error(f"❌ Erro inesperado: {e}")
+
 # ==========================================================
 # 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO DE CRESCIMENTO)
 # ==========================================================
@@ -1148,7 +1139,6 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Gravador original limpo com tamanho normal
     audio_gravado = st.audio_input("Grave a sua mensagem:")
     
     if audio_gravado is not None:
@@ -1273,7 +1263,7 @@ if st.session_state["ultimo_audio_b64"]:
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <!-- 🔥 Player oculto invisível -->
+        <!-- 🔥 Player oculto invisível. Sem controlos brancos feios! -->
         <audio id="aurora_audio" autoplay style="display: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
@@ -1282,4 +1272,18 @@ if st.session_state["ultimo_audio_b64"]:
         .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
         .bar.playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
         .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }} .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
-        .
+        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
+        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }} .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
+        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
+        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
+    </style>
+    <script>
+        const audio = document.getElementById('aurora_audio');
+        const bars = document.querySelectorAll('.bar');
+        audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
+        audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+        audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+    </script>
+    """
+    
+    components.html(html_ondas_inteligentes, height=200)
