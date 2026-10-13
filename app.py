@@ -792,11 +792,11 @@ if st.button("🔍 Buscar Tendências e Palavras-Chave", type="primary", disable
             st.rerun()
 
 # ==========================================================
-# 12. RAIO-X DA OPERAÇÃO (🔥 VISÃO OPENAI ATIVADA)
+# 12. RAIO-X DA OPERAÇÃO (🔥 VISÃO OPENAI + INSIGHTS INTEGRADOS)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie até 5 prints do seu Analytics e a IA vai hackear o padrão de sucesso.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do Analytics. A IA vai cruzar as imagens com o Feedback dos Clientes para hackear o padrão.</p>", unsafe_allow_html=True)
 
 aba_raiox = None
 historico_raiox = []
@@ -831,7 +831,7 @@ with col_raiox1:
         )
         if st.button("🗑️ Apagar Mapa Salvo", use_container_width=True):
             if aba_raiox is not None:
-                with st.spinner("Apagando estratégia do banco de dados..."):
+                with st.spinner("A apagar estratégia do banco de dados..."):
                     aba_raiox.clear()
                     aba_raiox.append_row(["Data", "Funil"])
                     st.success("🧹 Memória limpa com sucesso!")
@@ -845,15 +845,19 @@ with col_raiox2:
         elif imgs_analytics and len(imgs_analytics) > 5:
             st.error("🚨 Limite excedido! Envie no máximo 5 imagens.")
         else:
-            with st.spinner("Iniciando a Engenharia Reversa com a Visão da OpenAI..."):
+            with st.spinner("A iniciar a Engenharia Reversa com a Visão da OpenAI e Dados de Feedback..."):
                 try:
                     sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
                     
-                    conteudo_prompt = []
-                    conteudo_prompt.append({
-                        "type": "text", 
-                        "text": f"Contexto do usuário: {texto_contexto}\nSua missão: Descubra o padrão de sucesso analisando os dados e imagens enviadas. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
-                    })
+                    # Puxa os dados do Laboratório (Bloco 12.5) para dentro do Funil
+                    conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
+                    feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
+                    
+                    texto_instrucao = f"Contexto do usuário: {texto_contexto}\n\n"
+                    texto_instrucao += f"DADOS DO LABORATÓRIO (CRUZE ISTO COM AS IMAGENS):\n- Taxa de Conversão: {conversao_atual:.2f}%\n- Mente do Cliente: {feedback_atual}\n\n"
+                    texto_instrucao += "Sua missão: Descubra o padrão de sucesso analisando os dados, a conversão, o feedback e as imagens. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável (Ataque as objeções listadas)\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
+                    
+                    conteudo_prompt = [{"type": "text", "text": texto_instrucao}]
                     
                     if imgs_analytics:
                         for img in imgs_analytics:
@@ -877,7 +881,7 @@ with col_raiox2:
                     if aba_raiox is not None:
                         aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox])
                     
-                    st.success("✅ Raio-X concluído! O mapa foi salvo no sistema.")
+                    st.success("✅ Raio-X concluído e integrado com o feedback dos clientes!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"❌ Erro na visão da IA: {e}")
@@ -965,29 +969,37 @@ with col_feed:
             st.markdown(st.session_state["ultimo_feedback_analisado"])
 
 # ==========================================================
-# 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
+# 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º + OBJEÇÕES DO CLIENTE)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa TODO o seu aplicativo (Faturamento, Produto Campeão, Tendências da Aurora e Funil) para forjar 3 roteiros impossíveis de ignorar.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>A IA analisa o seu Funil, as Tendências e as OBJEÇÕES dos clientes para forjar roteiros impossíveis de ignorar.</p>", unsafe_allow_html=True)
 
 if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primary", use_container_width=True):
-    with st.spinner("Analisando faturamento, tendências, missões e funil... Forjando roteiros de elite..."):
+    with st.spinner("A analisar faturamento, missões, funil e sentimentos do público... A forjar roteiros de elite..."):
         try:
-            alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Ainda sem dados. Sugira um produto genérico de beleza feminino."
+            alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Produto principal"
             vendas_atuais = f"R$ {aprovado:,.2f}"
-            tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência mapeada ainda."
-            ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco total na curiosidade e escassez."
+            tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência."
+            ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco na curiosidade."
             missao_atual = missao_hoje
+            
+            # Puxa os dados do Laboratório (Bloco 12.5) para dentro do Copywriter
+            feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
 
             prompt_roteiro = f"""
             Atue como um Copywriter de Elite focado em TikTok Shop para o público feminino ("Buscadora de Atalhos", 18-40 anos, ama levar vantagem).
+            
             DADOS GERAIS DA NOSSA OPERAÇÃO NESTE MOMENTO:
-            📊 Faturamento Aprovado no Filtro Atual: {vendas_atuais}
+            📊 Faturamento Aprovado: {vendas_atuais}
             🏆 Produto Campeão: {alvo_campeao}
             🔮 Última Tendência do Mercado: {tendencia_aurora}
-            🧬 Nosso Funil e Ganchos Validados: {ultimo_funil_texto}
-            🎯 Missão de Execução de Hoje: {missao_atual}
+            🧬 Nosso Funil Validado: {ultimo_funil_texto}
+            🎯 Missão de Hoje: {missao_atual}
+            
+            🔥 INSIGHTS DA MENTE DO CLIENTE (MUITO IMPORTANTE): 
+            Abaixo está a análise dos últimos comentários do nosso público. USE a objeção mapeada aqui para criar um gancho que a quebre imediatamente no Roteiro 3:
+            {feedback_atual}
             
             DIRETRIZES DE BLINDAGEM TIKTOK:
             - PROIBIDO: "Cura", "Elimina", "Em 3 dias", "Resultado imediato", "Parece mágica", "Melhor do mundo", "Original", "Derrete", "Apaga", "Milagre".
@@ -999,10 +1011,10 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             - Assinatura final obrigatória: "Já garanti o meu, corre no carrinho!" ou "Depois não diz que eu não avisei, hein?"
             
             MISSÃO:
-            Baseado em TODOS OS DADOS da nossa operação fornecidos acima, crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [Produto Campeão].
+            Crie TRÊS roteiros diferentes de EXATOS 9 SEGUNDOS cada, focados em vender o nosso [{alvo_campeao}].
             ROTEIRO 1: O Choque de Preço (Erro no Sistema)
-            ROTEIRO 2: O Segredo Revelado (Use a tendência se fizer sentido)
-            ROTEIRO 3: A Comparação Visual (Dor vs Solução sensorial)
+            ROTEIRO 2: O Segredo Revelado (Aproveite a tendência do mercado)
+            ROTEIRO 3: A Quebra de Objeção (Baseado 100% no Feedback da Mente do Cliente listado acima)
             
             Formate cada roteiro separando claramente [AÇÃO NA TELA] de [VOZ DA AURORA]. Seja frio e direto.
             """
@@ -1011,7 +1023,7 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             resposta_roteiro = chamar_ia_global(prompt_roteiro, sistema_copy)
             
             if "ERRO_API" not in resposta_roteiro:
-                st.success("✅ Tríade de Roteiros gerada com base em 100% dos dados do seu sistema!")
+                st.success("✅ Tríade de Roteiros gerada com base no Funil e nas Objeções Reais do público!")
                 st.markdown(resposta_roteiro)
                 st.balloons()
             else:
