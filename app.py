@@ -1024,7 +1024,7 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E PLANO B DE VOZ)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E DESIGN VIP)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
@@ -1071,18 +1071,21 @@ if "ultimo_audio_b64" not in st.session_state:
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
-# 🔥 ESTILO DO BOTÃO ÁGUIA
+# 🔥 ESTILO VIP DO BOTÃO DE ÁUDIO
 st.markdown("""
 <style>
+    /* Transforma o container do áudio num botão premium */
     [data-testid="stAudioInput"] {
-        background: linear-gradient(145deg, #101214, #1a1d21);
-        border: 1px solid #D4AF37 !important; border-radius: 20px !important;
-        padding: 15px !important; box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
+        background: linear-gradient(145deg, #141414, #1f1f1f) !important;
+        border: 2px solid #D4AF37 !important; 
+        border-radius: 40px !important;
+        padding: 10px 20px !important; 
+        box-shadow: 0px 5px 25px rgba(212, 175, 55, 0.25) !important;
+        transition: all 0.3s ease;
     }
-    [data-testid="stAudioInput"]:hover { border-color: #00FFFF !important; }
-    [data-testid="stAudioInput"] button[kind="secondary"] {
-        background-color: #D4AF37 !important; border: none !important;
-        color: black !important; font-weight: bold !important; border-radius: 50% !important;
+    [data-testid="stAudioInput"]:hover { 
+        border-color: #00FFFF !important; 
+        box-shadow: 0px 5px 25px rgba(0, 255, 255, 0.25) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1103,14 +1106,14 @@ with st.container(border=True):
                 st.markdown(f"""
                 <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
                     <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; border-left: 4px solid #00FFFF;">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora (Dona do Sistema)</p>
+                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora</p>
                         <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
                     </div>
                 </div>
                 """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    audio_gravado = st.audio_input("🦅 Grave sua mensagem para a Aurora:")
+    audio_gravado = st.audio_input("🦅 Toque para falar com a Aurora:")
     
     if audio_gravado is not None:
         audio_bytes = audio_gravado.read()
@@ -1167,6 +1170,7 @@ with st.container(border=True):
                             sistema_mentor = f"""
                             Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
                             Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme, imponente e estratégico.
+                            Evite dar continuidade a conversas superficiais; foque na alta performance.
                             
                             [SEU ACESSO DIRETO AO BANCO DE DADOS EM TEMPO REAL]:
                             - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
@@ -1205,7 +1209,6 @@ with st.container(border=True):
                                 else:
                                     raise Exception("ElevenLabs falhou")
                             except Exception:
-                                # Se a ElevenLabs falhar ou acabar o crédito, ativa automaticamente o gTTS (Plano B)
                                 st.warning("⚠️ Limite da ElevenLabs atingido! Ativando voz secundária (Plano B).")
                                 tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
                                 fp = io.BytesIO()
@@ -1219,17 +1222,8 @@ with st.container(border=True):
             else:
                 st.info("🔒 Áudio já processado. Aguardando nova gravação.")
 
-    if st.button("🗑️ Resetar Memória", use_container_width=True):
-        if aba_memoria_voz is not None:
-            aba_memoria_voz.clear()
-            aba_memoria_voz.append_row(["DataHora", "Role", "Conteudo"])
-        st.session_state["historico_viva_voz"] = [{"role": "assistant", "content": "Banco de dados zerado! Pode falar."}]
-        st.session_state["ultimo_audio_b64"] = None
-        st.session_state["ultimo_hash_audio"] = None
-        st.rerun()
-
 # ==========================================================
-# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO CORRIGIDA
+# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO (OCULTO E VIP)
 # ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
@@ -1243,7 +1237,8 @@ if st.session_state["ultimo_audio_b64"]:
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <audio id="aurora_audio" autoplay controls style="margin-top: 20px; width: 100%; border-radius: 8px; outline: none;">
+        <!-- 🔥 Player oculto (display: none) sem controles -->
+        <audio id="aurora_audio" autoplay style="display: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
     </div>
