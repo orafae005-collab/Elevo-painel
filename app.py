@@ -231,6 +231,94 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
+# ==========================================================
+# 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
+# ==========================================================
+st.sidebar.markdown("<h2 style='text-align: center; color: #00BFA5 !important; font-weight: 900; font-size: 2rem;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
+
+COFRE_DE_LINKS = {
+    "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
+    "O Garimpo Chic": "" 
+}
+
+opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
+canal_selecionado = st.sidebar.selectbox("🎯 Selecione a Conta", opcoes_canais)
+
+if canal_selecionado == "➕ Adicionar Novo Canal":
+    nome_canal_ativo = st.sidebar.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
+    link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
+else:
+    nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
+    link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
+    if link_salvo != "":
+        link_planilha_ativa = link_salvo
+        st.sidebar.success("✅ Link carregado do cofre automaticamente!")
+    else:
+        link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
+
+filtro_periodo = st.sidebar.selectbox(
+    "📅 Filtrar Período",
+    ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
+)
+
+prints_comissao = st.sidebar.file_uploader(
+    "Suba os Prints do TikTok Shop (Máx: 5 imagens)", 
+    type=["png", "jpg", "jpeg"], 
+    accept_multiple_files=True
+)
+
+# ==========================================================
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
+# ==========================================================
+def extrair_id_planilha(url):
+    match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
+    return match.group(1) if match else None
+
+@st.cache_data(ttl=300)
+def carregar_dados_dinamicos(url):
+    if not url or not robo_sheets:
+        return pd.DataFrame()
+    try:
+        sheet_id = extrair_id_planilha(url)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        aba = planilha.sheet1
+        dados = aba.get_all_records()
+        if dados:
+            df_temp = pd.DataFrame(dados)
+            df_temp.replace("", pd.NA, inplace=True)
+            df_temp.dropna(how='all', inplace=True)
+            return df_temp
+        return pd.DataFrame()
+    except Exception:
+        return pd.DataFrame()
+
+df = carregar_dados_dinamicos(link_planilha_ativa)
+
+if df.empty:
+    df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
+
+df.columns = df.columns.astype(str).str.strip()
+
+if "Quantidade" in df.columns:
+    df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
+else:
+    df["Quantidade"] = 0
+
+if "Comissao_R$" in df.columns:
+    df["Comissao_R$"] = pd.to_numeric(
+        df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
+        errors="coerce"
+    ).fillna(0.0)
+else:
+    df["Comissao_R$"] = 0.0
+
+if "Data" in df.columns:
+    df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
+    df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
+    df["Data_Parsed"] = df["Data_Parsed"].fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
+else:
+    df["Data_Parsed"] = pd.NaT
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
 # ==========================================================
