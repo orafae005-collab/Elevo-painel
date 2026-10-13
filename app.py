@@ -1204,4 +1204,67 @@ if audio_gravado is not None:
                         
                         st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
                         if aba_memoria_voz is not None:
-                            aba_memoria_voz.append
+                            aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
+                        
+                        # ==========================================
+                        # 🔥 GERAÇÃO DE VOZ E PLAYER INVISÍVEL
+                        # ==========================================
+                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                        
+                        try:
+                            resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                            if resp_voz.status_code == 200:
+                                st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                            else:
+                                raise Exception("ElevenLabs falhou")
+                        except Exception:
+                            tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
+                            fp = io.BytesIO()
+                            tts.write_to_fp(fp)
+                            fp.seek(0)
+                            st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
+                            
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Erro na Sala de Conselhos: {e}")
+
+# ==========================================================
+# 🎛️ ONDAS SONORAS CYAN (SEM O TEXTO DO CHAT)
+# ==========================================================
+if st.session_state["ultimo_audio_b64"]:
+    audio_tocar = st.session_state["ultimo_audio_b64"]
+    hash_atual = st.session_state["ultimo_hash_audio"]
+    
+    html_ondas_inteligentes = f"""
+    <!-- CHAVE UNICA DO AUDIO: {hash_atual} -->
+    <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
+        <h4 style="color: #00FFFF; margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif;">🦅 TRANSMISSÃO DA AURORA</h4>
+        <div id="visualizer" style="display: flex; justify-content: center; align-items: center; gap: 4px; height: 60px;">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        <audio id="aurora_audio" autoplay style="display: none;">
+            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
+        </audio>
+    </div>
+    <style>
+        .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
+        .bar.playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
+        .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }} .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
+        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
+        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }} .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
+        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
+        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
+    </style>
+    <script>
+        const audio = document.getElementById('aurora_audio');
+        const bars = document.querySelectorAll('.bar');
+        audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
+        audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+        audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+    </script>
+    """
+    
+    components.html(html_ondas_inteligentes, height=200)
