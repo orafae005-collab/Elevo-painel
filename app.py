@@ -1015,11 +1015,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ÁGUIA EM PATRULHA)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>A Aurora vê todos os teus dados. Grava o áudio e observa a Águia a patrulhar a área!</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1063,45 +1063,34 @@ if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
 # ==========================================================
-# 🔥 CSS VIP: ÁGUIA PATRULHEIRA & MICROFONE ORIGINAL
+# 🔥 A "ROUPA" (PONTE VISUAL): ÁGUIA VOADORA E BORDA VIP
 # ==========================================================
 st.markdown("""
 <style>
     /* Oculta o player branco nativo de baixo */
     audio { display: none !important; }
 
-    /* Estilo da caixa principal do gravador */
+    /* A "Roupa" do gravador - Container com borda VIP e espaço para o voo */
     [data-testid="stAudioInput"] {
         position: relative;
         background: linear-gradient(145deg, #101214, #1a1d21) !important;
         border: 2px solid #D4AF37 !important;
         border-radius: 16px !important;
-        padding: 35px 15px 15px 15px !important; /* Espaço no topo para a águia voar */
+        padding: 45px 15px 15px 15px !important; /* Espaço no topo para a águia voar */
         box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
         overflow: hidden;
-        transition: all 0.3s ease;
     }
 
-    /* A Águia 🦅 (Estado Parado) */
+    /* A Águia animada voando de um lado para o outro (Nossa "Ponte" Visual) */
     [data-testid="stAudioInput"]::before {
         content: "🦅";
-        font-size: 28px;
+        font-size: 30px;
         position: absolute;
         top: 5px;
-        left: 10px;
-        z-index: 10;
-        transition: all 0.5s ease;
-    }
-
-    /* Borda brilhante quando está a gravar (usando :has para detectar o botão de stop vermelho) */
-    [data-testid="stAudioInput"]:has(button[kind="primary"]) {
-        border-color: #00FFFF !important;
-        box-shadow: 0px 5px 30px rgba(0, 255, 255, 0.4) !important;
-    }
-
-    /* A Águia 🦅 a Voar (Quando está a gravar) */
-    [data-testid="stAudioInput"]:has(button[kind="primary"])::before {
+        left: 5%;
         animation: voo-da-aguia 4s linear infinite;
+        z-index: 10;
+        filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.5));
     }
 
     /* Animação de Voo de um lado para o outro */
@@ -1139,6 +1128,7 @@ with st.container(border=True):
 
     st.markdown("<br>", unsafe_allow_html=True)
     
+    # Gravador original vestido com a nossa "roupa"
     audio_gravado = st.audio_input("Grave a sua mensagem:")
     
     if audio_gravado is not None:
