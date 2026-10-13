@@ -1015,11 +1015,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 3D VIP & BACKGROUND PROCESS)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO 100% ONISCIENTE E 3D VIP)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Processamento 100% em background. A Águia levanta voo quando a gravação começa!</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência Total Ativada: A Aurora vê as tuas finanças, as tuas missões diárias, o teu termômetro de disciplina e o teu funil.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1054,7 +1054,7 @@ if "historico_viva_voz" not in st.session_state:
         st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
     else:
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a cada centavo do seu gráfico. Manda o áudio!"}
+            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a 100% do aplicativo. Manda o áudio!"}
         ]
 
 if "ultimo_audio_b64" not in st.session_state:
@@ -1067,13 +1067,11 @@ if "ultimo_hash_audio" not in st.session_state:
 # ==========================================================
 st.markdown("""
 <style>
-    /* 1. Mata o player nativo feio */
+    /* Mata o player nativo e labels */
     audio { display: none !important; }
-
-    /* 2. Ocultar o texto do label original */
     [data-testid="stAudioInput"] label { display: none !important; }
 
-    /* 3. A "Roupa" 3D VIP (Console Físico) */
+    /* A "Roupa" 3D VIP */
     [data-testid="stAudioInput"] {
         position: relative;
         background: linear-gradient(145deg, #15171a, #1b1e22) !important;
@@ -1091,13 +1089,12 @@ st.markdown("""
         transition: all 0.3s ease;
     }
 
-    /* Borda acende quando clicas dentro */
     [data-testid="stAudioInput"]:focus-within {
         border-color: #00FFFF !important;
         box-shadow: 0px 0px 40px rgba(0, 255, 255, 0.3) !important;
     }
 
-    /* 4. A Águia Imponente Sentada (Estado Parado) */
+    /* A Águia Imponente Sentada */
     [data-testid="stAudioInput"]::before {
         content: "🦅";
         font-size: 45px;
@@ -1110,7 +1107,7 @@ st.markdown("""
         transition: all 0.3s ease-in-out;
     }
 
-    /* 5. A Águia ataca/voa APENAS quando interagimos com o gravador */
+    /* A Águia Voa ao Gravar */
     [data-testid="stAudioInput"]:focus-within::before,
     [data-testid="stAudioInput"]:active::before {
         animation: voo-ataque 1.5s infinite alternate ease-in-out;
@@ -1123,7 +1120,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Console invisível na UI (label_visibility="collapsed")
+# Interface invisível para o Chat (as mensagens não aparecem mais na tela)
 audio_gravado = st.audio_input(" ", label_visibility="collapsed")
 
 if audio_gravado is not None:
@@ -1134,7 +1131,7 @@ if audio_gravado is not None:
         if audio_hash != st.session_state["ultimo_hash_audio"]:
             st.session_state["ultimo_hash_audio"] = audio_hash 
             
-            with st.spinner("🦅 A Aurora está a analisar os teus dados em silêncio..."):
+            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões e Funil)..."):
                 try:
                     texto_falado = cliente_openai.audio.transcriptions.create(
                         model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
@@ -1149,8 +1146,9 @@ if audio_gravado is not None:
                             aba_memoria_voz.append_row([agora_str, "user", texto_falado])
                         
                         # ==========================================
-                        # 📊 CÁLCULO ABSOLUTO DO BANCO DE DADOS
+                        # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
                         # ==========================================
+                        # 1. Finanças
                         fat_total_global = 0.0
                         fat_pendente_global = 0.0
                         fat_30d = 0.0
@@ -1174,25 +1172,44 @@ if audio_gravado is not None:
                                 top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
                                 top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
                         
-                        crescimento_pct = crescimento if 'crescimento' in locals() else 0.0
-                        estado_atual = simbolo if 'simbolo' in locals() else "Desconhecido"
-                        tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in locals() and historico_radar else "Nenhuma"
+                        crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
+                        estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
+                        
+                        # 2. Gamificação e Disciplina (Bloco 10)
+                        missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma missão definida."
+                        dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma dica definida."
+                        dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
+                        taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
+                        
+                        # 3. Estratégia e Mercado (Blocos 11 e 12)
+                        tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
+                        funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
                         
                         sistema_mentor = f"""
                         Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
                         Responda diretamente ao áudio em até 4 frases curtas, tom de voz firme, imponente e estratégico.
                         Evite dar continuidade a conversas superficiais; foque na alta performance.
                         
-                        [SEU ACESSO DIRETO AO BANCO DE DADOS EM TEMPO REAL]:
+                        [SEU ACESSO DIRETO AO SISTEMA EM TEMPO REAL]:
+                        
+                        💰 FINANCEIRO E MÉTRICAS:
                         - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
                         - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
                         - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
                         - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
                         - Termômetro da Empresa (Crescimento 7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
                         - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
-                        - Radar de Tendência Atual: {tendencia_atual}
                         
-                        REGRA DE OURO: Você é a dona do sistema. Se o usuário perguntar sobre métricas, faturamento, 30 dias ou 7 dias, leia EXATAMENTE os valores numéricos acima.
+                        🎯 MISSÕES E DISCIPLINA DO SÓCIO:
+                        - Missão de Hoje: {missao_hoje_str}
+                        - Dica Financeira do Dia: {dica_hoje_str}
+                        - Termômetro de Execução (30 dias): {dias_concluidos_str}/30 dias cumpridos (Taxa de acerto: {taxa_acerto_str:.1f}%)
+                        
+                        🧠 MERCADO E ESTRATÉGIA:
+                        - Radar de Tendência Atual: {tendencia_atual}
+                        - Último Funil Mapeado (Raio-X): {funil_atual}
+                        
+                        REGRA DE OURO: Você é a dona do sistema. Se o sócio perguntar o que tem que fazer hoje, cobre a execução da Missão de Hoje. Se ele perguntar de funil ou finanças, leia os valores reais fornecidos acima.
                         """
                         
                         mensagens_api = [{"role": "system", "content": sistema_mentor}]
