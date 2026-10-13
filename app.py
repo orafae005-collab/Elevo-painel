@@ -1022,6 +1022,7 @@ html_coracao = f"""
 </style>
 """
 st.markdown(html_coracao, unsafe_allow_html=True)
+
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ÁGUIA EM PATRULHA)
 # ==========================================================
