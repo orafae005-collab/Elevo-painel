@@ -231,7 +231,6 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
 # ==========================================================
