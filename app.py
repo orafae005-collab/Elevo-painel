@@ -14,7 +14,7 @@ import io
 from gtts import gTTS
 
 # ==========================================================
-# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V5.0 - MOTOR OPENAI + VOZ RESERVA)
+# 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V5.0 - MOTOR OPENAI)
 # ==========================================================
 st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V5.0", page_icon="🦅", layout="wide")
 
@@ -54,38 +54,8 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & NATURAL)
-# ==========================================================
-st.markdown(estilo_elevo, unsafe_allow_html=True)
-
-# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BRILHO REDUZIDO)
-js_moeda = """
-<script>
-    const parent = window.parent.document;
-    if (!parent.getElementById("moeda-aguia-vip")) {
-        const btn = parent.createElement("div");
-        btn.id = "moeda-aguia-vip";
-        btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none;";
-        parent.body.appendChild(btn);
-        
-        let isDragging = false, startX, startY, initialLeft, initialTop;
-        btn.addEventListener('touchstart', function(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.8'; }, {passive: false});
-        parent.addEventListener('touchmove', function(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }, {passive: false});
-        parent.addEventListener('touchend', function(e) { btn.style.opacity = '1'; if (!isDragging) toggleSidebar(); isDragging = false; });
-        function toggleSidebar() { const openBtn = parent.querySelector('[data-testid="collapsedControl"]'); if (openBtn) { openBtn.click(); } else { const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]'); if (sidebarHeader) { const closeBtn = sidebarHeader.querySelector('button'); if (closeBtn) closeBtn.click(); } } }
-    }
-</script>
-"""
-components.html(js_moeda, height=0, width=0)
-
-st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-# ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA CORRIGIDA)
 # ==========================================================
-import streamlit.components.v1 as components
-
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -261,7 +231,6 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
