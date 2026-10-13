@@ -889,6 +889,73 @@ with col_raiox2:
             st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
 
 # ==========================================================
+# 12.5. LABORATÓRIO DE INSIGHTS E CONVERSÃO (🔥 VISÃO DA AURORA)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🔬 Laboratório de Insights e Conversão</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Cruze os dados de tráfego com as vendas e deixe a IA analisar os comentários do seu público.</p>", unsafe_allow_html=True)
+
+if "ultima_taxa_conversao" not in st.session_state:
+    st.session_state["ultima_taxa_conversao"] = 0.0
+if "ultimo_feedback_analisado" not in st.session_state:
+    st.session_state["ultimo_feedback_analisado"] = "Nenhum feedback analisado."
+
+col_conv, col_feed = st.columns(2)
+
+with col_conv:
+    with st.container(border=True):
+        st.markdown("<h4 style='color: #00FFFF;'>📈 Calculadora de Escala</h4>", unsafe_allow_html=True)
+        views_video = st.number_input("👁️ Views do Vídeo Campeão", min_value=0, value=0, step=100)
+        cliques_link = st.number_input("🖱️ Cliques no Link", min_value=0, value=0, step=10)
+        
+        vendas_campeao = 0
+        if not df_campeao.empty:
+            vendas_campeao = df_campeao.iloc[0]["Quantidade"]
+            
+        st.info(f"🏆 Vendas do Produto Campeão (Planilha): **{vendas_campeao}** unidades")
+        
+        if cliques_link > 0 and views_video > 0:
+            taxa_clique = (cliques_link / views_video) * 100
+            taxa_conversao = (vendas_campeao / cliques_link) * 100
+            st.session_state["ultima_taxa_conversao"] = taxa_conversao
+            
+            col_met1, col_met2 = st.columns(2)
+            col_met1.metric("CTR (Cliques/Views)", f"{taxa_clique:.2f}%")
+            col_met2.metric("Conversão (Vendas/Cliques)", f"{taxa_conversao:.2f}%")
+            
+            if taxa_conversao >= 2.0:
+                st.success("🔥 Conversão Nível Elite! O teu funil está perfeito. Impulsiona isso urgente!")
+            elif taxa_conversao >= 0.5:
+                st.warning("⚖️ Conversão Média. O produto atrai, mas há atrito no preço ou na página.")
+            else:
+                st.error("🚨 Conversão Baixa. Muito clique e pouca venda. A promessa do vídeo não bate com o produto.")
+
+with col_feed:
+    with st.container(border=True):
+        st.markdown("<h4 style='color: #00FFFF;'>🗣️ Mente do Cliente</h4>", unsafe_allow_html=True)
+        texto_comentarios = st.text_area("Cole os comentários do TikTok aqui:", placeholder="Ex: 'É muito caro?', 'Será que funciona?', 'Amei!'", height=100)
+        
+        if st.button("🧠 Hackear Sentimento (OpenAI)", use_container_width=True):
+            if texto_comentarios.strip() == "":
+                st.warning("⚠️ Cole os comentários para a Aurora analisar.")
+            else:
+                with st.spinner("A analisar a mente dos clientes..."):
+                    sys_feedback = "Você é Aurora, Mentora de Elite especialista em Neuromarketing."
+                    prompt_feedback = f"""
+                    Analise estes comentários do TikTok: {texto_comentarios}
+                    Retorne EXATAMENTE neste formato direto e curto:
+                    🔥 MAIOR DESEJO: [1 frase]
+                    🚧 PRINCIPAL OBJEÇÃO: [Por que não compram - 1 frase]
+                    💡 GANCHO MATADOR PARA QUEBRAR A OBJEÇÃO: [1 frase de roteiro]
+                    """
+                    resposta_feed = chamar_ia_global(prompt_feedback, sys_feedback)
+                    st.session_state["ultimo_feedback_analisado"] = resposta_feed
+                    st.success("Análise concluída!")
+        
+        if st.session_state["ultimo_feedback_analisado"] != "Nenhum feedback analisado.":
+            st.markdown(st.session_state["ultimo_feedback_analisado"])
+
+# ==========================================================
 # 13. MÁQUINA DE ROTEIROS 9s (🔥 ANÁLISE 360º DA OPERAÇÃO)
 # ==========================================================
 st.divider()
@@ -1015,11 +1082,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ONISCIÊNCIA E CANAL ATIVO)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência Total Ativada: A Aurora vê o teu canal ativo, finanças, missões diárias e o teu funil.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1054,7 +1121,7 @@ if "historico_viva_voz" not in st.session_state:
         st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
     else:
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a 100% do aplicativo. Manda o áudio!"}
+            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a cada centavo do seu gráfico. Manda o áudio!"}
         ]
 
 if "ultimo_audio_b64" not in st.session_state:
@@ -1067,11 +1134,9 @@ if "ultimo_hash_audio" not in st.session_state:
 # ==========================================================
 st.markdown("""
 <style>
-    /* Mata o player nativo e labels */
     audio { display: none !important; }
     [data-testid="stAudioInput"] label { display: none !important; }
 
-    /* A "Roupa" 3D VIP */
     [data-testid="stAudioInput"] {
         position: relative;
         background: linear-gradient(145deg, #15171a, #1b1e22) !important;
@@ -1094,7 +1159,6 @@ st.markdown("""
         box-shadow: 0px 0px 40px rgba(0, 255, 255, 0.3) !important;
     }
 
-    /* A Águia Imponente Sentada */
     [data-testid="stAudioInput"]::before {
         content: "🦅";
         font-size: 45px;
@@ -1107,7 +1171,6 @@ st.markdown("""
         transition: all 0.3s ease-in-out;
     }
 
-    /* A Águia Voa ao Gravar */
     [data-testid="stAudioInput"]:focus-within::before,
     [data-testid="stAudioInput"]:active::before {
         animation: voo-ataque 1.5s infinite alternate ease-in-out;
@@ -1120,7 +1183,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# Interface invisível para o Chat (as mensagens não aparecem mais na tela)
 audio_gravado = st.audio_input(" ", label_visibility="collapsed")
 
 if audio_gravado is not None:
@@ -1131,7 +1193,7 @@ if audio_gravado is not None:
         if audio_hash != st.session_state["ultimo_hash_audio"]:
             st.session_state["ultimo_hash_audio"] = audio_hash 
             
-            with st.spinner("🦅 A Aurora está a analisar o teu canal, finanças, missões e funil..."):
+            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões, Funil e Conversão)..."):
                 try:
                     texto_falado = cliente_openai.audio.transcriptions.create(
                         model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
@@ -1148,11 +1210,8 @@ if audio_gravado is not None:
                         # ==========================================
                         # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
                         # ==========================================
-                        
-                        # CAPTURA O CANAL EXATO QUE ESTÁ A SER USADO
                         canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
                         
-                        # 1. Finanças
                         fat_total_global = 0.0
                         fat_pendente_global = 0.0
                         fat_30d = 0.0
@@ -1179,42 +1238,31 @@ if audio_gravado is not None:
                         crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
                         estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
                         
-                        # 2. Gamificação e Disciplina (Bloco 10)
-                        missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma missão definida."
-                        dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma dica definida."
+                        missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma."
+                        dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma."
                         dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
                         taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
                         
-                        # 3. Estratégia e Mercado (Blocos 11 e 12)
                         tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
                         funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
+                        
+                        # NOVOS INSIGHTS
+                        conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
+                        feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
                         
                         sistema_mentor = f"""
                         Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
                         Responda de forma fluida, inteligente e natural ao áudio do sócio, em até 4 frases curtas, com um tom de voz de "amiga fofoqueira do bem", mas estrategista fria.
                         
                         [SEU ACESSO DIRETO AO SISTEMA EM TEMPO REAL]:
+                        📱 CANAL ATIVO NESTE MOMENTO: {canal_ativo}
                         
-                        📱 CANAL ATIVO NESTE MOMENTO: {canal_ativo} (Todos os dados abaixo são especificamente deste canal)
+                        💰 FINANCEIRO: Lucro Total R$ {fat_total_global:,.2f} | 7 Dias: R$ {fat_7d:,.2f} ({crescimento_pct:+.1f}%) | Top 3 Produtos: {top_produtos_str}
+                        🎯 DISCIPLINA: Missão: {missao_hoje_str} | Termômetro: {dias_concluidos_str}/30 dias ({taxa_acerto_str:.1f}%)
+                        🧠 ESTRATÉGIA: Radar: {tendencia_atual} | Funil: {funil_atual}
+                        🔬 INSIGHTS (NOVO): Taxa de Conversão Atual: {conversao_atual:.2f}% | Sentimento do Público: {feedback_atual}
                         
-                        💰 FINANCEIRO E MÉTRICAS:
-                        - Lucro Total (Aprovado): R$ {fat_total_global:,.2f}
-                        - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
-                        - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
-                        - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
-                        - Termômetro da Empresa (7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
-                        - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
-                        
-                        🎯 MISSÕES E DISCIPLINA DO SÓCIO:
-                        - Missão de Hoje: {missao_hoje_str}
-                        - Dica Financeira do Dia: {dica_hoje_str}
-                        - Termômetro de Execução (30 dias): {dias_concluidos_str}/30 dias cumpridos (Taxa de acerto: {taxa_acerto_str:.1f}%)
-                        
-                        🧠 MERCADO E ESTRATÉGIA:
-                        - Radar de Tendência Atual: {tendencia_atual}
-                        - Último Funil Mapeado: {funil_atual}
-                        
-                        REGRA DE OURO DA INTELIGÊNCIA: Use os dados acima APENAS como "memória de fundo" para soar absurdamente inteligente. NÃO fique repetindo a "Missão de Hoje" ou os números o tempo todo que nem um robô. Se o usuário quiser saber os números, leia-os com exatidão. Se for apenas conversa estratégica, dê o conselho focando na alta performance e adapta-se naturalmete.
+                        REGRA DE OURO DA INTELIGÊNCIA: Use os dados acima APENAS como "memória de fundo" para soar absurdamente inteligente. NÃO fique repetindo a "Missão de Hoje" ou os números o tempo todo que nem um robô. Se o usuário quiser saber da conversão ou do que os clientes estão achando, use os INSIGHTS para debater melhorias no funil.
                         """
                         
                         mensagens_api = [{"role": "system", "content": sistema_mentor}]
@@ -1229,7 +1277,7 @@ if audio_gravado is not None:
                             aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
                         
                         # ==========================================
-                        # 🔥 GERAÇÃO DE VOZ E PLAYER INVISÍVEL
+                        # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
                         # ==========================================
                         url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                         headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
