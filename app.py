@@ -1015,11 +1015,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ONISCIÊNCIA E CANAL ATIVO)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência Total Ativada: A Aurora vê o teu canal ativo, finanças, missões diárias e o teu funil.</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1030,7 +1030,7 @@ except KeyError:
     st.stop()
 
 # ==========================================
-# 🧠 BANCO DE MEMÓRIA PERMANENTE (GOOGLE SHEETS)
+# 🧠 BANCO DE MEMÓRIA PERMANENTE INVISÍVEL
 # ==========================================
 aba_memoria_voz = None
 historico_banco_dados = []
@@ -1054,7 +1054,7 @@ if "historico_viva_voz" not in st.session_state:
         st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
     else:
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a cada centavo do seu gráfico. Manda o áudio!"}
+            {"role": "assistant", "content": "E aí, sócio! Sou a dona da plataforma. Tenho acesso a 100% do aplicativo. Manda o áudio!"}
         ]
 
 if "ultimo_audio_b64" not in st.session_state:
@@ -1063,208 +1063,197 @@ if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
 # ==========================================================
-# 🔥 A "ROUPA" (PONTE VISUAL): ÁGUIA VOADORA E BORDA VIP
+# 🔥 CSS VIP 3D: CONSOLE NEUMÓRFICO E ÁGUIA REATIVA
 # ==========================================================
 st.markdown("""
 <style>
-    /* Oculta o player branco nativo de baixo */
+    /* Mata o player nativo e labels */
     audio { display: none !important; }
+    [data-testid="stAudioInput"] label { display: none !important; }
 
-    /* A "Roupa" do gravador - Container com borda VIP e espaço para o voo */
+    /* A "Roupa" 3D VIP */
     [data-testid="stAudioInput"] {
         position: relative;
-        background: linear-gradient(145deg, #101214, #1a1d21) !important;
+        background: linear-gradient(145deg, #15171a, #1b1e22) !important;
         border: 2px solid #D4AF37 !important;
-        border-radius: 16px !important;
-        padding: 45px 15px 15px 15px !important; /* Espaço no topo para a águia voar */
-        box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
-        overflow: hidden;
+        border-radius: 25px !important;
+        padding: 50px 20px 20px 20px !important; 
+        box-shadow: 
+            inset 5px 5px 15px rgba(0,0,0,0.8), 
+            inset -5px -5px 15px rgba(255,255,255,0.05),
+            10px 10px 30px rgba(0,0,0,0.9), 
+            -10px -10px 30px rgba(212, 175, 55, 0.1) !important;
+        margin: 40px auto 20px auto;
+        max-width: 400px;
+        overflow: visible !important;
+        transition: all 0.3s ease;
     }
 
-    /* A Águia animada voando de um lado para o outro (Nossa "Ponte" Visual) */
+    [data-testid="stAudioInput"]:focus-within {
+        border-color: #00FFFF !important;
+        box-shadow: 0px 0px 40px rgba(0, 255, 255, 0.3) !important;
+    }
+
+    /* A Águia Imponente Sentada */
     [data-testid="stAudioInput"]::before {
         content: "🦅";
-        font-size: 30px;
+        font-size: 45px;
         position: absolute;
-        top: 5px;
-        left: 5%;
-        animation: voo-da-aguia 4s linear infinite;
+        top: -30px;
+        left: 50%;
+        transform: translateX(-50%);
         z-index: 10;
-        filter: drop-shadow(0px 5px 5px rgba(0,0,0,0.5));
+        filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.9));
+        transition: all 0.3s ease-in-out;
     }
 
-    /* Animação de Voo de um lado para o outro */
-    @keyframes voo-da-aguia {
-        0%   { left: 5%;  transform: scaleX(1) translateY(0px); }
-        45%  { left: 85%; transform: scaleX(1) translateY(-5px); }
-        50%  { left: 85%; transform: scaleX(-1) translateY(0px); } /* Vira as costas */
-        95%  { left: 5%;  transform: scaleX(-1) translateY(-5px); }
-        100% { left: 5%;  transform: scaleX(1) translateY(0px); }
+    /* A Águia Voa ao Gravar */
+    [data-testid="stAudioInput"]:focus-within::before,
+    [data-testid="stAudioInput"]:active::before {
+        animation: voo-ataque 1.5s infinite alternate ease-in-out;
+    }
+
+    @keyframes voo-ataque {
+        0% { top: -50px; transform: translateX(-50%) scale(1.1) rotate(-5deg); filter: drop-shadow(0px 15px 15px rgba(0,255,255,0.4)); }
+        100% { top: -70px; transform: translateX(-50%) scale(1.4) rotate(5deg); filter: drop-shadow(0px 25px 25px rgba(0,255,255,0.8)); }
     }
 </style>
 """, unsafe_allow_html=True)
 
-with st.container(border=True):
-    chat_container = st.container(height=350)
-    with chat_container:
-        for msg in st.session_state["historico_viva_voz"]:
-            if msg["role"] == "user":
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-end; margin-bottom: 10px;">
-                    <div style="background-color: #005c4b; color: #fff; padding: 12px 16px; border-radius: 16px 16px 0px 16px; max-width: 75%; font-family: 'Montserrat', sans-serif;">
-                        <p style="margin: 0; font-size: 0.95rem;">🎤 <b>Sócio:</b> {msg['content']}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-            else:
-                st.markdown(f"""
-                <div style="display: flex; justify-content: flex-start; margin-bottom: 10px;">
-                    <div style="background-color: #202c33; color: #e9edef; padding: 12px 16px; border-radius: 16px 16px 16px 0px; max-width: 75%; border-left: 4px solid #00FFFF;">
-                        <p style="margin: 0; font-size: 0.75rem; color: #00FFFF; font-weight: bold; margin-bottom: 4px;">🦅 Aurora</p>
-                        <p style="margin: 0; font-size: 0.95rem;">{msg['content']}</p>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+# Interface invisível para o Chat (as mensagens não aparecem mais na tela)
+audio_gravado = st.audio_input(" ", label_visibility="collapsed")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # Gravador original vestido com a nossa "roupa"
-    audio_gravado = st.audio_input("Grave a sua mensagem:")
-    
-    if audio_gravado is not None:
-        audio_bytes = audio_gravado.read()
-        if audio_bytes:
-            audio_hash = hashlib.md5(audio_bytes).hexdigest()
+if audio_gravado is not None:
+    audio_bytes = audio_gravado.read()
+    if audio_bytes:
+        audio_hash = hashlib.md5(audio_bytes).hexdigest()
+        
+        if audio_hash != st.session_state["ultimo_hash_audio"]:
+            st.session_state["ultimo_hash_audio"] = audio_hash 
             
-            if audio_hash != st.session_state["ultimo_hash_audio"]:
-                st.session_state["ultimo_hash_audio"] = audio_hash 
-                
-                with st.spinner("🦅 A Aurora está mapeando 100% dos dados da plataforma em tempo real..."):
-                    try:
-                        texto_falado = cliente_openai.audio.transcriptions.create(
-                            model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
-                        ).text
+            with st.spinner("🦅 A Aurora está a analisar o teu canal, finanças, missões e funil..."):
+                try:
+                    texto_falado = cliente_openai.audio.transcriptions.create(
+                        model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
+                    ).text
+                    
+                    if texto_falado.strip():
+                        agora = datetime.utcnow() - timedelta(hours=3)
+                        agora_str = agora.strftime("%d/%m/%Y %H:%M")
                         
-                        if texto_falado.strip():
-                            agora = datetime.utcnow() - timedelta(hours=3)
-                            agora_str = agora.strftime("%d/%m/%Y %H:%M")
+                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
+                        if aba_memoria_voz is not None:
+                            aba_memoria_voz.append_row([agora_str, "user", texto_falado])
+                        
+                        # ==========================================
+                        # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
+                        # ==========================================
+                        
+                        # CAPTURA O CANAL EXATO QUE ESTÁ A SER USADO
+                        canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
+                        
+                        # 1. Finanças
+                        fat_total_global = 0.0
+                        fat_pendente_global = 0.0
+                        fat_30d = 0.0
+                        fat_7d = 0.0
+                        top_produtos_str = "Nenhum"
+                        
+                        if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
+                            df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
+                            df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
                             
-                            st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
-                            if aba_memoria_voz is not None:
-                                aba_memoria_voz.append_row([agora_str, "user", texto_falado])
+                            fat_total_global = df_validos_global["Comissao_R$"].sum()
+                            fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
                             
-                            # ==========================================
-                            # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
-                            # ==========================================
+                            limite_30d_global = agora - timedelta(days=30)
+                            limite_7d_global = agora - timedelta(days=7)
                             
-                            # IDENTIFICA O CANAL ATUAL
-                            canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
+                            fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
+                            fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
                             
-                            # 1. Finanças
-                            fat_total_global = 0.0
-                            fat_pendente_global = 0.0
-                            fat_30d = 0.0
-                            fat_7d = 0.0
-                            top_produtos_str = "Nenhum"
+                            if not df_validos_global.empty:
+                                top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
+                                top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
+                        
+                        crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
+                        estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
+                        
+                        # 2. Gamificação e Disciplina (Bloco 10)
+                        missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma missão definida."
+                        dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma dica definida."
+                        dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
+                        taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
+                        
+                        # 3. Estratégia e Mercado (Blocos 11 e 12)
+                        tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
+                        funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
+                        
+                        sistema_mentor = f"""
+                        Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
+                        Responda de forma fluida, inteligente e natural ao áudio do sócio, em até 4 frases curtas, com um tom de voz de "amiga fofoqueira do bem", mas estrategista fria.
+                        
+                        [SEU ACESSO DIRETO AO SISTEMA EM TEMPO REAL]:
+                        
+                        📱 CANAL ATIVO NESTE MOMENTO: {canal_ativo} (Todos os dados abaixo são especificamente deste canal)
+                        
+                        💰 FINANCEIRO E MÉTRICAS:
+                        - Lucro Total (Aprovado): R$ {fat_total_global:,.2f}
+                        - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
+                        - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
+                        - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
+                        - Termômetro da Empresa (7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
+                        - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
+                        
+                        🎯 MISSÕES E DISCIPLINA DO SÓCIO:
+                        - Missão de Hoje: {missao_hoje_str}
+                        - Dica Financeira do Dia: {dica_hoje_str}
+                        - Termômetro de Execução (30 dias): {dias_concluidos_str}/30 dias cumpridos (Taxa de acerto: {taxa_acerto_str:.1f}%)
+                        
+                        🧠 MERCADO E ESTRATÉGIA:
+                        - Radar de Tendência Atual: {tendencia_atual}
+                        - Último Funil Mapeado: {funil_atual}
+                        
+                        REGRA DE OURO DA INTELIGÊNCIA: Use os dados acima APENAS como "memória de fundo" para soar absurdamente inteligente. NÃO fique repetindo a "Missão de Hoje" ou os números o tempo todo que nem um robô. Se o usuário quiser saber os números, leia-os com exatidão. Se for apenas conversa estratégica, dê o conselho focando na alta performance e adapta-se naturalmete.
+                        """
+                        
+                        mensagens_api = [{"role": "system", "content": sistema_mentor}]
+                        mensagens_api.extend(st.session_state["historico_viva_voz"])
+                        
+                        resposta_mentor = cliente_openai.chat.completions.create(
+                            model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
+                        ).choices[0].message.content.replace("*", "").strip()
+                        
+                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
+                        if aba_memoria_voz is not None:
+                            aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
+                        
+                        # ==========================================
+                        # 🔥 GERAÇÃO DE VOZ E PLAYER INVISÍVEL
+                        # ==========================================
+                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
+                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
+                        
+                        try:
+                            resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
+                            if resp_voz.status_code == 200:
+                                st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
+                            else:
+                                raise Exception("ElevenLabs falhou")
+                        except Exception:
+                            tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
+                            fp = io.BytesIO()
+                            tts.write_to_fp(fp)
+                            fp.seek(0)
+                            st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
                             
-                            if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
-                                df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
-                                df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
-                                
-                                fat_total_global = df_validos_global["Comissao_R$"].sum()
-                                fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
-                                
-                                limite_30d_global = agora - timedelta(days=30)
-                                limite_7d_global = agora - timedelta(days=7)
-                                
-                                fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
-                                fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
-                                
-                                if not df_validos_global.empty:
-                                    top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
-                                    top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
-                            
-                            crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
-                            estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
-                            
-                            # 2. Gamificação e Disciplina (Bloco 10)
-                            missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma missão definida."
-                            dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma dica definida."
-                            dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
-                            taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
-                            
-                            # 3. Estratégia e Mercado (Blocos 11 e 12)
-                            tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
-                            funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
-                            
-                            sistema_mentor = f"""
-                            Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
-                            Responda de forma fluida, inteligente e natural ao áudio do sócio, em até 4 frases curtas, tom de voz firme e estratégico.
-                            
-                            [SEU ACESSO DIRETO AO SISTEMA EM TEMPO REAL]:
-                            
-                            📱 CANAL ATIVO: {canal_ativo} (Todos os dados abaixo são especificamente deste canal)
-                            
-                            💰 FINANCEIRO E MÉTRICAS:
-                            - Lucro Total Histórico (Aprovado): R$ {fat_total_global:,.2f}
-                            - Saldo Pendente (A cair): R$ {fat_pendente_global:,.2f}
-                            - Lucro Últimos 30 Dias: R$ {fat_30d:,.2f}
-                            - Lucro Últimos 7 Dias: R$ {fat_7d:,.2f}
-                            - Termômetro da Empresa (Crescimento 7D vs Sem. Anterior): {crescimento_pct:+.1f}% ({estado_atual})
-                            - Top 3 Produtos Que Mais Venderam: {top_produtos_str}
-                            
-                            🎯 MISSÕES E DISCIPLINA DO SÓCIO:
-                            - Missão de Hoje: {missao_hoje_str}
-                            - Dica Financeira do Dia: {dica_hoje_str}
-                            - Termômetro de Execução (30 dias): {dias_concluidos_str}/30 dias cumpridos (Taxa de acerto: {taxa_acerto_str:.1f}%)
-                            
-                            🧠 MERCADO E ESTRATÉGIA:
-                            - Radar de Tendência Atual: {tendencia_atual}
-                            - Último Funil Mapeado (Raio-X): {funil_atual}
-                            
-                            REGRA DE OURO: Use os dados acima APENAS como contexto para fundamentar sua resposta. Não force a leitura de métricas, missões ou funis a menos que seja diretamente útil e relevante para a pergunta ou comentário do usuário. Seja uma mentora versátil, adaptável e natural.
-                            """
-                            
-                            mensagens_api = [{"role": "system", "content": sistema_mentor}]
-                            mensagens_api.extend(st.session_state["historico_viva_voz"])
-                            
-                            resposta_mentor = cliente_openai.chat.completions.create(
-                                model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
-                            ).choices[0].message.content.replace("*", "").strip()
-                            
-                            st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
-                            if aba_memoria_voz is not None:
-                                aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
-                            
-                            # ==========================================
-                            # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
-                            # ==========================================
-                            url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                            headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                            payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-                            
-                            try:
-                                resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                                if resp_voz.status_code == 200:
-                                    st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                                else:
-                                    raise Exception("ElevenLabs falhou")
-                            except Exception:
-                                st.warning("⚠️ Limite da ElevenLabs atingido! Ativando voz secundária (Plano B).")
-                                tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
-                                fp = io.BytesIO()
-                                tts.write_to_fp(fp)
-                                fp.seek(0)
-                                st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
-                                
-                            st.rerun()
-                    except Exception as e:
-                        st.error(f"Erro na Sala de Conselhos: {e}")
-            else:
-                st.info("🔒 Áudio já processado. Aguardando nova gravação.")
+                        st.rerun()
+                except Exception as e:
+                    st.error(f"Erro na Sala de Conselhos: {e}")
 
 # ==========================================================
-# 🎛️ PLAYER DE ÁUDIO COM ÂNCORA ANTI-REPETIÇÃO (OCULTO E VIP)
+# 🎛️ ONDAS SONORAS CYAN (SEM O TEXTO DO CHAT)
 # ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
@@ -1278,7 +1267,6 @@ if st.session_state["ultimo_audio_b64"]:
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <!-- 🔥 Player oculto invisível. Sem controlos brancos feios! -->
         <audio id="aurora_audio" autoplay style="display: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
