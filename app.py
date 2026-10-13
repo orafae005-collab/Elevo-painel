@@ -1059,7 +1059,7 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             st.error(f"❌ Erro inesperado: {e}")
 
 # ==========================================================
-# 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO COMPACTO)
+# 14. CORAÇÃO DA EMPRESA (🔥 TERMÔMETRO ANIMADO COMPACTO)
 # ==========================================================
 st.divider()
 
@@ -1094,37 +1094,36 @@ if not df.empty and "Data_Parsed" in df.columns:
         cor_anim = "#FF0040" 
         sombra_anim = "rgba(255, 0, 64, 0.4)"
         nota_empresa = "C-"
-        simbolo = "🚨 ALERTA DE QUEDA"
+        simbolo = "🚨 QUEDA"
     else:
-        cor_anim = "#D4AF37" 
+        cor_anim = "#FFD700" 
         sombra_anim = "rgba(212, 175, 55, 0.4)"
         nota_empresa = "B"
         simbolo = "⚖️ ESTÁVEL"
 
 html_coracao = f"""
 <div style="
-    background: {card_bg};
-    border: 1px solid {cor_anim};
-    border-radius: 12px;
-    padding: 15px;
+    background: rgba(15, 15, 15, 0.8);
+    backdrop-filter: blur(10px);
+    border: 2px solid {cor_anim};
+    border-radius: 16px;
+    padding: 15px 20px;
     text-align: center;
     box-shadow: 0 0 15px {sombra_anim};
     animation: pulse-coração 2s infinite ease-in-out;
     margin: 10px auto;
-    max-width: 500px;
+    max-width: 400px;
 ">
-    <h3 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 800; margin: 0; font-size: 1.1rem; text-transform: uppercase;">STATUS DA OPERAÇÃO</h3>
-    <div style="display: flex; justify-content: center; align-items: baseline; gap: 15px; margin: 5px 0;">
-        <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 2.5rem; font-weight: 900; margin: 0;">NOTA {nota_empresa}</h1>
-        <h4 style="color: {text_color}; font-family: 'Montserrat', sans-serif; font-size: 1.2rem; font-weight: 600; margin: 0;">{crescimento:+.1f}%</h4>
-    </div>
-    <p style="color: {metric_label_color}; font-family: 'Montserrat', sans-serif; font-size: 0.8rem; margin: 0; font-weight: bold;">{simbolo} (Últimos 7 dias vs Anterior)</p>
+    <h2 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: 1px; margin: 0; font-size: 1rem;">STATUS DA OPERAÇÃO</h2>
+    <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 2.5rem; font-weight: 900; margin: 5px 0; text-shadow: 0px 0px 10px {sombra_anim};">NOTA {nota_empresa}</h1>
+    <h3 style="color: #FFFFFF; font-family: 'Montserrat', sans-serif; font-weight: 600; margin: 5px 0; font-size: 1rem;">{simbolo} | {crescimento:+.1f}%</h3>
+    <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 0.75rem; margin-bottom: 0;">Comparativo de 7 dias vs semana anterior.</p>
 </div>
 <style>
     @keyframes pulse-coração {{
-        0% {{ box-shadow: 0 0 5px {sombra_anim}; }}
-        50% {{ box-shadow: 0 0 20px {cor_anim}; }}
-        100% {{ box-shadow: 0 0 5px {sombra_anim}; }}
+        0% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }}
+        50% {{ box-shadow: 0 0 20px {cor_anim}; transform: scale(1.02); }}
+        100% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }}
     }}
 </style>
 """
