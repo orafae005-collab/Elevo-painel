@@ -1022,13 +1022,12 @@ html_coracao = f"""
 </style>
 """
 st.markdown(html_coracao, unsafe_allow_html=True)
-
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E ÁGUIA ANIMADA)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ÁGUIA EM PATRULHA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Toque no Microfone de Estúdio abaixo. Quando a Águia levantar voo, a gravação começou!</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>A Aurora vê todos os teus dados. Grava o áudio e observa a Águia a patrulhar a área!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1072,92 +1071,54 @@ if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
 # ==========================================================
-# 🔥 O HACK VISUAL: MICROFONE DE ESTÚDIO & ÁGUIA VOADORA
+# 🔥 CSS VIP: ÁGUIA PATRULHEIRA & MICROFONE ORIGINAL
 # ==========================================================
 st.markdown("""
 <style>
-    /* 1. Mata o player nativo feio do navegador globalmente */
+    /* Oculta o player branco nativo de baixo */
     audio { display: none !important; }
 
-    /* 2. Container do botão nativo do Streamlit */
+    /* Estilo da caixa principal do gravador */
     [data-testid="stAudioInput"] {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        flex-direction: column;
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-        margin-top: 30px;
-    }
-
-    /* 3. Esconde o ícone de microfone e de stop padrão do Streamlit */
-    [data-testid="stAudioInput"] button svg {
-        display: none !important;
-    }
-
-    /* 4. O NOSSO Botão Gigante (Microfone de Estúdio) */
-    [data-testid="stAudioInput"] button {
-        width: 110px !important;
-        height: 110px !important;
-        border-radius: 50% !important;
-        background: radial-gradient(circle, #1a1d21, #0a0a0a) !important;
-        border: 3px solid #D4AF37 !important;
-        box-shadow: 0px 10px 30px rgba(212, 175, 55, 0.3) !important;
-        position: relative !important;
-        overflow: visible !important;
-        transition: all 0.3s ease !important;
-    }
-
-    /* O Microfone de Estúdio Fixo no Centro */
-    [data-testid="stAudioInput"] button::before {
-        content: "🎙️";
-        font-size: 50px;
-        position: absolute;
-        top: 55%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 1;
-    }
-
-    /* 🦅 ESTADO 1: Águia Sentada (Botão Parado - secondary) */
-    [data-testid="stAudioInput"] button[kind="secondary"]::after {
-        content: "🦅";
-        font-size: 40px;
-        position: absolute;
-        top: -15px; /* Sentada no topo do mic */
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 2;
+        position: relative;
+        background: linear-gradient(145deg, #101214, #1a1d21) !important;
+        border: 2px solid #D4AF37 !important;
+        border-radius: 16px !important;
+        padding: 35px 15px 15px 15px !important; /* Espaço no topo para a águia voar */
+        box-shadow: 0px 5px 20px rgba(212, 175, 55, 0.15) !important;
+        overflow: hidden;
         transition: all 0.3s ease;
     }
 
-    /* 🦅 ESTADO 2: Águia Voando (Botão Gravando - primary) */
-    [data-testid="stAudioInput"] button[kind="primary"] {
-        border-color: #00FFFF !important; /* Muda pra LED Cyan gravando */
-        box-shadow: 0px 10px 40px rgba(0, 255, 255, 0.6) !important;
-        animation: pulso-gravacao 1.5s infinite alternate;
-    }
-
-    [data-testid="stAudioInput"] button[kind="primary"]::after {
+    /* A Águia 🦅 (Estado Parado) */
+    [data-testid="stAudioInput"]::before {
         content: "🦅";
-        font-size: 50px;
+        font-size: 28px;
         position: absolute;
-        left: 50%;
-        z-index: 2;
-        animation: aguia-voando 0.5s infinite alternate ease-in-out;
+        top: 5px;
+        left: 10px;
+        z-index: 10;
+        transition: all 0.5s ease;
     }
 
-    /* Animação do botão pulsando Cyan */
-    @keyframes pulso-gravacao {
-        0% { transform: scale(1); box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.4); }
-        100% { transform: scale(1.05); box-shadow: 0px 0px 60px rgba(0, 255, 255, 0.8); }
+    /* Borda brilhante quando está a gravar (usando :has para detectar o botão de stop vermelho) */
+    [data-testid="stAudioInput"]:has(button[kind="primary"]) {
+        border-color: #00FFFF !important;
+        box-shadow: 0px 5px 30px rgba(0, 255, 255, 0.4) !important;
     }
 
-    /* Animação da Águia batendo asa pra cima (Voando) */
-    @keyframes aguia-voando {
-        0% { top: -30px; transform: translateX(-50%) scale(1); }
-        100% { top: -60px; transform: translateX(-50%) scale(1.2) rotate(-5deg); }
+    /* A Águia 🦅 a Voar (Quando está a gravar) */
+    [data-testid="stAudioInput"]:has(button[kind="primary"])::before {
+        animation: voo-da-aguia 4s linear infinite;
+    }
+
+    /* Animação de Voo de um lado para o outro */
+    @keyframes voo-da-aguia {
+        0%   { left: 5%;  transform: scaleX(1) translateY(0px); }
+        45%  { left: 85%; transform: scaleX(1) translateY(-5px); }
+        50%  { left: 85%; transform: scaleX(-1) translateY(0px); } /* Vira as costas */
+        95%  { left: 5%;  transform: scaleX(-1) translateY(-5px); }
+        100% { left: 5%;  transform: scaleX(1) translateY(0px); }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1185,6 +1146,8 @@ with st.container(border=True):
                 """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Gravador original limpo com tamanho normal
     audio_gravado = st.audio_input("Grave a sua mensagem:")
     
     if audio_gravado is not None:
@@ -1309,7 +1272,7 @@ if st.session_state["ultimo_audio_b64"]:
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <!-- 🔥 Player oculto invisível. Sem controlos brancos feios! -->
+        <!-- 🔥 Player oculto invisível -->
         <audio id="aurora_audio" autoplay style="display: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
@@ -1318,18 +1281,4 @@ if st.session_state["ultimo_audio_b64"]:
         .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
         .bar.playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
         .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }} .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
-        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
-        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }} .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
-        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
-        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
-    </style>
-    <script>
-        const audio = document.getElementById('aurora_audio');
-        const bars = document.querySelectorAll('.bar');
-        audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-        audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-        audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-    </script>
-    """
-    
-    components.html(html_ondas_inteligentes, height=200)
+        .
