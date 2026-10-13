@@ -54,7 +54,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.4 - NEON VIP & ALTO CONTRASTE)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.5 - VERDE VIP & ALTO CONTRASTE)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -62,7 +62,7 @@ col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-# Inteligência de Cores VIP (Alto Contraste)
+# Inteligência de Cores VIP (Alto Contraste e Elegância)
 if modo_claro:
     bg_color = "#F4F4F9"
     text_color = "#1E1E1E" 
@@ -70,7 +70,7 @@ if modo_claro:
     border_neon = "rgba(0, 150, 150, 0.4)"
     btn_bg = "#FFFFFF"
     btn_text = "#005C66"
-    btn_primary_bg = "#B8860B"
+    btn_primary_bg = "linear-gradient(90deg, #00695C, #00897B)" # Verde Esmeralda
     btn_primary_text = "#FFFFFF"
     input_bg = "#FFFFFF"
 else:
@@ -80,9 +80,9 @@ else:
     border_neon = "rgba(0, 255, 255, 0.4)"
     btn_bg = "#1A1C20"
     btn_text = "#00FFFF"
-    btn_primary_bg = "linear-gradient(90deg, #D4AF37, #FFDF00)"
-    btn_primary_text = "#000000"
-    input_bg = "#111418"
+    btn_primary_bg = "linear-gradient(90deg, #004D40, #00BFA5)" # Verde VIP Escuro pro Claro
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#15181C"
 
 estilo_elevo = f"""
 <style>
@@ -95,13 +95,13 @@ estilo_elevo = f"""
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
-    /* Garante que os textos normais fiquem com a cor certa sem estragar botões */
+    /* Garante que os textos normais fiquem com a cor certa */
     h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
 
     /* Títulos Principais */
     .titulo-elevo {{
         font-size: 3.5rem; font-weight: 900; text-align: center;
-        background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
+        background: linear-gradient(270deg, #00BFA5, #00E5FF, #00BFA5);
         background-size: 200% 200%; -webkit-background-clip: text;
         -webkit-text-fill-color: transparent; animation: brilho-evolucao 4s ease infinite;
         margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase;
@@ -123,7 +123,7 @@ estilo_elevo = f"""
         box-shadow: 0 0 10px {border_neon} !important;
     }}
 
-    /* Botões VIP Neon (Secundários) */
+    /* Botões VIP Secundários (Transparentes com borda iluminada) */
     .stButton > button {{
         background: {btn_bg} !important;
         color: {btn_text} !important;
@@ -139,15 +139,19 @@ estilo_elevo = f"""
         filter: brightness(1.2);
     }}
 
-    /* Botões VIP Primários (Dourado de Alto Contraste) */
+    /* Botões VIP Primários (O novo Verde Elegante) */
     .stButton > button[kind="primary"] {{
         background: {btn_primary_bg} !important;
         color: {btn_primary_text} !important;
+        font-weight: 800 !important;
         border: none !important;
-        box-shadow: 0 4px 15px rgba(212, 175, 55, 0.4) !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 15px rgba(0, 191, 165, 0.4) !important;
+        text-shadow: 0px 1px 2px rgba(0,0,0,0.5) !important;
     }}
     .stButton > button[kind="primary"]:hover {{
-        box-shadow: 0 6px 25px rgba(212, 175, 55, 0.7) !important;
+        box-shadow: 0 6px 25px rgba(0, 191, 165, 0.7) !important;
+        filter: brightness(1.1);
     }}
 
     /* Inputs e TextAreas Visíveis e Iluminados */
@@ -173,7 +177,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 26px; background: radial-gradient(circle, #FFDF00 0%, #D4AF37 80%, #996515 100%); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #FFF8DC; box-shadow: 0px 0px 15px rgba(255,215,0,0.6); cursor: pointer; user-select: none; touch-action: none;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 26px; background: radial-gradient(circle, #00BFA5 0%, #004D40 80%, #000000 100%); width: 55px; height: 55px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00FFFF; box-shadow: 0px 0px 15px rgba(0,255,255,0.6); cursor: pointer; user-select: none; touch-action: none;";
         parent.body.appendChild(btn);
         const style = parent.createElement('style');
         style.innerHTML = `
