@@ -1071,21 +1071,69 @@ if "ultimo_audio_b64" not in st.session_state:
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
-# 🔥 ESTILO VIP DO BOTÃO DE ÁUDIO
+# ==========================================================
+# 🔥 O HACK DO BOTÃO VIP E DO PLAYER INVISÍVEL
+# ==========================================================
 st.markdown("""
 <style>
-    /* Transforma o container do áudio num botão premium */
+    /* 1. Mata de vez qualquer player de áudio branco nativo do navegador */
+    audio {
+        display: none !important;
+    }
+
+    /* 2. Container do Gravador (Luz de LED Ouro/Cyan) */
     [data-testid="stAudioInput"] {
-        background: linear-gradient(145deg, #141414, #1f1f1f) !important;
+        background: linear-gradient(145deg, #0a0a0a, #141414) !important;
         border: 2px solid #D4AF37 !important; 
-        border-radius: 40px !important;
-        padding: 10px 20px !important; 
-        box-shadow: 0px 5px 25px rgba(212, 175, 55, 0.25) !important;
+        border-radius: 30px !important;
+        padding: 20px !important; 
+        box-shadow: 0px 5px 25px rgba(212, 175, 55, 0.2) !important;
+        text-align: center;
         transition: all 0.3s ease;
     }
     [data-testid="stAudioInput"]:hover { 
         border-color: #00FFFF !important; 
-        box-shadow: 0px 5px 25px rgba(0, 255, 255, 0.25) !important;
+        box-shadow: 0px 5px 25px rgba(0, 255, 255, 0.4) !important;
+    }
+
+    /* 3. Apagando o ícone do microfone nativo */
+    [data-testid="stAudioInput"] button[kind="secondary"] svg {
+        display: none !important;
+    }
+
+    /* 4. Criando o NOSSO botão VIP por cima (Águia) */
+    [data-testid="stAudioInput"] button[kind="secondary"] {
+        background: linear-gradient(145deg, #111, #222) !important;
+        border: 2px solid #00FFFF !important;
+        border-radius: 50% !important;
+        width: 80px !important;
+        height: 80px !important;
+        box-shadow: 0 0 20px rgba(0, 255, 255, 0.4) !important;
+        position: relative;
+    }
+    [data-testid="stAudioInput"] button[kind="secondary"]::after {
+        content: "🦅";
+        font-size: 35px;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    /* 5. Efeito enquanto o áudio está a gravar (Botão de Stop pulsante vermelho) */
+    [data-testid="stAudioInput"] button[kind="primary"] {
+        background: #FF0040 !important;
+        border: 2px solid #FFF !important;
+        width: 80px !important;
+        height: 80px !important;
+        border-radius: 50% !important;
+        box-shadow: 0 0 25px rgba(255, 0, 64, 0.8) !important;
+        animation: pulse-record 1s infinite alternate;
+    }
+    
+    @keyframes pulse-record {
+        0% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 0, 64, 0.5); }
+        100% { transform: scale(1.1); box-shadow: 0 0 40px rgba(255, 0, 64, 1); }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1113,7 +1161,7 @@ with st.container(border=True):
                 """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    audio_gravado = st.audio_input("🦅 Toque para falar com a Aurora:")
+    audio_gravado = st.audio_input("🦅 Toque na Águia para falar com a Aurora:")
     
     if audio_gravado is not None:
         audio_bytes = audio_gravado.read()
@@ -1237,7 +1285,7 @@ if st.session_state["ultimo_audio_b64"]:
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        <!-- 🔥 Player oculto (display: none) sem controles -->
+        <!-- 🔥 Player oculto invisível. Sem controlos brancos feios! -->
         <audio id="aurora_audio" autoplay style="display: none;">
             <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
         </audio>
