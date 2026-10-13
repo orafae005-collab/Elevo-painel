@@ -1024,11 +1024,11 @@ html_coracao = f"""
 st.markdown(html_coracao, unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E DESIGN VIP)
+# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 ACESSO ONISCIENTE E ÁGUIA ANIMADA)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Mentor de Elite: Sala de Conselhos (Aurora)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas exatas em tempo real.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Toque no Microfone de Estúdio abaixo. Quando a Águia levantar voo, a gravação começou!</p>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
 
@@ -1072,68 +1072,92 @@ if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
 # ==========================================================
-# 🔥 O HACK DO BOTÃO VIP E DO PLAYER INVISÍVEL
+# 🔥 O HACK VISUAL: MICROFONE DE ESTÚDIO & ÁGUIA VOADORA
 # ==========================================================
 st.markdown("""
 <style>
-    /* 1. Mata de vez qualquer player de áudio branco nativo do navegador */
-    audio {
-        display: none !important;
-    }
+    /* 1. Mata o player nativo feio do navegador globalmente */
+    audio { display: none !important; }
 
-    /* 2. Container do Gravador (Luz de LED Ouro/Cyan) */
+    /* 2. Container do botão nativo do Streamlit */
     [data-testid="stAudioInput"] {
-        background: linear-gradient(145deg, #0a0a0a, #141414) !important;
-        border: 2px solid #D4AF37 !important; 
-        border-radius: 30px !important;
-        padding: 20px !important; 
-        box-shadow: 0px 5px 25px rgba(212, 175, 55, 0.2) !important;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-    [data-testid="stAudioInput"]:hover { 
-        border-color: #00FFFF !important; 
-        box-shadow: 0px 5px 25px rgba(0, 255, 255, 0.4) !important;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+        margin-top: 30px;
     }
 
-    /* 3. Apagando o ícone do microfone nativo */
-    [data-testid="stAudioInput"] button[kind="secondary"] svg {
+    /* 3. Esconde o ícone de microfone e de stop padrão do Streamlit */
+    [data-testid="stAudioInput"] button svg {
         display: none !important;
     }
 
-    /* 4. Criando o NOSSO botão VIP por cima (Águia) */
-    [data-testid="stAudioInput"] button[kind="secondary"] {
-        background: linear-gradient(145deg, #111, #222) !important;
-        border: 2px solid #00FFFF !important;
+    /* 4. O NOSSO Botão Gigante (Microfone de Estúdio) */
+    [data-testid="stAudioInput"] button {
+        width: 110px !important;
+        height: 110px !important;
         border-radius: 50% !important;
-        width: 80px !important;
-        height: 80px !important;
-        box-shadow: 0 0 20px rgba(0, 255, 255, 0.4) !important;
-        position: relative;
+        background: radial-gradient(circle, #1a1d21, #0a0a0a) !important;
+        border: 3px solid #D4AF37 !important;
+        box-shadow: 0px 10px 30px rgba(212, 175, 55, 0.3) !important;
+        position: relative !important;
+        overflow: visible !important;
+        transition: all 0.3s ease !important;
     }
-    [data-testid="stAudioInput"] button[kind="secondary"]::after {
-        content: "🦅";
-        font-size: 35px;
+
+    /* O Microfone de Estúdio Fixo no Centro */
+    [data-testid="stAudioInput"] button::before {
+        content: "🎙️";
+        font-size: 50px;
         position: absolute;
-        top: 50%;
+        top: 55%;
         left: 50%;
         transform: translate(-50%, -50%);
+        z-index: 1;
     }
 
-    /* 5. Efeito enquanto o áudio está a gravar (Botão de Stop pulsante vermelho) */
-    [data-testid="stAudioInput"] button[kind="primary"] {
-        background: #FF0040 !important;
-        border: 2px solid #FFF !important;
-        width: 80px !important;
-        height: 80px !important;
-        border-radius: 50% !important;
-        box-shadow: 0 0 25px rgba(255, 0, 64, 0.8) !important;
-        animation: pulse-record 1s infinite alternate;
+    /* 🦅 ESTADO 1: Águia Sentada (Botão Parado - secondary) */
+    [data-testid="stAudioInput"] button[kind="secondary"]::after {
+        content: "🦅";
+        font-size: 40px;
+        position: absolute;
+        top: -15px; /* Sentada no topo do mic */
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 2;
+        transition: all 0.3s ease;
     }
-    
-    @keyframes pulse-record {
-        0% { transform: scale(1); box-shadow: 0 0 15px rgba(255, 0, 64, 0.5); }
-        100% { transform: scale(1.1); box-shadow: 0 0 40px rgba(255, 0, 64, 1); }
+
+    /* 🦅 ESTADO 2: Águia Voando (Botão Gravando - primary) */
+    [data-testid="stAudioInput"] button[kind="primary"] {
+        border-color: #00FFFF !important; /* Muda pra LED Cyan gravando */
+        box-shadow: 0px 10px 40px rgba(0, 255, 255, 0.6) !important;
+        animation: pulso-gravacao 1.5s infinite alternate;
+    }
+
+    [data-testid="stAudioInput"] button[kind="primary"]::after {
+        content: "🦅";
+        font-size: 50px;
+        position: absolute;
+        left: 50%;
+        z-index: 2;
+        animation: aguia-voando 0.5s infinite alternate ease-in-out;
+    }
+
+    /* Animação do botão pulsando Cyan */
+    @keyframes pulso-gravacao {
+        0% { transform: scale(1); box-shadow: 0px 0px 20px rgba(0, 255, 255, 0.4); }
+        100% { transform: scale(1.05); box-shadow: 0px 0px 60px rgba(0, 255, 255, 0.8); }
+    }
+
+    /* Animação da Águia batendo asa pra cima (Voando) */
+    @keyframes aguia-voando {
+        0% { top: -30px; transform: translateX(-50%) scale(1); }
+        100% { top: -60px; transform: translateX(-50%) scale(1.2) rotate(-5deg); }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1161,7 +1185,7 @@ with st.container(border=True):
                 """, unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
-    audio_gravado = st.audio_input("🦅 Toque na Águia para falar com a Aurora:")
+    audio_gravado = st.audio_input("Grave a sua mensagem:")
     
     if audio_gravado is not None:
         audio_bytes = audio_gravado.read()
