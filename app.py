@@ -56,118 +56,8 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & NATURAL)
 # ==========================================================
-import streamlit.components.v1 as components
 
-col_vazia, col_tema = st.columns([8, 2])
-with col_tema:
-    modo_claro = st.toggle("☀️ Modo Claro", value=False)
-
-# Inteligência de Cores VIP (Premium, Discreto e Confortável)
-if modo_claro:
-    bg_color = "#F4F4F9"
-    text_color = "#333333" 
-    card_bg = "#FFFFFF"
-    border_color = "rgba(0, 0, 0, 0.08)"
-    btn_bg = "#F9F9F9"
-    btn_text = "#333333"
-    btn_primary_bg = "#005C4B" # Verde fechado e elegante
-    btn_primary_text = "#FFFFFF"
-    input_bg = "#F9F9F9"
-    shadow_base = "rgba(0, 0, 0, 0.05)"
-else:
-    bg_color = "#0E1117"
-    text_color = "#E0E0E0" 
-    card_bg = "rgba(25, 27, 31, 0.8)"
-    border_color = "rgba(255, 255, 255, 0.05)" # Borda super discreta
-    btn_bg = "#1A1C20"
-    btn_text = "#C0C0C0"
-    btn_primary_bg = "#004D40" # Verde escuro sólido e natural
-    btn_primary_text = "#FFFFFF"
-    input_bg = "#15181C"
-    shadow_base = "rgba(0, 0, 0, 0.3)"
-
-estilo_elevo = f"""
-<style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
-    
-    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
-    [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
-    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
-    
-    [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
-    footer {{ display: none !important; }}
-
-    /* Garante que os textos normais fiquem confortáveis */
-    h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
-
-    /* Títulos Principais - Sólido, elegante e sem animação carnavalesca */
-    .titulo-elevo {{
-        font-size: 3.2rem; font-weight: 800; text-align: center;
-        color: #00BFA5;
-        margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase;
-        margin-top: 5px;
-    }}
-    
-    .subtitulo {{
-        text-align: center; font-size: 0.95rem; margin-bottom: 30px;
-        font-weight: 400; letter-spacing: 1px; text-transform: uppercase;
-        color: {text_color} !important; opacity: 0.6;
-    }}
-
-    /* Caixas Discretas e Naturais */
-    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
-        background: {card_bg} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 10px {shadow_base} !important;
-    }}
-
-    /* Botões VIP Secundários (Clean e Sem Neon) */
-    .stButton > button {{
-        background: {btn_bg} !important;
-        color: {btn_text} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
-        box-shadow: 0 2px 5px {shadow_base} !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease !important;
-    }}
-    .stButton > button:hover {{
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px {shadow_base} !important;
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }}
-
-    /* Botões VIP Primários (Verde Escuro e Sólido) */
-    .stButton > button[kind="primary"] {{
-        background: {btn_primary_bg} !important;
-        color: {btn_primary_text} !important;
-        font-weight: 600 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-    }}
-    .stButton > button[kind="primary"]:hover {{
-        background: #00695C !important; /* Clareia levemente de forma natural */
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
-    }}
-
-    /* Inputs e TextAreas Discretos */
-    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
-        background-color: {input_bg} !important;
-        border: 1px solid {border_color} !important;
-        color: {text_color} !important;
-        border-radius: 8px !important;
-    }}
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
-        border-color: #00BFA5 !important; /* Foco sutil */
-    }}
-    
-    /* Proteção para as Métricas */
-    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
-    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
-</style>
-"""
+    .
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
 # 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BRILHO REDUZIDO)
@@ -194,40 +84,186 @@ components.html(js_moeda, height=0, width=0)
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 # ==========================================================
-# 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA CORRIGIDA)
 # ==========================================================
-st.sidebar.markdown("<h2 style='text-align: center; color: #D4AF37 !important; font-weight: 900; font-size: 2rem;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
+import streamlit.components.v1 as components
 
-COFRE_DE_LINKS = {
-    "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
-    "O Garimpo Chic": "" 
-}
+col_vazia, col_tema = st.columns([8, 2])
+with col_tema:
+    modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
-canal_selecionado = st.sidebar.selectbox("🎯 Selecione a Conta", opcoes_canais)
-
-if canal_selecionado == "➕ Adicionar Novo Canal":
-    nome_canal_ativo = st.sidebar.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
-    link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
+# Inteligência de Cores VIP (Premium, Discreto e Confortável)
+if modo_claro:
+    bg_color = "#F4F4F9"
+    text_color = "#333333" 
+    card_bg = "#FFFFFF"
+    border_color = "rgba(0, 0, 0, 0.08)"
+    btn_bg = "#F9F9F9"
+    btn_text = "#333333"
+    btn_primary_bg = "#005C4B" 
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#F9F9F9"
+    shadow_base = "rgba(0, 0, 0, 0.05)"
 else:
-    nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
-    link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
-    if link_salvo != "":
-        link_planilha_ativa = link_salvo
-        st.sidebar.success("✅ Link carregado do cofre automaticamente!")
-    else:
-        link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
+    bg_color = "#0E1117"
+    text_color = "#E0E0E0" 
+    card_bg = "rgba(25, 27, 31, 0.8)"
+    border_color = "rgba(255, 255, 255, 0.05)" 
+    btn_bg = "#1A1C20"
+    btn_text = "#C0C0C0"
+    btn_primary_bg = "#004D40" 
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#15181C"
+    shadow_base = "rgba(0, 0, 0, 0.3)"
 
-filtro_periodo = st.sidebar.selectbox(
-    "📅 Filtrar Período",
-    ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
-)
+estilo_elevo = f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
+    
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
+    [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
+    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
+    
+    [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
+    footer {{ display: none !important; }}
 
-prints_comissao = st.sidebar.file_uploader(
-    "Suba os Prints do TikTok Shop (Máx: 5 imagens)", 
-    type=["png", "jpg", "jpeg"], 
-    accept_multiple_files=True
-)
+    /* Garante que os textos normais fiquem confortáveis */
+    h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
+
+    /* Títulos Principais */
+    .titulo-elevo {{
+        font-size: 3.2rem; font-weight: 800; text-align: center;
+        color: #00BFA5;
+        margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase;
+        margin-top: 5px;
+    }}
+    
+    .subtitulo {{
+        text-align: center; font-size: 0.95rem; margin-bottom: 30px;
+        font-weight: 400; letter-spacing: 1px; text-transform: uppercase;
+        color: {text_color} !important; opacity: 0.6;
+    }}
+
+    /* Caixas Discretas e Naturais */
+    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
+        background: {card_bg} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 10px {shadow_base} !important;
+    }}
+
+    /* Botões VIP Secundários */
+    .stButton > button {{
+        background: {btn_bg} !important;
+        color: {btn_text} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 8px !important;
+        box-shadow: 0 2px 5px {shadow_base} !important;
+        font-weight: 500 !important;
+        transition: all 0.2s ease !important;
+    }}
+    .stButton > button:hover {{
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px {shadow_base} !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }}
+
+    /* Botões VIP Primários */
+    .stButton > button[kind="primary"] {{
+        background: {btn_primary_bg} !important;
+        color: {btn_primary_text} !important;
+        font-weight: 600 !important;
+        border: none !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
+    }}
+    .stButton > button[kind="primary"]:hover {{
+        background: #00695C !important;
+        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
+    }}
+
+    /* Inputs e TextAreas Discretos */
+    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
+        background-color: {input_bg} !important;
+        border: 1px solid {border_color} !important;
+        color: {text_color} !important;
+        border-radius: 8px !important;
+    }}
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
+        border-color: #00BFA5 !important;
+    }}
+    
+    /* Proteção para as Métricas */
+    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
+    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
+</style>
+"""
+st.markdown(estilo_elevo, unsafe_allow_html=True)
+
+# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BUG DE ROLAGEM CORRIGIDO)
+js_moeda = """
+<script>
+    const parent = window.parent.document;
+    if (!parent.getElementById("moeda-aguia-vip")) {
+        const btn = parent.createElement("div");
+        btn.id = "moeda-aguia-vip";
+        btn.innerHTML = "🦅";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none;";
+        parent.body.appendChild(btn);
+        
+        let isDragging = false, isDown = false, startX, startY, initialLeft, initialTop;
+        
+        // Só ativa o estado de arrasto se tocar EXATAMENTE no botão da águia
+        btn.addEventListener('touchstart', function(e) { 
+            isDown = true;
+            isDragging = false; 
+            startX = e.touches[0].clientX; 
+            startY = e.touches[0].clientY; 
+            initialLeft = btn.offsetLeft; 
+            initialTop = btn.offsetTop; 
+            btn.style.opacity = '0.8'; 
+        }, {passive: false});
+        
+        // Só move e bloqueia a tela se isDown for verdadeiro (toque iniciou no botão)
+        parent.addEventListener('touchmove', function(e) { 
+            if (!isDown) return; // Deixa a tela rolar livremente se não tocou na águia!
+            let dx = e.touches[0].clientX - startX; 
+            let dy = e.touches[0].clientY - startY; 
+            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { 
+                isDragging = true; 
+                e.preventDefault(); // Impede rolagem só durante o arrasto da águia
+                btn.style.left = (initialLeft + dx) + "px"; 
+                btn.style.top = (initialTop + dy) + "px"; 
+            } 
+        }, {passive: false});
+        
+        parent.addEventListener('touchend', function(e) { 
+            if (!isDown) return;
+            isDown = false;
+            btn.style.opacity = '1'; 
+            if (!isDragging) toggleSidebar(); 
+            isDragging = false; 
+        });
+        
+        function toggleSidebar() { 
+            const openBtn = parent.querySelector('[data-testid="collapsedControl"]'); 
+            if (openBtn) { openBtn.click(); } 
+            else { 
+                const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]'); 
+                if (sidebarHeader) { 
+                    const closeBtn = sidebarHeader.querySelector('button'); 
+                    if (closeBtn) closeBtn.click(); 
+                } 
+            } 
+        }
+    }
+</script>
+"""
+components.html(js_moeda, height=0, width=0)
+
+st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
 
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
