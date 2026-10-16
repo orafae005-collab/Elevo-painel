@@ -155,36 +155,44 @@ if not st.session_state["usuario_logado"]:
                 email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...", key="login_email")
                 senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...", key="login_senha")
                 
-                if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
-                    email_clean = email_input.strip().lower()
+                with aba_cadastro:
+                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
+                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
+                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
+                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
+                
+                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
+                    email_clean = novo_email.strip().lower()
                     
-                    # 1. VALIDAÇÃO MASTER DO CEO (Acesso Direto ao Cofre e Planilhas)
-                    if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
-                        st.session_state["usuario_logado"] = True
-                        st.session_state["email_usuario"] = EMAIL_MESTRE
-                        st.session_state["nome_usuario"] = "Sócio"
-                        st.success("👑 Bem-vindo de volta, Chefe! A carregar o império...")
-                        time.sleep(0.5)
-                        st.rerun()
-                        
-                    # 2. VALIDAÇÃO DOS CLIENTES COMUNS (Lê do Google Sheets)
-                    elif email_clean and senha_input:
-                        with st.spinner("A verificar credenciais no servidor..."):
+                    if not novo_nome or not email_clean or not nova_senha:
+                        st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
+                    elif email_clean == EMAIL_MESTRE:
+                        st.error("🚨 Este e-mail é reservado ao CEO da plataforma.")
+                    else:
+                        with st.spinner("A forjar a sua conta na base de dados..."):
                             usuarios = conectar_banco_usuarios("ler")
                             if usuarios is not None:
-                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
-                                
-                                if usuario_encontrado:
-                                    st.session_state["usuario_logado"] = True
-                                    st.session_state["email_usuario"] = email_clean
-                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
-                                    st.rerun()
+                                existe = any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios)
+                                if existe:
+                                    st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
-                                    st.error("🚨 Conta não encontrada ou senha incorreta!")
+                                    # Salva na planilha e avisa o seu Telegram na mesma hora
+                                    sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
+                                    if sucesso:
+                                        # 🦅 DISPARADOR TELEGRAM PARA O CEO (Com as suas chaves reais!)
+                                        try:
+                                            TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
+                                            SEU_CHAT_ID = "5836053901"
+                                            msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
+                                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
+                                        except:
+                                            pass
+                                            
+                                        st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
+                                    else:
+                                        st.error("❌ Falha ao gravar a conta no servidor.")
                             else:
-                                st.error("🚨 Erro de conexão com o banco de dados.")
-                    else:
-                        st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
+                                st.error("❌ Falha de conexão com o banco de dados mestre.")
 
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
