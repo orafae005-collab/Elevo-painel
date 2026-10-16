@@ -54,7 +54,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA CORRIGIDA)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA VIP)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -170,7 +170,7 @@ estilo_elevo = f"""
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA (TOUCH E MOUSE CORRIGIDOS)
+# 🎯 INJEÇÃO DA MOEDA ANIMADA COM ZONA MORTA (CLIQUE INFALÍVEL)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -178,67 +178,106 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
 
-        let isDragging = false, startX, startY, initialLeft, initialTop;
+        let isDragging = false;
+        let startX, startY, initialLeft, initialTop;
 
-        function startDrag(e) {
+        // ==========================
+        // CONTROLO DE TELEMÓVEL (TOUCH)
+        // ==========================
+        function onTouchStart(e) {
             isDragging = false;
-            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
             initialLeft = btn.offsetLeft;
             initialTop = btn.offsetTop;
-            btn.style.opacity = '0.8';
-            btn.setAttribute('data-down', 'true');
+            btn.style.opacity = '0.7';
+            btn.style.transform = 'scale(0.9)'; // Feedback visual do clique
         }
 
-        function doDrag(e) {
-            if (btn.getAttribute('data-down') !== 'true') return;
-            let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-            let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
-            let dx = clientX - startX;
-            let dy = clientY - startY;
+        function onTouchMove(e) {
+            let dx = e.touches[0].clientX - startX;
+            let dy = e.touches[0].clientY - startY;
             
-            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+            // DEADZONE: Só considera arrasto se mover mais de 12 pixels!
+            if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
                 isDragging = true;
-                if(e.cancelable) e.preventDefault(); 
+                e.preventDefault(); // Bloqueia a rolagem do ecrã
                 btn.style.left = (initialLeft + dx) + "px";
                 btn.style.top = (initialTop + dy) + "px";
             }
         }
 
-        function stopDrag(e) {
-            if (btn.getAttribute('data-down') !== 'true') return;
+        function onTouchEnd(e) {
             btn.style.opacity = '1';
-            btn.removeAttribute('data-down');
-            
+            btn.style.transform = 'scale(1)';
             if (!isDragging) {
-                toggleSidebar();
+                abrirSidebarExtremo();
             }
             isDragging = false;
         }
 
-        // Suporte para Celular (Touch)
-        btn.addEventListener('touchstart', startDrag, {passive: false});
-        parent.addEventListener('touchmove', doDrag, {passive: false});
-        parent.addEventListener('touchend', stopDrag);
+        btn.addEventListener('touchstart', onTouchStart, {passive: false});
+        btn.addEventListener('touchmove', onTouchMove, {passive: false});
+        btn.addEventListener('touchend', onTouchEnd);
 
-        // Suporte para Computador (Mouse)
-        btn.addEventListener('mousedown', startDrag);
-        parent.addEventListener('mousemove', doDrag);
-        parent.addEventListener('mouseup', stopDrag);
-        parent.addEventListener('mouseleave', stopDrag);
+        // ==========================
+        // CONTROLO DE COMPUTADOR (RATO)
+        // ==========================
+        btn.addEventListener('mousedown', function(e) {
+            isDragging = false;
+            startX = e.clientX;
+            startY = e.clientY;
+            initialLeft = btn.offsetLeft;
+            initialTop = btn.offsetTop;
+            btn.style.opacity = '0.7';
+            btn.style.transform = 'scale(0.9)';
 
-        function toggleSidebar() {
-            const openBtn = parent.querySelector('[data-testid="collapsedControl"]');
-            if (openBtn) { 
-                openBtn.click(); 
-            } else {
-                const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]');
-                if (sidebarHeader) {
-                    const closeBtn = sidebarHeader.querySelector('button');
-                    if (closeBtn) closeBtn.click();
+            function onMouseMove(moveE) {
+                let dx = moveE.clientX - startX;
+                let dy = moveE.clientY - startY;
+                if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                    isDragging = true;
+                    btn.style.left = (initialLeft + dx) + "px";
+                    btn.style.top = (initialTop + dy) + "px";
+                }
+            }
+
+            function onMouseUp() {
+                btn.style.opacity = '1';
+                btn.style.transform = 'scale(1)';
+                parent.removeEventListener('mousemove', onMouseMove);
+                parent.removeEventListener('mouseup', onMouseUp);
+                if (!isDragging) {
+                    abrirSidebarExtremo();
+                }
+                isDragging = false;
+            }
+
+            parent.addEventListener('mousemove', onMouseMove);
+            parent.addEventListener('mouseup', onMouseUp);
+        });
+
+        // ==========================
+        // CAÇADOR DE MENUS (FALLBACK)
+        // ==========================
+        function abrirSidebarExtremo() {
+            // Tentativa 1: Mobile e Novo Streamlit
+            let btn1 = parent.querySelector('[data-testid="collapsedControl"]');
+            if (btn1) { btn1.click(); return; }
+            
+            // Tentativa 2: Fechar Sidebar quando já está aberta
+            let btn2 = parent.querySelector('[data-testid="stSidebarHeader"] button');
+            if (btn2) { btn2.click(); return; }
+
+            // Tentativa 3: Radar cego para encontrar o botão de SVG
+            let allButtons = parent.querySelectorAll('button');
+            for (let b of allButtons) {
+                if (b.getAttribute('kind') === 'header' || (b.innerHTML && b.innerHTML.includes('<svg'))) {
+                    b.click();
+                    return;
                 }
             }
         }
