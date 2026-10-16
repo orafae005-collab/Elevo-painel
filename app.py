@@ -54,6 +54,47 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
+# 0. PORTARIA VIP (SISTEMA DE LOGIN SAAS)
+# ==========================================================
+if "usuario_logado" not in st.session_state:
+    st.session_state["usuario_logado"] = False
+    st.session_state["email_usuario"] = ""
+
+# A SUA CHAVE MESTRA FOI REGISTADA AQUI:
+EMAIL_MESTRE = "orafae005@gmail.com" 
+SENHA_MESTRA = "Rafa 258467"
+
+if not st.session_state["usuario_logado"]:
+    # Design da Tela de Login (Premium e Escura)
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    st.markdown("<h1 style='text-align: center; color: #00BFA5; font-size: 4rem; font-weight: 900;'>ÉLÉVO</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0A0A0;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.container(border=True):
+            st.markdown("<h4 style='text-align: center;'>Acesso à Central</h4>", unsafe_allow_html=True)
+            email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
+            senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
+            
+            if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
+                # Se for VOCÊ a entrar com a senha mestre:
+                if email_input.strip().lower() == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
+                    st.session_state["usuario_logado"] = True
+                    st.session_state["email_usuario"] = EMAIL_MESTRE
+                    st.rerun()
+                # Se for um usuário comum a tentar testar a plataforma:
+                elif email_input and senha_input:
+                    st.session_state["usuario_logado"] = True
+                    st.session_state["email_usuario"] = email_input.strip().lower()
+                    st.rerun()
+                else:
+                    st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
+    
+    # Esta barreira impede que curiosos vejam o aplicativo sem a senha
+    st.stop()
+
+# ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
 import streamlit.components.v1 as components
@@ -244,20 +285,28 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 
 
 # ==========================================================
-# 3. PAINEL CENTRAL DE OPERAÇÃO (ADEUS BARRA LATERAL)
+# 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
 st.markdown("<h3 style='text-align: center; color: #00BFA5; margin-bottom: 5px;'>⚡ Central de Operação</h3>", unsafe_allow_html=True)
 
-COFRE_DE_LINKS = {
-    "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
-    "O Garimpo Chic": "" 
-}
+# Lógica SaaS: Identifica se é o Sócio Mestre ou um usuário novo
+if st.session_state["email_usuario"] == EMAIL_MESTRE:
+    COFRE_DE_LINKS = {
+        "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
+        "O Garimpo Chic": "" 
+    }
+    opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
+    st.success(f"Bem-vindo de volta, Sócio! (Logado como {EMAIL_MESTRE})")
+else:
+    # Plataforma zerada para novos usuários
+    COFRE_DE_LINKS = {}
+    opcoes_canais = ["➕ Adicionar Novo Canal"]
+    st.info(f"Bem-vindo(a) à ÉLÉVO! (Logado como {st.session_state['email_usuario']})")
 
 with st.container(border=True):
     col_conta, col_filtro = st.columns(2)
     
     with col_conta:
-        opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
         canal_selecionado = st.selectbox("🎯 Selecione a Conta", opcoes_canais)
         
         if canal_selecionado == "➕ Adicionar Novo Canal":
@@ -278,6 +327,11 @@ with st.container(border=True):
             ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
         )
 
+# Botão de Sair (Logout)
+if st.button("Sair da Conta (Logout)", key="btn_logout"):
+    st.session_state["usuario_logado"] = False
+    st.session_state["email_usuario"] = ""
+    st.rerun()
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
 # ==========================================================
