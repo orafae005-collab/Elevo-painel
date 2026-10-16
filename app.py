@@ -94,7 +94,11 @@ estilo_elevo = f"""
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
 
-    [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
+    /* Ocultação Segura do Cabeçalho para não bugar o botão do Menu no Telemóvel */
+    [data-testid="stHeader"] {{ background: transparent !important; }}
+    [data-testid="stHeader"] > div {{ opacity: 0 !important; pointer-events: none !important; }}
+    [data-testid="collapsedControl"] {{ opacity: 0 !important; position: absolute; z-index: -999; }}
+    
     footer {{ display: none !important; }}
 
     /* Garante que os textos normais fiquem confortáveis */
@@ -170,7 +174,7 @@ estilo_elevo = f"""
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA COM ZONA MORTA (CLIQUE INFALÍVEL)
+# 🎯 INJEÇÃO DA MOEDA ANIMADA COM ZONA MORTA E ABERTURA BLINDADA
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -194,17 +198,16 @@ js_moeda = """
             initialLeft = btn.offsetLeft;
             initialTop = btn.offsetTop;
             btn.style.opacity = '0.7';
-            btn.style.transform = 'scale(0.9)'; // Feedback visual do clique
+            btn.style.transform = 'scale(0.9)'; 
         }
 
         function onTouchMove(e) {
             let dx = e.touches[0].clientX - startX;
             let dy = e.touches[0].clientY - startY;
             
-            // DEADZONE: Só considera arrasto se mover mais de 12 pixels!
             if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
                 isDragging = true;
-                e.preventDefault(); // Bloqueia a rolagem do ecrã
+                e.preventDefault(); 
                 btn.style.left = (initialLeft + dx) + "px";
                 btn.style.top = (initialTop + dy) + "px";
             }
@@ -214,7 +217,7 @@ js_moeda = """
             btn.style.opacity = '1';
             btn.style.transform = 'scale(1)';
             if (!isDragging) {
-                abrirSidebarExtremo();
+                abrirSidebarSeguro();
             }
             isDragging = false;
         }
@@ -251,7 +254,7 @@ js_moeda = """
                 parent.removeEventListener('mousemove', onMouseMove);
                 parent.removeEventListener('mouseup', onMouseUp);
                 if (!isDragging) {
-                    abrirSidebarExtremo();
+                    abrirSidebarSeguro();
                 }
                 isDragging = false;
             }
@@ -261,24 +264,20 @@ js_moeda = """
         });
 
         // ==========================
-        // CAÇADOR DE MENUS (FALLBACK)
+        // CLIQUE SEGURO NA BARRA LATERAL
         // ==========================
-        function abrirSidebarExtremo() {
-            // Tentativa 1: Mobile e Novo Streamlit
-            let btn1 = parent.querySelector('[data-testid="collapsedControl"]');
-            if (btn1) { btn1.click(); return; }
+        function abrirSidebarSeguro() {
+            // Clica diretamente no botão nativo sem caçar SVGs aleatórios
+            let btnOpen = parent.querySelector('[data-testid="collapsedControl"]');
+            if (btnOpen) { 
+                btnOpen.click(); 
+                return; 
+            }
             
-            // Tentativa 2: Fechar Sidebar quando já está aberta
-            let btn2 = parent.querySelector('[data-testid="stSidebarHeader"] button');
-            if (btn2) { btn2.click(); return; }
-
-            // Tentativa 3: Radar cego para encontrar o botão de SVG
-            let allButtons = parent.querySelectorAll('button');
-            for (let b of allButtons) {
-                if (b.getAttribute('kind') === 'header' || (b.innerHTML && b.innerHTML.includes('<svg'))) {
-                    b.click();
-                    return;
-                }
+            // Se já estiver aberta, clica para fechar
+            let btnClose = parent.querySelector('[data-testid="stSidebarHeader"] button');
+            if (btnClose) { 
+                btnClose.click(); 
             }
         }
     }
