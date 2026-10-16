@@ -57,7 +57,7 @@ robo_sheets = conectar_robo()
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
 EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa258467"
+SENHA_MESTRA = "Rafa 258467"
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
 
 if "usuario_logado" not in st.session_state:
@@ -191,28 +191,14 @@ if not st.session_state["usuario_logado"]:
                                 if existe:
                                     st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
+                                    # Salva o novo utilizador na planilha silenciosamente (sem Telegram)
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
-                                        # 🦅 DISPARADOR TELEGRAM COM DEBUG (Mostra o erro se falhar)
-                                        try:
-                                            TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
-                                            SEU_CHAT_ID = "5836053901"
-                                            msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
-                                            
-                                            resposta = requests.post(
-                                                f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", 
-                                                json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, 
-                                                timeout=5
-                                            )
-                                            
-                                            # Se o Telegram recusar a mensagem, mostra na tela o motivo:
-                                            if resposta.status_code != 200:
-                                                st.error(f"Erro do Telegram: {resposta.text}")
-                                                
-                                        except Exception as e:
-                                            st.error(f"Falha de conexão com Telegram: {e}")
-                                            
                                         st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
+                                    else:
+                                        st.error("❌ Falha ao gravar a conta no servidor.")
+                            else:
+                                st.error("❌ Falha de conexão com o banco de dados mestre.")
     
     st.stop()
 # ==========================================================
@@ -1610,3 +1596,55 @@ if st.session_state["ultimo_audio_b64"]:
     """
     
     components.html(html_ondas_inteligentes, height=200)
+
+# ==========================================================
+# 16. PAINEL DE CONTROLE DO CEO (ADMIN SAAS)
+# ==========================================================
+if st.session_state.get("usuario_logado") and st.session_state.get("email_usuario") == EMAIL_MESTRE:
+    st.divider()
+    st.markdown("<h3 style='text-align: center; color: #FF0040;'>👑 Painel de Controle do CEO (Base de Clientes)</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0A0A0;'>Visualize senhas e exclua acessos à sua plataforma.</p>", unsafe_allow_html=True)
+    
+    with st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS", expanded=False):
+        usuarios_bd = conectar_banco_usuarios("ler")
+        
+        if usuarios_bd and len(usuarios_bd) > 0:
+            # Mostra a tabela completa com quem se cadastrou
+            df_users = pd.DataFrame(usuarios_bd)
+            st.dataframe(df_users, use_container_width=True)
+            
+            st.markdown("#### 🗑️ Banir Usuário")
+            col_del1, col_del2 = st.columns([3, 1])
+            with col_del1:
+                email_excluir = st.text_input("Digite o E-mail exato do usuário para banir:", placeholder="exemplo@gmail.com")
+            with col_del2:
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("🚨 EXCLUIR", use_container_width=True, type="primary"):
+                    email_alvo = email_excluir.strip().lower()
+                    if not email_alvo:
+                        st.warning("Digite um e-mail.")
+                    elif email_alvo == EMAIL_MESTRE:
+                        st.error("O CEO não pode ser banido!")
+                    else:
+                        with st.spinner("A deletar usuário do banco de dados..."):
+                            try:
+                                match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+                                sheet_id = match.group(1) if match else None
+                                planilha = robo_sheets.open_by_key(sheet_id)
+                                aba = planilha.worksheet("Banco_Usuarios")
+                                
+                                emails_col = aba.col_values(1) 
+                                
+                                # Procura a linha exata do e-mail e apaga
+                                if email_alvo in [e.lower() for e in emails_col]:
+                                    linha_index = next(i for i, e in enumerate(emails_col) if e.lower() == email_alvo) + 1
+                                    aba.delete_rows(linha_index)
+                                    st.success(f"💥 {email_alvo} foi banido e apagado do sistema!")
+                                    time.sleep(2)
+                                    st.rerun()
+                                else:
+                                    st.warning("Usuário não encontrado.")
+                            except Exception as e:
+                                st.error(f"Erro ao excluir: {e}")
+        else:
+            st.info("O seu banco de dados está vazio. Nenhum cliente cadastrado ainda.")
