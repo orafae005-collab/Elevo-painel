@@ -54,20 +54,41 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 0. PORTARIA VIP (SISTEMA DE LOGIN E CADASTRO SAAS)
+# 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
+# A SUA CHAVE MESTRA PERMANENTE E LINK DO BANCO DE DADOS CENTRAL
+EMAIL_MESTRE = "orafae005@gmail.com" 
+SENHA_MESTRA = "Rafa 258467"
+LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
+
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
 
-# Banco de dados de usuários na memória da plataforma
-if "banco_usuarios" not in st.session_state:
-    st.session_state["banco_usuarios"] = {}
-
-# A SUA CHAVE MESTRA PERMANENTE:
-EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa 258467"
+# Motor de conexão com o Google Sheets para ler e salvar usuários
+def conectar_banco_usuarios(acao, email="", nome="", senha=""):
+    if not robo_sheets: return None
+    try:
+        import re
+        match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        sheet_id = match.group(1) if match else None
+        planilha = robo_sheets.open_by_key(sheet_id)
+        
+        # Procura a aba do banco de dados, se não existir, cria-a na hora!
+        try:
+            aba = planilha.worksheet("Banco_Usuarios")
+        except gspread.exceptions.WorksheetNotFound:
+            aba = planilha.add_worksheet(title="Banco_Usuarios", rows="1000", cols="3")
+            aba.append_row(["Email", "Nome", "Senha"])
+        
+        if acao == "ler":
+            return aba.get_all_records()
+        elif acao == "salvar":
+            aba.append_row([email, nome, senha])
+            return True
+    except Exception as e:
+        return None
 
 if not st.session_state["usuario_logado"]:
     # Design Premium da Tela de Entrada
@@ -78,7 +99,6 @@ if not st.session_state["usuario_logado"]:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.container(border=True):
-            # Criação das duas abas: Entrar e Criar Conta
             aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
             
             with aba_login:
@@ -96,16 +116,24 @@ if not st.session_state["usuario_logado"]:
                         st.session_state["nome_usuario"] = "Sócio"
                         st.rerun()
                         
-                    # 2. Verifica se é um Cliente Cadastrado
-                    elif email_clean in st.session_state["banco_usuarios"] and st.session_state["banco_usuarios"][email_clean]["senha"] == senha_input:
-                        st.session_state["usuario_logado"] = True
-                        st.session_state["email_usuario"] = email_clean
-                        st.session_state["nome_usuario"] = st.session_state["banco_usuarios"][email_clean]["nome"]
-                        st.rerun()
-                        
-                    # 3. Bloqueia Invasores e Curiosos
+                    # 2. Verifica as credenciais no Banco de Dados do Google Sheets
+                    elif email_clean and senha_input:
+                        with st.spinner("A verificar credenciais no servidor..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
+                                
+                                if usuario_encontrado:
+                                    st.session_state["usuario_logado"] = True
+                                    st.session_state["email_usuario"] = email_clean
+                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    st.rerun()
+                                else:
+                                    st.error("🚨 Conta não encontrada ou senha incorreta!")
+                            else:
+                                st.error("🚨 Erro de conexão com o banco de dados.")
                     else:
-                        st.error("🚨 Conta não encontrada ou senha incorreta! Se for novo, vá em 'Criar Conta'.")
+                        st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
 
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
@@ -115,19 +143,28 @@ if not st.session_state["usuario_logado"]:
                 
                 if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
                     email_clean = novo_email.strip().lower()
+                    
                     if not novo_nome or not email_clean or not nova_senha:
                         st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
-                    elif email_clean == EMAIL_MESTRE or email_clean in st.session_state["banco_usuarios"]:
-                        st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
+                    elif email_clean == EMAIL_MESTRE:
+                        st.error("🚨 Este e-mail é reservado ao CEO da plataforma.")
                     else:
-                        # Salva o novo usuário na plataforma
-                        st.session_state["banco_usuarios"][email_clean] = {
-                            "nome": novo_nome.strip(),
-                            "senha": nova_senha
-                        }
-                        st.success(f"✅ Conta criada, {novo_nome}! Volte à aba 'Entrar' e faça o login.")
+                        with st.spinner("A forjar a sua conta na base de dados..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                existe = any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios)
+                                if existe:
+                                    st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
+                                else:
+                                    # Salva o novo utilizador PARA SEMPRE na sua planilha
+                                    sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
+                                    if sucesso:
+                                        st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
+                                    else:
+                                        st.error("❌ Falha ao gravar a conta no servidor.")
+                            else:
+                                st.error("❌ Falha de conexão com o banco de dados mestre.")
     
-    # Barreira de Segurança
     st.stop()
 
 # ==========================================================
