@@ -56,6 +56,8 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA CORRIGIDA)
 # ==========================================================
+import streamlit.components.v1 as components
+
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -87,11 +89,11 @@ else:
 estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
-    
+
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
     [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
-    
+
     [data-testid="stHeader"] {{ opacity: 0 !important; height: 0px !important; pointer-events: none !important; }}
     footer {{ display: none !important; }}
 
@@ -105,7 +107,7 @@ estilo_elevo = f"""
         margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase;
         margin-top: 5px;
     }}
-    
+
     .subtitulo {{
         text-align: center; font-size: 0.95rem; margin-bottom: 30px;
         font-weight: 400; letter-spacing: 1px; text-transform: uppercase;
@@ -160,7 +162,7 @@ estilo_elevo = f"""
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
         border-color: #00BFA5 !important;
     }}
-    
+
     /* Proteção para as Métricas */
     [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
     [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
@@ -168,7 +170,7 @@ estilo_elevo = f"""
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA E ARRASTÁVEL VIA JAVASCRIPT (COM BUG DE ROLAGEM CORRIGIDO)
+# 🎯 INJEÇÃO DA MOEDA ANIMADA (TOUCH E MOUSE CORRIGIDOS)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -178,51 +180,67 @@ js_moeda = """
         btn.innerHTML = "🦅";
         btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none;";
         parent.body.appendChild(btn);
-        
-        let isDragging = false, isDown = false, startX, startY, initialLeft, initialTop;
-        
-        // Só ativa o estado de arrasto se tocar EXATAMENTE no botão da águia
-        btn.addEventListener('touchstart', function(e) { 
-            isDown = true;
-            isDragging = false; 
-            startX = e.touches[0].clientX; 
-            startY = e.touches[0].clientY; 
-            initialLeft = btn.offsetLeft; 
-            initialTop = btn.offsetTop; 
-            btn.style.opacity = '0.8'; 
-        }, {passive: false});
-        
-        // Só move e bloqueia a tela se isDown for verdadeiro (toque iniciou no botão)
-        parent.addEventListener('touchmove', function(e) { 
-            if (!isDown) return; // Deixa a tela rolar livremente se não tocou na águia!
-            let dx = e.touches[0].clientX - startX; 
-            let dy = e.touches[0].clientY - startY; 
-            if (Math.abs(dx) > 5 || Math.abs(dy) > 5) { 
-                isDragging = true; 
-                e.preventDefault(); // Impede rolagem só durante o arrasto da águia
-                btn.style.left = (initialLeft + dx) + "px"; 
-                btn.style.top = (initialTop + dy) + "px"; 
-            } 
-        }, {passive: false});
-        
-        parent.addEventListener('touchend', function(e) { 
-            if (!isDown) return;
-            isDown = false;
-            btn.style.opacity = '1'; 
-            if (!isDragging) toggleSidebar(); 
-            isDragging = false; 
-        });
-        
-        function toggleSidebar() { 
-            const openBtn = parent.querySelector('[data-testid="collapsedControl"]'); 
-            if (openBtn) { openBtn.click(); } 
-            else { 
-                const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]'); 
-                if (sidebarHeader) { 
-                    const closeBtn = sidebarHeader.querySelector('button'); 
-                    if (closeBtn) closeBtn.click(); 
-                } 
-            } 
+
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+
+        function startDrag(e) {
+            isDragging = false;
+            startX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            startY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            initialLeft = btn.offsetLeft;
+            initialTop = btn.offsetTop;
+            btn.style.opacity = '0.8';
+            btn.setAttribute('data-down', 'true');
+        }
+
+        function doDrag(e) {
+            if (btn.getAttribute('data-down') !== 'true') return;
+            let clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+            let clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+            let dx = clientX - startX;
+            let dy = clientY - startY;
+            
+            if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+                isDragging = true;
+                if(e.cancelable) e.preventDefault(); 
+                btn.style.left = (initialLeft + dx) + "px";
+                btn.style.top = (initialTop + dy) + "px";
+            }
+        }
+
+        function stopDrag(e) {
+            if (btn.getAttribute('data-down') !== 'true') return;
+            btn.style.opacity = '1';
+            btn.removeAttribute('data-down');
+            
+            if (!isDragging) {
+                toggleSidebar();
+            }
+            isDragging = false;
+        }
+
+        // Suporte para Celular (Touch)
+        btn.addEventListener('touchstart', startDrag, {passive: false});
+        parent.addEventListener('touchmove', doDrag, {passive: false});
+        parent.addEventListener('touchend', stopDrag);
+
+        // Suporte para Computador (Mouse)
+        btn.addEventListener('mousedown', startDrag);
+        parent.addEventListener('mousemove', doDrag);
+        parent.addEventListener('mouseup', stopDrag);
+        parent.addEventListener('mouseleave', stopDrag);
+
+        function toggleSidebar() {
+            const openBtn = parent.querySelector('[data-testid="collapsedControl"]');
+            if (openBtn) { 
+                openBtn.click(); 
+            } else {
+                const sidebarHeader = parent.querySelector('[data-testid="stSidebarHeader"]');
+                if (sidebarHeader) {
+                    const closeBtn = sidebarHeader.querySelector('button');
+                    if (closeBtn) closeBtn.click();
+                }
+            }
         }
     }
 </script>
@@ -231,7 +249,6 @@ components.html(js_moeda, height=0, width=0)
 
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 # ==========================================================
 # 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
 # ==========================================================
