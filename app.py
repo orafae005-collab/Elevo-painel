@@ -507,8 +507,15 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
 # ==========================================================
 # 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V6.3 - VIP NATIVO CELULAR)
 # ==========================================================
+# Inicialização de segurança (Blinda contra NameError em contas novas)
+df_campeao = pd.DataFrame()
+df_timeline = pd.DataFrame()
+produto_campeao = "Nenhum"
+aprovado = 0.0
+pendente = 0.0
+
 if not link_planilha_ativa:
-    st.info(f"👉 Cole o link da planilha na barra lateral para carregar os dados de '{nome_canal_ativo}'.")
+    st.info(f"👉 Cole o link da planilha no painel acima para carregar os dados de '{nome_canal_ativo}'.")
 else:
     if not df_filtrado.empty:
         aprovado = df_filtrado[df_filtrado["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]["Comissao_R$"].sum()
@@ -524,16 +531,6 @@ else:
             df_timeline = df_validos.groupby("Data_Parsed")["Comissao_R$"].sum().reset_index()
             df_timeline.sort_values("Data_Parsed", inplace=True)
             df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
-        else:
-            df_campeao = pd.DataFrame()
-            df_timeline = pd.DataFrame()
-            produto_campeao = "Nenhum"
-    else:
-        aprovado = 0.0
-        pendente = 0.0
-        df_campeao = pd.DataFrame()
-        df_timeline = pd.DataFrame()
-        produto_campeao = "Nenhum"
 
     st.markdown(f"### 📊 Faturamento: {nome_canal_ativo}")
 
