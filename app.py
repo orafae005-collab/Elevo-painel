@@ -56,21 +56,15 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
-# A SUA CHAVE MESTRA PERMANENTE E LINK DO BANCO DE DADOS CENTRAL
 EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa 258467"
+SENHA_MESTRA = "Rafa258467"
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
-
-# DADOS DO TELEGRAM (JÁ PREENCHIDOS)
-TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
-SEU_CHAT_ID = "5836053901"
 
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
 
-# Motor de conexão com o Google Sheets para ler e salvar usuários
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
     try:
@@ -79,7 +73,6 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
         sheet_id = match.group(1) if match else None
         planilha = robo_sheets.open_by_key(sheet_id)
         
-        # Procura a aba do banco de dados, se não existir, cria-a na hora!
         try:
             aba = planilha.worksheet("Banco_Usuarios")
         except gspread.exceptions.WorksheetNotFound:
@@ -95,7 +88,6 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
         return None
 
 if not st.session_state["usuario_logado"]:
-    # Estilo compacto: Águia e dinheiro integrados e colados no título
     st.markdown("""
         <style>
             [data-testid="stHeader"] { display: none !important; }
@@ -104,22 +96,13 @@ if not st.session_state["usuario_logado"]:
             header { visibility: hidden !important; }
 
             .container-animacao-elevo {
-                position: relative;
-                width: 100%;
-                height: 50px;
-                display: flex;
-                justify-content: center;
-                align-items: center;
-                margin-top: 15px;
-                margin-bottom: -10px;
-                overflow: visible;
+                position: relative; width: 100%; height: 50px; display: flex;
+                justify-content: center; align-items: center; margin-top: 15px;
+                margin-bottom: -10px; overflow: visible;
             }
 
             .dinheiro-voando {
-                position: absolute;
-                font-size: 22px;
-                animation: subirDinheiro 2.2s infinite ease-in;
-                opacity: 0;
+                position: absolute; font-size: 22px; animation: subirDinheiro 2.2s infinite ease-in; opacity: 0;
             }
 
             @keyframes subirDinheiro {
@@ -130,10 +113,7 @@ if not st.session_state["usuario_logado"]:
             }
 
             .aguia-cacadora {
-                position: absolute;
-                font-size: 35px;
-                animation: vooAgressivo 2.2s infinite ease-in-out;
-                z-index: 10;
+                position: absolute; font-size: 35px; animation: vooAgressivo 2.2s infinite ease-in-out; z-index: 10;
             }
 
             @keyframes vooAgressivo {
@@ -150,7 +130,6 @@ if not st.session_state["usuario_logado"]:
         </div>
     """, unsafe_allow_html=True)
 
-    # Título Principal e Subtítulo coladinhos
     st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
     
@@ -167,21 +146,12 @@ if not st.session_state["usuario_logado"]:
                 if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
                     email_clean = email_input.strip().lower()
                     
-                    # 1. Verifica se é VOCÊ (O Sócio Mestre)
                     if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
                         st.session_state["usuario_logado"] = True
                         st.session_state["email_usuario"] = EMAIL_MESTRE
                         st.session_state["nome_usuario"] = "Sócio"
-                        
-                        # 🦅 AVISA O TELEGRAM QUE O CEO ENTROU
-                        try:
-                            msg_login = "👑 *O CHEFE ENTROU!* 👑\n\nO CEO Rafael acabou de aceder à central ÉLÉVO."
-                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_login, "parse_mode": "Markdown"}, timeout=3)
-                        except:
-                            pass
                         st.rerun()
                         
-                    # 2. Verifica as credenciais no Banco de Dados do Google Sheets
                     elif email_clean and senha_input:
                         with st.spinner("A verificar credenciais no servidor..."):
                             usuarios = conectar_banco_usuarios("ler")
@@ -189,17 +159,9 @@ if not st.session_state["usuario_logado"]:
                                 usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
                                 
                                 if usuario_encontrado:
-                                    nome_log = str(usuario_encontrado.get("Nome", "Usuário"))
                                     st.session_state["usuario_logado"] = True
                                     st.session_state["email_usuario"] = email_clean
-                                    st.session_state["nome_usuario"] = nome_log
-                                    
-                                    # 🦅 AVISA O TELEGRAM QUE UM CLIENTE ENTROU
-                                    try:
-                                        msg_login = f"🟢 *ACESSO DETETADO!* 🟢\n\n👤 O utilizador *{nome_log}* (`{email_clean}`) acabou de entrar na plataforma!"
-                                        requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_login, "parse_mode": "Markdown"}, timeout=3)
-                                    except:
-                                        pass
+                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
                                     st.rerun()
                                 else:
                                     st.error("🚨 Conta não encontrada ou senha incorreta!")
@@ -229,11 +191,12 @@ if not st.session_state["usuario_logado"]:
                                 if existe:
                                     st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
-                                    # Salva na planilha
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
-                                        # 🦅 AVISA O TELEGRAM QUE TEM USUÁRIO NOVO
+                                        # 🦅 Puxa as chaves do cofre do Streamlit
                                         try:
+                                            TOKEN_SEU_BOT = st.secrets["TELEGRAM_TOKEN"]
+                                            SEU_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"]
                                             msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
                                             requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
                                         except:
