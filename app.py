@@ -53,119 +53,69 @@ def conectar_robo():
 
 robo_sheets = conectar_robo()
 
-# ==========================================================
-# 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
-# ==========================================================
-# A SUA CHAVE MESTRA PERMANENTE E LINK DO BANCO DE DADOS CENTRAL
-EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa 258467"
-LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
-
-if "usuario_logado" not in st.session_state:
-    st.session_state["usuario_logado"] = False
-    st.session_state["email_usuario"] = ""
-    st.session_state["nome_usuario"] = ""
-
-# Motor de conexão com o Google Sheets para ler e salvar usuários
-def conectar_banco_usuarios(acao, email="", nome="", senha=""):
-    if not robo_sheets: return None
-    try:
-        import re
-        match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        sheet_id = match.group(1) if match else None
-        planilha = robo_sheets.open_by_key(sheet_id)
-        
-        # Procura a aba do banco de dados, se não existir, cria-a na hora!
-        try:
-            aba = planilha.worksheet("Banco_Usuarios")
-        except gspread.exceptions.WorksheetNotFound:
-            aba = planilha.add_worksheet(title="Banco_Usuarios", rows="1000", cols="3")
-            aba.append_row(["Email", "Nome", "Senha"])
-        
-        if acao == "ler":
-            return aba.get_all_records()
-        elif acao == "salvar":
-            aba.append_row([email, nome, senha])
-            return True
-    except Exception as e:
-        return None
-
 if not st.session_state["usuario_logado"]:
-    # Design Premium da Tela de Entrada
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    st.markdown("<h1 style='text-align: center; color: #00BFA5; font-size: 4rem; font-weight: 900;'>ÉLÉVO</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #A0A0A0;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
-    
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.container(border=True):
-            aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
-            
-            with aba_login:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
-                email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...", key="login_email")
-                senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...", key="login_senha")
-                
-                if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
-                    email_clean = email_input.strip().lower()
-                    
-                    # 1. Verifica se é VOCÊ (O Sócio Mestre)
-                    if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
-                        st.session_state["usuario_logado"] = True
-                        st.session_state["email_usuario"] = EMAIL_MESTRE
-                        st.session_state["nome_usuario"] = "Sócio"
-                        st.rerun()
-                        
-                    # 2. Verifica as credenciais no Banco de Dados do Google Sheets
-                    elif email_clean and senha_input:
-                        with st.spinner("A verificar credenciais no servidor..."):
-                            usuarios = conectar_banco_usuarios("ler")
-                            if usuarios is not None:
-                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
-                                
-                                if usuario_encontrado:
-                                    st.session_state["usuario_logado"] = True
-                                    st.session_state["email_usuario"] = email_clean
-                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
-                                    st.rerun()
-                                else:
-                                    st.error("🚨 Conta não encontrada ou senha incorreta!")
-                            else:
-                                st.error("🚨 Erro de conexão com o banco de dados.")
-                    else:
-                        st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
+    # Estilo compacto: Águia e dinheiro integrados e colados no título
+    st.markdown("""
+        <style>
+            /* Esconde totalmente o menu superior, botões de Fork e GitHub do Streamlit */
+            [data-testid="stHeader"] { display: none !important; }
+            [data-testid="stToolbar"] { display: none !important; }
+            #MainMenu { visibility: hidden !important; }
+            header { visibility: hidden !important; }
 
-            with aba_cadastro:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
-                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
-                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
-                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
-                
-                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
-                    email_clean = novo_email.strip().lower()
-                    
-                    if not novo_nome or not email_clean or not nova_senha:
-                        st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
-                    elif email_clean == EMAIL_MESTRE:
-                        st.error("🚨 Este e-mail é reservado ao CEO da plataforma.")
-                    else:
-                        with st.spinner("A forjar a sua conta na base de dados..."):
-                            usuarios = conectar_banco_usuarios("ler")
-                            if usuarios is not None:
-                                existe = any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios)
-                                if existe:
-                                    st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
-                                else:
-                                    # Salva o novo utilizador PARA SEMPRE na sua planilha
-                                    sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
-                                    if sucesso:
-                                        st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
-                                    else:
-                                        st.error("❌ Falha ao gravar a conta no servidor.")
-                            else:
-                                st.error("❌ Falha de conexão com o banco de dados mestre.")
-    
-    st.stop()
+            /* Container Compacto (Zero espaçamento inútil) */
+            .container-animacao-elevo {
+                position: relative;
+                width: 100%;
+                height: 50px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                margin-top: 15px;
+                margin-bottom: -10px;
+                overflow: visible;
+            }
+
+            /* O Dinheiro a subir suavemente */
+            .dinheiro-voando {
+                position: absolute;
+                font-size: 22px;
+                animation: subirDinheiro 2.2s infinite ease-in;
+                opacity: 0;
+            }
+
+            @keyframes subirDinheiro {
+                0% { bottom: -10px; opacity: 0; transform: scale(0.5) rotate(-10deg); }
+                30% { opacity: 1; }
+                80% { opacity: 1; transform: scale(1) rotate(10deg); }
+                100% { bottom: 45px; opacity: 0; transform: scale(1.1) rotate(0deg); }
+            }
+
+            /* A Águia em voo rasante compacto */
+            .aguia-cacadora {
+                position: absolute;
+                font-size: 35px;
+                animation: vooAgressivo 2.2s infinite ease-in-out;
+                z-index: 10;
+            }
+
+            @keyframes vooAgressivo {
+                0% { top: -20px; transform: scale(0.8) rotate(-15deg); }
+                40% { top: 5px; transform: scale(1.1) rotate(0deg); } 
+                60% { top: -5px; transform: scale(1) rotate(5deg); } 
+                100% { top: -20px; transform: scale(0.8) rotate(-15deg); }
+            }
+        </style>
+
+        <div class="container-animacao-elevo">
+            <div class="dinheiro-voando">💵</div>
+            <div class="aguia-cacadora">🦅</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+    # Título Principal e Subtítulo coladinhos
+    st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
