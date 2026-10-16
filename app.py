@@ -420,57 +420,6 @@ if "Data" in df.columns:
     df["Data_Parsed"] = df["Data_Parsed"].fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
 else:
     df["Data_Parsed"] = pd.NaT
-# ==========================================================
-# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
-# ==========================================================
-def extrair_id_planilha(url):
-    match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
-    return match.group(1) if match else None
-
-@st.cache_data(ttl=300)
-def carregar_dados_dinamicos(url):
-    if not url or not robo_sheets:
-        return pd.DataFrame()
-    try:
-        sheet_id = extrair_id_planilha(url)
-        planilha = robo_sheets.open_by_key(sheet_id)
-        aba = planilha.sheet1
-        dados = aba.get_all_records()
-        if dados:
-            df_temp = pd.DataFrame(dados)
-            df_temp.replace("", pd.NA, inplace=True)
-            df_temp.dropna(how='all', inplace=True)
-            return df_temp
-        return pd.DataFrame()
-    except Exception:
-        return pd.DataFrame()
-
-df = carregar_dados_dinamicos(link_planilha_ativa)
-
-if df.empty:
-    df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
-
-df.columns = df.columns.astype(str).str.strip()
-
-if "Quantidade" in df.columns:
-    df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
-else:
-    df["Quantidade"] = 0
-
-if "Comissao_R$" in df.columns:
-    df["Comissao_R$"] = pd.to_numeric(
-        df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), 
-        errors="coerce"
-    ).fillna(0.0)
-else:
-    df["Comissao_R$"] = 0.0
-
-if "Data" in df.columns:
-    df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
-    df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce")
-    df["Data_Parsed"] = df["Data_Parsed"].fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
-else:
-    df["Data_Parsed"] = pd.NaT
 
 # ==========================================================
 # 5. APLICAÇÃO DOS FILTROS DE PERÍODO NA BASE 
