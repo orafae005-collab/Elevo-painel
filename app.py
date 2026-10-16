@@ -54,7 +54,7 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM & ÁGUIA VIP)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
 import streamlit.components.v1 as components
 
@@ -92,13 +92,11 @@ estilo_elevo = f"""
 
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
-    [data-testid="stSidebar"] {{ background-color: {bg_color}; }}
-
-    /* Ocultação Segura do Cabeçalho para não bugar o botão do Menu no Telemóvel */
-    [data-testid="stHeader"] {{ background: transparent !important; }}
-    [data-testid="stHeader"] > div {{ opacity: 0 !important; pointer-events: none !important; }}
-    [data-testid="collapsedControl"] {{ opacity: 0 !important; position: absolute; z-index: -999; }}
     
+    /* Removemos qualquer traço do cabeçalho bugado e da barra lateral */
+    [data-testid="stSidebar"] {{ display: none !important; }}
+    [data-testid="stHeader"] {{ display: none !important; }}
+    [data-testid="collapsedControl"] {{ display: none !important; }}
     footer {{ display: none !important; }}
 
     /* Garante que os textos normais fiquem confortáveis */
@@ -126,36 +124,6 @@ estilo_elevo = f"""
         box-shadow: 0 4px 10px {shadow_base} !important;
     }}
 
-    /* Botões VIP Secundários */
-    .stButton > button {{
-        background: {btn_bg} !important;
-        color: {btn_text} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 8px !important;
-        box-shadow: 0 2px 5px {shadow_base} !important;
-        font-weight: 500 !important;
-        transition: all 0.2s ease !important;
-    }}
-    .stButton > button:hover {{
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px {shadow_base} !important;
-        border-color: rgba(255, 255, 255, 0.15) !important;
-    }}
-
-    /* Botões VIP Primários */
-    .stButton > button[kind="primary"] {{
-        background: {btn_primary_bg} !important;
-        color: {btn_primary_text} !important;
-        font-weight: 600 !important;
-        border: none !important;
-        border-radius: 8px !important;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important;
-    }}
-    .stButton > button[kind="primary"]:hover {{
-        background: #00695C !important;
-        box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important;
-    }}
-
     /* Inputs e TextAreas Discretos */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
         background-color: {input_bg} !important;
@@ -166,15 +134,11 @@ estilo_elevo = f"""
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
         border-color: #00BFA5 !important;
     }}
-
-    /* Proteção para as Métricas */
-    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
-    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA COM ZONA MORTA E ABERTURA BLINDADA
+# 🎯 INJEÇÃO DA MOEDA ANIMADA (NOVO PODER: VOLTAR AO TOPO / TROCAR CONTA)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -188,9 +152,6 @@ js_moeda = """
         let isDragging = false;
         let startX, startY, initialLeft, initialTop;
 
-        // ==========================
-        // CONTROLO DE TELEMÓVEL (TOUCH)
-        // ==========================
         function onTouchStart(e) {
             isDragging = false;
             startX = e.touches[0].clientX;
@@ -204,7 +165,6 @@ js_moeda = """
         function onTouchMove(e) {
             let dx = e.touches[0].clientX - startX;
             let dy = e.touches[0].clientY - startY;
-            
             if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
                 isDragging = true;
                 e.preventDefault(); 
@@ -217,7 +177,7 @@ js_moeda = """
             btn.style.opacity = '1';
             btn.style.transform = 'scale(1)';
             if (!isDragging) {
-                abrirSidebarSeguro();
+                irParaTopoConta();
             }
             isDragging = false;
         }
@@ -226,9 +186,6 @@ js_moeda = """
         btn.addEventListener('touchmove', onTouchMove, {passive: false});
         btn.addEventListener('touchend', onTouchEnd);
 
-        // ==========================
-        // CONTROLO DE COMPUTADOR (RATO)
-        // ==========================
         btn.addEventListener('mousedown', function(e) {
             isDragging = false;
             startX = e.clientX;
@@ -254,7 +211,7 @@ js_moeda = """
                 parent.removeEventListener('mousemove', onMouseMove);
                 parent.removeEventListener('mouseup', onMouseUp);
                 if (!isDragging) {
-                    abrirSidebarSeguro();
+                    irParaTopoConta();
                 }
                 isDragging = false;
             }
@@ -264,20 +221,14 @@ js_moeda = """
         });
 
         // ==========================
-        // CLIQUE SEGURO NA BARRA LATERAL
+        // TELETRANSPORTE PARA O TOPO
         // ==========================
-        function abrirSidebarSeguro() {
-            // Clica diretamente no botão nativo sem caçar SVGs aleatórios
-            let btnOpen = parent.querySelector('[data-testid="collapsedControl"]');
-            if (btnOpen) { 
-                btnOpen.click(); 
-                return; 
-            }
-            
-            // Se já estiver aberta, clica para fechar
-            let btnClose = parent.querySelector('[data-testid="stSidebarHeader"] button');
-            if (btnClose) { 
-                btnClose.click(); 
+        function irParaTopoConta() {
+            const topo = parent.getElementById("ancora-topo");
+            if (topo) {
+                topo.scrollIntoView({behavior: "smooth", block: "start"});
+            } else {
+                parent.querySelector('.main').scrollTo({top: 0, behavior: 'smooth'});
             }
         }
     }
@@ -285,43 +236,47 @@ js_moeda = """
 """
 components.html(js_moeda, height=0, width=0)
 
+# Âncora invisível para a Águia mirar quando for clicada
+st.markdown('<div id="ancora-topo"></div>', unsafe_allow_html=True)
+
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
+
 # ==========================================================
-# 3. BARRA LATERAL (SELETOR DE CONTAS E LINK DINÂMICO)
+# 3. PAINEL CENTRAL DE OPERAÇÃO (ADEUS BARRA LATERAL)
 # ==========================================================
-st.sidebar.markdown("<h2 style='text-align: center; color: #00BFA5 !important; font-weight: 900; font-size: 2rem;'>⚡ OPERAÇÃO</h2>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5; margin-bottom: 5px;'>⚡ Central de Operação</h3>", unsafe_allow_html=True)
 
 COFRE_DE_LINKS = {
     "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
     "O Garimpo Chic": "" 
 }
 
-opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
-canal_selecionado = st.sidebar.selectbox("🎯 Selecione a Conta", opcoes_canais)
+with st.container(border=True):
+    col_conta, col_filtro = st.columns(2)
+    
+    with col_conta:
+        opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
+        canal_selecionado = st.selectbox("🎯 Selecione a Conta", opcoes_canais)
+        
+        if canal_selecionado == "➕ Adicionar Novo Canal":
+            nome_canal_ativo = st.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
+            link_planilha_ativa = st.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link aqui")
+        else:
+            nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
+            link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
+            if link_salvo != "":
+                link_planilha_ativa = link_salvo
+                st.caption("✅ Link do cofre ativado!")
+            else:
+                link_planilha_ativa = st.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link aqui")
 
-if canal_selecionado == "➕ Adicionar Novo Canal":
-    nome_canal_ativo = st.sidebar.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
-    link_planilha_ativa = st.sidebar.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link de compartilhamento aqui")
-else:
-    nome_canal_ativo = canal_selecionado.replace("🟢 ", "").replace("🟣 ", "")
-    link_salvo = COFRE_DE_LINKS.get(nome_canal_ativo, "")
-    if link_salvo != "":
-        link_planilha_ativa = link_salvo
-        st.sidebar.success("✅ Link carregado do cofre automaticamente!")
-    else:
-        link_planilha_ativa = st.sidebar.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link da planilha correspondente aqui")
-
-filtro_periodo = st.sidebar.selectbox(
-    "📅 Filtrar Período",
-    ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
-)
-
-prints_comissao = st.sidebar.file_uploader(
-    "Suba os Prints do TikTok Shop (Máx: 5 imagens)", 
-    type=["png", "jpg", "jpeg"], 
-    accept_multiple_files=True
-)
+    with col_filtro:
+        filtro_periodo = st.selectbox(
+            "📅 Filtrar Período de Vendas",
+            ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
+        )
 
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
