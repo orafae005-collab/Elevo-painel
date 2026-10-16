@@ -53,6 +53,22 @@ def conectar_robo():
 
 robo_sheets = conectar_robo()
 
+# ==========================================================
+# 0. PORTARIA VIP (SISTEMA DE LOGIN E CADASTRO SAAS)
+# ==========================================================
+if "usuario_logado" not in st.session_state:
+    st.session_state["usuario_logado"] = False
+    st.session_state["email_usuario"] = ""
+    st.session_state["nome_usuario"] = ""
+
+# Banco de dados de usuários na memória da plataforma
+if "banco_usuarios" not in st.session_state:
+    st.session_state["banco_usuarios"] = {}
+
+# A SUA CHAVE MESTRA PERMANENTE:
+EMAIL_MESTRE = "orafae005@gmail.com" 
+SENHA_MESTRA = "Rafa 258467"
+
 if not st.session_state["usuario_logado"]:
     # Estilo compacto: Águia e dinheiro integrados e colados no título
     st.markdown("""
@@ -116,7 +132,6 @@ if not st.session_state["usuario_logado"]:
     # Título Principal e Subtítulo coladinhos
     st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
-
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
