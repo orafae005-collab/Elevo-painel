@@ -54,32 +54,47 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 0. PORTARIA VIP (SISTEMA DE LOGIN E CADASTRO SAAS)
+# 0. PORTARIA VIP (SISTEMA DE LOGIN, CADASTRO E ANIMAÇÃO)
 # ==========================================================
+EMAIL_MESTRE = "orafae005@gmail.com" 
+SENHA_MESTRA = "Rafa 258467"
+LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
+
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
 
-# Banco de dados de usuários na memória da plataforma
-if "banco_usuarios" not in st.session_state:
-    st.session_state["banco_usuarios"] = {}
-
-# A SUA CHAVE MESTRA PERMANENTE:
-EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa 258467"
+def conectar_banco_usuarios(acao, email="", nome="", senha=""):
+    if not robo_sheets: return None
+    try:
+        match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        sheet_id = match.group(1) if match else None
+        planilha = robo_sheets.open_by_key(sheet_id)
+        
+        try:
+            aba = planilha.worksheet("Banco_Usuarios")
+        except gspread.exceptions.WorksheetNotFound:
+            aba = planilha.add_worksheet(title="Banco_Usuarios", rows="1000", cols="3")
+            aba.append_row(["Email", "Nome", "Senha"])
+        
+        if acao == "ler":
+            return aba.get_all_records()
+        elif acao == "salvar":
+            aba.append_row([email, nome, senha])
+            return True
+    except Exception as e:
+        return None
 
 if not st.session_state["usuario_logado"]:
-    # Estilo compacto: Águia e dinheiro integrados e colados no título
+    # Estilo CSS para esconder o cabeçalho, Fork do GitHub e rodar a Animação da Águia com Dinheiro
     st.markdown("""
         <style>
-            /* Esconde totalmente o menu superior, botões de Fork e GitHub do Streamlit */
             [data-testid="stHeader"] { display: none !important; }
             [data-testid="stToolbar"] { display: none !important; }
             #MainMenu { visibility: hidden !important; }
             header { visibility: hidden !important; }
 
-            /* Container Compacto (Zero espaçamento inútil) */
             .container-animacao-elevo {
                 position: relative;
                 width: 100%;
@@ -92,7 +107,6 @@ if not st.session_state["usuario_logado"]:
                 overflow: visible;
             }
 
-            /* O Dinheiro a subir suavemente */
             .dinheiro-voando {
                 position: absolute;
                 font-size: 22px;
@@ -107,7 +121,6 @@ if not st.session_state["usuario_logado"]:
                 100% { bottom: 45px; opacity: 0; transform: scale(1.1) rotate(0deg); }
             }
 
-            /* A Águia em voo rasante compacto */
             .aguia-cacadora {
                 position: absolute;
                 font-size: 35px;
@@ -129,9 +142,76 @@ if not st.session_state["usuario_logado"]:
         </div>
     """, unsafe_allow_html=True)
 
-    # Título Principal e Subtítulo coladinhos
     st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        with st.container(border=True):
+            aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
+            
+            with aba_login:
+                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
+                email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...", key="login_email")
+                senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...", key="login_senha")
+                
+                if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
+                    email_clean = email_input.strip().lower()
+                    
+                    if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
+                        st.session_state["usuario_logado"] = True
+                        st.session_state["email_usuario"] = EMAIL_MESTRE
+                        st.session_state["nome_usuario"] = "Sócio"
+                        st.rerun()
+                        
+                    elif email_clean and senha_input:
+                        with st.spinner("A verificar credenciais no servidor..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
+                                
+                                if usuario_encontrado:
+                                    st.session_state["usuario_logado"] = True
+                                    st.session_state["email_usuario"] = email_clean
+                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    st.rerun()
+                                else:
+                                    st.error("🚨 Conta não encontrada ou senha incorreta!")
+                            else:
+                                st.error("🚨 Erro de conexão com o banco de dados.")
+                    else:
+                        st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
+
+            with aba_cadastro:
+                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
+                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
+                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
+                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
+                
+                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
+                    email_clean = novo_email.strip().lower()
+                    
+                    if not novo_nome or not email_clean or not nova_senha:
+                        st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
+                    elif email_clean == EMAIL_MESTRE:
+                        st.error("🚨 Este e-mail é reservado ao CEO da plataforma.")
+                    else:
+                        with st.spinner("A forjar a sua conta na base de dados..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                existe = any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios)
+                                if existe:
+                                    st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
+                                else:
+                                    sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
+                                    if sucesso:
+                                        st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
+                                    else:
+                                        st.error("❌ Falha ao gravar a conta no servidor.")
+                            else:
+                                st.error("❌ Falha de conexão com o banco de dados mestre.")
+    
+    st.stop()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
