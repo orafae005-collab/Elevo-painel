@@ -193,20 +193,26 @@ if not st.session_state["usuario_logado"]:
                                 else:
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
-                                        # 🦅 Puxa as chaves do cofre do Streamlit
+                                        # 🦅 DISPARADOR TELEGRAM COM DEBUG (Mostra o erro se falhar)
                                         try:
-                                            TOKEN_SEU_BOT = st.secrets["TELEGRAM_TOKEN"]
-                                            SEU_CHAT_ID = st.secrets["TELEGRAM_CHAT_ID"]
+                                            TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
+                                            SEU_CHAT_ID = "5836053901"
                                             msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
-                                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
-                                        except:
-                                            pass
+                                            
+                                            resposta = requests.post(
+                                                f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", 
+                                                json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, 
+                                                timeout=5
+                                            )
+                                            
+                                            # Se o Telegram recusar a mensagem, mostra na tela o motivo:
+                                            if resposta.status_code != 200:
+                                                st.error(f"Erro do Telegram: {resposta.text}")
+                                                
+                                        except Exception as e:
+                                            st.error(f"Falha de conexão com Telegram: {e}")
                                             
                                         st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
-                                    else:
-                                        st.error("❌ Falha ao gravar a conta no servidor.")
-                            else:
-                                st.error("❌ Falha de conexão com o banco de dados mestre.")
     
     st.stop()
 # ==========================================================
