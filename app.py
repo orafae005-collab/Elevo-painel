@@ -207,15 +207,23 @@ if not st.session_state["usuario_logado"]:
                                 if existe:
                                     st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
+                                    # Salva o novo utilizador na planilha (Banco de Dados)
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
+                                        # 🦅 DISPARADOR TELEGRAM PARA O CEO (Controlo de Novos Usuários)
+                                        try:
+                                            TOKEN_SEU_BOT = "COLE_AQUI_O_TOKEN_DO_BOTFATHER" # O mesmo token do seu bot
+                                            SEU_CHAT_ID = "COLE_AQUI_O_SEU_ID"               # O seu ID do Telegram
+                                            msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
+                                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
+                                        except:
+                                            pass # Se falhar o envio do telegram, a conta cria na mesma sem travar o site
+                                            
                                         st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
                                     else:
                                         st.error("❌ Falha ao gravar a conta no servidor.")
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
-    
-    st.stop()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
