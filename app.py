@@ -158,12 +158,16 @@ if not st.session_state["usuario_logado"]:
                 if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
                     email_clean = email_input.strip().lower()
                     
+                    # 1. VALIDAÇÃO MASTER DO CEO (Acesso Direto ao Cofre e Planilhas)
                     if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
                         st.session_state["usuario_logado"] = True
                         st.session_state["email_usuario"] = EMAIL_MESTRE
                         st.session_state["nome_usuario"] = "Sócio"
+                        st.success("👑 Bem-vindo de volta, Chefe! A carregar o império...")
+                        time.sleep(0.5)
                         st.rerun()
                         
+                    # 2. VALIDAÇÃO DOS CLIENTES COMUNS (Lê do Google Sheets)
                     elif email_clean and senha_input:
                         with st.spinner("A verificar credenciais no servidor..."):
                             usuarios = conectar_banco_usuarios("ler")
