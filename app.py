@@ -140,10 +140,16 @@ if not st.session_state["usuario_logado"]:
             
             with aba_login:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
-                email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...", key="login_email")
-                senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...", key="login_senha")
                 
-                if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
+                # O uso do 'form' força o telemóvel (Chrome/Safari) a oferecer a opção de Salvar Senha
+                with st.form("form_login"):
+                    email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
+                    senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
+                    lembrar_dados = st.checkbox("Lembrar meus dados (Salvar no navegador)")
+                    
+                    submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
+                
+                if submit_login:
                     email_clean = email_input.strip().lower()
                     
                     if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
@@ -169,7 +175,6 @@ if not st.session_state["usuario_logado"]:
                                 st.error("🚨 Erro de conexão com o banco de dados.")
                     else:
                         st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
-
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
                 novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
