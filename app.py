@@ -54,24 +54,32 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 0. PORTARIA VIP (SISTEMA DE LOGIN, CADASTRO E ANIMAÇÃO)
+# 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
+# A SUA CHAVE MESTRA PERMANENTE E LINK DO BANCO DE DADOS CENTRAL
 EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa258467"
+SENHA_MESTRA = "Rafa 258467"
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
+
+# DADOS DO TELEGRAM (JÁ PREENCHIDOS)
+TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
+SEU_CHAT_ID = "5836053901"
 
 if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
 
+# Motor de conexão com o Google Sheets para ler e salvar usuários
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
     try:
+        import re
         match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
         sheet_id = match.group(1) if match else None
         planilha = robo_sheets.open_by_key(sheet_id)
         
+        # Procura a aba do banco de dados, se não existir, cria-a na hora!
         try:
             aba = planilha.worksheet("Banco_Usuarios")
         except gspread.exceptions.WorksheetNotFound:
@@ -87,7 +95,7 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
         return None
 
 if not st.session_state["usuario_logado"]:
-    # Estilo CSS para esconder o cabeçalho, Fork do GitHub e rodar a Animação da Águia com Dinheiro
+    # Estilo compacto: Águia e dinheiro integrados e colados no título
     st.markdown("""
         <style>
             [data-testid="stHeader"] { display: none !important; }
@@ -142,6 +150,7 @@ if not st.session_state["usuario_logado"]:
         </div>
     """, unsafe_allow_html=True)
 
+    # Título Principal e Subtítulo coladinhos
     st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
     st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
     
@@ -155,44 +164,49 @@ if not st.session_state["usuario_logado"]:
                 email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...", key="login_email")
                 senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...", key="login_senha")
                 
-                with aba_cadastro:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
-                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
-                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
-                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
-                
-                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
-                    email_clean = novo_email.strip().lower()
+                if st.button("🚀 ENTRAR", use_container_width=True, type="primary"):
+                    email_clean = email_input.strip().lower()
                     
-                    if not novo_nome or not email_clean or not nova_senha:
-                        st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
-                    elif email_clean == EMAIL_MESTRE:
-                        st.error("🚨 Este e-mail é reservado ao CEO da plataforma.")
-                    else:
-                        with st.spinner("A forjar a sua conta na base de dados..."):
+                    # 1. Verifica se é VOCÊ (O Sócio Mestre)
+                    if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
+                        st.session_state["usuario_logado"] = True
+                        st.session_state["email_usuario"] = EMAIL_MESTRE
+                        st.session_state["nome_usuario"] = "Sócio"
+                        
+                        # 🦅 AVISA O TELEGRAM QUE O CEO ENTROU
+                        try:
+                            msg_login = "👑 *O CHEFE ENTROU!* 👑\n\nO CEO Rafael acabou de aceder à central ÉLÉVO."
+                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_login, "parse_mode": "Markdown"}, timeout=3)
+                        except:
+                            pass
+                        st.rerun()
+                        
+                    # 2. Verifica as credenciais no Banco de Dados do Google Sheets
+                    elif email_clean and senha_input:
+                        with st.spinner("A verificar credenciais no servidor..."):
                             usuarios = conectar_banco_usuarios("ler")
                             if usuarios is not None:
-                                existe = any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios)
-                                if existe:
-                                    st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
+                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
+                                
+                                if usuario_encontrado:
+                                    nome_log = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    st.session_state["usuario_logado"] = True
+                                    st.session_state["email_usuario"] = email_clean
+                                    st.session_state["nome_usuario"] = nome_log
+                                    
+                                    # 🦅 AVISA O TELEGRAM QUE UM CLIENTE ENTROU
+                                    try:
+                                        msg_login = f"🟢 *ACESSO DETETADO!* 🟢\n\n👤 O utilizador *{nome_log}* (`{email_clean}`) acabou de entrar na plataforma!"
+                                        requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_login, "parse_mode": "Markdown"}, timeout=3)
+                                    except:
+                                        pass
+                                    st.rerun()
                                 else:
-                                    # Salva na planilha e avisa o seu Telegram na mesma hora
-                                    sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
-                                    if sucesso:
-                                        # 🦅 DISPARADOR TELEGRAM PARA O CEO (Com as suas chaves reais!)
-                                        try:
-                                            TOKEN_SEU_BOT = "8825192723:AAGNQ_VvthZ5WsUV1aCoRRHvFj9_upPqBhY"
-                                            SEU_CHAT_ID = "5836053901"
-                                            msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
-                                            requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
-                                        except:
-                                            pass
-                                            
-                                        st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
-                                    else:
-                                        st.error("❌ Falha ao gravar a conta no servidor.")
+                                    st.error("🚨 Conta não encontrada ou senha incorreta!")
                             else:
-                                st.error("❌ Falha de conexão com o banco de dados mestre.")
+                                st.error("🚨 Erro de conexão com o banco de dados.")
+                    else:
+                        st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
 
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
@@ -215,23 +229,23 @@ if not st.session_state["usuario_logado"]:
                                 if existe:
                                     st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
-                                    # Salva o novo utilizador na planilha (Banco de Dados)
+                                    # Salva na planilha
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
-                                        # 🦅 DISPARADOR TELEGRAM PARA O CEO (Controlo de Novos Usuários)
+                                        # 🦅 AVISA O TELEGRAM QUE TEM USUÁRIO NOVO
                                         try:
-                                            TOKEN_SEU_BOT = "COLE_AQUI_O_TOKEN_DO_BOTFATHER" # O mesmo token do seu bot
-                                            SEU_CHAT_ID = "COLE_AQUI_O_SEU_ID"               # O seu ID do Telegram
                                             msg_aviso = f"🚨 *NOVO USUÁRIO NA ÉLÉVO!* 🚨\n\n👤 Nome: *{novo_nome.strip()}*\n📧 Gmail: `{email_clean}`\n\n_Alguém acabou de se cadastrar na plataforma!_"
                                             requests.post(f"https://api.telegram.org/bot{TOKEN_SEU_BOT}/sendMessage", json={"chat_id": SEU_CHAT_ID, "text": msg_aviso, "parse_mode": "Markdown"}, timeout=3)
                                         except:
-                                            pass # Se falhar o envio do telegram, a conta cria na mesma sem travar o site
+                                            pass
                                             
                                         st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
                                     else:
                                         st.error("❌ Falha ao gravar a conta no servidor.")
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
+    
+    st.stop()
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
