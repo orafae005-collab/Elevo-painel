@@ -535,7 +535,7 @@ else:
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
 # ==========================================================
-# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 OPENAI)
+# 7. LÓGICA DE PROCESSAMENTO COM IA (🔥 OPENAI) - ATUALIZADO
 # ==========================================================
 def extrair_dados_do_texto(texto_bruto, nome_canal):
     agora_brasil = datetime.utcnow() - timedelta(hours=3)
@@ -547,13 +547,13 @@ def extrair_dados_do_texto(texto_bruto, nome_canal):
     - DATA DE HOJE: {data_hoje}
     
     REGRAS INQUEBRÁVEIS:
-    1. PROIBIDO USAR GMV: Multiplique o GMV por 0.15 (15%) para achar sua comissão real. NUNCA zere a comissão.
+    1. COMISSÃO EXATA: Se o texto colado já for uma tabela ou lista com os valores prontos, NÃO calcule 15% em cima de nada. Apenas extraia e repita os valores exatos da comissão fornecida.
     2. 🔥 REGRA DO PONTO DECIMAL: Use SEMPRE ponto (.) para decimais e não coloque 'R$'. Exemplo: 5.02.
     3. STATUS: Preencha como 'Aprovado'.
-    4. DATA: Substitua "Hoje" por {data_hoje}.
+    4. DATA: Use a data colada. Se não tiver, use {data_hoje}.
     
     🎯 EXEMPLO DE RESPOSTA OBRIGATÓRIA:
-    {data_hoje};Nome do Produto;{nome_canal};Aprovado;1;5.02
+    {data_hoje};Nome do Produto;{nome_canal};Aprovado;1;10.83
     
     Texto copiado:
     {texto_bruto}
