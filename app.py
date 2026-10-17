@@ -202,7 +202,7 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.7 - ULTRA VIP PREMIUM)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.8 - ULTRA VIP PREMIUM)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
@@ -274,7 +274,7 @@ estilo_elevo = f"""
     }}
     .stButton > button[kind="primary"]:hover {{ background: #00695C !important; box-shadow: 0 6px 15px rgba(0, 191, 165, 0.4) !important; border-color: #00E5FF !important; color: #FFFFFF !important; }}
     
-    /* 🔥 CORREÇÃO VIP 1: TEXT AREAS E INPUTS (Destrói o fundo branco) */
+    /* 🔥 ANIQUILAR FUNDO BRANCO DOS TEXT AREAS E INPUTS */
     div[data-baseweb="input"] > div, div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{ 
         background-color: {input_bg} !important; 
         border: 1px solid {border_color} !important; 
@@ -286,33 +286,43 @@ estilo_elevo = f"""
         box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important;
     }}
     
-    /* 🔥 CORREÇÃO VIP 2: CAIXA DE UPLOAD DE ARQUIVOS (Adeus blocão branco) */
+    /* 🔥 ANIQUILAR FUNDO BRANCO DA CAIXA DE UPLOAD 🔥 */
+    [data-testid="stFileUploader"] > div > section,
     [data-testid="stFileUploadDropzone"] {{
         background-color: {input_bg} !important;
-        border: 1px dashed rgba(212, 175, 55, 0.4) !important;
+    }}
+    
+    [data-testid="stFileUploadDropzone"] {{
+        border: 1px dashed rgba(212, 175, 55, 0.5) !important;
         border-radius: 12px !important;
         padding: 20px !important;
         transition: all 0.3s ease !important;
     }}
+    
     [data-testid="stFileUploadDropzone"]:hover {{
         border-color: #D4AF37 !important;
-        background-color: rgba(212, 175, 55, 0.05) !important;
+        background-color: rgba(212, 175, 55, 0.08) !important;
     }}
-    [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{
+    
+    /* Textos dentro do Upload Dropzone */
+    [data-testid="stFileUploadDropzone"] div, 
+    [data-testid="stFileUploadDropzone"] span, 
+    [data-testid="stFileUploadDropzone"] small {{
         color: {text_color} !important;
-        opacity: 0.8 !important;
+        background-color: transparent !important;
     }}
+    
     /* Botão "Browse files" dentro do Upload */
     [data-testid="stFileUploadDropzone"] button {{
-        background-color: {card_bg} !important;
+        background-color: {btn_bg} !important;
         color: {text_color} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 6px !important;
+        border: 1px solid rgba(212, 175, 55, 0.3) !important;
+        border-radius: 8px !important;
         font-weight: 500 !important;
     }}
     [data-testid="stFileUploadDropzone"] button:hover {{
-        border-color: #00BFA5 !important;
-        color: #00BFA5 !important;
+        border-color: #D4AF37 !important;
+        color: #D4AF37 !important;
     }}
 </style>
 """
@@ -357,6 +367,7 @@ components.html(js_moeda, height=0, width=0)
 st.markdown('<div id="ancora-topo"></div>', unsafe_allow_html=True)
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
