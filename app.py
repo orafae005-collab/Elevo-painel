@@ -1549,7 +1549,23 @@ import base64
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura completa dividida em blocos detalhados.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura.</p>", unsafe_allow_html=True)
+
+aba_roteiros = None
+historico_roteiros = []
+
+if link_planilha_ativa and robo_sheets:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_roteiros = planilha.worksheet("Memoria_Roteiros")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_roteiros = planilha.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="2")
+            aba_roteiros.append_row(["Data", "RoteiroJSON"])
+        historico_roteiros = aba_roteiros.get_all_records()
+    except Exception:
+        pass
 
 with st.container(border=True):
     col_img, col_dados = st.columns([1, 1])
@@ -1565,28 +1581,22 @@ if btn_gerar_roteiro:
     if not img_produto:
         st.warning("⚠️ Suba a imagem do produto para a IA conseguir trabalhar!")
     else:
-        with st.spinner("🦅 A ler o rótulo do produto e a forjar os 5 blocos de ouro do roteiro..."):
+        with st.spinner("🦅 A ler o rótulo do produto e a forjar os 5 blocos..."):
             try:
                 img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                
                 sistema_criacao = "Você é o Diretor de Criação de Elite focado no TikTok Shop. Responda apenas em formato JSON estrito."
                 
                 instrucao_criacao = """
                 Analise a imagem deste produto, leia o rótulo para identificar EXATAMENTE qual é o nome e a marca dele.
+                Gere uma estrutura idêntica ao Protocolo V31.1. Regras OBRIGATÓRIAS: Escala 1:1 rigorosa, "Câmera Caótica", Whip Pan, Lapela, Varanda Botânica, Cachorro Caramelo. Zero preço.
                 
-                Você DEVE gerar uma estrutura rica e extremamente detalhada, idêntica ao Protocolo V31.1.
-                Regras OBRIGATÓRIAS:
-                - Escala 1:1 rigorosa (CRITICAL ABSOLUTE PHYSICS & SIZE LOCK).
-                - Estética: "Câmera Caótica", Whip Pan, Lapela na Aurora, Varanda Botânica, Cachorro Caramelo.
-                - Sem menção a preço. Foco visceral na dor e escassez.
-                
-                Retorne EXATAMENTE no formato JSON abaixo. Preencha cada valor com textos longos e detalhados:
+                Retorne EXATAMENTE no formato JSON abaixo:
                 {
-                    "imagem": "Escreva o prompt RAW photography detalhado (inglês). Inclua Aurora com lapela, fundo da cozinha com plantas/cachorro, e a trava: [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale, perfectly proportioned to fit comfortably inside a single human palm]. Nome do produto exato.",
-                    "video": "Escreva o prompt Handheld POV detalhado (inglês). Inclua: 1. Macro Zoom no produto com escala 1:1. 2. Finger tap no produto. 3. Whip Pan (0:03) para o rosto da Aurora. 4. Emoção visceral. 5. 3D orange shopping bag no final.",
-                    "fala": "Escreva a fala exata da Aurora em português (aprox. 40-50 palavras). Ataque a dor do cliente, use gatilho de vitrine secreta/lote derretendo, mande clicar na sacolinha. Zero preço.",
+                    "imagem": "Prompt RAW photography detalhado (inglês) com trava [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale].",
+                    "video": "Prompt Handheld POV detalhado (inglês) com trava 1:1, Finger tap, Whip Pan (0:03) e 3D orange shopping bag.",
+                    "fala": "Fala exata da Aurora em português. Ataque a dor do cliente, lote derretendo, mandar clicar na sacolinha. Zero preço.",
                     "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
-                    "seo": "Títulos: [Busca Geral] | [Solução Específica] | [Marca lida no rótulo]\\nHashtags: #OAchadoSecreto #TikTokShopBR #[Tag3] #[Tag4] #[Tag5]"
+                    "seo": "Títulos: [Busca] | [Solução] | [Marca]\\nHashtags: #OAchadoSecreto #TikTokShopBR #[Tag3] #[Tag4] #[Tag5]"
                 }
                 """
                 
@@ -1607,22 +1617,41 @@ if btn_gerar_roteiro:
                 )
                 
                 resultado_roteiro = response_roteiro.choices[0].message.content.strip()
-                dados_roteiro = json.loads(resultado_roteiro)
                 
-                st.success("✅ Estrutura forjada com sucesso! Pronta para copiar e colar:")
-                
-                def exibir_bloco(titulo, icone, texto):
-                    st.markdown(f"<h4 style='color: #D4AF37; margin-bottom: 5px; margin-top: 15px;'>{icone} {titulo}</h4>", unsafe_allow_html=True)
-                    st.code(texto, language="text")
-
-                with st.container(border=True):
-                    exibir_bloco("1. PROMPT DE IMAGEM", "📸", dados_roteiro.get("imagem", ""))
-                    exibir_bloco("2. PROMPT DE VÍDEO", "🎬", dados_roteiro.get("video", ""))
-                    exibir_bloco("3. FALA DA AURORA (Áudio)", "🗣️", dados_roteiro.get("fala", ""))
-                    exibir_bloco("4. TEXTOS NA TELA (Pop-ups)", "📱", dados_roteiro.get("tela", ""))
-                    exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
-                
-            except json.JSONDecodeError:
-                st.error("❌ A IA não retornou o formato correto. Tente novamente.")
+                if aba_roteiros is not None:
+                    agora_brasil = datetime.utcnow() - timedelta(hours=3)
+                    aba_roteiros.append_row([agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_roteiro])
+                    st.success("✅ Estrutura forjada e gravada no banco de dados!")
+                    time.sleep(1)
+                    st.rerun()
+                else:
+                    st.error("⚠️ Planilha não conectada. O roteiro não será salvo permanentemente.")
             except Exception as e:
                 st.error(f"❌ Erro na visão da IA: {e}")
+
+if historico_roteiros:
+    st.markdown("### 💾 Último Roteiro Salvo")
+    ultimo_json = historico_roteiros[-1].get("RoteiroJSON", "")
+    
+    try:
+        dados_roteiro = json.loads(ultimo_json)
+        
+        def exibir_bloco(titulo, icone, texto):
+            st.markdown(f"<h4 style='color: #D4AF37; margin-bottom: 5px; margin-top: 15px;'>{icone} {titulo}</h4>", unsafe_allow_html=True)
+            st.code(texto, language="text")
+
+        with st.container(border=True):
+            exibir_bloco("1. PROMPT DE IMAGEM", "📸", dados_roteiro.get("imagem", ""))
+            exibir_bloco("2. PROMPT DE VÍDEO", "🎬", dados_roteiro.get("video", ""))
+            exibir_bloco("3. FALA DA AURORA (Áudio)", "🗣️", dados_roteiro.get("fala", ""))
+            exibir_bloco("4. TEXTOS NA TELA (Pop-ups)", "📱", dados_roteiro.get("tela", ""))
+            exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
+            
+        if st.button("🗑️ Apagar Roteiro Salvo", use_container_width=True):
+            if aba_roteiros is not None:
+                with st.spinner("A limpar a memória do banco de dados..."):
+                    aba_roteiros.clear()
+                    aba_roteiros.append_row(["Data", "RoteiroJSON"])
+                    st.rerun()
+    except json.JSONDecodeError:
+        st.warning("Erro ao ler o histórico salvo no banco de dados.")
