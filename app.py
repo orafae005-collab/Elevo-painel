@@ -1612,7 +1612,6 @@ import base64
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA gerar a estrutura baseada no Gabarito de Ouro.</p>", unsafe_allow_html=True)
 
 aba_roteiros = None
 historico_roteiros = []
@@ -1647,26 +1646,29 @@ if btn_gerar_roteiro:
     if not img_produto:
         st.warning("⚠️ Suba a imagem do produto para a IA conseguir trabalhar!")
     else:
-        with st.spinner("🦅 A analisar o produto com base no Gabarito de Ouro..."):
+        with st.spinner("🦅 A forçar a IA a escrever roteiros densos e títulos separados..."):
             try:
                 img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                 sistema_criacao = "Você é um Copywriter e Diretor de Fotografia de Elite. Responda apenas em JSON estrito."
                 
                 instrucao_criacao = """
-                Analise a imagem, leia o rótulo para identificar o nome e a marca do produto.
-                Sua missão é criar uma estrutura EXATAMENTE com o mesmo nível de riqueza de detalhes do GABARITO DE OURO abaixo. Não seja preguiçoso, copie a extensão e a estética desse exemplo adaptando apenas para o novo produto.
+                Analise a imagem, leia o rótulo e gere a estrutura V31.1.
                 
-                [GABARITO DE OURO - USE COMO MOLDE RIGOROSO]
-                IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
-                VÍDEO: POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
+                🔥 REGRA DE OURO (TAMANHO MÍNIMO OBRIGATÓRIO):
+                - O prompt de 'imagem' DEVE TER NO MÍNIMO 800 CARACTERES. Seja exaustivo nas texturas, luz, física 1:1 e cenário.
+                - O prompt de 'video' DEVE TER NO MÍNIMO 1200 CARACTERES. Descreva cada movimento caótico, zoom, tap e whip pan detalhadamente.
+                - NÃO gere hashtags.
+                - Para os títulos, adicione sempre a contagem exata no final. Ex: "Como recuperar cabelo elástico e emborrachado rápido." (52 caracteres)
                 
                 Retorne EXATAMENTE no formato JSON:
                 {
-                    "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome do produto lido na imagem enviada. Mantenha as travas de física e o cenário intactos.]",
-                    "video": "[Copie a estrutura do Gabarito de Vídeo acima, mantendo o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora e a sacola 3D.]",
-                    "fala": "Fala da Aurora em português (aprox 40 palavras). Foco na dor visual do produto da foto, cite que o lote tá derretendo, mande clicar na sacolinha. Zero preço.",
+                    "imagem": "[Escreva em inglês. MÍNIMO 800 CARACTERES. Inclua a trava CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...]",
+                    "video": "[Escreva em inglês. MÍNIMO 1200 CARACTERES. Detalhe o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora...]",
+                    "fala": "Fala da Aurora em português. Foco na dor, lote derretendo. Zero preço.",
                     "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
-                    "seo": "Títulos: [Busca] | [Solução] | [Marca]\\nHashtags: #OAchadoSecreto #TikTokShopBR #[Tag3] #[Tag4] #[Tag5]"
+                    "titulo_geral": "[Título de busca geral focada na dor do cliente]. (XX caracteres)",
+                    "titulo_solucao": "[Título focado na solução e no nome do produto]. (XX caracteres)",
+                    "titulo_marca": "[Título de resenha da marca lida no rótulo]. (XX caracteres)"
                 }
                 """
                 
@@ -1689,7 +1691,7 @@ if btn_gerar_roteiro:
                 if aba_roteiros is not None:
                     agora_brasil = datetime.utcnow() - timedelta(hours=3)
                     aba_roteiros.append_row([agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_roteiro])
-                    st.success("✅ Estrutura gravada com sucesso no padrão de Ouro!")
+                    st.success("✅ Estrutura gravada com sucesso!")
                 
             except Exception as e:
                 st.error(f"❌ Erro na geração: {e}")
@@ -1710,7 +1712,19 @@ if json_para_exibir:
             exibir_bloco("2. PROMPT DE VÍDEO", "🎬", dados_roteiro.get("video", ""))
             exibir_bloco("3. FALA DA AURORA", "🗣️", dados_roteiro.get("fala", ""))
             exibir_bloco("4. TEXTOS NA TELA", "📱", dados_roteiro.get("tela", ""))
-            exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
+            
+            st.markdown("<h4 style='color: #D4AF37; margin-bottom: 15px; margin-top: 25px;'>🔑 TÍTULOS PARA SEO (BUSCA)</h4>", unsafe_allow_html=True)
+            
+            col_t1, col_t2, col_t3 = st.columns(3)
+            with col_t1:
+                st.markdown("<p style='color: #A0A0A0; margin-bottom: 5px; font-weight: bold;'>🔍 Título Geral</p>", unsafe_allow_html=True)
+                st.code(dados_roteiro.get("titulo_geral", ""), language="text")
+            with col_t2:
+                st.markdown("<p style='color: #A0A0A0; margin-bottom: 5px; font-weight: bold;'>💡 Título Solução</p>", unsafe_allow_html=True)
+                st.code(dados_roteiro.get("titulo_solucao", ""), language="text")
+            with col_t3:
+                st.markdown("<p style='color: #A0A0A0; margin-bottom: 5px; font-weight: bold;'>🏷️ Título de Marca</p>", unsafe_allow_html=True)
+                st.code(dados_roteiro.get("titulo_marca", ""), language="text")
             
         if st.button("🗑️ Apagar Roteiro", use_container_width=True):
             st.session_state["roteiro_temporario"] = None
@@ -1720,3 +1734,4 @@ if json_para_exibir:
             st.rerun()
     except json.JSONDecodeError:
         st.warning("Erro ao decodificar a estrutura do roteiro.")
+        
