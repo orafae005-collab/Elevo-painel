@@ -1627,10 +1627,6 @@ if st.session_state["ultimo_audio_b64"]:
     
     components.html(html_ondas_inteligentes, height=200)
 
-```
-
-Agora ela é 100% dona de tudo! Pode testar e perguntar: "Aurora, qual é a nota da nossa operação hoje?" ou "Quantos usuários nós temos cadastrados na plataforma?". Ela vai saber responder a tudo com base nas informações em tempo real da sua plataforma e banco de dados. Teste e confirme!
-
 # ==========================================================
 # 16. PAINEL DE CONTROLE DO CEO (ADMIN SAAS)
 # ==========================================================
