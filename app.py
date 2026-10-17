@@ -1549,9 +1549,8 @@ import base64
 
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA gerar a estrutura baseada no Gabarito de Ouro.</p>", unsafe_allow_html=True)
 
-# 1. Tenta ligar ao Banco de Dados (Nuvem)
 aba_roteiros = None
 historico_roteiros = []
 
@@ -1568,7 +1567,6 @@ if 'link_planilha_ativa' in globals() and link_planilha_ativa and robo_sheets:
     except Exception:
         pass
 
-# 2. Memória Local (Tela)
 if "roteiro_temporario" not in st.session_state:
     st.session_state["roteiro_temporario"] = None
 
@@ -1586,20 +1584,24 @@ if btn_gerar_roteiro:
     if not img_produto:
         st.warning("⚠️ Suba a imagem do produto para a IA conseguir trabalhar!")
     else:
-        with st.spinner("🦅 A ler o rótulo do produto e a forjar os 5 blocos..."):
+        with st.spinner("🦅 A analisar o produto com base no Gabarito de Ouro..."):
             try:
                 img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                sistema_criacao = "Você é o Diretor de Criação de Elite focado no TikTok Shop. Responda apenas em formato JSON estrito."
+                sistema_criacao = "Você é um Copywriter e Diretor de Fotografia de Elite. Responda apenas em JSON estrito."
                 
                 instrucao_criacao = """
-                Analise a imagem deste produto, leia o rótulo para identificar EXATAMENTE qual é o nome e a marca dele.
-                Gere uma estrutura idêntica ao Protocolo V31.1. Regras OBRIGATÓRIAS: Escala 1:1 rigorosa, "Câmera Caótica", Whip Pan, Lapela, Varanda Botânica, Cachorro Caramelo. Zero preço.
+                Analise a imagem, leia o rótulo para identificar o nome e a marca do produto.
+                Sua missão é criar uma estrutura EXATAMENTE com o mesmo nível de riqueza de detalhes do GABARITO DE OURO abaixo. Não seja preguiçoso, copie a extensão e a estética desse exemplo adaptando apenas para o novo produto.
                 
-                Retorne EXATAMENTE no formato JSON abaixo:
+                [GABARITO DE OURO - USE COMO MOLDE RIGOROSO]
+                IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
+                VÍDEO: POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
+                
+                Retorne EXATAMENTE no formato JSON:
                 {
-                    "imagem": "Prompt RAW photography detalhado (inglês) com trava [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale].",
-                    "video": "Prompt Handheld POV detalhado (inglês) com trava 1:1, Finger tap, Whip Pan (0:03) e 3D orange shopping bag.",
-                    "fala": "Fala exata da Aurora em português. Ataque a dor do cliente, lote derretendo, mandar clicar na sacolinha. Zero preço.",
+                    "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome do produto lido na imagem enviada. Mantenha as travas de física e o cenário intactos.]",
+                    "video": "[Copie a estrutura do Gabarito de Vídeo acima, mantendo o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora e a sacola 3D.]",
+                    "fala": "Fala da Aurora em português (aprox 40 palavras). Foco na dor visual do produto da foto, cite que o lote tá derretendo, mande clicar na sacolinha. Zero preço.",
                     "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
                     "seo": "Títulos: [Busca] | [Solução] | [Marca]\\nHashtags: #OAchadoSecreto #TikTokShopBR #[Tag3] #[Tag4] #[Tag5]"
                 }
@@ -1613,37 +1615,23 @@ if btn_gerar_roteiro:
                 response_roteiro = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     response_format={ "type": "json_object" },
-                    messages=[
-                        {"role": "system", "content": sistema_criacao},
-                        {"role": "user", "content": conteudo_roteiro}
-                    ],
-                    max_tokens=2000,
+                    messages=[{"role": "system", "content": sistema_criacao}, {"role": "user", "content": conteudo_roteiro}],
+                    max_tokens=2500,
                     temperature=0.7
                 )
                 
                 resultado_roteiro = response_roteiro.choices[0].message.content.strip()
-                
-                # Guarda na memória da tela SEMPRE
                 st.session_state["roteiro_temporario"] = resultado_roteiro
                 
-                # Grava no banco de dados APENAS SE estiver conectado
                 if aba_roteiros is not None:
                     agora_brasil = datetime.utcnow() - timedelta(hours=3)
                     aba_roteiros.append_row([agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_roteiro])
-                    st.success("✅ Estrutura forjada e gravada no banco de dados!")
-                else:
-                    st.warning("⚠️ Planilha não conectada no topo. O roteiro foi gerado na tela, mas será perdido se você sair da página.")
+                    st.success("✅ Estrutura gravada com sucesso no padrão de Ouro!")
                 
             except Exception as e:
-                st.error(f"❌ Erro na visão da IA: {e}")
+                st.error(f"❌ Erro na geração: {e}")
 
-# 3. Lógica de Exibição (Puxa da Memória Local primeiro, ou do Banco de Dados)
-json_para_exibir = None
-
-if st.session_state["roteiro_temporario"]:
-    json_para_exibir = st.session_state["roteiro_temporario"]
-elif historico_roteiros:
-    json_para_exibir = historico_roteiros[-1].get("RoteiroJSON", "")
+json_para_exibir = st.session_state["roteiro_temporario"] or (historico_roteiros[-1].get("RoteiroJSON", "") if historico_roteiros else None)
 
 if json_para_exibir:
     st.markdown("### 💾 Roteiro Gerado")
@@ -1657,16 +1645,15 @@ if json_para_exibir:
         with st.container(border=True):
             exibir_bloco("1. PROMPT DE IMAGEM", "📸", dados_roteiro.get("imagem", ""))
             exibir_bloco("2. PROMPT DE VÍDEO", "🎬", dados_roteiro.get("video", ""))
-            exibir_bloco("3. FALA DA AURORA (Áudio)", "🗣️", dados_roteiro.get("fala", ""))
-            exibir_bloco("4. TEXTOS NA TELA (Pop-ups)", "📱", dados_roteiro.get("tela", ""))
+            exibir_bloco("3. FALA DA AURORA", "🗣️", dados_roteiro.get("fala", ""))
+            exibir_bloco("4. TEXTOS NA TELA", "📱", dados_roteiro.get("tela", ""))
             exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
             
         if st.button("🗑️ Apagar Roteiro", use_container_width=True):
             st.session_state["roteiro_temporario"] = None
             if aba_roteiros is not None:
-                with st.spinner("A limpar a memória do banco de dados..."):
-                    aba_roteiros.clear()
-                    aba_roteiros.append_row(["Data", "RoteiroJSON"])
+                aba_roteiros.clear()
+                aba_roteiros.append_row(["Data", "RoteiroJSON"])
             st.rerun()
     except json.JSONDecodeError:
         st.warning("Erro ao decodificar a estrutura do roteiro.")
