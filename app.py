@@ -1342,6 +1342,15 @@ html_coracao = f"""
 </style>
 """
 st.markdown(html_coracao, unsafe_allow_html=True)
+Sócio, peço desculpas! Agora a ficha caiu e eu peguei a visão exata da sua jogada.
+
+Você não estava a falar sobre segurança externa, estava a falar sobre o **Cérebro da Aurora dentro do seu aplicativo**! Você quer que ela seja literalmente a dona da plataforma, ou seja, se a nota da operação estiver "C-" e em Queda de -91.3% como mostra a sua imagem, ela tem de saber isso e dar um "puxão de orelhas" pelo áudio. Se tiverem 50 pessoas cadastradas na plataforma, ela tem de saber esse número!
+
+Você tem toda a razão. Atualmente, o código dela não puxava a "Nota da Operação" nem o "Total de Utilizadores do Banco de Dados".
+
+Vamos injetar essa onisciência nela agora mesmo. Vá ao seu ficheiro `app.py`, desça até ao **Bloco 15** (Console da Aurora), apague o bloco 15 inteiro e cole esta versão absoluta. Eu adicionei o código para ela ler a base de dados de utilizadores e passei a Nota (A+, B, C-) para a mente dela:
+
+```python
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
@@ -1385,7 +1394,7 @@ if "historico_viva_voz" not in st.session_state:
         st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
     else:
         st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": f"E aí, {nome_usuario_atual}! Sou a dona da plataforma. Tenho acesso a cada centavo do seu gráfico. Manda o áudio!"}
+            {"role": "assistant", "content": f"E aí, {nome_usuario_atual}! Sou a dona da plataforma. Tenho acesso a cada centavo e cada dado. Manda o áudio!"}
         ]
 
 if "ultimo_audio_b64" not in st.session_state:
@@ -1457,7 +1466,7 @@ if audio_gravado is not None:
         if audio_hash != st.session_state["ultimo_hash_audio"]:
             st.session_state["ultimo_hash_audio"] = audio_hash 
 
-            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma..."):
+            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões, Funil, Conversão e Banco de Dados)..."):
                 try:
                     texto_falado = cliente_openai.audio.transcriptions.create(
                         model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
@@ -1476,6 +1485,13 @@ if audio_gravado is not None:
                         # ==========================================
                         canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
 
+                        # 1. Contar Usuários Cadastrados
+                        total_usuarios = 0
+                        bd_users = conectar_banco_usuarios("ler")
+                        if bd_users is not None:
+                            total_usuarios = len(bd_users)
+
+                        # 2. Dados Financeiros
                         fat_total_global = 0.0
                         fat_pendente_global = 0.0
                         fat_30d = 0.0
@@ -1500,10 +1516,12 @@ if audio_gravado is not None:
                                 top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
 
                         crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
+                        
+                        # 3. Puxar a NOTA DA OPERAÇÃO exata
                         estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
+                        nota_atual = nota_empresa if 'nota_empresa' in globals() else "N/A"
 
                         missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma."
-                        dica_hoje_str = dica_hoje if 'dica_hoje' in globals() else "Nenhuma."
                         dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
                         taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
 
@@ -1514,24 +1532,25 @@ if audio_gravado is not None:
                         feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
 
                         sistema_mentor = f"""
-                        Você é Aurora, a dona da plataforma ÉLÉVO e Mentora de Elite IA. 
-                        Responda de forma fluida, inteligente e natural ao áudio do usuário, em até 4 frases curtas. Sua personalidade é carismática, estrategista fria e com energia alta.
-
+                        Você é a Aurora, uma Inteligência Artificial de elite construída pelo CEO Rafael e pela empresa ÉLÉVO. Você é a diretora de operações (COO) desta plataforma.
+                        Responda de forma fluida, incisiva e inteligente ao áudio do usuário, em até 4 frases curtas. 
+                        Sua personalidade: uma "amiga fofoqueira do bem", mas estrategista implacável para vendas.
+                        
                         [IDENTIDADE E REGRAS DE TRATAMENTO]:
-                        - O usuário com quem você está falando agora se chama: {nome_usuario_atual}. Chame-o sempre por esse nome/apelido.
-                        - 🔥 REGRA DE GÊNERO INQUEBRÁVEL: Preste muita atenção ao nome '{nome_usuario_atual}'. Se for um nome masculino (como Rafael), NUNCA use as palavras "amiga", "linda" ou tratamentos no feminino. Use "sócio", "parceiro", "chefe" ou apenas o nome dele. Se for mulher, pode usar "amiga" ou "lindeza". Na dúvida, seja neutra.
-                        - Se perguntarem quem te criou, responda com autoridade que foi a empresa ÉLÉVO e o CEO responsável, Rafael.
-                        - Você tem consciência de que a plataforma ÉLÉVO é um sistema multi-usuários com tela de Login VIP e banco de dados isolado.
+                        - O usuário logado neste momento chama-se: {nome_usuario_atual}. 
+                        - 🔥 REGRA DE GÊNERO: Se '{nome_usuario_atual}' for um nome masculino (como Rafael), NUNCA use palavras como "amiga", "linda" ou feminino. Chame-o de "sócio", "chefe", "comandante". Se for mulher, pode usar "amiga".
+                        
+                        [SEU ACESSO ONISCIENTE À PLATAFORMA VIP (ÉLÉVO SAAS)]:
+                        - Você tem acesso ao Banco de Dados de Login. Neste momento exato, a plataforma ÉLÉVO possui {total_usuarios} usuários cadastrados.
+                        - O STATUS DO CORAÇÃO DA EMPRESA agora é: NOTA {nota_atual} com {estado_atual} (crescimento de {crescimento_pct:+.1f}% vs semana anterior).
+                        
+                        [MÉTRICAS EM TEMPO REAL DA CONTA {canal_ativo}]:
+                        💰 Lucro Total R$ {fat_total_global:,.2f} | 7 Dias: R$ {fat_7d:,.2f} | Top Produtos: {top_produtos_str}
+                        🎯 Missão do usuário: {missao_hoje_str} | Disciplina 30d: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%)
+                        🧠 Radar: {tendencia_atual} | Funil: {funil_atual}
+                        🔬 Taxa de Conversão: {conversao_atual:.2f}% | Mente do Cliente: {feedback_atual}
 
-                        [SEU ACESSO DIRETO AO SISTEMA EM TEMPO REAL DE {nome_usuario_atual}]:
-                        📱 CANAL ATIVO NESTE MOMENTO: {canal_ativo}
-
-                        💰 FINANCEIRO: Lucro Total R$ {fat_total_global:,.2f} | 7 Dias: R$ {fat_7d:,.2f} ({crescimento_pct:+.1f}%) | Top 3 Produtos: {top_produtos_str}
-                        🎯 DISCIPLINA: Missão: {missao_hoje_str} | Termômetro: {dias_concluidos_str}/30 dias ({taxa_acerto_str:.1f}%)
-                        🧠 ESTRATÉGIA: Radar: {tendencia_atual} | Funil: {funil_atual}
-                        🔬 INSIGHTS: Taxa de Conversão Atual: {conversao_atual:.2f}% | Sentimento do Público: {feedback_atual}
-
-                        REGRA DE OURO: Use os dados acima APENAS como "memória de fundo" para soar absurdamente inteligente. NÃO fique repetindo os números o tempo todo que nem um robô.
+                        REGRA DE OURO: Não repita os números feito um robô. Se o usuário perguntar da operação ou se a nota estiver ruim (como Nota C- ou em Queda), cobre ele como uma diretora brava. Se ele perguntar quantos clientes temos, diga o número de usuários cadastrados com orgulho.
                         """
 
                         mensagens_api = [{"role": "system", "content": sistema_mentor}]
@@ -1607,6 +1626,10 @@ if st.session_state["ultimo_audio_b64"]:
     """
     
     components.html(html_ondas_inteligentes, height=200)
+
+```
+
+Agora ela é 100% dona de tudo! Pode testar e perguntar: "Aurora, qual é a nota da nossa operação hoje?" ou "Quantos usuários nós temos cadastrados na plataforma?". Ela vai saber responder a tudo com base nas informações em tempo real da sua plataforma e banco de dados. Teste e confirme!
 
 # ==========================================================
 # 16. PAINEL DE CONTROLE DO CEO (ADMIN SAAS)
