@@ -1551,10 +1551,11 @@ st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura.</p>", unsafe_allow_html=True)
 
+# 1. Tenta ligar ao Banco de Dados (Nuvem)
 aba_roteiros = None
 historico_roteiros = []
 
-if link_planilha_ativa and robo_sheets:
+if 'link_planilha_ativa' in globals() and link_planilha_ativa and robo_sheets:
     try:
         sheet_id = extrair_id_planilha(link_planilha_ativa)
         planilha = robo_sheets.open_by_key(sheet_id)
@@ -1566,6 +1567,10 @@ if link_planilha_ativa and robo_sheets:
         historico_roteiros = aba_roteiros.get_all_records()
     except Exception:
         pass
+
+# 2. Memória Local (Tela)
+if "roteiro_temporario" not in st.session_state:
+    st.session_state["roteiro_temporario"] = None
 
 with st.container(border=True):
     col_img, col_dados = st.columns([1, 1])
@@ -1618,23 +1623,32 @@ if btn_gerar_roteiro:
                 
                 resultado_roteiro = response_roteiro.choices[0].message.content.strip()
                 
+                # Guarda na memória da tela SEMPRE
+                st.session_state["roteiro_temporario"] = resultado_roteiro
+                
+                # Grava no banco de dados APENAS SE estiver conectado
                 if aba_roteiros is not None:
                     agora_brasil = datetime.utcnow() - timedelta(hours=3)
                     aba_roteiros.append_row([agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_roteiro])
                     st.success("✅ Estrutura forjada e gravada no banco de dados!")
-                    time.sleep(1)
-                    st.rerun()
                 else:
-                    st.error("⚠️ Planilha não conectada. O roteiro não será salvo permanentemente.")
+                    st.warning("⚠️ Planilha não conectada no topo. O roteiro foi gerado na tela, mas será perdido se você sair da página.")
+                
             except Exception as e:
                 st.error(f"❌ Erro na visão da IA: {e}")
 
-if historico_roteiros:
-    st.markdown("### 💾 Último Roteiro Salvo")
-    ultimo_json = historico_roteiros[-1].get("RoteiroJSON", "")
-    
+# 3. Lógica de Exibição (Puxa da Memória Local primeiro, ou do Banco de Dados)
+json_para_exibir = None
+
+if st.session_state["roteiro_temporario"]:
+    json_para_exibir = st.session_state["roteiro_temporario"]
+elif historico_roteiros:
+    json_para_exibir = historico_roteiros[-1].get("RoteiroJSON", "")
+
+if json_para_exibir:
+    st.markdown("### 💾 Roteiro Gerado")
     try:
-        dados_roteiro = json.loads(ultimo_json)
+        dados_roteiro = json.loads(json_para_exibir)
         
         def exibir_bloco(titulo, icone, texto):
             st.markdown(f"<h4 style='color: #D4AF37; margin-bottom: 5px; margin-top: 15px;'>{icone} {titulo}</h4>", unsafe_allow_html=True)
@@ -1647,11 +1661,12 @@ if historico_roteiros:
             exibir_bloco("4. TEXTOS NA TELA (Pop-ups)", "📱", dados_roteiro.get("tela", ""))
             exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
             
-        if st.button("🗑️ Apagar Roteiro Salvo", use_container_width=True):
+        if st.button("🗑️ Apagar Roteiro", use_container_width=True):
+            st.session_state["roteiro_temporario"] = None
             if aba_roteiros is not None:
                 with st.spinner("A limpar a memória do banco de dados..."):
                     aba_roteiros.clear()
                     aba_roteiros.append_row(["Data", "RoteiroJSON"])
-                    st.rerun()
+            st.rerun()
     except json.JSONDecodeError:
-        st.warning("Erro ao ler o histórico salvo no banco de dados.")
+        st.warning("Erro ao decodificar a estrutura do roteiro.")
