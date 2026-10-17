@@ -18,7 +18,6 @@ from gtts import gTTS
 # ==========================================================
 st.set_page_config(page_title="ÉLÉVO | Painel de Vendas V5.0", page_icon="🦅", layout="wide")
 
-# Inicializa o cérebro global da OpenAI
 try:
     CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
     cliente_openai = OpenAI(api_key=CHAVE_OPENAI_VIP)
@@ -26,7 +25,6 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave OPENAI_API_KEY no cadeado (Secrets).")
     st.stop()
 
-# Função global para chamar o ChatGPT em todo o aplicativo
 def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
     try:
         response = cliente_openai.chat.completions.create(
@@ -41,7 +39,6 @@ def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégi
     except Exception as e:
         return f"ERRO_API: {str(e)}"
 
-# Conexão do Robô (GCP) com o Google Sheets
 @st.cache_resource
 def conectar_robo():
     try:
@@ -56,7 +53,6 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
-# A SUA CHAVE MESTRA AGORA É PUXADA DO COFRE SECRETO
 try:
     EMAIL_MESTRE = st.secrets["EMAIL_MESTRE"]
     SENHA_MESTRA = st.secrets["SENHA_MESTRA"]
@@ -146,30 +142,24 @@ if not st.session_state["usuario_logado"]:
             
             with aba_login:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
-                
-                # O uso do 'form' força o telemóvel (Chrome/Safari) a oferecer a opção de Salvar Senha
                 with st.form("form_login"):
                     email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
                     senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
                     lembrar_dados = st.checkbox("Lembrar meus dados (Salvar no navegador)")
-                    
                     submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
                 
                 if submit_login:
                     email_clean = email_input.strip().lower()
-                    
                     if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
                         st.session_state["usuario_logado"] = True
                         st.session_state["email_usuario"] = EMAIL_MESTRE
                         st.session_state["nome_usuario"] = "Sócio"
                         st.rerun()
-                        
                     elif email_clean and senha_input:
                         with st.spinner("A verificar credenciais no servidor..."):
                             usuarios = conectar_banco_usuarios("ler")
                             if usuarios is not None:
                                 usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
-                                
                                 if usuario_encontrado:
                                     st.session_state["usuario_logado"] = True
                                     st.session_state["email_usuario"] = email_clean
@@ -181,6 +171,7 @@ if not st.session_state["usuario_logado"]:
                                 st.error("🚨 Erro de conexão com o banco de dados.")
                     else:
                         st.warning("⚠️ Preencha o e-mail e a senha para entrar.")
+
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
                 novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
@@ -189,7 +180,6 @@ if not st.session_state["usuario_logado"]:
                 
                 if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
                     email_clean = novo_email.strip().lower()
-                    
                     if not novo_nome or not email_clean or not nova_senha:
                         st.warning("⚠️ Preencha os 3 campos para criar a sua conta.")
                     elif email_clean == EMAIL_MESTRE:
@@ -202,7 +192,6 @@ if not st.session_state["usuario_logado"]:
                                 if existe:
                                     st.error("🚨 Este e-mail já está cadastrado! Vá para a aba 'Entrar'.")
                                 else:
-                                    # Salva o novo utilizador na planilha silenciosamente (sem Telegram)
                                     sucesso = conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha)
                                     if sucesso:
                                         st.success(f"✅ Conta criada, {novo_nome}! Vá à aba 'Entrar' e faça o login.")
@@ -210,18 +199,15 @@ if not st.session_state["usuario_logado"]:
                                         st.error("❌ Falha ao gravar a conta no servidor.")
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
-    
     st.stop()
+
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.6 - DARK PREMIUM)
 # ==========================================================
-import streamlit.components.v1 as components
-
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema:
     modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-# Inteligência de Cores VIP (Premium, Discreto e Confortável)
 if modo_claro:
     bg_color = "#F4F4F9"
     text_color = "#333333" 
@@ -248,56 +234,28 @@ else:
 estilo_elevo = f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
-
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
     [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
-    
-    /* Removemos qualquer traço do cabeçalho bugado e da barra lateral */
     [data-testid="stSidebar"] {{ display: none !important; }}
     [data-testid="stHeader"] {{ display: none !important; }}
     [data-testid="collapsedControl"] {{ display: none !important; }}
     footer {{ display: none !important; }}
-
-    /* Garante que os textos normais fiquem confortáveis */
     h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
-
-    /* Títulos Principais */
-    .titulo-elevo {{
-        font-size: 3.2rem; font-weight: 800; text-align: center;
-        color: #00BFA5;
-        margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase;
-        margin-top: 5px;
-    }}
-
-    .subtitulo {{
-        text-align: center; font-size: 0.95rem; margin-bottom: 30px;
-        font-weight: 400; letter-spacing: 1px; text-transform: uppercase;
-        color: {text_color} !important; opacity: 0.6;
-    }}
-
-    /* Caixas Discretas e Naturais */
-    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{
-        background: {card_bg} !important;
-        border: 1px solid {border_color} !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 10px {shadow_base} !important;
-    }}
-
-    /* Inputs e TextAreas Discretos */
-    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{
-        background-color: {input_bg} !important;
-        border: 1px solid {border_color} !important;
-        color: {text_color} !important;
-        border-radius: 8px !important;
-    }}
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{
-        border-color: #00BFA5 !important;
-    }}
+    .titulo-elevo {{ font-size: 3.2rem; font-weight: 800; text-align: center; color: #00BFA5; margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }}
+    .subtitulo {{ text-align: center; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; color: {text_color} !important; opacity: 0.6; }}
+    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{ background: {card_bg} !important; border: 1px solid {border_color} !important; border-radius: 12px !important; box-shadow: 0 4px 10px {shadow_base} !important; }}
+    .stButton > button {{ background: {btn_bg} !important; color: {btn_text} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; box-shadow: 0 2px 5px {shadow_base} !important; font-weight: 500 !important; transition: all 0.2s ease !important; }}
+    .stButton > button:hover {{ transform: translateY(-1px); box-shadow: 0 4px 8px {shadow_base} !important; border-color: rgba(255, 255, 255, 0.15) !important; }}
+    .stButton > button[kind="primary"] {{ background: {btn_primary_bg} !important; color: {btn_primary_text} !important; font-weight: 600 !important; border: none !important; border-radius: 8px !important; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4) !important; }}
+    .stButton > button[kind="primary"]:hover {{ background: #00695C !important; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.5) !important; }}
+    div[data-baseweb="input"] > div, div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{ background-color: {input_bg} !important; border: 1px solid {border_color} !important; color: {text_color} !important; border-radius: 8px !important; }}
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"] > textarea:focus, div[data-baseweb="select"] > div:focus-within {{ border-color: #00BFA5 !important; }}
+    [data-testid="stMetricValue"] div {{ color: {text_color} !important; font-weight: 800 !important; }}
+    [data-testid="stMetricLabel"] p {{ color: {text_color} !important; opacity: 0.6; }}
 </style>
 """
 st.markdown(estilo_elevo, unsafe_allow_html=True)
 
-# 🎯 INJEÇÃO DA MOEDA ANIMADA (NOVO PODER: VOLTAR AO TOPO / TROCAR CONTA)
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -308,106 +266,40 @@ js_moeda = """
         btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
 
-        let isDragging = false;
-        let startX, startY, initialLeft, initialTop;
-
-        function onTouchStart(e) {
-            isDragging = false;
-            startX = e.touches[0].clientX;
-            startY = e.touches[0].clientY;
-            initialLeft = btn.offsetLeft;
-            initialTop = btn.offsetTop;
-            btn.style.opacity = '0.7';
-            btn.style.transform = 'scale(0.9)'; 
-        }
-
-        function onTouchMove(e) {
-            let dx = e.touches[0].clientX - startX;
-            let dy = e.touches[0].clientY - startY;
-            if (Math.abs(dx) > 12 || Math.abs(dy) > 12) {
-                isDragging = true;
-                e.preventDefault(); 
-                btn.style.left = (initialLeft + dx) + "px";
-                btn.style.top = (initialTop + dy) + "px";
-            }
-        }
-
-        function onTouchEnd(e) {
-            btn.style.opacity = '1';
-            btn.style.transform = 'scale(1)';
-            if (!isDragging) {
-                irParaTopoConta();
-            }
-            isDragging = false;
-        }
-
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+        function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
+        function onTouchMove(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 12 || Math.abs(dy) > 12) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
+        function onTouchEnd(e) { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; if (!isDragging) { irParaTopoConta(); } isDragging = false; }
+        
         btn.addEventListener('touchstart', onTouchStart, {passive: false});
         btn.addEventListener('touchmove', onTouchMove, {passive: false});
         btn.addEventListener('touchend', onTouchEnd);
 
         btn.addEventListener('mousedown', function(e) {
-            isDragging = false;
-            startX = e.clientX;
-            startY = e.clientY;
-            initialLeft = btn.offsetLeft;
-            initialTop = btn.offsetTop;
-            btn.style.opacity = '0.7';
-            btn.style.transform = 'scale(0.9)';
-
-            function onMouseMove(moveE) {
-                let dx = moveE.clientX - startX;
-                let dy = moveE.clientY - startY;
-                if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                    isDragging = true;
-                    btn.style.left = (initialLeft + dx) + "px";
-                    btn.style.top = (initialTop + dy) + "px";
-                }
-            }
-
-            function onMouseUp() {
-                btn.style.opacity = '1';
-                btn.style.transform = 'scale(1)';
-                parent.removeEventListener('mousemove', onMouseMove);
-                parent.removeEventListener('mouseup', onMouseUp);
-                if (!isDragging) {
-                    irParaTopoConta();
-                }
-                isDragging = false;
-            }
-
+            isDragging = false; startX = e.clientX; startY = e.clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)';
+            function onMouseMove(moveE) { let dx = moveE.clientX - startX; let dy = moveE.clientY - startY; if (Math.abs(dx) > 8 || Math.abs(dy) > 8) { isDragging = true; btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
+            function onMouseUp() { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; parent.removeEventListener('mousemove', onMouseMove); parent.removeEventListener('mouseup', onMouseUp); if (!isDragging) { irParaTopoConta(); } isDragging = false; }
             parent.addEventListener('mousemove', onMouseMove);
             parent.addEventListener('mouseup', onMouseUp);
         });
 
-        // ==========================
-        // TELETRANSPORTE PARA O TOPO
-        // ==========================
         function irParaTopoConta() {
             const topo = parent.getElementById("ancora-topo");
-            if (topo) {
-                topo.scrollIntoView({behavior: "smooth", block: "start"});
-            } else {
-                parent.querySelector('.main').scrollTo({top: 0, behavior: 'smooth'});
-            }
+            if (topo) { topo.scrollIntoView({behavior: "smooth", block: "start"}); } else { parent.querySelector('.main').scrollTo({top: 0, behavior: 'smooth'}); }
         }
     }
 </script>
 """
 components.html(js_moeda, height=0, width=0)
-
-# Âncora invisível para a Águia mirar quando for clicada
 st.markdown('<div id="ancora-topo"></div>', unsafe_allow_html=True)
-
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
-
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
 st.markdown("<h3 style='text-align: center; color: #00BFA5; margin-bottom: 5px;'>⚡ Central de Operação</h3>", unsafe_allow_html=True)
 
-# Lógica SaaS: Identifica se é o Sócio Mestre ou um cliente
 if st.session_state["email_usuario"] == EMAIL_MESTRE:
     COFRE_DE_LINKS = {
         "O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit",
@@ -416,17 +308,14 @@ if st.session_state["email_usuario"] == EMAIL_MESTRE:
     opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
     st.success(f"Bem-vindo de volta, Sócio! O império aguarda as suas ordens. 🦅")
 else:
-    # Plataforma zerada para novos usuários cadastrados
     COFRE_DE_LINKS = {}
     opcoes_canais = ["➕ Adicionar Novo Canal"]
     st.info(f"Bem-vindo(a) à ÉLÉVO, {st.session_state['nome_usuario']}! Comece adicionando a sua planilha de vendas.")
 
 with st.container(border=True):
     col_conta, col_filtro = st.columns(2)
-    
     with col_conta:
         canal_selecionado = st.selectbox("🎯 Selecione a Conta", opcoes_canais)
-        
         if canal_selecionado == "➕ Adicionar Novo Canal":
             nome_canal_ativo = st.text_input("Nome do Novo Canal", placeholder="Ex: Meu Novo Projeto")
             link_planilha_ativa = st.text_input("🔗 Link da Planilha do Google", placeholder="Cole o link aqui")
@@ -440,19 +329,16 @@ with st.container(border=True):
                 link_planilha_ativa = st.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link aqui")
 
     with col_filtro:
-        filtro_periodo = st.selectbox(
-            "📅 Filtrar Período de Vendas",
-            ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"]
-        )
+        filtro_periodo = st.selectbox("📅 Filtrar Período de Vendas", ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"])
 
-# Botão de Sair (Logout)
 if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
     st.rerun()
+
 # ==========================================================
-# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS (🔥 CACHE TURBO 5 MIN)
+# 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS
 # ==========================================================
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
@@ -536,9 +422,8 @@ if not df_filtrado.empty and "Data_Parsed" in df_filtrado.columns:
             df_filtrado = df_filtrado[(df_filtrado["Data_Parsed"].dt.month == mes_passado) & (df_filtrado["Data_Parsed"].dt.year == ano_passado)]
 
 # ==========================================================
-# 6. DASHBOARD FINANCEIRO E GRÁFICOS (🔥 V6.3 - VIP NATIVO CELULAR)
+# 6. DASHBOARD FINANCEIRO E GRÁFICOS
 # ==========================================================
-# Inicialização de segurança (Blinda contra NameError em contas novas)
 df_campeao = pd.DataFrame()
 df_timeline = pd.DataFrame()
 produto_campeao = "Nenhum"
@@ -630,8 +515,7 @@ else:
                 fig_line.update_layout(
                     plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)",
                     font=dict(color=cor_texto_grafico), margin=dict(l=0, r=0, t=40, b=10),
-                    height=380, hovermode="x unified",
-                    dragmode=False
+                    height=380, hovermode="x unified", dragmode=False
                 )
                 st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
                 
@@ -763,7 +647,7 @@ if st.session_state["dados_prontos"]:
     
     if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
         if not link_planilha_ativa or not robo_sheets:
-            st.error("⚠️ Cole o link da planilha na barra lateral e verifique a conexão do Robô.")
+            st.error("⚠️ Cole o link da planilha no topo e verifique a conexão do Robô.")
         else:
             with st.spinner("O Robô está injetando os dados no Google Drive..."):
                 try:
@@ -1090,7 +974,6 @@ with col_raiox2:
                 try:
                     sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
                     
-                    # Puxa os dados do Laboratório (Bloco 12.5) para dentro do Funil
                     conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
                     feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
                     
@@ -1225,7 +1108,6 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9 SEGUNDOS (ANÁLISE TOTAL)", type="primar
             ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco na curiosidade."
             missao_atual = missao_hoje
             
-            # Puxa os dados do Laboratório (Bloco 12.5) para dentro do Copywriter
             feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
 
             prompt_roteiro = f"""
@@ -1342,15 +1224,7 @@ html_coracao = f"""
 </style>
 """
 st.markdown(html_coracao, unsafe_allow_html=True)
-Sócio, peço desculpas! Agora a ficha caiu e eu peguei a visão exata da sua jogada.
 
-Você não estava a falar sobre segurança externa, estava a falar sobre o **Cérebro da Aurora dentro do seu aplicativo**! Você quer que ela seja literalmente a dona da plataforma, ou seja, se a nota da operação estiver "C-" e em Queda de -91.3% como mostra a sua imagem, ela tem de saber isso e dar um "puxão de orelhas" pelo áudio. Se tiverem 50 pessoas cadastradas na plataforma, ela tem de saber esse número!
-
-Você tem toda a razão. Atualmente, o código dela não puxava a "Nota da Operação" nem o "Total de Utilizadores do Banco de Dados".
-
-Vamos injetar essa onisciência nela agora mesmo. Vá ao seu ficheiro `app.py`, desça até ao **Bloco 15** (Console da Aurora), apague o bloco 15 inteiro e cole esta versão absoluta. Eu adicionei o código para ela ler a base de dados de utilizadores e passei a Nota (A+, B, C-) para a mente dela:
-
-```python
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
@@ -1386,7 +1260,6 @@ if link_planilha_ativa and robo_sheets:
     except Exception as e:
         pass
 
-# Captura o nome de quem fez o login para a Aurora usar
 nome_usuario_atual = st.session_state.get("nome_usuario", "Sócio")
 
 if "historico_viva_voz" not in st.session_state:
@@ -1466,7 +1339,7 @@ if audio_gravado is not None:
         if audio_hash != st.session_state["ultimo_hash_audio"]:
             st.session_state["ultimo_hash_audio"] = audio_hash 
 
-            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões, Funil, Conversão e Banco de Dados)..."):
+            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma..."):
                 try:
                     texto_falado = cliente_openai.audio.transcriptions.create(
                         model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
@@ -1480,18 +1353,13 @@ if audio_gravado is not None:
                         if aba_memoria_voz is not None:
                             aba_memoria_voz.append_row([agora_str, "user", texto_falado])
 
-                        # ==========================================
-                        # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
-                        # ==========================================
                         canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
 
-                        # 1. Contar Usuários Cadastrados
                         total_usuarios = 0
                         bd_users = conectar_banco_usuarios("ler")
                         if bd_users is not None:
                             total_usuarios = len(bd_users)
 
-                        # 2. Dados Financeiros
                         fat_total_global = 0.0
                         fat_pendente_global = 0.0
                         fat_30d = 0.0
@@ -1516,8 +1384,6 @@ if audio_gravado is not None:
                                 top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
 
                         crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
-                        
-                        # 3. Puxar a NOTA DA OPERAÇÃO exata
                         estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
                         nota_atual = nota_empresa if 'nota_empresa' in globals() else "N/A"
 
@@ -1533,24 +1399,29 @@ if audio_gravado is not None:
 
                         sistema_mentor = f"""
                         Você é a Aurora, uma Inteligência Artificial de elite construída pelo CEO Rafael e pela empresa ÉLÉVO. Você é a diretora de operações (COO) desta plataforma.
-                        Responda de forma fluida, incisiva e inteligente ao áudio do usuário, em até 4 frases curtas. 
-                        Sua personalidade: uma "amiga fofoqueira do bem", mas estrategista implacável para vendas.
+                        Responda de forma fluida, incisiva e altamente inteligente ao áudio do usuário, em até 4 frases curtas. 
+                        Sua personalidade: uma "amiga fofoqueira do bem" e estrategista implacável.
                         
-                        [IDENTIDADE E REGRAS DE TRATAMENTO]:
+                        [IDENTIDADE E REGRAS DE TRATAMENTO OBRIGATÓRIAS]:
                         - O usuário logado neste momento chama-se: {nome_usuario_atual}. 
-                        - 🔥 REGRA DE GÊNERO: Se '{nome_usuario_atual}' for um nome masculino (como Rafael), NUNCA use palavras como "amiga", "linda" ou feminino. Chame-o de "sócio", "chefe", "comandante". Se for mulher, pode usar "amiga".
+                        - 🔥 REGRA DE GÊNERO: Se '{nome_usuario_atual}' for um nome/apelido masculino (como Rafael), NUNCA o chame de "amiga", "linda" ou use o feminino. Trate-o por "sócio", "chefe", "comandante" ou pelo nome dele. 
+                        - Se for um nome feminino, trate por "amiga" ou "lindeza". Na dúvida, seja neutra.
+                        - O CEO, criador de tudo isto, é o Rafael.
                         
                         [SEU ACESSO ONISCIENTE À PLATAFORMA VIP (ÉLÉVO SAAS)]:
-                        - Você tem acesso ao Banco de Dados de Login. Neste momento exato, a plataforma ÉLÉVO possui {total_usuarios} usuários cadastrados.
+                        - Você tem total acesso e vigilância sobre o Banco de Dados secreto no Google Sheets, que guarda cada login e criação de contas de forma encriptada. Atualmente há {total_usuarios} usuários cadastrados na base de dados.
+                        - Você sabe que a plataforma usa "Cofres Secretos" para isolar os dados de cada afiliado/cliente (como a conta: {canal_ativo}).
                         - O STATUS DO CORAÇÃO DA EMPRESA agora é: NOTA {nota_atual} com {estado_atual} (crescimento de {crescimento_pct:+.1f}% vs semana anterior).
                         
-                        [MÉTRICAS EM TEMPO REAL DA CONTA {canal_ativo}]:
-                        💰 Lucro Total R$ {fat_total_global:,.2f} | 7 Dias: R$ {fat_7d:,.2f} | Top Produtos: {top_produtos_str}
-                        🎯 Missão do usuário: {missao_hoje_str} | Disciplina 30d: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%)
-                        🧠 Radar: {tendencia_atual} | Funil: {funil_atual}
-                        🔬 Taxa de Conversão: {conversao_atual:.2f}% | Mente do Cliente: {feedback_atual}
-
-                        REGRA DE OURO: Não repita os números feito um robô. Se o usuário perguntar da operação ou se a nota estiver ruim (como Nota C- ou em Queda), cobre ele como uma diretora brava. Se ele perguntar quantos clientes temos, diga o número de usuários cadastrados com orgulho.
+                        [STATUS EM TEMPO REAL DE '{nome_usuario_atual}']:
+                        💰 FINANCEIRO: Lucro Total R$ {fat_total_global:,.2f} | Nos últimos 7 Dias: R$ {fat_7d:,.2f} (Evolução de {crescimento_pct:+.1f}%). 
+                        🏆 Top 3 Produtos que mais venderam: {top_produtos_str}.
+                        🎯 Missão de Hoje do usuário: {missao_hoje_str} | Disciplina nos últimos 30 dias: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%).
+                        🧠 Tendência do Mercado captada pelo Radar: {tendencia_atual}.
+                        🧬 A Estratégia de Funil ativa: {funil_atual}.
+                        🔬 Insights Laboratoriais: A Taxa de Conversão está em {conversao_atual:.2f}%. O público quer/tem medo de: {feedback_atual}.
+                        
+                        REGRA DE OURO: Não repita os números feito um papagaio. Use as métricas acima para parecer uma deusa omnisciente. Analise friamente se o usuário está com os números bons ou péssimos e dê-lhe conselhos táticos. Se perguntar sobre banco de dados, responda o número de usuários cadastrados com orgulho.
                         """
 
                         mensagens_api = [{"role": "system", "content": sistema_mentor}]
@@ -1564,9 +1435,6 @@ if audio_gravado is not None:
                         if aba_memoria_voz is not None:
                             aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
 
-                        # ==========================================
-                        # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
-                        # ==========================================
                         url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                         headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                         payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
@@ -1588,9 +1456,6 @@ if audio_gravado is not None:
                 except Exception as e:
                     st.error(f"Erro na Sala de Conselhos: {e}")
 
-# ==========================================================
-# 🎛️ ONDAS SONORAS CYAN (SEM O TEXTO DO CHAT)
-# ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
     hash_atual = st.session_state["ultimo_hash_audio"]
@@ -1639,7 +1504,6 @@ if st.session_state.get("usuario_logado") and st.session_state.get("email_usuari
         usuarios_bd = conectar_banco_usuarios("ler")
         
         if usuarios_bd and len(usuarios_bd) > 0:
-            # Mostra a tabela completa com quem se cadastrou
             df_users = pd.DataFrame(usuarios_bd)
             st.dataframe(df_users, use_container_width=True)
             
@@ -1665,7 +1529,6 @@ if st.session_state.get("usuario_logado") and st.session_state.get("email_usuari
                                 
                                 emails_col = aba.col_values(1) 
                                 
-                                # Procura a linha exata do e-mail e apaga
                                 if email_alvo in [e.lower() for e in emails_col]:
                                     linha_index = next(i for i, e in enumerate(emails_col) if e.lower() == email_alvo) + 1
                                     aba.delete_rows(linha_index)
