@@ -1544,9 +1544,12 @@ if st.session_state.get("usuario_logado") and st.session_state.get("email_usuari
 # ==========================================================
 # 17. CENTRAL DE ROTEIROS 360º (MÁQUINA DE CRIAÇÃO VISUAL)
 # ==========================================================
+import json
+import base64
+
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura completa.</p>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA ler o rótulo e forjar a estrutura completa dividida em blocos detalhados.</p>", unsafe_allow_html=True)
 
 with st.container(border=True):
     col_img, col_dados = st.columns([1, 1])
@@ -1558,59 +1561,68 @@ with st.container(border=True):
         st.markdown("<br><br>", unsafe_allow_html=True)
         btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR ESTRUTURA (V31.1)", type="primary", use_container_width=True)
 
-    if btn_gerar_roteiro:
-        if not img_produto:
-            st.warning("⚠️ Suba a imagem do produto para a IA conseguir trabalhar!")
-        else:
-            with st.spinner("🦅 A ler o rótulo do produto e a forjar os 5 blocos de ouro do roteiro..."):
-                try:
-                    img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                    
-                    sistema_criacao = "Você é o Diretor de Criação de Elite focado no TikTok Shop. Sua missão é cuspir estruturas modulares prontas para uso, sem texto extra."
-                    
-                    instrucao_criacao = """
-                    Analise a imagem deste produto, leia o rótulo para identificar EXATAMENTE qual é o nome e a marca dele.
-                    Crie a estrutura oficial do nosso método de vendas seguindo EXATAMENTE este formato e as regras de blindagem (escala 1:1, sem preço, ambiente de cozinha com plantas/cachorro, lapela na Aurora, tom conspiratório).
-                    
-                    Responda estritamente com estes 5 blocos prontos para copiar e colar:
+if btn_gerar_roteiro:
+    if not img_produto:
+        st.warning("⚠️ Suba a imagem do produto para a IA conseguir trabalhar!")
+    else:
+        with st.spinner("🦅 A ler o rótulo do produto e a forjar os 5 blocos de ouro do roteiro..."):
+            try:
+                img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
+                
+                sistema_criacao = "Você é o Diretor de Criação de Elite focado no TikTok Shop. Responda apenas em formato JSON estrito."
+                
+                instrucao_criacao = """
+                Analise a imagem deste produto, leia o rótulo para identificar EXATAMENTE qual é o nome e a marca dele.
+                
+                Você DEVE gerar uma estrutura rica e extremamente detalhada, idêntica ao Protocolo V31.1.
+                Regras OBRIGATÓRIAS:
+                - Escala 1:1 rigorosa (CRITICAL ABSOLUTE PHYSICS & SIZE LOCK).
+                - Estética: "Câmera Caótica", Whip Pan, Lapela na Aurora, Varanda Botânica, Cachorro Caramelo.
+                - Sem menção a preço. Foco visceral na dor e escassez.
+                
+                Retorne EXATAMENTE no formato JSON abaixo. Preencha cada valor com textos longos e detalhados:
+                {
+                    "imagem": "Escreva o prompt RAW photography detalhado (inglês). Inclua Aurora com lapela, fundo da cozinha com plantas/cachorro, e a trava: [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale, perfectly proportioned to fit comfortably inside a single human palm]. Nome do produto exato.",
+                    "video": "Escreva o prompt Handheld POV detalhado (inglês). Inclua: 1. Macro Zoom no produto com escala 1:1. 2. Finger tap no produto. 3. Whip Pan (0:03) para o rosto da Aurora. 4. Emoção visceral. 5. 3D orange shopping bag no final.",
+                    "fala": "Escreva a fala exata da Aurora em português (aprox. 40-50 palavras). Ataque a dor do cliente, use gatilho de vitrine secreta/lote derretendo, mande clicar na sacolinha. Zero preço.",
+                    "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
+                    "seo": "Títulos: [Busca Geral] | [Solução Específica] | [Marca lida no rótulo]\\nHashtags: #OAchadoSecreto #TikTokShopBR #[Tag3] #[Tag4] #[Tag5]"
+                }
+                """
+                
+                conteudo_roteiro = [
+                    {"type": "text", "text": instrucao_criacao},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
+                ]
+                
+                response_roteiro = cliente_openai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    response_format={ "type": "json_object" },
+                    messages=[
+                        {"role": "system", "content": sistema_criacao},
+                        {"role": "user", "content": conteudo_roteiro}
+                    ],
+                    max_tokens=2000,
+                    temperature=0.7
+                )
+                
+                resultado_roteiro = response_roteiro.choices[0].message.content.strip()
+                dados_roteiro = json.loads(resultado_roteiro)
+                
+                st.success("✅ Estrutura forjada com sucesso! Pronta para copiar e colar:")
+                
+                def exibir_bloco(titulo, icone, texto):
+                    st.markdown(f"<h4 style='color: #D4AF37; margin-bottom: 5px; margin-top: 15px;'>{icone} {titulo}</h4>", unsafe_allow_html=True)
+                    st.code(texto, language="text")
 
-                    ### 📸 1. PROMPT DE IMAGEM (Em inglês)
-                    [Escreva o prompt RAW photography com a trava: CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]
-
-                    ### 🎬 2. PROMPT DE VÍDEO (Em inglês)
-                    [Escreva o prompt Handheld POV com a mesma trava de escala 1:1, Whip Pan e a sacola laranja 3D no final]
-
-                    ### 🗣️ 3. FALA DA AURORA (Em português)
-                    [Roteiro persuasivo de 9 segundos usando o nome exato do produto que você leu no rótulo, max 45 palavras. Foco na dor visual, urgência de lote secreto e zero preço. Use 'Amiga', 'toque de seda', etc.]
-
-                    ### 📱 4. TEXTOS NA TELA
-                    [3 linhas curtas focadas em dor, benefício e escassez]
-
-                    ### 🏷️ 5. METADADOS E SEO
-                    Títulos: [Busca Geral] | [Solução Específica] | [Marca identificada]
-                    Hashtags: [5 hashtags mistas incluindo o nome do produto]
-                    """
-                    
-                    conteudo_roteiro = [
-                        {"type": "text", "text": instrucao_criacao},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
-                    ]
-                    
-                    response_roteiro = cliente_openai.chat.completions.create(
-                        model="gpt-4o-mini",
-                        messages=[
-                            {"role": "system", "content": sistema_criacao},
-                            {"role": "user", "content": conteudo_roteiro}
-                        ],
-                        max_tokens=1500,
-                        temperature=0.7
-                    )
-                    
-                    resultado_roteiro = response_roteiro.choices[0].message.content.replace("*", "").strip()
-                    
-                    st.success("✅ Estrutura gerada com sucesso! Copie os blocos abaixo para a sua esteira de produção:")
-                    st.code(resultado_roteiro, language="markdown")
-                    st.balloons()
-                    
-                except Exception as e:
-                    st.error(f"❌ Erro na visão da IA ou na geração do roteiro: {e}")
+                with st.container(border=True):
+                    exibir_bloco("1. PROMPT DE IMAGEM", "📸", dados_roteiro.get("imagem", ""))
+                    exibir_bloco("2. PROMPT DE VÍDEO", "🎬", dados_roteiro.get("video", ""))
+                    exibir_bloco("3. FALA DA AURORA (Áudio)", "🗣️", dados_roteiro.get("fala", ""))
+                    exibir_bloco("4. TEXTOS NA TELA (Pop-ups)", "📱", dados_roteiro.get("tela", ""))
+                    exibir_bloco("5. METADADOS E SEO", "🏷️", dados_roteiro.get("seo", ""))
+                
+            except json.JSONDecodeError:
+                st.error("❌ A IA não retornou o formato correto. Tente novamente.")
+            except Exception as e:
+                st.error(f"❌ Erro na visão da IA: {e}")
