@@ -56,8 +56,14 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
-EMAIL_MESTRE = "orafae005@gmail.com" 
-SENHA_MESTRA = "Rafa 258467"
+# A SUA CHAVE MESTRA AGORA É PUXADA DO COFRE SECRETO
+try:
+    EMAIL_MESTRE = st.secrets["EMAIL_MESTRE"]
+    SENHA_MESTRA = st.secrets["SENHA_MESTRA"]
+except KeyError:
+    st.error("🚨 ALERTA: Faltam as credenciais do CEO no cadeado (Secrets).")
+    st.stop()
+
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
 
 if "usuario_logado" not in st.session_state:
