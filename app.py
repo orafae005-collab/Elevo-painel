@@ -1541,3 +1541,77 @@ if st.session_state.get("usuario_logado") and st.session_state.get("email_usuari
                                 st.error(f"Erro ao excluir: {e}")
         else:
             st.info("O seu banco de dados está vazio. Nenhum cliente cadastrado ainda.")
+# ==========================================================
+# 17. CENTRAL DE ROTEIROS 360º (MÁQUINA DE CRIAÇÃO VISUAL)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Gerador de Prompts V31.1)</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>Faça upload do produto e deixe a IA forjar a estrutura completa (Imagem, Vídeo, Fala, Texto e SEO).</p>", unsafe_allow_html=True)
+
+with st.container(border=True):
+    col_img, col_dados = st.columns([1, 2])
+    
+    with col_img:
+        img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+        
+    with col_dados:
+        nome_produto_roteiro = st.text_input("📦 Nome exato do Produto", placeholder="Ex: Queratina Líquida Novex Max Keratin 250ml")
+        btn_gerar_roteiro = st.button("⚡ GERAR ESTRUTURA COMPLETA (V31.1)", type="primary", use_container_width=True)
+
+    if btn_gerar_roteiro:
+        if not img_produto or not nome_produto_roteiro:
+            st.warning("⚠️ Forneça a imagem e o nome do produto para a IA trabalhar!")
+        else:
+            with st.spinner("🦅 A analisar o produto e a forjar os 5 blocos de ouro do roteiro..."):
+                try:
+                    img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
+                    
+                    sistema_criacao = "Você é o Diretor de Criação de Elite focado no TikTok Shop. Sua missão é cuspir estruturas modulares prontas para uso, sem texto extra."
+                    
+                    instrucao_criacao = f"""
+                    Analise a imagem deste produto: {nome_produto_roteiro}.
+                    Crie a estrutura oficial do nosso método de vendas seguindo EXATAMENTE este formato e as regras de blindagem (escala 1:1, sem preço, ambiente de cozinha com plantas/cachorro, lapela na Aurora, tom conspiratório).
+                    
+                    Responda estritamente com estes 5 blocos prontos para copiar e colar:
+
+                    ### 📸 1. PROMPT DE IMAGEM (Em inglês)
+                    [Escreva o prompt RAW photography com a trava: CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]
+
+                    ### 🎬 2. PROMPT DE VÍDEO (Em inglês)
+                    [Escreva o prompt Handheld POV com a mesma trava de escala 1:1, Whip Pan e a sacola laranja 3D no final]
+
+                    ### 🗣️ 3. FALA DA AURORA (Em português)
+                    [Roteiro persuasivo de 9 segundos, max 45 palavras. Foco na dor visual, urgência de lote secreto e zero preço. Use 'Amiga', 'toque de seda', etc.]
+
+                    ### 📱 4. TEXTOS NA TELA
+                    [3 linhas curtas focadas em dor, benefício e escassez]
+
+                    ### 🏷️ 5. METADADOS E SEO
+                    Títulos: [Busca Geral] | [Solução Específica] | [Marca]
+                    Hashtags: [5 hashtags mistas]
+                    """
+                    
+                    conteudo_roteiro = [
+                        {"type": "text", "text": instrucao_criacao},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
+                    ]
+                    
+                    response_roteiro = cliente_openai.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[
+                            {"role": "system", "content": sistema_criacao},
+                            {"role": "user", "content": conteudo_roteiro}
+                        ],
+                        max_tokens=1500,
+                        temperature=0.7
+                    )
+                    
+                    resultado_roteiro = response_roteiro.choices[0].message.content.replace("*", "").strip()
+                    
+                    st.success("✅ Estrutura gerada com sucesso! Copie os blocos abaixo para a sua esteira de produção:")
+                    st.code(resultado_roteiro, language="markdown")
+                    st.balloons()
+                    
+                except Exception as e:
+                    st.error(f"❌ Erro na visão da IA ou na geração do roteiro: {e}")
+
