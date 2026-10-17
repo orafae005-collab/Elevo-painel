@@ -271,6 +271,139 @@ js_moeda = """
         function onTouchMove(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 12 || Math.abs(dy) > 12) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
         function onTouchEnd(e) { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; if (!isDragging) { irParaTopoConta(); } isDragging = false; }
         
+# ==========================================================
+# 2. DESIGN E TEMA DINÂMICO (🔥 V5.7 - ULTRA VIP PREMIUM)
+# ==========================================================
+col_vazia, col_tema = st.columns([8, 2])
+with col_tema:
+    modo_claro = st.toggle("☀️ Modo Claro", value=False)
+
+if modo_claro:
+    bg_color = "#F4F4F9"
+    text_color = "#333333" 
+    card_bg = "#FFFFFF"
+    border_color = "rgba(0, 0, 0, 0.15)"
+    btn_bg = "#F9F9F9"
+    btn_text = "#333333"
+    btn_primary_bg = "#005C4B" 
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#FFFFFF"
+    shadow_base = "rgba(0, 0, 0, 0.05)"
+else:
+    bg_color = "#0E1117"
+    text_color = "#E0E0E0" 
+    card_bg = "rgba(25, 27, 31, 0.8)"
+    border_color = "rgba(255, 255, 255, 0.1)" 
+    btn_bg = "#1A1C20"
+    btn_text = "#C0C0C0"
+    btn_primary_bg = "#004D40" 
+    btn_primary_text = "#FFFFFF"
+    input_bg = "#121519"
+    shadow_base = "rgba(0, 0, 0, 0.3)"
+
+estilo_elevo = f"""
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
+    
+    html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
+    [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
+    
+    /* Remoção total da interface inútil do Streamlit */
+    [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="collapsedControl"], footer {{ display: none !important; }}
+    
+    /* Textos Gerais */
+    h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
+    
+    /* Títulos da Plataforma */
+    .titulo-elevo {{ font-size: 3.2rem; font-weight: 800; text-align: center; color: #00BFA5; margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }}
+    .subtitulo {{ text-align: center; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; color: {text_color} !important; opacity: 0.6; }}
+    
+    /* Cards e Métricas */
+    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{ 
+        background: {card_bg} !important; 
+        border: 1px solid {border_color} !important; 
+        border-radius: 12px !important; 
+        box-shadow: 0 4px 10px {shadow_base} !important; 
+    }}
+    
+    /* Botões */
+    .stButton > button {{ 
+        background: {btn_bg} !important; 
+        color: {btn_text} !important; 
+        border: 1px solid {border_color} !important; 
+        border-radius: 8px !important; 
+        box-shadow: 0 2px 5px {shadow_base} !important; 
+        font-weight: 600 !important; 
+        transition: all 0.3s ease !important; 
+    }}
+    .stButton > button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 12px {shadow_base} !important; border-color: rgba(212, 175, 55, 0.5) !important; color: #D4AF37 !important; }}
+    .stButton > button[kind="primary"] {{ 
+        background: {btn_primary_bg} !important; 
+        color: {btn_primary_text} !important; 
+        border: 1px solid #00BFA5 !important; 
+    }}
+    .stButton > button[kind="primary"]:hover {{ background: #00695C !important; box-shadow: 0 6px 15px rgba(0, 191, 165, 0.4) !important; border-color: #00E5FF !important; color: #FFFFFF !important; }}
+    
+    /* 🔥 CORREÇÃO VIP 1: TEXT AREAS E INPUTS (Destrói o fundo branco) */
+    div[data-baseweb="input"] > div, div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{ 
+        background-color: {input_bg} !important; 
+        border: 1px solid {border_color} !important; 
+        color: {text_color} !important; 
+        border-radius: 8px !important; 
+    }}
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"] > div:focus-within {{ 
+        border-color: #D4AF37 !important; 
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important;
+    }}
+    
+    /* 🔥 CORREÇÃO VIP 2: CAIXA DE UPLOAD DE ARQUIVOS (Adeus blocão branco) */
+    [data-testid="stFileUploadDropzone"] {{
+        background-color: {input_bg} !important;
+        border: 1px dashed rgba(212, 175, 55, 0.4) !important;
+        border-radius: 12px !important;
+        padding: 20px !important;
+        transition: all 0.3s ease !important;
+    }}
+    [data-testid="stFileUploadDropzone"]:hover {{
+        border-color: #D4AF37 !important;
+        background-color: rgba(212, 175, 55, 0.05) !important;
+    }}
+    [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{
+        color: {text_color} !important;
+        opacity: 0.8 !important;
+    }}
+    /* Botão "Browse files" dentro do Upload */
+    [data-testid="stFileUploadDropzone"] button {{
+        background-color: {card_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 6px !important;
+        font-weight: 500 !important;
+    }}
+    [data-testid="stFileUploadDropzone"] button:hover {{
+        border-color: #00BFA5 !important;
+        color: #00BFA5 !important;
+    }}
+</style>
+"""
+st.markdown(estilo_elevo, unsafe_allow_html=True)
+
+# Lógica da Moeda da Águia (Flutuante)
+js_moeda = """
+<script>
+    const parent = window.parent.document;
+    if (!parent.getElementById("moeda-aguia-vip")) {
+        const btn = parent.createElement("div");
+        btn.id = "moeda-aguia-vip";
+        btn.innerHTML = "🦅";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; touch-action: none; transition: transform 0.1s ease;";
+        parent.body.appendChild(btn);
+
+        let isDragging = false, startX, startY, initialLeft, initialTop;
+        function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
+        function onTouchMove(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx) > 12 || Math.abs(dy) > 12) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
+        function onTouchEnd(e) { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; if (!isDragging) { irParaTopoConta(); } isDragging = false; }
+        
         btn.addEventListener('touchstart', onTouchStart, {passive: false});
         btn.addEventListener('touchmove', onTouchMove, {passive: false});
         btn.addEventListener('touchend', onTouchEnd);
