@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MANUAL V9.2 EMBUTIDO - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (GABARITOS EXATOS INJETADOS - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
@@ -1189,57 +1189,50 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura (Manual V9.2) e salvando na nuvem..."):
+    with st.spinner("🦅 Forjando estrutura idêntica ao Gabarito de Ouro..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem e leia o rótulo para identificar o produto.
-            Sua missão é gerar os prompts seguindo RIGOROSAMENTE o formato oficial abaixo. NUNCA cite logotipos. O prompt de vídeo deve ultrapassar 1600 caracteres e o de imagem ter no mínimo 1000.
+            Analise a imagem APENAS para ler o nome do produto, a marca, para que serve e a quantidade de itens (se é 1 unidade ou Kit com 2, 3, etc.).
+            REGRA ABSOLUTA: NÃO descreva cores, formato, textos ou aparência da embalagem, pois o gerador de IA já tem a foto original.
             
-            🔥 REGRA DE MULTIPACK (KITS): Se for um kit (ex: "Kit 2"), descreva FISICAMENTE TODOS os itens do kit presentes na cena.
-            
-            [MANUAL DE AMBIENTES E GUINDASTES V9.2 - MATRIZ DE CRIAÇÃO]
-            Você tem liberdade para escolher, misturar ou criar novos cenários baseados nestes exemplos, mantendo a "baguncinha orgânica/realista" e a segurança TikTok:
-            - Ambientes: Varanda Tropical, Banheiro com Tempestade, Quarto Minimalista, Cozinha Rústica, Varanda de Praia, Escritório Criativo, Quintal Arborizado, Sala de Estar, Banheiro Moderno, Área Gourmet, Varanda com Garoa, Quarto Boho, Terraço Urbano, Cantinho de Leitura, Cozinha Americana, Varanda de Inverno, Jardim Vertical, Casa de Campo, Ateliê, Varanda Ensolarada, Corredor Verde, Urban Jungle. (Lembre-se de adicionar elementos como vira-lata caramelo, xícaras, plantas, vapor).
-            - Guindastes: Foco Reverso/Macro Zoom, Andadinha Frontal, Gossip Lean, Teste Tátil, Giro 360 Simulado, Foco-Hunt, Rack Focus, Saboneteira/Chest-Up, Deslocamento Lateral, Corte Seco com Glitch.
-            
-            [GABARITO OFICIAL - ESTRUTURA E EXEMPLO DE TOM]
-            PROMPT DE IMAGEM (Mínimo 1000 caracteres):
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. [DESCREVA O AMBIENTE V9.2 AQUI COM A BAGUNCINHA ORGÂNICA]. CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The exact product(s) [NOME/QUANTIDADE] resting on the table or held MUST look compact, light, and perfectly proportioned to fit comfortably relative to human hands. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
-            
-            PROMPT DE VÍDEO UNIFICADO (Mínimo 1600 caracteres):
-            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video. APLIQUE UM GUINDASTE. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product(s). CRITICAL PHYSICS: 1:1 scale. SINGLE MOTION TRICK: Her free index finger performs a micro-tap on the cap twice. NO pixel melting.]
-            - Shot 2 (Visceral Emotion): [APLIQUE OUTRO GUINDASTE. The camera snaps focus onto Aurora's face (microfone de lapela visível, ambiente V9.2 ao fundo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens, chest heaving, serious expression of pure warning.]
-            - Interaction (3D CTA): [She aggressively points downwards. A realistic 3D floating orange shopping bag materializes.]
-            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro. Urgent, breathless, conspiratorial voice].
-            Fala da AURORA (Português - 100% Blindada):
-            "[Crie a fala para o produto da imagem copiando ESTE TOM EXATO E GATILHOS: 'Amiga, o seu cabelo tá elástico e quebrando só de pentear? O segredo de salão para blindar e reconstruir os fios em casa acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!'. Aprox 40-45 palavras. Zero preço]."
-            Texto na Tela (Nativo TikTok):
-            - "[⚠️ DOR PRINCIPAL / PROBLEMA]? 🛑"
-            - "[✨ BENEFÍCIO PRINCIPAL]"
+            Copie EXATAMENTE a estrutura e a densidade dos EXEMPLOS PRONTOS abaixo. Mude apenas o nome do produto, a quantidade física na cena (se for kit, diga que ela segura 1 e os outros estão na bancada ao fundo) e varie o Ambiente/Guindaste usando o Manual V9.2 (Varanda Tropical, Banheiro Tempestade, Cozinha Rústica, Quarto Minimalista, etc., mantendo sempre a baguncinha orgânica e o vira-lata caramelo).
+
+            [EXEMPLO PRONTO 1 - MOLDE DE IMAGEM (Mínimo 1000 caracteres)]
+            RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism and visceral texture: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, natural moisture on the lips, advanced subsurface scattering, moody warm tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman (Aurora) with natural dark hair and straight bangs (franja reta), wearing a simple shirt with a small, discrete black wireless lapel microphone visibly clipped to the neckline. [AVATAR LOCK & GOSSIP FACTOR]: She has a deeply shocked, conspiratorial micro-expression, acting as if she is sharing an urgent warning to a friend. Her hair is the ultimate proof of the product: ultra-smooth, heavy with moisture, displaying an intense, mirror-like glass hair shine and absolute zero frizz, perfectly hydrated. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]. She is firmly and naturally HOLDING the EXACT product '[NOME DO PRODUTO]' from the provided reference image in one hand (se for kit, adicione: while the other exact units rest neatly on the counter behind her, making all visible in the scene). DO NOT alter, redraw, or describe the product colors, logo, or text. Copy the source reference image 100% intact with absolute realistic solid plastic texture and micro-reflections. [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [AMBIENTE & NATURE MATRIX V9]: (Descreva aqui em inglês o ambiente V9.2 escolhido com plantas, luz natural, a baguncinha temática como xícara de café/óculos/toalha na mesa e o vira-lata caramelo dormindo no tapete ao fundo). Unfiltered UGC vlog style, high-contrast, heavy sensor noise, 8k resolution.
+
+            [EXEMPLO PRONTO 2 - MOLDE DE VÍDEO UNIFICADO (Mínimo 1600 caracteres)]
+            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a rustic wooden table where the product(s) rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product(s) '[NOME DO PRODUTO]' from the uploaded image. [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize] (se for kit, especifique: one unit is held firmly, while the other units rest neatly on the table in the background). The items remain perfectly solid with micro-reflections bouncing off the plastic as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid/cap twice to emphasize it. NO pixel melting.]
+            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração do ambiente escolhido, plantas verdes e baguncinha orgânica no fundo com uma xícara e um vira-lata caramelo deitado no fundo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+            - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
+            Fala da AURORA (Português - 100% Blindada Contra o Robô):
+            "[Crie uma fala de 40 a 45 palavras exatas para o produto seguindo este modelo: 'Amiga, você viu isso? O segredo para (benefício real sem prometer milagre/cura) e deixar o cabelo com toque de seda acabou de chegar na vitrine! O estoque desse lote tá derretendo em minutos. Já garanti o meu, corre na sacolinha antes que esgote!']"
+            Texto na Tela (Nativo TikTok - Foco na Dor):
+            - "⚠️ [PROBLEMA PRINCIPAL DO CABELO]? 🛑"
+            - "[EFEITO/BENEFÍCIO SENSORIAL] ✨"
             - "LOTE SECRETO LIBERADO 🛒👇"
-            Finalização (Português): [Efeito de digital glitch sutil, corte seco.]
-            
+
             Retorne EXATAMENTE no formato JSON estrito:
             {
                 "prompt_imagem": "...",
                 "prompt_video_completo": "...",
-                "titulo_geral": "[Título da dor].",
-                "titulo_solucao": "[Título focado na solução].",
-                "titulo_marca": "[Título da marca]."
+                "titulo_geral": "Como [resolver a dor principal do produto] em casa.",
+                "titulo_solucao": "[Nome Exato do Produto e Quantidade].",
+                "titulo_marca": "[Nome do Produto e Marca] resenha."
             }
-            NÃO use hashtags. NUNCA cite logotipos.
+            NÃO use hashtags. NUNCA cite logotipos ou finalizações com logo.
             """
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito com textos extremamente densos."}, {"role": "user", "content": [
+                messages=[{"role": "system", "content": "Você é um copiador estrutural cirúrgico de prompts V9.2 e V31.1. Siga os exemplos prontos 100% à risca sem resumir."}, {"role": "user", "content": [
                     {"type": "text", "text": instrucao_ouro},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                 ]}],
-                max_tokens=3500, temperature=0.75
+                max_tokens=3500, temperature=0.5
             )
             
             conteudo_json = resp.choices[0].message.content.strip()
@@ -1251,7 +1244,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Estrutura gerada e salva com sucesso na nuvem!")
+            st.success("✅ Estrutura gerada 100% no padrão oficial e salva na nuvem!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
