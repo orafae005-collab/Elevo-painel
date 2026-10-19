@@ -831,39 +831,44 @@ dicas_investimento = [
     "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?"
 ]
 
-# 🔥 NOVA ROTA: RADAR DE OPORTUNIDADES + PASSO A PASSO TÁTICO
-oportunidades_mercado = [
-    {
-        "titulo": "Shopee Afiliados no 'Shopee Video'",
-        "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros caóticos do TikTok lá e crie uma segunda fonte de renda sem gravar nada novo!",
-        "passos": "1. Abra o app da Shopee no telemóvel e vá à aba 'Eu' (canto inferior direito).\n2. Role para baixo, encontre 'Programa de Afiliados' e faça o cadastro.\n3. Após aprovação, toque no ícone 'Vídeo' na barra inferior.\n4. Faça o upload do vídeo que já gravou para o TikTok.\n5. Toque em 'Adicionar Link' e pesquise o produto correspondente na Shopee para fixar a sacola laranja."
-    },
-    {
-        "titulo": "Mercado Livre Vídeos (Clipes)",
-        "pitch": "Uma nova vitrine de clipes curtos abriu no ML. Excelente oceano azul para quem já sabe vender produtos físicos com estilo UGC.",
-        "passos": "1. Inscreva-se no 'Programa de Afiliados do Mercado Livre' pelo site (afiliados.mercadolivre.com.br).\n2. Abra o app do Mercado Livre e vá à seção de vídeos curtos ('Vídeos' ou 'Clipes').\n3. Como criador/afiliado, faça upload de vídeos review do seu celular.\n4. Conecte o link rastreável do seu painel de afiliado diretamente no vídeo para ganhar comissões em cada venda."
-    },
-    {
-        "titulo": "Monetização em Dólar (YouTube Shorts)",
-        "pitch": "Crie um canal 'Dark' no YouTube Shorts. Compile os seus vídeos curtos lá e ganhe em AdSense (Dólar) ou venda como afiliado pelo link nos comentários.",
-        "passos": "1. Crie um canal no YouTube focado no seu nicho (ex: Achados de Beleza/Casa).\n2. Pegue os vídeos que você faz para o TikTok e poste no 'YouTube Shorts'.\n3. No título do vídeo, escreva: 'Link do produto no comentário fixado'.\n4. Copie o seu link de afiliado e fixe no primeiro comentário do Short.\n5. Ao atingir os requisitos do YouTube (10M de views), você ganha em Dólar pelo Adsense + Vendas."
-    },
-    {
-        "titulo": "Venda de Roteiros e Vídeos (UGC para Marcas)",
-        "pitch": "Lojas estão desesperadas por vídeos que convertem. Pare de ganhar apenas comissão e venda o vídeo pronto como prestador de serviço (UGC).",
-        "passos": "1. Abra o Instagram e pesquise por lojas médias do seu nicho (lojas de cosméticos, utilidades).\n2. Envie uma Mensagem Direta (DM) com este texto: 'Olá! Adoro os produtos de vocês. Sou criador de conteúdo UGC focado em conversão. Posso enviar um exemplo?'\n3. Envie um dos seus melhores vídeos estilo 'Caos Controlado'.\n4. Ofereça um pacote: 3 vídeos por um valor fixo (ex: R$ 300).\n5. Receba os produtos em casa, grave com o método da ÉLÉVO e receba via Pix."
-    },
-    {
-        "titulo": "Kwai E-commerce (Botão de Compras)",
-        "pitch": "O Kwai está a injetar muito tráfego em contas que testam o novo botão de compras. É hora de validar o seu produto campeão num novo público.",
-        "passos": "1. Crie uma conta focada em achados/reviews no Kwai.\n2. Vá às configurações e aplique para a 'Central do Criador' ou ative o botão de e-commerce/afiliados.\n3. Faça upload dos seus vídeos seguindo a mesma estrutura do TikTok.\n4. Antes de publicar, clique na opção de adicionar produto/sacolinha e pesquise o item correspondente no catálogo interno deles.\n5. Publique com consistência de 2 a 3 vídeos por dia."
-    }
-]
+# 🔥 NOVA ROTA: RADAR DE OPORTUNIDADES INFINITO (GERADO PELA IA A CADA 24H)
+@st.cache_data(ttl=86400)
+def buscar_oportunidade_do_dia(data_hoje):
+    try:
+        sys_op = "Atue como um Estrategista de Negócios Sênior focado em E-commerce, Afiliados, Monetização e Tráfego. Responda apenas em JSON estrito."
+        prompt_op = """
+        Gere uma tática de expansão de vendas ou oportunidade de negócio digital pouco explorada (oceano azul) para o dia de hoje.
+        Varie os temas todos os dias (ex: YouTube Shorts, Mercado Livre, Pinterest, Shopee, Criação de UGC para marcas, Ferramentas de IA).
+        
+        Retorne EXATAMENTE neste formato JSON:
+        {
+            "titulo": "Nome da Estratégia Curto e Impactante",
+            "pitch": "Resumo persuasivo de 2 linhas do porquê isso dá muito dinheiro agora.",
+            "passos": "1. Passo um... \n2. Passo dois... \n3. Passo três..."
+        }
+        """
+        resp = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={ "type": "json_object" },
+            messages=[{"role": "system", "content": sys_op}, {"role": "user", "content": prompt_op}],
+            temperature=0.85
+        )
+        import json
+        return json.loads(resp.choices[0].message.content.strip())
+    except Exception:
+        # Plano B caso a internet falhe
+        return {
+            "titulo": "Shopee Afiliados no 'Shopee Video'",
+            "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros caóticos do TikTok lá e crie uma segunda fonte de renda sem gravar nada novo!",
+            "passos": "1. Abra o app da Shopee e cadastre-se no Programa de Afiliados.\n2. Toque no ícone 'Vídeo'.\n3. Faça upload do vídeo que já gravou para o TikTok.\n4. Adicione o link do produto na sacola laranja antes de postar."
+        }
+
+hoje_str_cache = agora_brasil.strftime("%Y-%m-%d")
+oportunidade_hoje = buscar_oportunidade_do_dia(hoje_str_cache)
 
 frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
 missao_hoje = missoes[dia_do_ano % len(missoes)]
 dica_hoje = dicas_investimento[dia_do_ano % len(dicas_investimento)]
-oportunidade_hoje = oportunidades_mercado[dia_do_ano % len(oportunidades_mercado)]
 
 col_mindset, col_missao = st.columns([1, 1])
 
@@ -871,12 +876,11 @@ with col_mindset:
     st.info(f"💎 **Visão de Águia:** {frase_hoje}")
     st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
     
-    # Renderização da Oportunidade com Passo a Passo expansível
     with st.container(border=True):
-        st.markdown(f"**🚀 Oportunidade Oculta: {oportunidade_hoje['titulo']}**")
-        st.markdown(f"<p style='font-size: 0.9em; color: #A0A0A0;'>{oportunidade_hoje['pitch']}</p>", unsafe_allow_html=True)
+        st.markdown(f"**🚀 Oportunidade Oculta: {oportunidade_hoje.get('titulo', 'Nova Oportunidade')}**")
+        st.markdown(f"<p style='font-size: 0.9em; color: #A0A0A0;'>{oportunidade_hoje.get('pitch', '')}</p>", unsafe_allow_html=True)
         with st.expander("🛠️ Ver Passo a Passo de Execução", expanded=False):
-            st.markdown(f"**Como aplicar agora:**\n\n{oportunidade_hoje['passos']}")
+            st.markdown(f"**Como aplicar agora:**\n\n{oportunidade_hoje.get('passos', '')}")
     
 with col_missao:
     st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
@@ -1780,4 +1784,73 @@ if json_para_exibir:
             st.rerun()
     except json.JSONDecodeError:
         st.warning("Erro ao decodificar a estrutura do roteiro.")
+        # ==========================================================
+# 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
+# ==========================================================
+st.divider()
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🏛️ Academia ÉLÉVO: Gestão & Mentalidade de CEO</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>O manual definitivo para deixar de ser um afiliado comum e construir um império milionário.</p>", unsafe_allow_html=True)
+
+with st.container(border=True):
+    aba_mindset, aba_gestao, aba_escala, aba_mentoria = st.tabs([
+        "🧠 A Mente do Sócio", 
+        "💰 Gestão de Caixa", 
+        "🚀 O Mapa da Escala", 
+        "🦅 Mentoria Executiva"
+    ])
+    
+    with aba_mindset:
+        st.markdown("<h4 style='color: #00BFA5;'>1. A Regra de Ouro das Vendas</h4>", unsafe_allow_html=True)
+        st.info("💡 **'Eu não vendo produtos. Eu vendo decisões.'**\n\nNinguém compra pelo que o produto é... compra pelo que acredita que aquilo vai fazer com a própria vida. Enquanto você tenta convencer, o mestre faz a pessoa se convencer sozinha. Mostre o problema que ela não consegue ignorar e deixe a mente dela completar o caminho.")
+        st.markdown("""
+        **Princípios do CEO de Elite:**
+        * **Frieza Emocional:** Um vídeo flopou? Não é pessoal, é apenas um dado. Analise a taxa de retenção, mude o gancho (Whip Pan) e teste de novo.
+        * **Consistência > Motivação:** Motivação acaba no 3º dia. Disciplina é o que constrói o faturamento no 30º dia.
+        * **Foco no 'Quem':** Você não está a vender para toda a gente. Está a vender para a 'Buscadora de Atalhos' que quer luxo pagando pouco.
+        """)
+        
+    with aba_gestao:
+        st.markdown("<h4 style='color: #00BFA5;'>2. Como Blindar a Empresa da Falência</h4>", unsafe_allow_html=True)
+        st.warning("🚨 O maior erro do iniciante é achar que todo o lucro que cai no painel é salário. Se gastar tudo o que entra, o seu negócio morre no próximo mês.")
+        st.markdown("""
+        **A Divisão de Ouro (Regra 50/30/20):**
+        1. **50% (Reinvestimento da Máquina):** Este dinheiro não é seu, é da ÉLÉVO. Use para comprar produtos de review, melhorar a iluminação, pagar plataformas de IA ou testar tráfego pago.
+        2. **30% (O seu Pró-Labore/Salário):** Este é o dinheiro que vai para o seu bolso. Use para viver, comemorar as metas batidas e pagar as suas contas pessoais.
+        3. **20% (Caixa de Guerra):** O fundo de emergência. Se as redes sociais mudarem o algoritmo amanhã ou uma conta cair, você tem caixa para sobreviver meses sem vender uma única unidade.
+        """)
+        
+    with aba_escala:
+        st.markdown("<h4 style='color: #00BFA5;'>3. O Passo a Passo para o Oceano Azul</h4>", unsafe_allow_html=True)
+        st.success("✨ Escalar não é trabalhar mais horas. É fazer a máquina trabalhar por si.")
+        st.markdown("""
+        **Fase 1: O Laboratório (Onde a mágica nasce)**
+        * Você é o roteirista, o editor e o gestor.
+        * O objetivo aqui NÃO é ficar rico. É achar **1 Produto Campeão e 1 Funil Validado** (Conversão > 1.5%).
+        
+        **Fase 2: A Multiplicação (A Força Bruta)**
+        * Pegar no Produto Campeão e espalhar o mesmo vídeo em todas as frentes (Shopee Video, YouTube Shorts, Pinterest).
+        * Criar contas satélites vendendo ângulos diferentes da mesma solução.
+        
+        **Fase 3: O Verdadeiro CEO (Delegação Total)**
+        * Você para de editar vídeos. Contrata freelancers e entrega-lhes a *Máquina de Criação 360º* para eles executarem.
+        * O seu único trabalho passa a ser: **Analisar dados no Dashboard, gerir a equipa e usar o Radar para achar novas tendências.**
+        """)
+        
+    with aba_mentoria:
+        st.markdown("<h4 style='color: #00BFA5;'>🗣️ Consultoria de Gestão Direta com a COO</h4>", unsafe_allow_html=True)
+        st.write("Dúvidas sobre como dividir o seu tempo? Não sabe como investir o lucro? Pergunte à Aurora.")
+        
+        duvida_gestao = st.text_input("Qual é o seu maior desafio de gestão ou rotina hoje?", placeholder="Ex: Como divido o meu tempo entre gravar vídeos e pesquisar produtos novos?")
+        if st.button("Pedir Conselho de Gestão", use_container_width=True):
+            if not duvida_gestao:
+                st.warning("⚠️ Escreva a sua dúvida para a Diretoria analisar.")
+            else:
+                with st.spinner("🦅 A Aurora está a calcular a estratégia do seu império..."):
+                    sys_gestao = "Você é Aurora, COO (Diretora de Operações) da ÉLÉVO e mentora de negócios do CEO. Seu tom é de estrategista implacável, focada em gestão de tempo, finanças e mentalidade milionária. Não use palavras clichês de autoajuda."
+                    prompt_gestao = f"O nosso CEO está com o seguinte desafio de gestão na empresa: '{duvida_gestao}'. \nDê um conselho de negócio frio, direto e baseado em números. Forneça 3 passos de ação executáveis."
+                    
+                    resposta_mentoria = chamar_ia_global(prompt_gestao, sys_gestao)
+                    
+                    st.info("💡 **Parecer Executivo da Aurora:**")
+                    st.markdown(resposta_mentoria)
         
