@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (GABARITOS EXATOS INJETADOS - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MATRIZ V9.2 + PETS DINÂMICOS - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
@@ -1189,30 +1189,33 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura idêntica ao Gabarito de Ouro..."):
+    with st.spinner("🦅 Forjando estrutura (Manual V9.2 + Pets Dinâmicos) e salvando na nuvem..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem APENAS para ler o nome do produto, marca, volume aproximado (ex: 250ml, 300ml, 400g) e quantidade de itens (se é 1 unidade ou Kit).
+            Analise a imagem APENAS para ler o nome do produto, marca, volume aproximado e quantidade de itens (1 unidade ou Kit).
             REGRA ABSOLUTA: NÃO descreva cores, formato ou textos da embalagem, pois o gerador já tem a foto original.
             
-            [REGRA DE ESCALA FÍSICA E TAMANHO - ESCOLHA A CORRETA CONFORME O PRODUTO]
-            - Se for Frasco/Líquido/Spray (ex: 250ml/300ml): Use EXATAMENTE -> [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize] [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize].
-            - Se for Pote/Máscara/Kit (ex: 400g): Use EXATAMENTE -> [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize] [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize].
+            [REGRA DE ESCALA FÍSICA E TAMANHO]
+            - Se for Frasco/Líquido/Spray (ex: 250ml/300ml): Use a trava de frasco compacto (1:1 scale, compact palm size).
+            - Se for Pote/Máscara/Kit (ex: 400g): Use a trava de pote médio (1:1 scale, standard cosmetic jar, do not oversize).
 
-            Copie EXATAMENTE a estrutura dos EXEMPLOS PRONTOS abaixo, aplicando a trava de tamanho correspondente e variando o ambiente/guindaste pelo Manual V9.2 (mantendo sempre a baguncinha orgânica e o vira-lata caramelo):
+            [MANUAL DE AMBIENTES E PETS DINÂMICOS V9.2]
+            - Sorteie 1 dos 22 Ambientes V9.2 (Varanda Tropical, Banheiro com Tempestade, Quarto Minimalista, Cozinha Rústica, Varanda de Praia, Escritório Criativo, Quintal Arborizado, Sala de Estar, Banheiro Moderno, Área Gourmet, Varanda com Garoa, Quarto Boho, Terraço Urbano, Cantinho de Leitura, Cozinha Americana, Varanda de Inverno, Jardim Vertical, Casa de Campo, Ateliê, Varanda Ensolarada, Corredor Verde, Urban Jungle).
+            - Fator Animal (Mascotes Variados): Sorteie ou inclua organicamente um mascote de fundo realista para dar vida ao vlog (ex: um gato preguiçoso dormindo na poltrona/estante, um vira-lata caramelo deitado no tapete, um passarinho na janela aberta, etc.). Nunca repita o mesmo pet em todas as cenas.
+            - Baguncinha Temática: Adicione micro-detalhes de caos cotidiano (xícara de café, óculos, livros, panos de prato, carregador de celular).
 
             [EXEMPLO PRONTO 1 - MOLDE DE IMAGEM (Mínimo 1000 caracteres)]
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen (ou adapte para outro ambiente V9.2 mantendo a mesma densidade). In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the counter. [INSIRA AQUI A TRAVA DE TAMANHO ESCOLHIDA ACIMA]. She is firmly holding the EXACT product '[NOME DO PRODUTO]' matching the reference image (se for kit, adicione: while the other exact units rest neatly on the counter behind her, making all visible in the scene). DO NOT alter, redraw, or describe the product colors, logo, or text. Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. [DESCREVA O AMBIENTE V9.2 ESCOLHIDO, A BAGUNCINHA ORGÂNICA E O PET SORTEADO NO FUNDO]. [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]. The exact product(s) [NOME/QUANTIDADE] resting on the table or held MUST look compact, light, and perfectly proportioned. Unfiltered UGC vlog style, 8k resolution.
 
             [EXEMPLO PRONTO 2 - MOLDE DE VÍDEO UNIFICADO (Mínimo 1600 caracteres)]
-            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product(s) rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product(s) '[NOME DO PRODUTO]' from the uploaded image. [INSIRA AQUI A TRAVA DE TAMANHO ESCOLHIDA ACIMA] (se for kit, especifique: one unit is held firmly, while the other units rest neatly on the table in the background). The items remain perfectly solid with micro-reflections bouncing off the plastic as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid/cap twice to emphasize it. NO pixel melting.]
-            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product(s) rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product(s) from the uploaded image. [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize] (se for kit, especifique: one unit is held firmly, while the other units rest neatly on the table in the background). The items remain perfectly solid with micro-reflections bouncing off the plastic as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid/cap twice to emphasize it. NO pixel melting.]
+            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração do ambiente V9.2 e o pet ao fundo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
             - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da AURORA (Português - 100% Blindada Contra o Robô):
-            "[Crie uma fala de 40 a 45 palavras exatas seguindo este tom: 'Amiga, você viu isso? O segredo para (benefício sensorial) e deixar o cabelo com toque de seda acabou de chegar na vitrine! O estoque desse lote tá derretendo em minutos. Já garanti o meu, corre na sacolinha antes que esgote!']"
+            "[Crie uma fala de 40 a 45 palavras exatas seguindo este tom: 'Amiga, você viu isso? O segredo para (benefício sensorial) e deixar o cabelo com toque de seda acabou de liberar na vitrine! O estoque desse lote tá derretendo em minutos. Já garanti o meu, corre na sacolinha antes que esgote!']"
             Texto na Tela (Nativo TikTok - Foco na Dor):
             - "⚠️ [PROBLEMA PRINCIPAL DO CABELO]? 🛑"
             - "[EFEITO/BENEFÍCIO SENSORIAL] ✨"
@@ -1232,11 +1235,11 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[{"role": "system", "content": "Você é um copiador estrutural cirúrgico de prompts V9.2 e V31.1. Siga os exemplos prontos 100% à risca sem resumir."}, {"role": "user", "content": [
+                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito seguindo os moldes."}, {"role": "user", "content": [
                     {"type": "text", "text": instrucao_ouro},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                 ]}],
-                max_tokens=3500, temperature=0.5
+                max_tokens=3500, temperature=0.75
             )
             
             conteudo_json = resp.choices[0].message.content.strip()
@@ -1248,7 +1251,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Estrutura gerada 100% no padrão oficial e salva na nuvem!")
+            st.success("✅ Estrutura gerada com sucesso!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
