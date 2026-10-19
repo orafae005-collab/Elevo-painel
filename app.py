@@ -673,16 +673,19 @@ aba_limites = None
 
 if not E_O_CEO and robo_sheets:
     try:
-        planilha_mestre = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
-        try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
-        except:
-            aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
-            aba_limites.append_row(["Email", "Gerou"])
-        
-        lista_usos = aba_limites.col_values(1)
-        usos_feitos = lista_usos.count(st.session_state["email_usuario"])
-        if usos_feitos >= 3:
-            pode_gerar_roteiro = False
+        import re
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if match_id:
+            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+            try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
+            except:
+                aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
+                aba_limites.append_row(["Email", "Gerou"])
+            
+            lista_usos = aba_limites.col_values(1)
+            usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
+            if usos_feitos >= 3:
+                pode_gerar_roteiro = False
     except Exception: pass
 
 with st.container(border=True):
@@ -698,14 +701,37 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura..."):
+    with st.spinner("🦅 Analisando o produto com base no Gabarito de Ouro..."):
         try:
+            import base64
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
+            
+            instrucao_ouro = """
+            Analise a imagem, leia o rótulo para identificar o nome e a marca do produto.
+            Sua missão é criar uma estrutura EXATAMENTE com o mesmo nível de riqueza de detalhes do GABARITO DE OURO abaixo. Não seja preguiçoso, copie a extensão e a estética desse exemplo adaptando apenas para o novo produto.
+            
+            [GABARITO DE OURO - USE COMO MOLDE RIGOROSO]
+            IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
+            VÍDEO: POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
+            
+            Retorne EXATAMENTE no formato JSON:
+            {
+                "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome do produto lido na imagem enviada. Mantenha as travas de física e o cenário intactos.]",
+                "video": "[Copie a estrutura do Gabarito de Vídeo acima, mantendo o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora e a sacola 3D.]",
+                "fala": "Fala da Aurora em português (aprox 40-50 palavras). Foco na dor visual, cite que o lote tá derretendo, mande clicar na sacolinha. Zero preço.",
+                "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
+                "titulo_geral": "[Título de busca geral focada na dor do cliente]. (XX caracteres)",
+                "titulo_solucao": "[Título focado na solução e no nome do produto]. (XX caracteres)",
+                "titulo_marca": "[Título de resenha da marca lida no rótulo]. (XX caracteres)"
+            }
+            NÃO use hashtags.
+            """
+            
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
                 messages=[{"role": "system", "content": "Diretor de Criação de Elite. Responda em JSON estrito."}, {"role": "user", "content": [
-                    {"type": "text", "text": "Analise a imagem. Retorne JSON: {'imagem': 'Prompt img inglês min 800 char trava 1:1', 'video': 'Prompt vídeo inglês min 1200 char caos e whip pan', 'fala': 'Fala pt-br', 'tela': 'Textos pop-up', 'titulo_geral': '...', 'titulo_solucao': '...', 'titulo_marca': '...'} Nao use hashtags."},
+                    {"type": "text", "text": instrucao_ouro},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                 ]}],
                 max_tokens=2500, temperature=0.7
@@ -714,7 +740,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             
             # Conta o uso para o novato
             if not E_O_CEO and aba_limites is not None:
-                try: aba_limites.append_row([st.session_state["email_usuario"], "Sim"])
+                try: aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
                 except Exception: pass
                 
             st.success("✅ Estrutura gerada!")
@@ -723,6 +749,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
 if st.session_state["roteiro_temporario"]:
     try:
+        import json
         dados_r = json.loads(st.session_state["roteiro_temporario"])
         with st.container(border=True):
             for k, ico, tit in [("imagem","📸","PROMPT DE IMAGEM"), ("video","🎬","PROMPT DE VÍDEO"), ("fala","🗣️","FALA DA AURORA"), ("tela","📱","TEXTOS NA TELA")]:
