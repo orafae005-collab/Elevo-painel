@@ -243,23 +243,27 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 2.5. BOAS-VINDAS CINEMÁTICA (BLINDADA CONTRA SUMIÇO E RERUN)
+# 2.5. BOAS-VINDAS CINEMÁTICA (100% VINCULADA AO GMAIL ÚNICO)
 # ==========================================================
-if "boas_vindas_verificada" not in st.session_state: 
-    st.session_state["boas_vindas_verificada"] = False
+if "email_bv_verificado" not in st.session_state: 
+    st.session_state["email_bv_verificado"] = ""
 if "audio_boas_vindas_b64" not in st.session_state:
     st.session_state["audio_boas_vindas_b64"] = None
 if "mostrar_player_bv" not in st.session_state:
     st.session_state["mostrar_player_bv"] = False
 
-# 1. VERIFICAÇÃO NO BANCO E GERAÇÃO (Roda apenas 1 vez por login)
-if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
-    st.session_state["boas_vindas_verificada"] = True 
-    email_atual = st.session_state.get("email_usuario", "").strip().lower()
-    nome_atual = st.session_state.get("nome_usuario", "Sócio")
+# Captura e padroniza o GMAIL (Única identidade que importa para o sistema)
+email_logado_agora = str(st.session_state.get("email_usuario", "")).strip().lower()
+nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
+
+# 1. VERIFICAÇÃO EXCLUSIVA POR GMAIL (Se mudar o Gmail, ele verifica tudo do zero!)
+if st.session_state.get("usuario_logado") and email_logado_agora != "" and st.session_state["email_bv_verificado"] != email_logado_agora:
+    st.session_state["email_bv_verificado"] = email_logado_agora
+    st.session_state["mostrar_player_bv"] = False
+    st.session_state["audio_boas_vindas_b64"] = None
     precisa_tocar = False
     
-    if robo_sheets and email_atual:
+    if robo_sheets:
         try:
             match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
             if match_id:
@@ -267,22 +271,22 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 try: 
                     aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
                 except Exception:
-                    aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="1")
-                    aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
+                    aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
+                    aba_bv.append_row(["Gmail_Unico", "Data_Acesso"])
                 
-                # Limpa espaços e letras maiúsculas para não falhar na comparação
-                lista_emails_bv = [str(e).strip().lower() for e in aba_bv.col_values(1)]
-                if email_atual not in lista_emails_bv:
+                # Lê apenas a Coluna 1 (Gmails) e ignora totalmente os nomes
+                lista_gmails_ja_ouviram = [str(e).strip().lower() for e in aba_bv.col_values(1) if "@" in str(e)]
+                
+                if email_logado_agora not in lista_gmails_ja_ouviram:
                     precisa_tocar = True
-                    aba_bv.append_row([email_atual]) 
         except Exception: 
             pass
     
     if precisa_tocar:
-        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
+        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_apenas_fala}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
         audio_bytes = None
         
-        with st.spinner("🦅 Gerando mensagem criptografada da Diretoria..."):
+        with st.spinner(f"🦅 Preparando credenciais de áudio para {email_logado_agora}..."):
             try:
                 CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
                 if CHAVE_ELEVEN:
@@ -306,19 +310,31 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 audio_bytes = fp.read()
                 
         if audio_bytes:
-            # 🔥 SALVA NA MEMÓRIA DA SESSÃO! Se a página recarregar sozinha, o áudio NÃO SOME!
             st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
             st.session_state["mostrar_player_bv"] = True
+            
+            # Registra o GMAIL no banco de dados após gerar o áudio com sucesso
+            try:
+                agora_reg = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+                aba_bv.append_row([email_logado_agora, agora_reg])
+            except Exception:
+                pass
 
-# 2. EXIBIÇÃO PERSISTENTE (Fica firme na tela até o usuário ouvir)
+# 2. EXIBIÇÃO BLINDADA COM ASSINATURA DO GMAIL NO HTML
 if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
     audio_b64 = st.session_state["audio_boas_vindas_b64"]
     
+    # O comentário invisível <!-- GMAIL: ... --> força o navegador a criar um novo botão 
+    # mesmo que duas pessoas tenham exatamente o mesmo nome!
     html_play_intro = f"""
+    <!-- GMAIL_ID_UNICO: {email_logado_agora} -->
     <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 10px auto; max-width: 600px; transition: opacity 1s ease;">
         <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
+        <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 13px; margin-bottom: 5px;">
+            Conta autenticada: <b style="color: #00FFFF;">{email_logado_agora}</b>
+        </p>
         <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
-            Novo sócio detectado. Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
+            Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
         </p>
         
         <button id="btn-tocar" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
@@ -370,9 +386,8 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
         }}
     </script>
     """
-    components.html(html_play_intro, height=260)
+    components.html(html_play_intro, height=280)
     
-    # Botão para limpar o player do código depois de ouvir (ou se quiser pular)
     col_v1, col_btn_fechar, col_v2 = st.columns([1, 1, 1])
     with col_btn_fechar:
         if st.button("✅ JÁ OUVI / FECHAR MENSAGEM", use_container_width=True):
@@ -414,12 +429,11 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
-    st.session_state["boas_vindas_verificada"] = False # <-- Adicione esta linha!
-    st.session_state["mostrar_player_bv"] = False      # <-- Adicione esta linha!
-    st.session_state["audio_boas_vindas_b64"] = None   # <-- Adicione esta linha!
+    st.session_state["email_bv_verificado"] = "" # <-- Limpa o vínculo do Gmail anterior
+    st.session_state["mostrar_player_bv"] = False
+    st.session_state["audio_boas_vindas_b64"] = None
     if "sessao" in st.query_params: del st.query_params["sessao"]
     st.rerun()
-
 # ==========================================================
 # 4 a 9 E 14. NÚCLEO FINANCEIRO VIP (EXCLUSIVO DO CEO)
 # ==========================================================
