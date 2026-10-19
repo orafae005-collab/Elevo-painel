@@ -7,4 +7,6 @@ plotly
 TikTokLive
 requests
 gTTS
- ​​streamlit-cookies-controller
+​​streamlit
+cookies
+controller
