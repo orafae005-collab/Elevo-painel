@@ -1107,10 +1107,10 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (LIMITADA PARA NOVATOS + TÍTULOS LIMPOS)
+# 17. MÁQUINA DE CRIAÇÃO 360º (PADRÃO UNIFICADO + TÍTULOS LIMPOS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Padrão Oficial Unificado)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1152,43 +1152,53 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Analisando o produto com base no Gabarito de Ouro..."):
+    with st.spinner("🦅 Analisando o produto e gerando a estrutura unificada de elite..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
-            instrucao_ouro = """
-            Analise a imagem, leia o rótulo para identificar o nome exato, a função principal, o volume/peso (ex: 250ml, 300g) e a marca do produto.
-            Sua missão é criar uma estrutura EXATAMENTE com o mesmo nível de riqueza de detalhes do GABARITO DE OURO abaixo. Não seja preguiçoso, copie a extensão e a estética desse exemplo adaptando apenas para o novo produto.
-            
-            [GABARITO DE OURO - USE COMO MOLDE RIGOROSO]
-            IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
-            VÍDEO: POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
-            
-            🔥 REGRAS INQUEBRÁVEIS PARA OS 3 TÍTULOS DE SEO (COPIAR LIMPO):
+            instrucao_ouro = f"""
+            Analise a imagem, leia o rótulo para identificar o nome exato, a função principal, o volume/peso e a marca do produto.
+            Sua missão é criar uma estrutura unificada exatamente igual ao estilo dos nossos melhores exemplos (como o do Salon Line Hidra 3 em 1), contendo:
+            1. Prompt de Imagem Base detalhado (em inglês).
+            2. Prompt de Vídeo caótico unificado com travamento de física 1:1, tap no produto, whip pan, microfone de lapela, plantas na varanda e vira-lata caramelo no fundo.
+            3. A Fala da Aurora natural, focada na dor visual, dizendo que o lote está derretendo e mandando clicar na sacolinha (zero preço).
+            4. Textos na tela nativos do TikTok focados na dor e escassez.
+            5. Três títulos SEO limpos e reais de busca.
+
+            [EXEMPLO DE REFERÊNCIA DO ESTILO ESPERADO]:
+            - IMAGEM: RAW photography, close-up POV handheld mobile phone shot...
+            - VÍDEO UNIFICADO: POV intensely erratic handheld mobile video, documentary chaos aesthetic...
+            - FALA DA AURORA: "Amiga, esse creme tá salvando meu cabelo! O lote tá derretendo e você não pode perder essa chance. Clica na sacolinha e garanta o seu agora!"
+            - TEXTOS NA TELA:
+              ⚠️ [DOR DO CLIENTE]? 🛑
+              ✨ [BENEFÍCIO PRINCIPAL]
+              🛒 LOTE SECRETO LIBERADO 👇
+
+            🔥 REGRAS INQUEBRÁVEIS PARA OS TÍTULOS DE SEO (COPIAR LIMPO):
             - PROIBIDO colocar "(XX caracteres)", contagens, aspas, dois-pontos (:) ou pontos de exclamação (!).
-            - PROIBIDO criar frases de propaganda (como "Conheça a solução!" ou "Restaure agora!"). Crie frases de BUSCA REAL de SEO no TikTok, seguindo rigorosamente o padrão abaixo:
-              1. titulo_geral (Busca de como resolver a dor): Exemplo -> Como recuperar cabelo elástico e emborrachado rápido.
-              2. titulo_solucao (Tipo do produto + função + Marca e Nome): Exemplo -> Queratina líquida reconstrutora Novex Max Keratin.
-              3. titulo_marca (Nome exato do produto + tamanho + palavra "resenha" no final): Exemplo -> Reconstrutor Novex Max Keratin 250ml resenha.
+            - Entregue APENAS o título limpo pronto para copiar e colar:
+              * titulo_geral: Como recuperar [dor principal do produto] rápido.
+              * titulo_solucao: [Categoria e função do produto] [Marca e Nome].
+              * titulo_marca: [Nome do produto + Marca + Volume/Peso] resenha.
 
             Retorne EXATAMENTE no formato JSON:
-            {
-                "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome e tamanho do produto lido na imagem enviada. Mantenha as travas de física 1:1 e o cenário intactos.]",
-                "video": "[Copie a estrutura do Gabarito de Vídeo acima, mantendo o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora e a sacola 3D.]",
-                "fala": "Amiga, o seu [DOR DO CLIENTE]? O segredo de salão para [BENEFÍCIO] em casa acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!",
-                "tela": "⚠️ [DOR DO CLIENTE EM MAIÚSCULO]? 🛑\\n[BENEFÍCIO PRINCIPAL EM MAIÚSCULO] ✨\\nLOTE SECRETO LIBERADO 🛒👇",
-                "titulo_geral": "Como [resolver a dor principal do produto] rápido.",
-                "titulo_solucao": "[Categoria e função do produto] [Marca e Nome].",
-                "titulo_marca": "[Nome do produto + Marca + Volume/Peso se visível] resenha."
-            }
-            NÃO use hashtags.
+            {{
+                "imagem": "[Prompt de imagem em inglês rico em detalhes, cenário da varanda com plantas e vira-lata caramelo, trava 1:1 para o produto exato da foto.]",
+                "video": "[Prompt de vídeo unificado em inglês, contendo o caos controlado, whip pan, lapela visível, aproximação da Aurora e sacola 3D.]",
+                "fala": "[Texto da fala da Aurora em português, natural, urgente e blindada contra o robô, citando o lote derretendo.]",
+                "tela": "⚠️ [Dor do cliente em maiúsculo]? 🛑\\n[Benefício principal em maiúsculo] ✨\\nLOTE SECRETO LIBERADO 🛒👇",
+                "titulo_geral": "Como [resolver a dor principal] rápido.",
+                "titulo_solucao": "[Tipo de produto e função] [Marca e Nome].",
+                "titulo_marca": "[Nome do produto + Marca + Volume] resenha."
+            }}
+            NÃO use hashtags no corpo do JSON.
             """
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
                 messages=[
-                    {"role": "system", "content": "Diretor de Criação de Elite. Responda em JSON estrito. Nunca inclua contagem de caracteres nos títulos."}, 
+                    {"role": "system", "content": "Diretor de Criação de Elite especializado em TikTok Shop. Responda em JSON estrito."}, 
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_ouro},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
@@ -1198,14 +1208,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             )
             st.session_state["roteiro_temporario"] = resp.choices[0].message.content.strip()
             
-            # Conta o uso para o novato
             if not E_O_CEO and aba_limites is not None:
                 try: 
                     aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
                 except Exception: 
                     pass
                 
-            st.success("✅ Estrutura gerada!")
+            st.success("✅ Estrutura unificada gerada com sucesso!")
             time.sleep(1)
             st.rerun()
         except Exception as e: 
@@ -1215,7 +1224,6 @@ if st.session_state["roteiro_temporario"]:
     try:
         dados_r = json.loads(st.session_state["roteiro_temporario"])
         
-        # Filtro de limpeza: arranca qualquer "(XX caracteres)", prefixo ou aspas se a IA tentar colocar
         def limpar_titulo_seo(txt):
             t = re.sub(r'\s*\(\d+\s*caracteres?\)', '', str(txt), flags=re.IGNORECASE)
             t = re.sub(r'^(Geral|Solução|De Marca|Marca)\s*:\s*', '', t, flags=re.IGNORECASE)
@@ -1224,7 +1232,7 @@ if st.session_state["roteiro_temporario"]:
         with st.container(border=True):
             for k, ico, tit in [
                 ("imagem", "📸", "PROMPT DE IMAGEM"), 
-                ("video", "🎬", "PROMPT DE VÍDEO"), 
+                ("video", "🎬", "PROMPT DE VÍDEO UNIFICADO"), 
                 ("fala", "🗣️", "FALA DA AURORA"), 
                 ("tela", "📱", "TEXTOS NA TELA")
             ]:
@@ -1247,7 +1255,7 @@ if st.session_state["roteiro_temporario"]:
             st.session_state["roteiro_temporario"] = None
             st.rerun()
     except Exception: 
-        st.warning("Erro JSON.")
+        st.warning("Erro ao decodificar a estrutura do roteiro.")
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
