@@ -1107,13 +1107,15 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (PADRÃO UNIFICADO + TÍTULOS LIMPOS)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MEMÓRIA INDIVIDUAL POR GMAIL + TÍTULOS LIMPOS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Padrão Oficial Unificado)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
+
+email_atual_roteiro = st.session_state.get("email_usuario", "").strip().lower()
 
 # Verifica limite de usos se for Novato
 pode_gerar_roteiro = True
@@ -1132,10 +1134,30 @@ if not E_O_CEO and robo_sheets:
                 aba_limites.append_row(["Email", "Gerou"])
             
             lista_usos = aba_limites.col_values(1)
-            usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
+            usos_feitos = lista_usos.count(email_atual_roteiro)
             if usos_feitos >= 3:
                 pode_gerar_roteiro = False
     except Exception: 
+        pass
+
+# Conexão com a aba de roteiros salvos por usuário
+aba_roteiros = None
+historico_roteiros_usuario = []
+
+if link_planilha_ativa and robo_sheets and email_atual_roteiro:
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha_atual = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_roteiros = planilha_atual.worksheet("Memoria_Roteiros")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_roteiros = planilha_atual.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="3")
+            aba_roteiros.append_row(["Email", "Data", "RoteiroJSON"])
+        
+        # Puxa apenas os registros pertencentes ao usuário logado no momento
+        todos_roteiros = aba_roteiros.get_all_records()
+        historico_roteiros_usuario = [r for r in todos_roteiros if str(r.get("Email", "")).strip().lower() == email_atual_roteiro]
+    except Exception:
         pass
 
 with st.container(border=True):
@@ -1206,23 +1228,33 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 ],
                 max_tokens=2500, temperature=0.7
             )
-            st.session_state["roteiro_temporario"] = resp.choices[0].message.content.strip()
+            resultado_json = resp.choices[0].message.content.strip()
+            st.session_state["roteiro_temporario"] = resultado_json
+            
+            # Grava na planilha vinculando estritamente ao e-mail do usuário atual
+            if aba_roteiros is not None and email_atual_roteiro:
+                agora_brasil = datetime.utcnow() - timedelta(hours=3)
+                aba_roteiros.append_row([email_atual_roteiro, agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_json])
             
             if not E_O_CEO and aba_limites is not None:
                 try: 
-                    aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
+                    aba_limites.append_row([email_atual_roteiro, "Sim"])
                 except Exception: 
                     pass
                 
-            st.success("✅ Estrutura unificada gerada com sucesso!")
+            st.success("✅ Estrutura unificada gerada e salva no seu histórico!")
             time.sleep(1)
             st.rerun()
         except Exception as e: 
             st.error(f"Erro: {e}")
 
-if st.session_state["roteiro_temporario"]:
+# Pega o roteiro da sessão atual ou o último salvo no banco para este e-mail específico
+json_para_exibir = st.session_state["roteiro_temporario"] or (historico_roteiros_usuario[-1].get("RoteiroJSON", "") if historico_roteiros_usuario else None)
+
+if json_para_exibir:
+    st.markdown("### 💾 Roteiro Gerado")
     try:
-        dados_r = json.loads(st.session_state["roteiro_temporario"])
+        dados_r = json.loads(json_para_exibir)
         
         def limpar_titulo_seo(txt):
             t = re.sub(r'\s*\(\d+\s*caracteres?\)', '', str(txt), flags=re.IGNORECASE)
@@ -1251,8 +1283,18 @@ if st.session_state["roteiro_temporario"]:
                 st.caption("🏷️ De Marca")
                 st.code(limpar_titulo_seo(dados_r.get("titulo_marca", "")), language="text")
                 
-        if st.button("🗑️ Apagar Roteiro", use_container_width=True): 
+        if st.button("🗑️ Apagar Meu Histórico de Roteiros", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
+            if aba_roteiros is not None and email_atual_roteiro:
+                try:
+                    # Remove da planilha apenas as linhas do usuário atual
+                    todos_dados = aba_roteiros.get_all_values()
+                    cabecalho = todos_dados[0]
+                    novos_dados = [cabecalho] + [linha for linha in todos_dados[1:] if len(linha) > 0 and str(linha[0]).strip().lower() != email_atual_roteiro]
+                    aba_roteiros.clear()
+                    aba_roteiros.update(novos_dados)
+                except Exception:
+                    pass
             st.rerun()
     except Exception: 
         st.warning("Erro ao decodificar a estrutura do roteiro.")
