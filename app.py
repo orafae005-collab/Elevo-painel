@@ -175,36 +175,145 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V5.8 - ULTRA VIP PREMIUM)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V6.1 - ZERO QUADROS BRANCOS)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
 bg_color = "#F4F4F9" if modo_claro else "#0E1117"
-text_color = "#333333" if modo_claro else "#E0E0E0"
-card_bg = "#FFFFFF" if modo_claro else "rgba(25, 27, 31, 0.8)"
-border_color = "rgba(0, 0, 0, 0.15)" if modo_claro else "rgba(255, 255, 255, 0.1)"
+text_color = "#222222" if modo_claro else "#F0F0F0"
+card_bg = "#FFFFFF" if modo_claro else "rgba(25, 27, 31, 0.85)"
+border_color = "rgba(0, 0, 0, 0.15)" if modo_claro else "rgba(212, 175, 55, 0.25)"
 btn_bg = "#F9F9F9" if modo_claro else "#1A1C20"
-btn_text = "#333333" if modo_claro else "#C0C0C0"
+btn_text = "#222222" if modo_claro else "#E0E0E0"
 input_bg = "#FFFFFF" if modo_claro else "#121519"
-shadow_base = "rgba(0, 0, 0, 0.05)" if modo_claro else "rgba(0, 0, 0, 0.3)"
+code_bg = "#EAEAEA" if modo_claro else "#121519"
+code_text = "#111111" if modo_claro else "#00E5FF"
+shadow_base = "rgba(0, 0, 0, 0.05)" if modo_claro else "rgba(0, 0, 0, 0.4)"
 
 st.markdown(f"""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
-    [data-testid="stAppViewContainer"] {{ background-color: {bg_color}; }}
+    [data-testid="stAppViewContainer"] {{ background-color: {bg_color} !important; }}
     [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="collapsedControl"], footer {{ display: none !important; }}
-    h1, h2, h3, h4, h5, h6, p, span, label, li {{ color: {text_color} !important; }}
-    .titulo-elevo {{ font-size: 3.2rem; font-weight: 800; text-align: center; color: #00BFA5; margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }}
-    .subtitulo {{ text-align: center; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; color: {text_color} !important; opacity: 0.6; }}
-    [data-testid="stMetric"], div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"] {{ background: {card_bg} !important; border: 1px solid {border_color} !important; border-radius: 12px !important; box-shadow: 0 4px 10px {shadow_base} !important; }}
-    .stButton > button {{ background: {btn_bg} !important; color: {btn_text} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; box-shadow: 0 2px 5px {shadow_base} !important; font-weight: 600 !important; transition: all 0.3s ease !important; }}
+    
+    /* Textos Gerais com Contraste Forte */
+    h1, h2, h3, h4, h5, h6, p, label, li {{ color: {text_color} !important; }}
+    [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
+    
+    .titulo-elevo {{ font-size: 3.2rem; font-weight: 800; text-align: center; color: #00BFA5 !important; margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }}
+    .subtitulo {{ text-align: center; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; color: {text_color} !important; opacity: 0.7; }}
+    
+    /* Cards, Containers e Expanders */
+    [data-testid="stMetric"], 
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"],
+    [data-testid="stExpander"],
+    [data-testid="stForm"] {{ 
+        background: {card_bg} !important; 
+        border: 1px solid {border_color} !important; 
+        border-radius: 12px !important; 
+        box-shadow: 0 4px 10px {shadow_base} !important; 
+    }}
+    [data-testid="stExpander"] summary, [data-testid="stExpander"] div {{
+        background-color: transparent !important;
+        color: {text_color} !important;
+    }}
+
+    /* 🔥 ANIQUILAR QUADROS BRANCOS NOS BLOCOS DE CÓDIGO (st.code) EM TODA A PLATAFORMA 🔥 */
+    [data-testid="stCodeBlock"], [data-testid="stCode"], pre, code {{
+        background-color: {code_bg} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 10px !important;
+    }}
+    [data-testid="stCodeBlock"] pre, [data-testid="stCode"] pre, pre code {{
+        background-color: transparent !important;
+        color: {text_color} !important;
+        font-family: 'Montserrat', monospace !important;
+        font-weight: 500 !important;
+        white-space: pre-wrap !important;
+        word-break: break-word !important;
+    }}
+    [data-testid="stCodeBlock"] span, [data-testid="stCode"] span, pre span, code span {{
+        color: {text_color} !important;
+        background-color: transparent !important;
+    }}
+    /* Botão de Copiar dentro das caixas de código */
+    [data-testid="stCodeBlock"] button, [data-testid="stCode"] button, [data-testid="stCopyButton"] {{
+        background-color: {btn_bg} !important;
+        color: #D4AF37 !important;
+        border: 1px solid rgba(212, 175, 55, 0.5) !important;
+        border-radius: 6px !important;
+        opacity: 1 !important;
+    }}
+    [data-testid="stCodeBlock"] button:hover, [data-testid="stCode"] button:hover {{
+        border-color: #00E5FF !important;
+        color: #00E5FF !important;
+    }}
+
+    /* Botões Gerais */
+    .stButton > button, [data-testid="stFormSubmitButton"] > button {{ 
+        background: {btn_bg} !important; 
+        color: {btn_text} !important; 
+        border: 1px solid {border_color} !important; 
+        border-radius: 8px !important; 
+        box-shadow: 0 2px 5px {shadow_base} !important; 
+        font-weight: 600 !important; 
+        transition: all 0.3s ease !important; 
+    }}
     .stButton > button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 12px {shadow_base} !important; border-color: #D4AF37 !important; color: #D4AF37 !important; }}
-    .stButton > button[kind="primary"] {{ background: #004D40 !important; color: #FFFFFF !important; border: 1px solid #00BFA5 !important; }}
-    .stButton > button[kind="primary"]:hover {{ background: #00695C !important; box-shadow: 0 6px 15px rgba(0, 191, 165, 0.4) !important; border-color: #00E5FF !important; color: #FFFFFF !important; }}
-    div[data-baseweb="input"] > div, div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, div[data-baseweb="select"] > div {{ background-color: {input_bg} !important; border: 1px solid {border_color} !important; color: {text_color} !important; border-radius: 8px !important; }}
-    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"] > div:focus-within {{ border-color: #D4AF37 !important; box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important; }}
+    .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
+        background: #004D40 !important; 
+        color: #FFFFFF !important; 
+        border: 1px solid #00BFA5 !important; 
+    }}
+    .stButton > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {{ 
+        background: #00695C !important; 
+        box-shadow: 0 6px 15px rgba(0, 191, 165, 0.4) !important; 
+        border-color: #00E5FF !important; 
+        color: #FFFFFF !important; 
+    }}
+    
+    /* Inputs, TextAreas, NumberInputs e Menus Dropdown */
+    div[data-baseweb="input"], div[data-baseweb="input"] > div, 
+    div[data-baseweb="base-input"],
+    div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, 
+    div[data-baseweb="select"] > div,
+    input, textarea {{ 
+        background-color: {input_bg} !important; 
+        border: 1px solid {border_color} !important; 
+        color: {text_color} !important; 
+        -webkit-text-fill-color: {text_color} !important;
+        border-radius: 8px !important; 
+    }}
+    /* Lista suspensa quando clica no Selectbox */
+    ul[data-baseweb="menu"], div[data-baseweb="popover"] > div {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
+        border: 1px solid #D4AF37 !important;
+    }}
+    li[role="option"] {{
+        background-color: {input_bg} !important;
+        color: {text_color} !important;
+    }}
+    li[role="option"]:hover, li[aria-selected="true"] {{
+        background-color: rgba(212, 175, 55, 0.2) !important;
+        color: #D4AF37 !important;
+    }}
+
+    /* Botões + e - do Number Input */
+    [data-testid="stNumberInputStepDown"], [data-testid="stNumberInputStepUp"] {{
+        background-color: {btn_bg} !important;
+        color: {text_color} !important;
+        border-color: {border_color} !important;
+    }}
+
+    div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"] > div:focus-within {{ 
+        border-color: #D4AF37 !important; 
+        box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important; 
+    }}
+    
+    /* Uploader de Arquivos */
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
     [data-testid="stFileUploadDropzone"] {{ border: 1px dashed rgba(212, 175, 55, 0.5) !important; border-radius: 12px !important; padding: 20px !important; transition: all 0.3s ease !important; }}
     [data-testid="stFileUploadDropzone"]:hover {{ border-color: #D4AF37 !important; background-color: rgba(212, 175, 55, 0.08) !important; }}
@@ -998,12 +1107,13 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (LIMITADA PARA NOVATOS)
+# 17. MÁQUINA DE CRIAÇÃO 360º (LIMITADA PARA NOVATOS + TÍTULOS LIMPOS)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
 
-if "roteiro_temporario" not in st.session_state: st.session_state["roteiro_temporario"] = None
+if "roteiro_temporario" not in st.session_state: 
+    st.session_state["roteiro_temporario"] = None
 
 # Verifica limite de usos se for Novato
 pode_gerar_roteiro = True
@@ -1012,11 +1122,11 @@ aba_limites = None
 
 if not E_O_CEO and robo_sheets:
     try:
-        import re
         match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
         if match_id:
             planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-            try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
+            try: 
+                aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
             except:
                 aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
                 aba_limites.append_row(["Email", "Gerou"])
@@ -1025,11 +1135,13 @@ if not E_O_CEO and robo_sheets:
             usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
             if usos_feitos >= 3:
                 pode_gerar_roteiro = False
-    except Exception: pass
+    except Exception: 
+        pass
 
 with st.container(border=True):
     col_img, col_dados = st.columns([1, 1])
-    with col_img: img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+    with col_img: 
+        img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
     with col_dados:
         st.markdown("<br><br>", unsafe_allow_html=True)
         if not pode_gerar_roteiro:
@@ -1042,26 +1154,32 @@ with st.container(border=True):
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
     with st.spinner("🦅 Analisando o produto com base no Gabarito de Ouro..."):
         try:
-            import base64
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem, leia o rótulo para identificar o nome e a marca do produto.
+            Analise a imagem, leia o rótulo para identificar o nome exato, a função principal, o volume/peso (ex: 250ml, 300g) e a marca do produto.
             Sua missão é criar uma estrutura EXATAMENTE com o mesmo nível de riqueza de detalhes do GABARITO DE OURO abaixo. Não seja preguiçoso, copie a extensão e a estética desse exemplo adaptando apenas para o novo produto.
             
             [GABARITO DE OURO - USE COMO MOLDE RIGOROSO]
             IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
             VÍDEO: POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
             
+            🔥 REGRAS INQUEBRÁVEIS PARA OS 3 TÍTULOS DE SEO (COPIAR LIMPO):
+            - PROIBIDO colocar "(XX caracteres)", contagens, aspas, dois-pontos (:) ou pontos de exclamação (!).
+            - PROIBIDO criar frases de propaganda (como "Conheça a solução!" ou "Restaure agora!"). Crie frases de BUSCA REAL de SEO no TikTok, seguindo rigorosamente o padrão abaixo:
+              1. titulo_geral (Busca de como resolver a dor): Exemplo -> Como recuperar cabelo elástico e emborrachado rápido.
+              2. titulo_solucao (Tipo do produto + função + Marca e Nome): Exemplo -> Queratina líquida reconstrutora Novex Max Keratin.
+              3. titulo_marca (Nome exato do produto + tamanho + palavra "resenha" no final): Exemplo -> Reconstrutor Novex Max Keratin 250ml resenha.
+
             Retorne EXATAMENTE no formato JSON:
             {
-                "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome do produto lido na imagem enviada. Mantenha as travas de física e o cenário intactos.]",
+                "imagem": "[Copie a estrutura do Gabarito de Imagem acima, adaptando APENAS o nome e tamanho do produto lido na imagem enviada. Mantenha as travas de física 1:1 e o cenário intactos.]",
                 "video": "[Copie a estrutura do Gabarito de Vídeo acima, mantendo o caos, zoom 1:1, tap no produto e Whip Pan para a Aurora e a sacola 3D.]",
-                "fala": "Fala da Aurora em português (aprox 40-50 palavras). Foco na dor visual, cite que o lote tá derretendo, mande clicar na sacolinha. Zero preço.",
-                "tela": "⚠️ [DOR DO CLIENTE]? 🛑\\n✨ [BENEFÍCIO PRINCIPAL]\\n🛒 LOTE SECRETO LIBERADO 👇",
-                "titulo_geral": "[Título de busca geral focada na dor do cliente]. (XX caracteres)",
-                "titulo_solucao": "[Título focado na solução e no nome do produto]. (XX caracteres)",
-                "titulo_marca": "[Título de resenha da marca lida no rótulo]. (XX caracteres)"
+                "fala": "Amiga, o seu [DOR DO CLIENTE]? O segredo de salão para [BENEFÍCIO] em casa acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!",
+                "tela": "⚠️ [DOR DO CLIENTE EM MAIÚSCULO]? 🛑\\n[BENEFÍCIO PRINCIPAL EM MAIÚSCULO] ✨\\nLOTE SECRETO LIBERADO 🛒👇",
+                "titulo_geral": "Como [resolver a dor principal do produto] rápido.",
+                "titulo_solucao": "[Categoria e função do produto] [Marca e Nome].",
+                "titulo_marca": "[Nome do produto + Marca + Volume/Peso se visível] resenha."
             }
             NÃO use hashtags.
             """
@@ -1069,37 +1187,67 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[{"role": "system", "content": "Diretor de Criação de Elite. Responda em JSON estrito."}, {"role": "user", "content": [
-                    {"type": "text", "text": instrucao_ouro},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
-                ]}],
+                messages=[
+                    {"role": "system", "content": "Diretor de Criação de Elite. Responda em JSON estrito. Nunca inclua contagem de caracteres nos títulos."}, 
+                    {"role": "user", "content": [
+                        {"type": "text", "text": instrucao_ouro},
+                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
+                    ]}
+                ],
                 max_tokens=2500, temperature=0.7
             )
             st.session_state["roteiro_temporario"] = resp.choices[0].message.content.strip()
             
             # Conta o uso para o novato
             if not E_O_CEO and aba_limites is not None:
-                try: aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
-                except Exception: pass
+                try: 
+                    aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
+                except Exception: 
+                    pass
                 
             st.success("✅ Estrutura gerada!")
-            time.sleep(1); st.rerun()
-        except Exception as e: st.error(f"Erro: {e}")
+            time.sleep(1)
+            st.rerun()
+        except Exception as e: 
+            st.error(f"Erro: {e}")
 
 if st.session_state["roteiro_temporario"]:
     try:
-        import json
         dados_r = json.loads(st.session_state["roteiro_temporario"])
+        
+        # Filtro de limpeza: arranca qualquer "(XX caracteres)", prefixo ou aspas se a IA tentar colocar
+        def limpar_titulo_seo(txt):
+            t = re.sub(r'\s*\(\d+\s*caracteres?\)', '', str(txt), flags=re.IGNORECASE)
+            t = re.sub(r'^(Geral|Solução|De Marca|Marca)\s*:\s*', '', t, flags=re.IGNORECASE)
+            return t.strip().strip('"').strip("'")
+
         with st.container(border=True):
-            for k, ico, tit in [("imagem","📸","PROMPT DE IMAGEM"), ("video","🎬","PROMPT DE VÍDEO"), ("fala","🗣️","FALA DA AURORA"), ("tela","📱","TEXTOS NA TELA")]:
-                st.markdown(f"<h4 style='color:#D4AF37;'>{ico} {tit}</h4>", unsafe_allow_html=True); st.code(dados_r.get(k,""), language="text")
-            st.markdown("<h4 style='color:#D4AF37;'>🔑 TÍTULOS SEO</h4>", unsafe_allow_html=True)
+            for k, ico, tit in [
+                ("imagem", "📸", "PROMPT DE IMAGEM"), 
+                ("video", "🎬", "PROMPT DE VÍDEO"), 
+                ("fala", "🗣️", "FALA DA AURORA"), 
+                ("tela", "📱", "TEXTOS NA TELA")
+            ]:
+                st.markdown(f"<h4 style='color:#D4AF37;'>{ico} {tit}</h4>", unsafe_allow_html=True)
+                st.code(dados_r.get(k, ""), language="text")
+                
+            st.markdown("<h4 style='color:#D4AF37;'>🔑 TÍTULOS PARA SEO (BUSCA)</h4>", unsafe_allow_html=True)
             c1, c2, c3 = st.columns(3)
-            with c1: st.caption("🔍 Geral"); st.code(dados_r.get("titulo_geral",""), language="text")
-            with c2: st.caption("💡 Solução"); st.code(dados_r.get("titulo_solucao",""), language="text")
-            with c3: st.caption("🏷️ Marca"); st.code(dados_r.get("titulo_marca",""), language="text")
-        if st.button("🗑️ Apagar Roteiro", use_container_width=True): st.session_state["roteiro_temporario"]=None; st.rerun()
-    except: st.warning("Erro JSON.")
+            with c1: 
+                st.caption("🔍 Geral")
+                st.code(limpar_titulo_seo(dados_r.get("titulo_geral", "")), language="text")
+            with c2: 
+                st.caption("💡 Solução")
+                st.code(limpar_titulo_seo(dados_r.get("titulo_solucao", "")), language="text")
+            with c3: 
+                st.caption("🏷️ De Marca")
+                st.code(limpar_titulo_seo(dados_r.get("titulo_marca", "")), language="text")
+                
+        if st.button("🗑️ Apagar Roteiro", use_container_width=True): 
+            st.session_state["roteiro_temporario"] = None
+            st.rerun()
+    except Exception: 
+        st.warning("Erro JSON.")
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
