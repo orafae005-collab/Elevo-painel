@@ -243,7 +243,7 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 2.5. BOAS-VINDAS CINEMÁTICA (TELA DE IGNIÇÃO OBRIGATÓRIA)
+# 2.5. BOAS-VINDAS CINEMÁTICA (TELA DE IGNIÇÃO COM ANIMAÇÃO DE SISTEMA)
 # ==========================================================
 import base64
 import requests
@@ -251,16 +251,15 @@ import io
 from gtts import gTTS
 import streamlit.components.v1 as components
 
-# Controles de fluxo da tela de boas-vindas
-if "boas_vindas_verificada" not in st.session_state: st.session_state["boas_vindas_verificada"] = False
-if "precisa_tela_ignicao" not in st.session_state: st.session_state["precisa_tela_ignicao"] = False
-if "autorizado_tocar_audio" not in st.session_state: st.session_state["autorizado_tocar_audio"] = False
+# Controle de sessão
+if "boas_vindas_verificada" not in st.session_state: 
+    st.session_state["boas_vindas_verificada"] = False
 
 if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
     st.session_state["boas_vindas_verificada"] = True 
     email_atual = st.session_state.get("email_usuario", "")
-    
-    ja_ouviu = False # A nossa nova trava de segurança!
+    nome_atual = st.session_state.get("nome_usuario", "Sócio")
+    precisa_tocar = False
     
     # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida
     if robo_sheets and email_atual:
@@ -276,63 +275,108 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                     aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
                 
                 lista_emails_bv = aba_bv.col_values(1)
-                if email_atual in lista_emails_bv:
-                    ja_ouviu = True
-                else:
-                    aba_bv.append_row([email_atual]) # Regista para nunca mais tocar
-        except Exception: 
-            pass # Se o Google falhar, 'ja_ouviu' continua False e ele vai para a Tela de Ignição!
-            
-    # Se não ouviu (ou se o Google deu erro), dispara a tela bloqueadora!
-    if not ja_ouviu:
-        st.session_state["precisa_tela_ignicao"] = True
-
-# --- TELA DE IGNIÇÃO OBRIGATÓRIA (BLOQUEIA O RESTO DO APP) ---
-if st.session_state.get("precisa_tela_ignicao"):
-    st.markdown("<br><br><br>", unsafe_allow_html=True)
-    col_ign1, col_ign2, col_ign3 = st.columns([1, 2, 1])
-    with col_ign2:
-        with st.container(border=True):
-            st.markdown("<h1 style='text-align: center; font-size: 80px; margin: 0; padding: 0;'>🦅</h1>", unsafe_allow_html=True)
-            st.markdown("<h2 style='text-align: center; color: #D4AF37; margin-top: 0;'>NOVO SÓCIO DETECTADO</h2>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #A0A0A0; font-size: 1.1rem;'>O seu espaço no império foi reservado. Clique abaixo para ativar a inteligência central e carregar o seu painel de operações.</p>", unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # O BOTÃO QUE DESBLOQUEIA A PLATAFORMA E O ÁUDIO
-            if st.button("🔥 INICIAR PROTOCOLO ÉLÉVO", type="primary", use_container_width=True):
-                st.session_state["precisa_tela_ignicao"] = False
-                st.session_state["autorizado_tocar_audio"] = True
-                st.rerun()
-    # O st.stop() impede que o resto da plataforma carregue até ele clicar no botão!
-    st.stop()
-
-# --- REPRODUÇÃO DO ÁUDIO APÓS O CLIQUE ---
-if st.session_state.get("autorizado_tocar_audio"):
-    st.session_state["autorizado_tocar_audio"] = False # Desativa para não tocar no próximo rerun
+                
+                if email_atual not in lista_emails_bv:
+                    precisa_tocar = True
+                    aba_bv.append_row([email_atual]) 
+        except Exception: pass
     
-    nome_atual = st.session_state.get("nome_usuario", "Sócio")
-    texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
-    audio_bytes = None
-    
-    with st.spinner("🦅 Inicializando núcleo da Aurora..."):
-        try:
-            CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
-            if CHAVE_ELEVEN:
-                resp_voz = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, timeout=10)
-                if resp_voz.status_code == 200: audio_bytes = resp_voz.content
+    if precisa_tocar:
+        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
+        audio_bytes = None
+        
+        with st.spinner("🦅 Inicializando núcleo da Aurora..."):
+            try:
+                CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
+                if CHAVE_ELEVEN:
+                    resp_voz = requests.post(
+                        f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", 
+                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
+                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
+                        timeout=10
+                    )
+                    if resp_voz.status_code == 200: audio_bytes = resp_voz.content
+                    else: raise Exception()
                 else: raise Exception()
-            else: raise Exception()
-        except Exception:
-            tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
-            fp = io.BytesIO()
-            tts.write_to_fp(fp)
-            fp.seek(0)
-            audio_bytes = fp.read()
+            except Exception:
+                tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                audio_bytes = fp.read()
+                
+        if audio_bytes:
+            audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
             
-    if audio_bytes:
-        # Player nativo escondido que roda com permissão total do navegador
-        st.markdown("""<style>[data-testid="stAudio"] { display: none !important; }</style>""", unsafe_allow_html=True)
-        st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
+            # --- A TELA PRETA (CORTINA) COM ANIMAÇÃO DE TERMINAL ---
+            st.markdown(f"""
+            <div id="elevo-ignition-screen" style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: #0E1117; z-index: 9999999; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: transform 1.5s cubic-bezier(0.85, 0, 0.15, 1), opacity 1s ease;">
+                
+                <div id="ignicao-conteudo" style="display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease;">
+                    <h1 style="font-size: 100px; margin: 0; text-align: center; text-shadow: 0 0 20px rgba(212, 175, 55, 0.3);">🦅</h1>
+                    <h2 style="color: #D4AF37; font-family: 'Montserrat', sans-serif; letter-spacing: 2px; text-transform: uppercase; text-align: center; margin-top: 10px;">NOVO SÓCIO DETECTADO</h2>
+                    <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 16px; max-width: 400px; text-align: center; margin-bottom: 40px; padding: 0 20px;">
+                        O seu espaço no império foi reservado. Clique abaixo para iniciar o carregamento dos módulos da plataforma.
+                    </p>
+                    <button id="btn-play-aurora" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 20px 40px; font-size: 16px; font-weight: 800; border-radius: 50px; cursor: pointer; box-shadow: 0px 10px 30px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
+                        ▶ INICIAR PROTOCOLO ÉLÉVO
+                    </button>
+                </div>
+
+                <div id="elevo-loader" style="display: none; flex-direction: column; align-items: center; justify-content: center;">
+                    <div style="width: 50px; height: 50px; border: 4px solid rgba(0, 255, 255, 0.1); border-left-color: #00FFFF; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+                    <p id="elevo-loader-text" style="color: #00FFFF; font-family: 'Courier New', Courier, monospace; font-weight: 600; font-size: 18px; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,255,255,0.5);">Inicializando Núcleo...</p>
+                </div>
+
+                <style>@keyframes spin {{ 0% {{ transform: rotate(0deg); }} 100% {{ transform: rotate(360deg); }} }}</style>
+                <audio id="audio-aurora" src="data:audio/mp3;base64,{audio_b64}"></audio>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # --- SCRIPT DA ANIMAÇÃO DE CARREGAMENTO E CORTINA SUBINDO ---
+            js_ignition = """
+            <script>
+                const parent = window.parent.document;
+                const btn = parent.getElementById('btn-play-aurora');
+                const aud = parent.getElementById('audio-aurora');
+                const screen = parent.getElementById('elevo-ignition-screen');
+                const conteudo = parent.getElementById('ignicao-conteudo');
+                const loader = parent.getElementById('elevo-loader');
+                const loaderText = parent.getElementById('elevo-loader-text');
+                
+                if (btn && aud && screen && conteudo && loader) {
+                    btn.addEventListener('click', function() {
+                        // 1. Toca o áudio imediatamente
+                        aud.play();
+                        
+                        // 2. Esconde os textos iniciais e mostra o Terminal Hacker
+                        conteudo.style.opacity = '0';
+                        setTimeout(() => {
+                            conteudo.style.display = 'none';
+                            loader.style.display = 'flex';
+                        }, 500);
+
+                        // 3. Simula o carregamento da plataforma peça por peça
+                        setTimeout(() => { loaderText.innerText = 'Sincronizando Banco de Dados Mestre...'; }, 1000);
+                        setTimeout(() => { loaderText.innerText = 'Conectando Visão da Aurora...'; }, 1800);
+                        setTimeout(() => { loaderText.innerText = 'Desbloqueando Painel de Operações...'; }, 2600);
+                        setTimeout(() => { loaderText.innerText = 'SISTEMAS ONLINE.'; }, 3200);
+
+                        // 4. A grande revelação: Levanta a tela preta para cima revelando a plataforma
+                        setTimeout(() => {
+                            screen.style.transform = 'translateY(-100vh)';
+                            screen.style.opacity = '0';
+                            
+                            // Remove o elemento após a animação para não travar cliques
+                            setTimeout(() => {
+                                screen.style.display = 'none';
+                            }, 1500);
+                        }, 4000);
+                    });
+                }
+            </script>
+            """
+            components.html(js_ignition, height=0, width=0)
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
