@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (IMAGEM + VÍDEO DENSOS - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (PADRÃO OFICIAL UNIFICADO - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
@@ -1152,44 +1152,45 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando prompts densos (Imagem > 1000 chars e Vídeo > 1300 chars)..."):
+    with st.spinner("🦅 Forjando estrutura rigorosa no padrão oficial exato..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
             Analise a imagem, leia o rótulo para identificar o nome e a marca exatos do produto.
-            Sua missão é gerar os prompts seguindo rigorosamente os critérios de volumetria e detalhamento:
+            Sua missão é gerar os prompts seguindo RIGOROSAMENTE o formato do gabarito oficial abaixo, adaptando apenas o produto para o novo item lido na imagem. NUNCA cite logotipos. O prompt de vídeo deve ser denso e completo, ultrapassando 1300 caracteres, e o prompt de imagem deve ter no mínimo 1000 caracteres.
             
-            1. PROMPT DE IMAGEM (Mínimo absoluto de 1000 caracteres): 
-               - Descreva com hiper-realismo extremo a fotografia RAW (close-up POV handheld mobile phone shot).
-               - Textura da pele humana impecável (poros naturais, pêssego/peach fuzz, micro-suor, zero flash artificial).
-               - Personagem Aurora (cabelo brilhante e saudável, franja sutil, expressão de conspiração intensa, microfone de lapela preto sem fio visível na gola da camisa).
-               - Cenário vivo e orgânico: cozinha aconchegante de classe média, varanda aberta ao fundo com plantas verdes exuberantes (samambaias, monsteras) sob luz natural diurna, um vira-lata caramelo descansando no tapete e bagunça orgânica na bancada (xícara de café, pano de prato).
-               - Trava física e geométrica estrita de escala 1:1 real-world scale (o produto exato lido no rótulo deve parecer perfeitamente proporcional, leve e compacto para caber na palma de uma mão humana, sem oversizing de forma alguma).
+            [GABARITO OFICIAL - SIGA EXATAMENTE ESTE PADRÃO]
+            PROMPT DE IMAGEM (Mínimo 1000 caracteres):
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. Standing in a relatable, ordinary middle-class Brazilian kitchen. Background open balcony door with lush green potted plants (ferns, monsteras) in daylight, small caramel dog resting on a rug, everyday clutter on the counter. CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product [NOME DO PRODUTO] held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
             
-            2. PROMPT DE VÍDEO COMPLETO E UNIFICADO (Mínimo de 1300 a 1400 caracteres):
-               - Junte em um texto contínuo e denso todos os elementos:
-               - Shot 1 (Macro Hook & Physics): POV caótico e dinâmico de celular com saltos de luz natural, zoom macro fluido focado exclusivamente no produto real da imagem, proporção física 1:1 mantida, micro-movimento de toque duplo (trigger tap) na tampa, zero derretimento de pixels.
-               - Shot 2 (Whip Pan & Visceral Emotion): Aos 0:03, transição violenta de Whip Pan e puxada de foco bruto subindo diretamente para o rosto da Aurora (lapela visível, plantas e vira-lata ao fundo), inclinando-se agressivamente para a lente (gossip lean), expressão urgente e respiratória de aviso puro.
-               - Interaction (3D CTA): O indicador aponta para baixo, materializando instantaneamente uma sacola de compras laranja em 3D realista com sombras físicas no canto da tela.
-               - Áudio e Fala: Captação por lapela com micro-ASMR de introdução, locução urgente e conspiratória. Inclua a fala exata da Aurora em português (aprox. 40-45 palavras focada na dor do cabelo, escassez do lote e chamada para a sacolinha, zero preço).
-               - Texto na Tela e Finalização: Três linhas de texto nativo com emojis focados na dor e benefício, encerrando com o glitch digital sutil da logo "O Achado Secreto" e corte seco.
+            PROMPT DE VÍDEO UNIFICADO (Mínimo 1300-1400 caracteres):
+            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the bottle rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product from the uploaded image. CRITICAL PHYSICS: 1:1 scale (compact size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting.]
+            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+            - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
+            Fala da AURORA (Português - 100% Blindada Contra o Robô):
+            "[Escreva a fala exata da Aurora em português com aprox 40-45 palavras. Foco na dor visual do produto, citando que o lote secreto está derretendo e mandando clicar na sacolinha. Zero preço, zero menção a valores]."
+            Texto na Tela (Nativo TikTok - Foco na Dor):
+            - "[⚠️ DOR PRINCIPAL / PROBLEMA]? 🛑"
+            - "[✨ BENEFÍCIO PRINCIPAL]"
+            - "LOTE SECRETO LIBERADO 🛒👇"
             
             Retorne EXATAMENTE no formato JSON estrito:
             {
-                "prompt_imagem": "Cole aqui o prompt de imagem detalhado com no mínimo 1000 caracteres...",
-                "prompt_video_completo": "Cole aqui o prompt de vídeo completo unificado contendo todas as cenas, áudio, fala e textos na tela com no mínimo 1300 a 1400 caracteres...",
+                "prompt_imagem": "...",
+                "prompt_video_completo": "...",
                 "titulo_geral": "[Título de busca geral focada na dor do cliente].",
                 "titulo_solucao": "[Título focado na solução e no nome exato do produto].",
                 "titulo_marca": "[Título de resenha da marca lida no rótulo]."
             }
-            NÃO use hashtags em nenhuma parte.
+            NÃO use hashtags. NUNCA cite logotipos.
             """
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito com textos densos e longos."}, {"role": "user", "content": [
+                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito seguindo o gabarito oficial."}, {"role": "user", "content": [
                     {"type": "text", "text": instrucao_ouro},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                 ]}],
@@ -1204,7 +1205,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Estrutura densa gerada com sucesso!")
+            st.success("✅ Estrutura gerada no padrão oficial!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
@@ -1214,7 +1215,7 @@ if roteiro_para_exibir:
     try:
         dados_r = json.loads(roteiro_para_exibir)
         with st.container(border=True):
-            st.markdown("<h4 style='color:#D4AF37;'>📸 PROMPT DE IMAGEM (Drenado & Detalhado)</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:#D4AF37;'>📸 PROMPT DE IMAGEM</h4>", unsafe_allow_html=True)
             st.code(dados_r.get("prompt_imagem",""), language="text")
             
             st.markdown("<h4 style='color:#D4AF37;'>🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO</h4>", unsafe_allow_html=True)
