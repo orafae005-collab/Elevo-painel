@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (COM MEMÓRIA PERSISTENTE NO DRIVE - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MANUAL V9.2 EMBUTIDO - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
@@ -1115,7 +1115,6 @@ st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Cr
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
 
-# Função para buscar o último roteiro salvo na planilha do usuário/mestre
 def carregar_ultimo_roteiro_salvo(email_usr):
     if not robo_sheets: return None
     try:
@@ -1129,7 +1128,6 @@ def carregar_ultimo_roteiro_salvo(email_usr):
                 return None
             
             registros = aba_hist.get_all_records()
-            # Filtra os registros do usuário atual de trás para frente (mais recente)
             usuario_regs = [r for r in registros if str(r.get("Email","")).strip().lower() == email_usr.strip().lower()]
             if usuario_regs:
                 return usuario_regs[-1].get("JsonRoteiro", None)
@@ -1151,7 +1149,6 @@ def salvar_roteiro_no_drive(email_usr, json_str):
             aba_hist.append_row([email_usr, agora_str, json_str])
     except Exception: pass
 
-# Se a sessão estiver vazia, tenta puxar do banco do Drive
 email_sessao = st.session_state.get("email_usuario", "anonimo")
 if not st.session_state["roteiro_temporario"]:
     roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
@@ -1192,37 +1189,45 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura rigorosa no padrão oficial e salvando na nuvem..."):
+    with st.spinner("🦅 Forjando estrutura (Manual V9.2) e salvando na nuvem..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem, leia o rótulo para identificar o nome e a marca exatos do produto.
-            Sua missão é gerar os prompts seguindo RIGOROSAMENTE o formato do gabarito oficial abaixo, adaptando apenas o produto para o novo item lido na imagem. NUNCA cite logotipos. O prompt de vídeo deve ser denso e completo, ultrapassando 1300 caracteres, e o prompt de imagem deve ter no mínimo 1000 caracteres.
+            Analise a imagem e leia o rótulo para identificar o produto.
+            Sua missão é gerar os prompts seguindo RIGOROSAMENTE o formato oficial abaixo. NUNCA cite logotipos. O prompt de vídeo deve ultrapassar 1600 caracteres e o de imagem ter no mínimo 1000.
             
-            [GABARITO OFICIAL - SIGA EXATAMENTE ESTE PADRÃO]
+            🔥 REGRA DE MULTIPACK (KITS): Se for um kit (ex: "Kit 2"), descreva FISICAMENTE TODOS os itens do kit presentes na cena.
+            
+            [MANUAL DE AMBIENTES E GUINDASTES V9.2 - MATRIZ DE CRIAÇÃO]
+            Você tem liberdade para escolher, misturar ou criar novos cenários baseados nestes exemplos, mantendo a "baguncinha orgânica/realista" e a segurança TikTok:
+            - Ambientes: Varanda Tropical, Banheiro com Tempestade, Quarto Minimalista, Cozinha Rústica, Varanda de Praia, Escritório Criativo, Quintal Arborizado, Sala de Estar, Banheiro Moderno, Área Gourmet, Varanda com Garoa, Quarto Boho, Terraço Urbano, Cantinho de Leitura, Cozinha Americana, Varanda de Inverno, Jardim Vertical, Casa de Campo, Ateliê, Varanda Ensolarada, Corredor Verde, Urban Jungle. (Lembre-se de adicionar elementos como vira-lata caramelo, xícaras, plantas, vapor).
+            - Guindastes: Foco Reverso/Macro Zoom, Andadinha Frontal, Gossip Lean, Teste Tátil, Giro 360 Simulado, Foco-Hunt, Rack Focus, Saboneteira/Chest-Up, Deslocamento Lateral, Corte Seco com Glitch.
+            
+            [GABARITO OFICIAL - ESTRUTURA E EXEMPLO DE TOM]
             PROMPT DE IMAGEM (Mínimo 1000 caracteres):
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. Standing in a relatable, ordinary middle-class Brazilian kitchen. Background open balcony door with lush green potted plants (ferns, monsteras) in daylight, small caramel dog resting on a rug, everyday clutter on the counter. CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product [NOME DO PRODUTO] held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. [DESCREVA O AMBIENTE V9.2 AQUI COM A BAGUNCINHA ORGÂNICA]. CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The exact product(s) [NOME/QUANTIDADE] resting on the table or held MUST look compact, light, and perfectly proportioned to fit comfortably relative to human hands. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
             
-            PROMPT DE VÍDEO UNIFICADO (Mínimo 1300-1400 caracteres):
-            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the bottle rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product from the uploaded image. CRITICAL PHYSICS: 1:1 scale (compact size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting.]
-            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
-            - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
-            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
-            Fala da AURORA (Português - 100% Blindada Contra o Robô):
-            "[Escreva a fala exata da Aurora em português com aprox 40-45 palavras. Foco na dor visual do produto, citando que o lote secreto está derretendo e mandando clicar na sacolinha. Zero preço, zero menção a valores]."
-            Texto na Tela (Nativo TikTok - Foco na Dor):
+            PROMPT DE VÍDEO UNIFICADO (Mínimo 1600 caracteres):
+            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video. APLIQUE UM GUINDASTE. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product(s). CRITICAL PHYSICS: 1:1 scale. SINGLE MOTION TRICK: Her free index finger performs a micro-tap on the cap twice. NO pixel melting.]
+            - Shot 2 (Visceral Emotion): [APLIQUE OUTRO GUINDASTE. The camera snaps focus onto Aurora's face (microfone de lapela visível, ambiente V9.2 ao fundo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens, chest heaving, serious expression of pure warning.]
+            - Interaction (3D CTA): [She aggressively points downwards. A realistic 3D floating orange shopping bag materializes.]
+            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro. Urgent, breathless, conspiratorial voice].
+            Fala da AURORA (Português - 100% Blindada):
+            "[Crie a fala para o produto da imagem copiando ESTE TOM EXATO E GATILHOS: 'Amiga, o seu cabelo tá elástico e quebrando só de pentear? O segredo de salão para blindar e reconstruir os fios em casa acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!'. Aprox 40-45 palavras. Zero preço]."
+            Texto na Tela (Nativo TikTok):
             - "[⚠️ DOR PRINCIPAL / PROBLEMA]? 🛑"
             - "[✨ BENEFÍCIO PRINCIPAL]"
             - "LOTE SECRETO LIBERADO 🛒👇"
+            Finalização (Português): [Efeito de digital glitch sutil, corte seco.]
             
             Retorne EXATAMENTE no formato JSON estrito:
             {
                 "prompt_imagem": "...",
                 "prompt_video_completo": "...",
-                "titulo_geral": "[Título de busca geral focada na dor do cliente].",
-                "titulo_solucao": "[Título focado na solução e no nome exato do produto].",
-                "titulo_marca": "[Título de resenha da marca lida no rótulo]."
+                "titulo_geral": "[Título da dor].",
+                "titulo_solucao": "[Título focado na solução].",
+                "titulo_marca": "[Título da marca]."
             }
             NÃO use hashtags. NUNCA cite logotipos.
             """
@@ -1230,17 +1235,16 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito seguindo o gabarito oficial."}, {"role": "user", "content": [
+                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito com textos extremamente densos."}, {"role": "user", "content": [
                     {"type": "text", "text": instrucao_ouro},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                 ]}],
-                max_tokens=3000, temperature=0.7
+                max_tokens=3500, temperature=0.75
             )
             
             conteudo_json = resp.choices[0].message.content.strip()
             st.session_state["roteiro_temporario"] = conteudo_json
             
-            # Salva permanentemente no Google Sheets do usuário/mestre
             salvar_roteiro_no_drive(email_sessao, conteudo_json)
             
             if not E_O_CEO and aba_limites is not None:
