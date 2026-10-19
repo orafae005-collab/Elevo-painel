@@ -1107,10 +1107,10 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (COM EXEMPLO EXATO INJETADO)
+# 17. MÁQUINA DE CRIAÇÃO 360º (TÍTULOS E COPY REAIS - V31.2)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.2)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1180,20 +1180,24 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura..."):
+    with st.spinner("🦅 Forjando copy viral e estruturando vídeo..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem APENAS para identificar produto e quantidade. NÃO descreva embalagem.
-            Retorne EXATAMENTE no formato JSON abaixo, substituindo apenas os dados do produto. COPIE O MOLDE:
+            Analise a imagem APENAS para identificar produto e quantidade.
+            
+            REGRA VITAL: Onde houver palavras em MAIÚSCULAS dentro de colchetes como [CRIE A DOR], [CRIE O BENEFÍCIO], VOCÊ DEVE SUBSTITUÍ-LAS POR TEXTO REAL E PERSUASIVO. Nunca deixe colchetes na resposta final! Proibido usar "Cura", "Elimina", "Milagre". Use "Promove um aspecto de", "Sensação de".
+            
+            TÍTULOS SEO: Crie títulos longos, pesquisáveis, muito chamativos e focados na dor. Exemplo de como fazer: "Como encorpar cabelo ralo e quebrado em casa rápido."
 
+            Retorne EXATAMENTE este JSON:
             {
-                "prompt_imagem": "RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize]. She is firmly holding ONE of the tubs from the '[NOME DO PRODUTO]' matching reference image, while the second tub rests neatly on the wooden counter right next to her, making both visible in the scene. Unfiltered UGC vlog style, 8k resolution.",
-                "prompt_video_completo": "- Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the products rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product held firmly in her hand. CRITICAL PHYSICS: 1:1 scale (proportional size, fitting naturally in her grip, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it. NO pixel melting.]\\n- Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]\\n- Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]\\n- Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].\\n- Fala da AURORA (Português):\\n  \"Amiga, se o seu cabelo tá [DOR DO CLIENTE], para tudo! Esse tratamento [BENEFÍCIO] e devolve a vida na primeira aplicação. O estoque desse lote secreto tá acabando em minutos, corre na sacolinha antes que esgote!\"\\n  (Nota: Exatas 51 palavras. Zero menção a preço, focando na dor e escassez).\\n- Texto na Tela:\\n  * \"⚠️ [DOR]? 🛑\"\\n  * \"[BENEFÍCIO] ✨\"\\n  * \"LOTE SECRETO LIBERADO 🛒👇\"",
-                "titulo_geral": "Como [resolver a dor] em casa.",
-                "titulo_solucao": "[Produto e Quantidade].",
-                "titulo_marca": "[Marca] resenha."
+                "prompt_imagem": "RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora) with lapel mic. [CRIE UM AMBIENTE V9.2 COM PET/BAGUNÇA DESCREVENDO CADA FOLHA E LUZ, MÍNIMO 500 CARACTERES]. [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]. She is firmly holding ONE of the tubs from the '[NOME EXATO DO PRODUTO]', making it visible. Unfiltered UGC vlog style, 8k resolution.",
+                "prompt_video_completo": "- Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video. INSERIR GUINDASTE 1. Starts with aggressive Macro Zoom In exclusively on EXACT reference product. CRITICAL PHYSICS: 1:1 scale (proportional size, do not oversize). SINGLE MOTION TRICK: Her free index finger performs a micro-tap on the lid twice. NO pixel melting.]\\n- Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (lapel mic visible, V9.2 background and pet). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), flashing a breathless, intensely serious expression of pure warning.]\\n- Interaction (3D CTA): [She aggressively points her free index finger downwards. A highly realistic 3D floating orange shopping bag object materializes.]\\n- Áudio (Inglês): [Lapel microphone. Micro-ASMR intro. Urgent, breathless, conspiratorial voice].\\n- Fala da AURORA (Português):\\n  \"Amiga, para tudo! Se o seu cabelo tá [DESCREVA A DOR DO CLIENTE DE FORMA REALISTA], vem cá me escutar! Esse achado de ouro [DESCREVA O BENEFÍCIO SENSORIAL] e garante aquele toque de seda que a gente ama. O estoque desse lote secreto tá derretendo em minutos, já garanti o meu, corre na sacolinha!\"\\n- Texto na Tela:\\n  * \"⚠️ [CRIE UM ALERTA CURTO DA DOR EM MAIÚSCULAS]? 🛑\"\\n  * \"[CRIE UM ALERTA DO BENEFÍCIO EM MAIÚSCULAS] ✨\"\\n  * \"LOTE SECRETO LIBERADO 🛒👇\"",
+                "titulo_geral": "[CRIE UM TÍTULO LONGO E VIRAL SOBRE COMO RESOLVER A DOR]",
+                "titulo_solucao": "[ESCREVA O NOME DO PRODUTO E QUANTIDADE DE FORMA CHAMATIVA]",
+                "titulo_marca": "[CRIE UM TÍTULO LONGO DE RESENHA COM O NOME DA MARCA E PRODUTO]"
             }
             """
             
@@ -1201,13 +1205,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
                 messages=[
-                    {"role": "system", "content": "Retorne EXATAMENTE o JSON fornecido, apenas preenchendo os colchetes com os dados da imagem. Sem texto adicional."},
+                    {"role": "system", "content": "Substitua instruções em colchetes por textos persuasivos finais. Não deixe marcações ou brackets nas respostas."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_ouro},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
-                max_tokens=2500, temperature=0.4
+                max_tokens=3000, temperature=0.7
             )
             
             conteudo_json = resp.choices[0].message.content.strip()
@@ -1248,7 +1252,6 @@ if st.session_state["roteiro_temporario"]:
             st.rerun()
     except Exception: 
         st.warning("Erro de formatação.")
-
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
