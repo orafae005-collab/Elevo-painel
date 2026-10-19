@@ -51,13 +51,9 @@ def conectar_robo():
 robo_sheets = conectar_robo()
 
 # ==========================================================
-# 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
+# 0. PORTARIA VIP (LOGIN NATIVO COM MEMÓRIA DE URL)
 # ==========================================================
-import extra_streamlit_components as stx
-import datetime
-
-# Inicializa o Cofre de Cookies de forma estável
-cookie_manager = stx.CookieManager()
+import base64
 
 try:
     EMAIL_MESTRE = st.secrets["EMAIL_MESTRE"]
@@ -72,17 +68,6 @@ if "usuario_logado" not in st.session_state:
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
-
-# Puxa a memória gravada no navegador do usuário
-cookie_email = cookie_manager.get("elevo_email")
-cookie_nome = cookie_manager.get("elevo_nome")
-
-# Login Fantasma Automático (Se tiver o cookie, entra direto sem pedir senha)
-if not st.session_state["usuario_logado"] and cookie_email and cookie_nome:
-    st.session_state["usuario_logado"] = True
-    st.session_state["email_usuario"] = cookie_email
-    st.session_state["nome_usuario"] = cookie_nome
-    st.rerun()
 
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
@@ -105,6 +90,27 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
             return True
     except Exception as e:
         return None
+
+# ---- 🚀 SISTEMA DE MEMÓRIA NATIVA (LIGAÇÃO DIRETA PELA URL) ----
+if not st.session_state["usuario_logado"] and "sessao" in st.query_params:
+    try:
+        codigo_sessao = st.query_params["sessao"]
+        email_decodificado = base64.b64decode(codigo_sessao).decode('utf-8')
+        
+        if email_decodificado == EMAIL_MESTRE:
+            st.session_state["usuario_logado"] = True
+            st.session_state["email_usuario"] = EMAIL_MESTRE
+            st.session_state["nome_usuario"] = "Sócio"
+        else:
+            usuarios = conectar_banco_usuarios("ler")
+            if usuarios is not None:
+                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_decodificado), None)
+                if usuario_encontrado:
+                    st.session_state["usuario_logado"] = True
+                    st.session_state["email_usuario"] = email_decodificado
+                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
+    except Exception:
+        pass # Se a URL estiver inválida ou alterada, ignora e pede a senha normal
 
 if not st.session_state["usuario_logado"]:
     st.markdown("""
@@ -162,7 +168,7 @@ if not st.session_state["usuario_logado"]:
                 with st.form("form_login"):
                     email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
                     senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
-                    lembrar_dados = st.checkbox("Mantenha-me Logado (Salvar na Máquina)")
+                    lembrar_dados = st.checkbox("Mantenha-me Logado (Gerar Link de Acesso Rápido)")
                     submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
                 
                 if submit_login:
@@ -173,9 +179,8 @@ if not st.session_state["usuario_logado"]:
                         st.session_state["nome_usuario"] = "Sócio"
                         
                         if lembrar_dados:
-                            expira = datetime.datetime.now() + datetime.timedelta(days=30)
-                            cookie_manager.set("elevo_email", EMAIL_MESTRE, expires_at=expira)
-                            cookie_manager.set("elevo_nome", "Sócio", expires_at=expira)
+                            token = base64.b64encode(EMAIL_MESTRE.encode('utf-8')).decode('utf-8')
+                            st.query_params["sessao"] = token
                             
                         st.rerun()
                     elif email_clean and senha_input:
@@ -186,13 +191,11 @@ if not st.session_state["usuario_logado"]:
                                 if usuario_encontrado:
                                     st.session_state["usuario_logado"] = True
                                     st.session_state["email_usuario"] = email_clean
-                                    nome_enc = str(usuario_encontrado.get("Nome", "Usuário"))
-                                    st.session_state["nome_usuario"] = nome_enc
+                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
                                     
                                     if lembrar_dados:
-                                        expira = datetime.datetime.now() + datetime.timedelta(days=30)
-                                        cookie_manager.set("elevo_email", email_clean, expires_at=expira)
-                                        cookie_manager.set("elevo_nome", nome_enc, expires_at=expira)
+                                        token = base64.b64encode(email_clean.encode('utf-8')).decode('utf-8')
+                                        st.query_params["sessao"] = token
                                         
                                     st.rerun()
                                 else:
@@ -230,7 +233,6 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
     st.stop()
-
 
 
 # ==========================================================
@@ -439,8 +441,9 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
+    if "sessao" in st.query_params:
+        del st.query_params["sessao"]
     st.rerun()
-
 # ==========================================================
 # 4. EXTRATOR DE ID E CARREGAMENTO DE DADOS
 # ==========================================================
