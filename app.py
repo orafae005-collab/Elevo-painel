@@ -801,10 +801,10 @@ else:
     st.info("Nenhum dado encontrado para o período selecionado.")
 
 # ==========================================================
-# 10. MOTOR DE ELITE: GAMIFICAÇÃO & DISCIPLINA
+# 10. MOTOR DE ELITE: GAMIFICAÇÃO, DISCIPLINA & EXPANSÃO
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Gamificação & Disciplina</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Disciplina & Expansão de Negócios</h3>", unsafe_allow_html=True)
 
 agora_brasil = datetime.utcnow() - timedelta(hours=3)
 dia_do_ano = agora_brasil.timetuple().tm_yday
@@ -831,9 +831,39 @@ dicas_investimento = [
     "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?"
 ]
 
+# 🔥 NOVA ROTA: RADAR DE OPORTUNIDADES + PASSO A PASSO TÁTICO
+oportunidades_mercado = [
+    {
+        "titulo": "Shopee Afiliados no 'Shopee Video'",
+        "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros caóticos do TikTok lá e crie uma segunda fonte de renda sem gravar nada novo!",
+        "passos": "1. Abra o app da Shopee no telemóvel e vá à aba 'Eu' (canto inferior direito).\n2. Role para baixo, encontre 'Programa de Afiliados' e faça o cadastro.\n3. Após aprovação, toque no ícone 'Vídeo' na barra inferior.\n4. Faça o upload do vídeo que já gravou para o TikTok.\n5. Toque em 'Adicionar Link' e pesquise o produto correspondente na Shopee para fixar a sacola laranja."
+    },
+    {
+        "titulo": "Mercado Livre Vídeos (Clipes)",
+        "pitch": "Uma nova vitrine de clipes curtos abriu no ML. Excelente oceano azul para quem já sabe vender produtos físicos com estilo UGC.",
+        "passos": "1. Inscreva-se no 'Programa de Afiliados do Mercado Livre' pelo site (afiliados.mercadolivre.com.br).\n2. Abra o app do Mercado Livre e vá à seção de vídeos curtos ('Vídeos' ou 'Clipes').\n3. Como criador/afiliado, faça upload de vídeos review do seu celular.\n4. Conecte o link rastreável do seu painel de afiliado diretamente no vídeo para ganhar comissões em cada venda."
+    },
+    {
+        "titulo": "Monetização em Dólar (YouTube Shorts)",
+        "pitch": "Crie um canal 'Dark' no YouTube Shorts. Compile os seus vídeos curtos lá e ganhe em AdSense (Dólar) ou venda como afiliado pelo link nos comentários.",
+        "passos": "1. Crie um canal no YouTube focado no seu nicho (ex: Achados de Beleza/Casa).\n2. Pegue os vídeos que você faz para o TikTok e poste no 'YouTube Shorts'.\n3. No título do vídeo, escreva: 'Link do produto no comentário fixado'.\n4. Copie o seu link de afiliado e fixe no primeiro comentário do Short.\n5. Ao atingir os requisitos do YouTube (10M de views), você ganha em Dólar pelo Adsense + Vendas."
+    },
+    {
+        "titulo": "Venda de Roteiros e Vídeos (UGC para Marcas)",
+        "pitch": "Lojas estão desesperadas por vídeos que convertem. Pare de ganhar apenas comissão e venda o vídeo pronto como prestador de serviço (UGC).",
+        "passos": "1. Abra o Instagram e pesquise por lojas médias do seu nicho (lojas de cosméticos, utilidades).\n2. Envie uma Mensagem Direta (DM) com este texto: 'Olá! Adoro os produtos de vocês. Sou criador de conteúdo UGC focado em conversão. Posso enviar um exemplo?'\n3. Envie um dos seus melhores vídeos estilo 'Caos Controlado'.\n4. Ofereça um pacote: 3 vídeos por um valor fixo (ex: R$ 300).\n5. Receba os produtos em casa, grave com o método da ÉLÉVO e receba via Pix."
+    },
+    {
+        "titulo": "Kwai E-commerce (Botão de Compras)",
+        "pitch": "O Kwai está a injetar muito tráfego em contas que testam o novo botão de compras. É hora de validar o seu produto campeão num novo público.",
+        "passos": "1. Crie uma conta focada em achados/reviews no Kwai.\n2. Vá às configurações e aplique para a 'Central do Criador' ou ative o botão de e-commerce/afiliados.\n3. Faça upload dos seus vídeos seguindo a mesma estrutura do TikTok.\n4. Antes de publicar, clique na opção de adicionar produto/sacolinha e pesquise o item correspondente no catálogo interno deles.\n5. Publique com consistência de 2 a 3 vídeos por dia."
+    }
+]
+
 frase_hoje = frases_motivacionais[dia_do_ano % len(frases_motivacionais)]
 missao_hoje = missoes[dia_do_ano % len(missoes)]
 dica_hoje = dicas_investimento[dia_do_ano % len(dicas_investimento)]
+oportunidade_hoje = oportunidades_mercado[dia_do_ano % len(oportunidades_mercado)]
 
 col_mindset, col_missao = st.columns([1, 1])
 
@@ -841,13 +871,20 @@ with col_mindset:
     st.info(f"💎 **Visão de Águia:** {frase_hoje}")
     st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
     
+    # Renderização da Oportunidade com Passo a Passo expansível
+    with st.container(border=True):
+        st.markdown(f"**🚀 Oportunidade Oculta: {oportunidade_hoje['titulo']}**")
+        st.markdown(f"<p style='font-size: 0.9em; color: #A0A0A0;'>{oportunidade_hoje['pitch']}</p>", unsafe_allow_html=True)
+        with st.expander("🛠️ Ver Passo a Passo de Execução", expanded=False):
+            st.markdown(f"**Como aplicar agora:**\n\n{oportunidade_hoje['passos']}")
+    
 with col_missao:
     st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
     missao_cumprida = st.button("✅ CONCLUIR MISSÃO DE HOJE", type="primary", use_container_width=True)
     
     if missao_cumprida:
-        if not link_planilha_ativa or not robo_sheets:
-            st.error("⚠️ Conecte a planilha para o Robô conseguir salvar seu progresso.")
+        if 'link_planilha_ativa' not in globals() or not link_planilha_ativa or not robo_sheets:
+            st.error("⚠️ Conecte a planilha no topo para o Robô conseguir salvar seu progresso.")
         else:
             with st.spinner("Registrando sua vitória no banco de dados secreto..."):
                 try:
@@ -875,7 +912,7 @@ with col_missao:
 
 st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
 
-if link_planilha_ativa and robo_sheets:
+if 'link_planilha_ativa' in globals() and link_planilha_ativa and robo_sheets:
     try:
         sheet_id = extrair_id_planilha(link_planilha_ativa)
         planilha = robo_sheets.open_by_key(sheet_id)
