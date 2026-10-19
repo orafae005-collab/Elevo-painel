@@ -243,16 +243,13 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 2.5. BOAS-VINDAS CINEMÁTICA (TELA DE IGNIÇÃO NATIVA P/ EVITAR BUGS)
+# 2.5. BOAS-VINDAS CINEMÁTICA (BOTÃO PLAY NATIVO - ESTILO AURORA)
 # ==========================================================
 import base64
 import requests
 import io
 from gtts import gTTS
-
-# Controle de sessão para saber se ele já viu a tela de bloqueio nesta sessão
-if "passou_pela_ignicao" not in st.session_state:
-    st.session_state["passou_pela_ignicao"] = False
+import streamlit.components.v1 as components
 
 if "boas_vindas_verificada" not in st.session_state: 
     st.session_state["boas_vindas_verificada"] = False
@@ -261,8 +258,9 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
     st.session_state["boas_vindas_verificada"] = True 
     email_atual = st.session_state.get("email_usuario", "")
     nome_atual = st.session_state.get("nome_usuario", "Sócio")
+    precisa_tocar = False
     
-    # Verifica se o email já está na planilha (já ouviu alguma vez na vida)
+    # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida (Pelo Gmail)
     if robo_sheets and email_atual:
         try:
             import re
@@ -276,72 +274,97 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                     aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
                 
                 lista_emails_bv = aba_bv.col_values(1)
-                
                 if email_atual not in lista_emails_bv:
-                    # É utilizador NOVO! Bloqueia na ignição.
-                    st.session_state["precisa_tela_ignicao"] = True
-                    aba_bv.append_row([email_atual])
-                else:
-                    # É veterano. Passa direto.
-                    st.session_state["passou_pela_ignicao"] = True
-        except Exception: 
-            # Em caso de erro do sheets, não trava ninguém
-            st.session_state["passou_pela_ignicao"] = True
-
-# --- TELA DE BLOQUEIO (IGNIÇÃO) ---
-if st.session_state.get("precisa_tela_ignicao") and not st.session_state.get("passou_pela_ignicao"):
-    st.markdown("<br><br>", unsafe_allow_html=True)
-    col_vazia1, col_centro, col_vazia2 = st.columns([1, 2, 1])
+                    precisa_tocar = True
+                    aba_bv.append_row([email_atual]) 
+        except Exception: pass
     
-    with col_centro:
-        with st.container(border=True):
-            st.markdown("<h1 style='text-align: center; font-size: 80px; margin: 0;'>🦅</h1>", unsafe_allow_html=True)
-            st.markdown("<h2 style='text-align: center; color: #D4AF37; margin-top: 0;'>NOVO SÓCIO DETECTADO</h2>", unsafe_allow_html=True)
-            st.markdown("<p style='text-align: center; color: #A0A0A0; font-size: 1.1rem;'>O seu espaço no império foi reservado. Clique abaixo para ativar a inteligência central e libertar o painel.</p>", unsafe_allow_html=True)
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            # O botão que o usuário tem de clicar
-            if st.button("🔥 INICIAR A PLATAFORMA", use_container_width=True, type="primary"):
-                st.session_state["passou_pela_ignicao"] = True
-                st.session_state["tocar_audio_agora"] = True
-                st.rerun() # Recarrega a página para libertar o código abaixo
-    
-    # O st.stop() pára a leitura do código do Streamlit AQUI.
-    # NADA abaixo (painel, gráficos, etc.) vai carregar enquanto ele não clicar!
-    st.stop()
-
-# --- REPRODUZIR ÁUDIO E LIBERTAR PLATAFORMA ---
-if st.session_state.get("tocar_audio_agora"):
-    st.session_state["tocar_audio_agora"] = False # Desativa para não tocar em loop
-    
-    nome_atual = st.session_state.get("nome_usuario", "Sócio")
-    texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
-    
-    audio_bytes = None
-    with st.spinner("🦅 Carregando módulos da Aurora..."):
-        try:
-            CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
-            if CHAVE_ELEVEN:
-                resp_voz = requests.post(
-                    f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", 
-                    json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
-                    headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
-                    timeout=10
-                )
-                if resp_voz.status_code == 200: audio_bytes = resp_voz.content
+    if precisa_tocar:
+        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
+        audio_bytes = None
+        
+        with st.spinner("🦅 Gerando mensagem criptografada da Diretoria..."):
+            try:
+                CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
+                if CHAVE_ELEVEN:
+                    resp_voz = requests.post(
+                        f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", 
+                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
+                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
+                        timeout=10
+                    )
+                    if resp_voz.status_code == 200: audio_bytes = resp_voz.content
+                    else: raise Exception()
                 else: raise Exception()
-            else: raise Exception()
-        except Exception:
-            tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
-            fp = io.BytesIO()
-            tts.write_to_fp(fp)
-            fp.seek(0)
-            audio_bytes = fp.read()
+            except Exception:
+                tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                audio_bytes = fp.read()
+                
+        if audio_bytes:
+            audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
             
-    if audio_bytes:
-        # Usa o áudio nativo do Streamlit escondido para tocar com perfeição após o botão de "Ignição"
-        st.markdown("""<style>[data-testid="stAudio"] { display: none !important; }</style>""", unsafe_allow_html=True)
-        st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
+            # --- O BOTÃO DE PLAY QUE SE TRANSFORMA NAS ONDAS DA AURORA ---
+            html_play_intro = f"""
+            <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 30px auto; max-width: 600px; transition: opacity 1s ease;">
+                <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
+                <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
+                    Novo sócio detectado. Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
+                </p>
+                
+                <button id="btn-tocar" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
+                    ▶ REPRODUZIR MENSAGEM
+                </button>
+
+                <div id="visualizer-intro" style="display: none; justify-content: center; align-items: center; gap: 4px; height: 60px; margin-top: 10px;">
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+                </div>
+                
+                <audio id="audio-intro" src="data:audio/mp3;base64,{audio_b64}"></audio>
+            </div>
+            
+            <style>
+                .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
+                .playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
+                .playing:nth-child(1) {{ animation-delay: 0.0s; }} .playing:nth-child(2) {{ animation-delay: 0.1s; }}
+                .playing:nth-child(3) {{ animation-delay: 0.2s; }} .playing:nth-child(4) {{ animation-delay: 0.3s; }}
+                .playing:nth-child(5) {{ animation-delay: 0.1s; }} .playing:nth-child(6) {{ animation-delay: 0.4s; }}
+                .playing:nth-child(7) {{ animation-delay: 0.2s; }} .playing:nth-child(8) {{ animation-delay: 0.0s; }}
+                @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
+            </style>
+            
+            <script>
+                const btn = document.getElementById('btn-tocar');
+                const aud = document.getElementById('audio-intro');
+                const vis = document.getElementById('visualizer-intro');
+                const box = document.getElementById('caixa-intro');
+                const bars = document.querySelectorAll('.bar');
+                
+                if(btn && aud) {{
+                    btn.addEventListener('click', function() {{
+                        aud.play();
+                        btn.style.display = 'none';
+                        vis.style.display = 'flex';
+                        box.style.borderColor = '#00FFFF'; // Muda a borda para a cor da Aurora
+                        box.style.boxShadow = '0px 0px 25px rgba(0, 255, 255, 0.2)';
+                    }});
+                    
+                    aud.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
+                    aud.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+                    
+                    // Quando a voz acaba, a caixa some da tela para deixar a plataforma limpa!
+                    aud.addEventListener('ended', () => {{ 
+                        bars.forEach(bar => bar.classList.remove('playing')); 
+                        box.style.opacity = '0';
+                        setTimeout(() => {{ box.style.display = 'none'; }}, 1000);
+                    }});
+                }}
+            </script>
+            """
+            components.html(html_play_intro, height=280)
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
