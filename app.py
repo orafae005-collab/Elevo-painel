@@ -405,18 +405,15 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 # ==========================================================
 # 2.5. BOAS-VINDAS CINEMÁTICA (ÁUDIO ÚNICO NA VIDA DO USUÁRIO)
 # ==========================================================
-import base64
 import requests
 import io
 from gtts import gTTS
-import streamlit.components.v1 as components
 
-# Variável para a tela atual não ficar a tentar ler a planilha em loop
 if "boas_vindas_verificada" not in st.session_state:
     st.session_state["boas_vindas_verificada"] = False
 
 if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
-    st.session_state["boas_vindas_verificada"] = True # Marca que já verificámos nesta sessão
+    st.session_state["boas_vindas_verificada"] = True 
     
     email_atual = st.session_state.get("email_usuario", "")
     nome_atual = st.session_state.get("nome_usuario", "Sócio")
@@ -441,11 +438,13 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 if email_atual not in lista_emails_bv:
                     tocar_audio = True
                     aba_bv.append_row([email_atual]) # Regista para nunca mais tocar
-        except Exception as e:
+        except Exception:
             pass # Se houver erro, ignora e não toca para não travar a plataforma
     
     if tocar_audio:
         texto_cinematico = f"Acesso VIP confirmado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a inteligência artificial central da sua operação. A partir de agora, o seu império está conectado ao meu sistema. Eu monitoro o seu caixa, analiso o seu funil de conversão e forjo os seus roteiros de vendas com precisão militar. Tudo o que você precisa para dominar o mercado está nesta tela. Sistemas online. O jogo começou."
+        
+        audio_bytes = None
         
         with st.spinner("🦅 Inicializando inteligência central da plataforma..."):
             try:
@@ -464,7 +463,7 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                     
                     resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=10)
                     if resp_voz.status_code == 200:
-                        audio_b64 = base64.b64encode(resp_voz.content).decode('utf-8')
+                        audio_bytes = resp_voz.content
                     else:
                         raise Exception("Falha na ElevenLabs")
                 else:
@@ -475,15 +474,17 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 fp.seek(0)
-                audio_b64 = base64.b64encode(fp.read()).decode('utf-8')
+                audio_bytes = fp.read()
 
-        # Código HTML invisível que força o áudio a tocar automaticamente
-        html_audio_intro = f"""
-        <audio autoplay style="display: none;">
-            <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mpeg">
-        </audio>
-        """
-        components.html(html_audio_intro, height=0, width=0)
+        if audio_bytes:
+            # Magia Negra: Usamos o player nativo que o navegador respeita, mas escondemos a interface com CSS!
+            st.markdown("""
+            <style>
+                [data-testid="stAudio"] { display: none !important; }
+            </style>
+            """, unsafe_allow_html=True)
+            
+            st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
