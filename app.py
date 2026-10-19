@@ -1107,17 +1107,17 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (PERSISTÊNCIA ABSOLUTA + PADRÃO DETALHADO)
+# 17. MÁQUINA DE CRIAÇÃO 360º (UNIFICADO - PADRÃO V31.1)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Padrão Oficial Detalhado)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
 
-email_atual_roteiro = st.session_state.get("email_usuario", "").strip().lower()
+if "ultimo_roteiro_gerado" not in st.session_state: 
+    st.session_state["ultimo_roteiro_gerado"] = None
 
-# Verifica limite de usos se for Novato
 pode_gerar_roteiro = True
 usos_feitos = 0
 aba_limites = None
@@ -1127,40 +1127,16 @@ if not E_O_CEO and robo_sheets:
         match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
         if match_id:
             planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-            try: 
-                aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
+            try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
             except:
                 aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
                 aba_limites.append_row(["Email", "Gerou"])
             
             lista_usos = aba_limites.col_values(1)
-            usos_feitos = lista_usos.count(email_atual_roteiro)
+            usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
             if usos_feitos >= 3:
                 pode_gerar_roteiro = False
-    except Exception: 
-        pass
-
-# Conexão com a aba de roteiros salvos por usuário (Persistência no Drive)
-aba_roteiros = None
-ultimo_roteiro_salvo_banco = None
-
-if link_planilha_ativa and robo_sheets and email_atual_roteiro:
-    try:
-        sheet_id = extrair_id_planilha(link_planilha_ativa)
-        planilha_atual = robo_sheets.open_by_key(sheet_id)
-        try:
-            aba_roteiros = planilha_atual.worksheet("Memoria_Roteiros")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_roteiros = planilha_atual.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="3")
-            aba_roteiros.append_row(["Email", "Data", "RoteiroJSON"])
-        
-        # Puxa o histórico e localiza o ÚLTIMO roteiro gerado por este usuário específico
-        todos_roteiros = aba_roteiros.get_all_records()
-        roteiros_usuario = [r for r in todos_roteiros if str(r.get("Email", "")).strip().lower() == email_atual_roteiro]
-        if roteiros_usuario:
-            ultimo_roteiro_salvo_banco = roteiros_usuario[-1].get("RoteiroJSON", "")
-    except Exception:
-        pass
+    except Exception: pass
 
 with st.container(border=True):
     col_img, col_dados = st.columns([1, 1])
@@ -1176,147 +1152,85 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Analisando o produto e estruturando o roteiro detalhado por blocos..."):
+    with st.spinner("🦅 Forjando estrutura unificada baseada no Manual V31.1..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Analise a imagem, leia o rótulo para identificar o nome exato, a função principal, o volume/peso e a marca do produto.
-            Sua missão é criar uma estrutura EXATAMENTE igual ao formato padrão detalhado do nosso método (com Shot 1, Shot 2, CTA 3D, Áudio, Fala da Aurora com contagem de palavras, Textos na Tela e Finalização).
-
-            [EXEMPLO DO PADRÃO QUE VOCÊ DEVE SEGUIR RIGOROSAMENTE]:
-            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic... com o tap na tampa e trava 1:1]
-            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! ... rosto da Aurora, lapela, plantas e vira-lata caramelo no fundo]
-            - Interaction (3D CTA): [She aggressively points her free index finger downwards... surgimento da sacola 3D laranja]
-            - Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro... urgente e conspiratorial]
-            - Fala da AURORA (Português - 100% Blindada Contra o Robô):
-              "Amiga, o seu [dor do cliente] e [outro sintoma]? O segredo profissional para [benefício] em casa acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!"
-              (Nota: Exatas XX palavras. Começa no 0:00 cravado. Zero menção a preço, valor ou descontos, focando exclusivamente na dor e na escassez).
-            - Texto na Tela (Nativo TikTok - Foco na Dor):
-              - "⚠️ [DOR DO CLIENTE EM MAIÚSCULO]? 🛑"
-              - "[BENEFÍCIO PRINCIPAL] ✨"
-              - "LOTE SECRETO LIBERADO 🛒👇"
-            - Finalização (Português):
-              "A logo 'O Achado Secreto' aparece com um efeito de digital glitch sutil, seguido de um corte seco."
-
-            🔥 REGRAS INQUEBRÁVEIS PARA OS 3 TÍTULOS DE SEO (COPIAR LIMPO):
-            - PROIBIDO colocar "(XX caracteres)", contagens, aspas, dois-pontos (:) ou pontos de exclamação (!).
-            - Exemplo titulo_geral: Como recuperar cabelo elástico e emborrachado rápido.
-            - Exemplo titulo_solucao: Queratina líquida reconstrutora Novex Max Keratin.
-            - Exemplo titulo_marca: Reconstrutor Novex Max Keratin 250ml resenha.
-
-            Retorne EXATAMENTE no formato JSON:
+            Analise a imagem, leia o rótulo para identificar o nome e a marca exatos do produto.
+            Sua missão é criar uma estrutura unificada seguindo rigorosamente o GABARITO DE OURO abaixo.
+            
+            [GABARITO DE OURO - FORMATO UNIFICADO]
+            Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product from the uploaded image. CRITICAL PHYSICS: 1:1 scale (compact size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting.]
+            Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+            Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
+            Fala da AURORA (Português - 100% Blindada Contra o Robô): [Escreva a fala exata da Aurora em português com aprox 40-45 palavras. Foco na dor visual e no cabelo danificado, cite que o lote secreto está derretendo, mande clicar na sacolinha. Zero preço, zero menção a valores].
+            Texto na Tela (Nativo TikTok - Foco na Dor): 
+            - "⚠️ [DOR DO CLIENTE/PROBLEMA]? 🛑"
+            - "[BENEFÍCIO PRINCIPAL/SOLUÇÃO] ✨"
+            - "LOTE SECRETO LIBERADO 🛒👇"
+            Finalização (Português): [A logo 'O Achado Secreto' aparece com um efeito de digital glitch sutil, seguido de um corte seco.]
+            
+            Retorne EXATAMENTE no formato JSON estrito contendo um único campo com o roteiro completo unificado, e os títulos separados:
             {
-                "imagem": "[Prompt de imagem em inglês com mais de 800 caracteres, hiper-realista, varanda, plantas, microfone de lapela e trava 1:1.]",
-                "shot1": "[Prompt em inglês detalhado do Shot 1: macro zoom caótico, física 1:1 e micro-tap na tampa.]",
-                "shot2": "[Prompt em inglês detalhado do Shot 2: whip pan, foco na Aurora, lapela visível, plantas e vira-lata caramelo.]",
-                "cta3d": "[Prompt em inglês detalhado da Interaction 3D: apontar o dedo e materialização da sacola 3D laranja.]",
-                "audio": "[Descrição em inglês dos ajustes de áudio, microfone de lapela e tom urgente/conspiratorial.]",
-                "fala": "Amiga, o seu [dor]? O segredo para [benefício] acabou de liberar na vitrine secreta! O estoque desse lote tá derretendo, corre na sacolinha antes que esgote!\\n\\n(Nota: Exatas 38 palavras. Zero menção a preço, focando na dor e escassez).",
-                "tela": "- \"⚠️ [DOR DO CLIENTE]? 🛑\"\\n- \"[BENEFÍCIO PRINCIPAL] ✨\"\\n- \"LOTE SECRETO LIBERADO 🛒👇\"",
-                "finalizacao": "A logo 'O Achado Secreto' aparece com um efeito de digital glitch sutil, seguido de um corte seco.",
-                "titulo_geral": "Como [resolver a dor principal] rápido.",
-                "titulo_solucao": "[Tipo de produto e função] [Marca e Nome].",
-                "titulo_marca": "[Nome do produto + Marca + Volume] resenha."
+                "prompt_video_completo": "Cole aqui todo o bloco unificado (Shot 1, Shot 2, Interaction 3D, Áudio, Fala da Aurora, Texto na Tela e Finalização em um texto contínuo ou em tópicos corridos dentro da mesma string).",
+                "titulo_geral": "[Título de busca geral focada na dor do cliente, exato e limpo].",
+                "titulo_solucao": "[Título focado na solução e no nome exato do produto].",
+                "titulo_marca": "[Título de resenha da marca lida no rótulo]."
             }
-            NÃO use hashtags no corpo do JSON.
+            NÃO use hashtags em nenhuma parte.
             """
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
-                messages=[
-                    {"role": "system", "content": "Diretor de Criação de Elite especializado em TikTok Shop. Responda em JSON estrito seguindo rigorosamente o modelo detalhado de blocos."}, 
-                    {"role": "user", "content": [
-                        {"type": "text", "text": instrucao_ouro},
-                        {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
-                    ]}
-                ],
-                max_tokens=3000, temperature=0.7
+                messages=[{"role": "system", "content": "Diretor de Criação de Elite do TikTok Shop. Responda em JSON estrito."}, {"role": "user", "content": [
+                    {"type": "text", "text": instrucao_ouro},
+                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
+                ]}],
+                max_tokens=2500, temperature=0.7
             )
-            resultado_json = resp.choices[0].message.content.strip()
-            st.session_state["roteiro_temporario"] = resultado_json
             
-            # Grava no banco de dados vinculando ao e-mail atual
-            if aba_roteiros is not None and email_atual_roteiro:
-                agora_brasil = datetime.utcnow() - timedelta(hours=3)
-                aba_roteiros.append_row([email_atual_roteiro, agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_json])
+            conteudo_json = resp.choices[0].message.content.strip()
+            st.session_state["roteiro_temporario"] = conteudo_json
+            st.session_state["ultimo_roteiro_gerado"] = conteudo_json
             
             if not E_O_CEO and aba_limites is not None:
-                try: 
-                    aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
-                except Exception: 
-                    pass
+                try: aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
+                except Exception: pass
                 
-            st.success("✅ Estrutura oficial detalhada gerada e salva com sucesso!")
-            time.sleep(1)
-            st.rerun()
-        except Exception as e: 
-            st.error(f"Erro: {e}")
+            st.success("✅ Estrutura gerada com sucesso!")
+            time.sleep(1); st.rerun()
+        except Exception as e: st.error(f"Erro ao gerar: {e}")
 
-# Exibe o roteiro temporário da sessão OU o último roteiro persistido no banco de dados
-json_para_exibir = st.session_state["roteiro_temporario"] or ultimo_roteiro_salvo_banco
+roteiro_para_exibir = st.session_state["roteiro_temporario"] or st.session_state["ultimo_roteiro_gerado"]
 
-if json_para_exibir:
+if roteiro_para_exibir:
     try:
-        dados_r = json.loads(json_para_exibir)
-        
-        def limpar_titulo_seo(txt):
-            t = re.sub(r'\s*\(\d+\s*caracteres?\)', '', str(txt), flags=re.IGNORECASE)
-            t = re.sub(r'^(Geral|Solução|De Marca|Marca)\s*:\s*', '', t, flags=re.IGNORECASE)
-            return t.strip().strip('"').strip("'")
-
+        dados_r = json.loads(roteiro_para_exibir)
         with st.container(border=True):
-            st.markdown("### 💾 Última Estrutura Gravada no Sistema")
-            st.markdown("<h4 style='color:#D4AF37;'>📸 BLOCO 1: GABARITO DE IMAGEM BASE</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("imagem", ""), language="text")
+            st.markdown("<h4 style='color:#D4AF37;'>🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO</h4>", unsafe_allow_html=True)
+            st.code(dados_r.get("prompt_video_completo",""), language="text")
             
-            st.markdown("<h4 style='color:#D4AF37;'>🎬 BLOCO 2: VÍDEO 1 — O GANCHO DE PRESENÇA E CONFIANÇA</h4>", unsafe_allow_html=True)
-            st.markdown("<b>Shot 1 (Macro Hook & Physics):</b>", unsafe_allow_html=True)
-            st.code(dados_r.get("shot1", ""), language="text")
-            st.markdown("<b>Shot 2 (Whip Pan & Visceral Emotion):</b>", unsafe_allow_html=True)
-            st.code(dados_r.get("shot2", ""), language="text")
-            st.markdown("<b>Interaction (3D CTA):</b>", unsafe_allow_html=True)
-            st.code(dados_r.get("cta3d", ""), language="text")
-            st.markdown("<b>Áudio (Inglês):</b>", unsafe_allow_html=True)
-            st.code(dados_r.get("audio", ""), language="text")
-            
-            st.markdown("<h4 style='color:#D4AF37;'>🗣️ FALA DA AURORA (100% BLINDADA)</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("fala", ""), language="text")
-            
-            st.markdown("<h4 style='color:#D4AF37;'>📱 TEXTO NA TELA (NATIVO TIKTOK)</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("tela", ""), language="text")
-            
-            st.markdown("<h4 style='color:#D4AF37;'>🏁 FINALIZAÇÃO</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("finalizacao", ""), language="text")
-                
-            st.markdown("<h4 style='color:#D4AF37;'>🔑 TÍTULOS PARA SEO (BUSCA)</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='color:#00FFFF;'>🔑 TÍTULOS SEO (Separados)</h4>", unsafe_allow_html=True)
             c1, c2, c3 = st.columns(3)
             with c1: 
-                st.caption("🔍 Geral")
-                st.code(limpar_titulo_seo(dados_r.get("titulo_geral", "")), language="text")
+                st.caption("🔍 Geral (Dor)")
+                st.code(dados_r.get("titulo_geral",""), language="text")
             with c2: 
-                st.caption("💡 Solução")
-                st.code(limpar_titulo_seo(dados_r.get("titulo_solucao", "")), language="text")
+                st.caption("💡 Solução (Produto)")
+                st.code(dados_r.get("titulo_solucao",""), language="text")
             with c3: 
-                st.caption("🏷️ De Marca")
-                st.code(limpar_titulo_seo(dados_r.get("titulo_marca", "")), language="text")
+                st.caption("🏷️ Marca (Resenha)")
+                st.code(dados_r.get("titulo_marca",""), language="text")
                 
-        if st.button("🗑️ Apagar Roteiro Salvo", use_container_width=True): 
+        if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
-            if aba_roteiros is not None and email_atual_roteiro:
-                try:
-                    todos_dados = aba_roteiros.get_all_values()
-                    cabecalho = todos_dados[0]
-                    # Filtra removendo todas as linhas daquele e-mail da planilha do Drive
-                    novos_dados = [cabecalho] + [linha for linha in todos_dados[1:] if len(linha) > 0 and str(linha[0]).strip().lower() != email_atual_roteiro]
-                    aba_roteiros.clear()
-                    aba_roteiros.update(novos_dados)
-                except Exception:
-                    pass
+            st.session_state["ultimo_roteiro_gerado"] = None
             st.rerun()
     except Exception: 
-        st.warning("Erro ao decodificar a estrutura do roteiro salvo.")
+        st.warning("Erro ao carregar o formato do roteiro.")
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
