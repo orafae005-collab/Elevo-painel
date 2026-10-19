@@ -736,16 +736,71 @@ if st.session_state["roteiro_temporario"]:
     except: st.warning("Erro JSON.")
 
 # ==========================================================
-# 18. ACADEMIA ÉLÉVO
+# 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🏛️ Academia ÉLÉVO</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🏛️ Academia ÉLÉVO: Gestão & Mentalidade de CEO</h3>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #A0A0A0;'>O manual definitivo para deixar de ser um afiliado comum e construir um império milionário.</p>", unsafe_allow_html=True)
+
 with st.container(border=True):
-    aba_mind, aba_ges, aba_esc, aba_ment = st.tabs(["🧠 Mente", "💰 Caixa", "🚀 Escala", "🦅 Mentoria"])
-    with aba_mind: st.info("**'Eu não vendo produtos. Eu vendo decisões.'**")
-    with aba_ges: st.warning("**A Divisão 50/30/20:** 50% Reinvestimento, 30% Pró-Labore, 20% Caixa de Guerra.")
-    with aba_esc: st.success("**Fases:** 1. Laboratório, 2. Multiplicação, 3. Delegação (Você gere a equipa).")
-    with aba_ment:
-        duv = st.text_input("Dúvida de gestão:")
-        if st.button("Pedir Conselho", use_container_width=True) and duv:
-            with st.spinner("Aurora calculando..."): st.markdown(chamar_ia_global(f"Dúvida do CEO: {duv}. Dê conselho direto e 3 passos.", "Você é Aurora, COO estrategista da ÉLÉVO."))
+    aba_mindset, aba_gestao, aba_escala, aba_mentoria = st.tabs([
+        "🧠 A Mente do Sócio", 
+        "💰 Gestão de Caixa", 
+        "🚀 O Mapa da Escala", 
+        "🦅 Mentoria Executiva"
+    ])
+    
+    with aba_mindset:
+        st.markdown("<h4 style='color: #00BFA5;'>1. A Regra de Ouro das Vendas</h4>", unsafe_allow_html=True)
+        st.info("💡 **'Eu não vendo produtos. Eu vendo decisões.'**\n\nNinguém compra pelo que o produto é... compra pelo que acredita que aquilo vai fazer com a própria vida. Enquanto você tenta convencer, o mestre faz a pessoa se convencer sozinha. Mostre o problema que ela não consegue ignorar e deixe a mente dela completar o caminho.")
+        st.markdown("""
+        **Princípios do CEO de Elite:**
+        * **Frieza Emocional:** Um vídeo flopou? Não é pessoal, é apenas um dado. Analise a taxa de retenção, mude o gancho (Whip Pan) e teste de novo.
+        * **Consistência > Motivação:** Motivação acaba no 3º dia. Disciplina é o que constrói o faturamento no 30º dia.
+        * **Foco no 'Quem':** Você não está a vender para toda a gente. Está a vender para a 'Buscadora de Atalhos' que quer luxo pagando pouco.
+        """)
+        
+    with aba_gestao:
+        st.markdown("<h4 style='color: #00BFA5;'>2. Como Blindar a Empresa da Falência</h4>", unsafe_allow_html=True)
+        st.warning("🚨 O maior erro do iniciante é achar que todo o lucro que cai no painel é salário. Se gastar tudo o que entra, o seu negócio morre no próximo mês.")
+        st.markdown("""
+        **A Divisão de Ouro (Regra 50/30/20):**
+        1. **50% (Reinvestimento da Máquina):** Este dinheiro não é seu, é da ÉLÉVO. Use para comprar produtos de review, melhorar a iluminação, pagar plataformas de IA ou testar tráfego pago.
+        2. **30% (O seu Pró-Labore/Salário):** Este é o dinheiro que vai para o seu bolso. Use para viver, comemorar as metas batidas e pagar as suas contas pessoais.
+        3. **20% (Caixa de Guerra):** O fundo de emergência. Se as redes sociais mudarem o algoritmo amanhã ou uma conta cair, você tem caixa para sobreviver meses sem vender uma única unidade.
+        """)
+        
+    with aba_escala:
+        st.markdown("<h4 style='color: #00BFA5;'>3. O Passo a Passo para o Oceano Azul</h4>", unsafe_allow_html=True)
+        st.success("✨ Escalar não é trabalhar mais horas. É fazer a máquina trabalhar por si.")
+        st.markdown("""
+        **Fase 1: O Laboratório (Onde a mágica nasce)**
+        * Você é o roteirista, o editor e o gestor.
+        * O objetivo aqui NÃO é ficar rico. É achar **1 Produto Campeão e 1 Funil Validado** (Conversão > 1.5%).
+        
+        **Fase 2: A Multiplicação (A Força Bruta)**
+        * Pegar no Produto Campeão e espalhar o mesmo vídeo em todas as frentes (Shopee Video, YouTube Shorts, Pinterest).
+        * Criar contas satélites vendendo ângulos diferentes da mesma solução.
+        
+        **Fase 3: O Verdadeiro CEO (Delegação Total)**
+        * Você para de editar vídeos. Contrata freelancers e entrega-lhes a *Máquina de Criação 360º* para eles executarem.
+        * O seu único trabalho passa a ser: **Analisar dados no Dashboard, gerir a equipa e usar o Radar para achar novas tendências.**
+        """)
+        
+    with aba_mentoria:
+        st.markdown("<h4 style='color: #00BFA5;'>🗣️ Consultoria de Gestão Direta com a COO</h4>", unsafe_allow_html=True)
+        st.write("Dúvidas sobre como dividir o seu tempo? Não sabe como investir o lucro? Pergunte à Aurora.")
+        
+        duvida_gestao = st.text_input("Qual é o seu maior desafio de gestão ou rotina hoje?", placeholder="Ex: Como divido o meu tempo entre gravar vídeos e pesquisar produtos novos?")
+        if st.button("Pedir Conselho de Gestão", use_container_width=True):
+            if not duvida_gestao:
+                st.warning("⚠️ Escreva a sua dúvida para a Diretoria analisar.")
+            else:
+                with st.spinner("🦅 A Aurora está a calcular a estratégia do seu império..."):
+                    sys_gestao = "Você é Aurora, COO (Diretora de Operações) da ÉLÉVO e mentora de negócios do CEO. Seu tom é de estrategista implacável, focada em gestão de tempo, finanças e mentalidade milionária. Não use palavras clichês de autoajuda."
+                    prompt_gestao = f"O nosso CEO está com o seguinte desafio de gestão na empresa: '{duvida_gestao}'. \nDê um conselho de negócio frio, direto e baseado em números. Forneça 3 passos de ação executáveis."
+                    
+                    resposta_mentoria = chamar_ia_global(prompt_gestao, sys_gestao)
+                    
+                    st.info("💡 **Parecer Executivo da Aurora:**")
+                    st.markdown(resposta_mentoria)
