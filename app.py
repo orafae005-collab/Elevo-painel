@@ -1107,15 +1107,13 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MEMÓRIA INDIVIDUAL POR GMAIL + TÍTULOS LIMPOS)
+# 17. MÁQUINA DE CRIAÇÃO 360º (PADRÃO UNIFICADO DENSO + TÍTULOS LIMPOS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (Padrão Oficial Unificado)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
-
-email_atual_roteiro = st.session_state.get("email_usuario", "").strip().lower()
 
 # Verifica limite de usos se for Novato
 pode_gerar_roteiro = True
@@ -1134,30 +1132,10 @@ if not E_O_CEO and robo_sheets:
                 aba_limites.append_row(["Email", "Gerou"])
             
             lista_usos = aba_limites.col_values(1)
-            usos_feitos = lista_usos.count(email_atual_roteiro)
+            usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
             if usos_feitos >= 3:
                 pode_gerar_roteiro = False
     except Exception: 
-        pass
-
-# Conexão com a aba de roteiros salvos por usuário
-aba_roteiros = None
-historico_roteiros_usuario = []
-
-if link_planilha_ativa and robo_sheets and email_atual_roteiro:
-    try:
-        sheet_id = extrair_id_planilha(link_planilha_ativa)
-        planilha_atual = robo_sheets.open_by_key(sheet_id)
-        try:
-            aba_roteiros = planilha_atual.worksheet("Memoria_Roteiros")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_roteiros = planilha_atual.add_worksheet(title="Memoria_Roteiros", rows="1000", cols="3")
-            aba_roteiros.append_row(["Email", "Data", "RoteiroJSON"])
-        
-        # Puxa apenas os registros pertencentes ao usuário logado no momento
-        todos_roteiros = aba_roteiros.get_all_records()
-        historico_roteiros_usuario = [r for r in todos_roteiros if str(r.get("Email", "")).strip().lower() == email_atual_roteiro]
-    except Exception:
         pass
 
 with st.container(border=True):
@@ -1174,41 +1152,35 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Analisando o produto e gerando a estrutura unificada de elite..."):
+    with st.spinner("🦅 Analisando o produto com base no Gabarito de Ouro e gerando prompts densos..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = f"""
             Analise a imagem, leia o rótulo para identificar o nome exato, a função principal, o volume/peso e a marca do produto.
-            Sua missão é criar uma estrutura unificada exatamente igual ao estilo dos nossos melhores exemplos (como o do Salon Line Hidra 3 em 1), contendo:
-            1. Prompt de Imagem Base detalhado (em inglês).
-            2. Prompt de Vídeo caótico unificado com travamento de física 1:1, tap no produto, whip pan, microfone de lapela, plantas na varanda e vira-lata caramelo no fundo.
-            3. A Fala da Aurora natural, focada na dor visual, dizendo que o lote está derretendo e mandando clicar na sacolinha (zero preço).
-            4. Textos na tela nativos do TikTok focados na dor e escassez.
-            5. Três títulos SEO limpos e reais de busca.
+            Sua missão é criar uma estrutura densa e rica em detalhes, seguindo rigorosamente o nosso padrão oficial de conversão.
 
-            [EXEMPLO DE REFERÊNCIA DO ESTILO ESPERADO]:
-            - IMAGEM: RAW photography, close-up POV handheld mobile phone shot...
-            - VÍDEO UNIFICADO: POV intensely erratic handheld mobile video, documentary chaos aesthetic...
-            - FALA DA AURORA: "Amiga, esse creme tá salvando meu cabelo! O lote tá derretendo e você não pode perder essa chance. Clica na sacolinha e garanta o seu agora!"
-            - TEXTOS NA TELA:
-              ⚠️ [DOR DO CLIENTE]? 🛑
-              ✨ [BENEFÍCIO PRINCIPAL]
-              🛒 LOTE SECRETO LIBERADO 👇
+            [EXEMPLO DE REFERÊNCIA DO PADRÃO ESPERADO]:
+            - IMAGEM: RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. The product held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT product matching the image. Unfiltered UGC vlog style, 8k resolution.
+            - VÍDEO UNIFICADO (COM FALA E TEXTOS NA TELA JUNTOS): POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a wooden table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product. CRITICAL PHYSICS: 1:1 scale (perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas verdes e baguncinha orgânica no fundo com uma xícara e o vira-lata caramelo deitado no tapete). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows.
+            
+            🗣️ FALA DA AURORA (Integrada no bloco de vídeo ou logo abaixo):
+            "Amiga, esse [nome do produto] tá salvando meu cabelo! O lote tá derretendo e você não pode perder essa chance. Clica na sacolinha e garanta o seu agora!"
 
-            🔥 REGRAS INQUEBRÁVEIS PARA OS TÍTULOS DE SEO (COPIAR LIMPO):
-            - PROIBIDO colocar "(XX caracteres)", contagens, aspas, dois-pontos (:) ou pontos de exclamação (!).
-            - Entregue APENAS o título limpo pronto para copiar e colar:
-              * titulo_geral: Como recuperar [dor principal do produto] rápido.
-              * titulo_solucao: [Categoria e função do produto] [Marca e Nome].
-              * titulo_marca: [Nome do produto + Marca + Volume/Peso] resenha.
+            📱 TEXTOS NA TELA:
+            ⚠️ [DOR DO CLIENTE]? 🛑
+            ✨ [BENEFÍCIO PRINCIPAL]
+            🛒 LOTE SECRETO LIBERADO 👇
+
+            🔥 REGRAS DE CONTAGEM E FORMATO:
+            - O campo "imagem" DEVE TER NO MÍNIMO 800 CARACTERES de descrição hiper-realista.
+            - O campo "video" (que inclui a unificação da câmera caótica, whip pan, lapela, vira-lata e sacola 3D) DEVE TER NO MÍNIMO 1200 CARACTERES.
+            - Os títulos SEO devem ser limpos, sem contagem de caracteres e sem aspas.
 
             Retorne EXATAMENTE no formato JSON:
             {{
-                "imagem": "[Prompt de imagem em inglês rico em detalhes, cenário da varanda com plantas e vira-lata caramelo, trava 1:1 para o produto exato da foto.]",
-                "video": "[Prompt de vídeo unificado em inglês, contendo o caos controlado, whip pan, lapela visível, aproximação da Aurora e sacola 3D.]",
-                "fala": "[Texto da fala da Aurora em português, natural, urgente e blindada contra o robô, citando o lote derretendo.]",
-                "tela": "⚠️ [Dor do cliente em maiúsculo]? 🛑\\n[Benefício principal em maiúsculo] ✨\\nLOTE SECRETO LIBERADO 🛒👇",
+                "imagem": "[Prompt de imagem hiper-realista em inglês com mais de 800 caracteres, mantendo varanda, plantas, microfone de lapela e trava de física 1:1.]",
+                "video": "[Prompt de vídeo unificado em inglês com mais de 1200 caracteres, contendo o caos controlado, whip pan, aproximação da Aurora e sacola 3D, além de embutir a fala natural e os textos na tela na descrição.]",
                 "titulo_geral": "Como [resolver a dor principal] rápido.",
                 "titulo_solucao": "[Tipo de produto e função] [Marca e Nome].",
                 "titulo_marca": "[Nome do produto + Marca + Volume] resenha."
@@ -1220,41 +1192,31 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 model="gpt-4o-mini",
                 response_format={ "type": "json_object" },
                 messages=[
-                    {"role": "system", "content": "Diretor de Criação de Elite especializado em TikTok Shop. Responda em JSON estrito."}, 
+                    {"role": "system", "content": "Diretor de Criação de Elite especializado em TikTok Shop. Responda em JSON estrito com prompts longos e densos."}, 
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_ouro},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
-                max_tokens=2500, temperature=0.7
+                max_tokens=3000, temperature=0.7
             )
-            resultado_json = resp.choices[0].message.content.strip()
-            st.session_state["roteiro_temporario"] = resultado_json
-            
-            # Grava na planilha vinculando estritamente ao e-mail do usuário atual
-            if aba_roteiros is not None and email_atual_roteiro:
-                agora_brasil = datetime.utcnow() - timedelta(hours=3)
-                aba_roteiros.append_row([email_atual_roteiro, agora_brasil.strftime("%d/%m/%Y %H:%M"), resultado_json])
+            st.session_state["roteiro_temporario"] = resp.choices[0].message.content.strip()
             
             if not E_O_CEO and aba_limites is not None:
                 try: 
-                    aba_limites.append_row([email_atual_roteiro, "Sim"])
+                    aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
                 except Exception: 
                     pass
                 
-            st.success("✅ Estrutura unificada gerada e salva no seu histórico!")
+            st.success("✅ Estrutura densa unificada gerada com sucesso!")
             time.sleep(1)
             st.rerun()
         except Exception as e: 
             st.error(f"Erro: {e}")
 
-# Pega o roteiro da sessão atual ou o último salvo no banco para este e-mail específico
-json_para_exibir = st.session_state["roteiro_temporario"] or (historico_roteiros_usuario[-1].get("RoteiroJSON", "") if historico_roteiros_usuario else None)
-
-if json_para_exibir:
-    st.markdown("### 💾 Roteiro Gerado")
+if st.session_state["roteiro_temporario"]:
     try:
-        dados_r = json.loads(json_para_exibir)
+        dados_r = json.loads(st.session_state["roteiro_temporario"])
         
         def limpar_titulo_seo(txt):
             t = re.sub(r'\s*\(\d+\s*caracteres?\)', '', str(txt), flags=re.IGNORECASE)
@@ -1262,14 +1224,11 @@ if json_para_exibir:
             return t.strip().strip('"').strip("'")
 
         with st.container(border=True):
-            for k, ico, tit in [
-                ("imagem", "📸", "PROMPT DE IMAGEM"), 
-                ("video", "🎬", "PROMPT DE VÍDEO UNIFICADO"), 
-                ("fala", "🗣️", "FALA DA AURORA"), 
-                ("tela", "📱", "TEXTOS NA TELA")
-            ]:
-                st.markdown(f"<h4 style='color:#D4AF37;'>{ico} {tit}</h4>", unsafe_allow_html=True)
-                st.code(dados_r.get(k, ""), language="text")
+            st.markdown("<h4 style='color:#D4AF37;'>📸 PROMPT DE IMAGEM (DENSO)</h4>", unsafe_allow_html=True)
+            st.code(dados_r.get("imagem", ""), language="text")
+            
+            st.markdown("<h4 style='color:#D4AF37;'>🎬 PROMPT DE VÍDEO UNIFICADO (COM FALA E TEXTOS)</h4>", unsafe_allow_html=True)
+            st.code(dados_r.get("video", ""), language="text")
                 
             st.markdown("<h4 style='color:#D4AF37;'>🔑 TÍTULOS PARA SEO (BUSCA)</h4>", unsafe_allow_html=True)
             c1, c2, c3 = st.columns(3)
@@ -1283,18 +1242,8 @@ if json_para_exibir:
                 st.caption("🏷️ De Marca")
                 st.code(limpar_titulo_seo(dados_r.get("titulo_marca", "")), language="text")
                 
-        if st.button("🗑️ Apagar Meu Histórico de Roteiros", use_container_width=True): 
+        if st.button("🗑️ Apagar Roteiro", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
-            if aba_roteiros is not None and email_atual_roteiro:
-                try:
-                    # Remove da planilha apenas as linhas do usuário atual
-                    todos_dados = aba_roteiros.get_all_values()
-                    cabecalho = todos_dados[0]
-                    novos_dados = [cabecalho] + [linha for linha in todos_dados[1:] if len(linha) > 0 and str(linha[0]).strip().lower() != email_atual_roteiro]
-                    aba_roteiros.clear()
-                    aba_roteiros.update(novos_dados)
-                except Exception:
-                    pass
             st.rerun()
     except Exception: 
         st.warning("Erro ao decodificar a estrutura do roteiro.")
