@@ -53,8 +53,11 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
-from streamlit_cookies_controller import CookieController
-controller = CookieController()
+import extra_streamlit_components as stx
+import datetime
+
+# Inicializa o Cofre de Cookies de forma estável
+cookie_manager = stx.CookieManager()
 
 try:
     EMAIL_MESTRE = st.secrets["EMAIL_MESTRE"]
@@ -65,20 +68,21 @@ except KeyError:
 
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
 
-# Tenta puxar os dados do Cookie (Navegador)
-cookie_email = controller.get("elevo_email")
-cookie_nome = controller.get("elevo_nome")
-
 if "usuario_logado" not in st.session_state:
-    # Se encontrou o cookie, entra direto sem pedir senha!
-    if cookie_email and cookie_nome:
-        st.session_state["usuario_logado"] = True
-        st.session_state["email_usuario"] = cookie_email
-        st.session_state["nome_usuario"] = cookie_nome
-    else:
-        st.session_state["usuario_logado"] = False
-        st.session_state["email_usuario"] = ""
-        st.session_state["nome_usuario"] = ""
+    st.session_state["usuario_logado"] = False
+    st.session_state["email_usuario"] = ""
+    st.session_state["nome_usuario"] = ""
+
+# Puxa a memória gravada no navegador do usuário
+cookie_email = cookie_manager.get("elevo_email")
+cookie_nome = cookie_manager.get("elevo_nome")
+
+# Login Fantasma Automático (Se tiver o cookie, entra direto sem pedir senha)
+if not st.session_state["usuario_logado"] and cookie_email and cookie_nome:
+    st.session_state["usuario_logado"] = True
+    st.session_state["email_usuario"] = cookie_email
+    st.session_state["nome_usuario"] = cookie_nome
+    st.rerun()
 
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
@@ -158,7 +162,7 @@ if not st.session_state["usuario_logado"]:
                 with st.form("form_login"):
                     email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
                     senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
-                    lembrar_dados = st.checkbox("Mantenha-me Logado (Salvar)")
+                    lembrar_dados = st.checkbox("Mantenha-me Logado (Salvar na Máquina)")
                     submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
                 
                 if submit_login:
@@ -168,10 +172,10 @@ if not st.session_state["usuario_logado"]:
                         st.session_state["email_usuario"] = EMAIL_MESTRE
                         st.session_state["nome_usuario"] = "Sócio"
                         
-                        # Salva o Cookie se a caixa foi marcada
                         if lembrar_dados:
-                            controller.set("elevo_email", EMAIL_MESTRE, max_age=86400 * 30) # Salva por 30 dias
-                            controller.set("elevo_nome", "Sócio", max_age=86400 * 30)
+                            expira = datetime.datetime.now() + datetime.timedelta(days=30)
+                            cookie_manager.set("elevo_email", EMAIL_MESTRE, expires_at=expira)
+                            cookie_manager.set("elevo_nome", "Sócio", expires_at=expira)
                             
                         st.rerun()
                     elif email_clean and senha_input:
@@ -182,11 +186,13 @@ if not st.session_state["usuario_logado"]:
                                 if usuario_encontrado:
                                     st.session_state["usuario_logado"] = True
                                     st.session_state["email_usuario"] = email_clean
-                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    nome_enc = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    st.session_state["nome_usuario"] = nome_enc
                                     
                                     if lembrar_dados:
-                                        controller.set("elevo_email", email_clean, max_age=86400 * 30)
-                                        controller.set("elevo_nome", str(usuario_encontrado.get("Nome", "Usuário")), max_age=86400 * 30)
+                                        expira = datetime.datetime.now() + datetime.timedelta(days=30)
+                                        cookie_manager.set("elevo_email", email_clean, expires_at=expira)
+                                        cookie_manager.set("elevo_nome", nome_enc, expires_at=expira)
                                         
                                     st.rerun()
                                 else:
@@ -224,6 +230,7 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
     st.stop()
+
 
 
 # ==========================================================
