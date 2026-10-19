@@ -579,38 +579,39 @@ dicas = ["Invista 20% do lucro no negócio.", "Construa caixa de guerra.", "Impu
 def buscar_oportunidade_do_dia(dt_cache):
     try:
         sys_op = "Estrategista de Negócios Sênior em Afiliados. Responda em JSON."
-        pmt_op = "Gere uma tática de expansão digital (TikTok, YT Shorts, UGC, etc). Retorne JSON: {'titulo': '...', 'pitch': '...', 'passos': '...'}"
+        pmt_op = "Gere uma tática de expansão digital (TikTok, YT Shorts, UGC, etc). Retorne JSON: {'titulo': '...', 'pitch': '...', 'passos': '1. Passo um... \\n2. Passo dois...'}"
         resp = cliente_openai.chat.completions.create(model="gpt-4o-mini", response_format={"type":"json_object"}, messages=[{"role":"system","content":sys_op},{"role":"user","content":pmt_op}], temperature=0.85)
-        return json.loads(resp.choices[0].message.content)
+        import json; return json.loads(resp.choices[0].message.content)
     except: return {"titulo": "Shopee Video", "pitch": "Reaproveite roteiros lá para segunda fonte.", "passos": "1. Crie conta afiliado.\n2. Suba o vídeo."}
 
 op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"))
 
 col_m1, col_m2 = st.columns([1, 1])
 with col_m1:
-    st.info(f"💎 **Visão:** {frases[dia_do_ano % len(frases)]}")
-    st.warning(f"📈 **Dica:** {dicas[dia_do_ano % len(dicas)]}")
+    st.info(f"💎 **Visão de Águia:** {frases[dia_do_ano % len(frases)]}")
+    st.warning(f"📈 **Dica Financeira:** {dicas[dia_do_ano % len(dicas)]}")
+    
     with st.container(border=True):
-        st.markdown(f"**🚀 Oportunidade: {op_hoje.get('titulo','')}**")
-        st.caption(op_hoje.get('pitch',''))
-        with st.expander("🛠️ Passo a Passo", expanded=False): st.write(op_hoje.get('passos',''))
+        st.markdown(f"**🚀 Oportunidade Oculta: {op_hoje.get('titulo', 'Nova Oportunidade')}**")
+        st.markdown(f"<p style='font-size: 0.9em; color: #A0A0A0;'>{op_hoje.get('pitch', '')}</p>", unsafe_allow_html=True)
+        with st.expander("🛠️ Ver Passo a Passo de Execução", expanded=False):
+            st.markdown(f"**Como aplicar agora:**\n\n{op_hoje.get('passos', '')}")
 
 if f"missao_{agora_brasil.strftime('%Y-%m-%d')}" not in st.session_state: st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
 
 with col_m2:
-    st.markdown(f"🎯 **Sua Missão Hoje:** {missoes[dia_do_ano % len(missoes)]}")
+    st.markdown(f"🎯 **Sua Missão de Hoje:** {missoes[dia_do_ano % len(missoes)]}")
     if not st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"]:
-        if st.button("✅ CONCLUIR MISSÃO", type="primary", use_container_width=True):
+        if st.button("✅ CONCLUIR MISSÃO DE HOJE", type="primary", use_container_width=True):
             st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = True
             st.success("🔥 SENSACIONAL! Missão cravada."); st.balloons()
-            if E_O_CEO and link_planilha_ativa and robo_sheets:
+            if E_O_CEO and 'link_planilha_ativa' in globals() and link_planilha_ativa and robo_sheets:
                 try:
                     aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).worksheet("Historico_Missoes")
                     if agora_brasil.strftime("%d/%m/%Y") not in aba.col_values(1): aba.append_row([agora_brasil.strftime("%d/%m/%Y"), "Concluída"])
                 except Exception: pass
             time.sleep(2); st.rerun()
     else: st.success("Missão de Hoje Cumprida! 🦅")
-
 # ==========================================================
 # 11 a 13. FERRAMENTAS DE CRIAÇÃO E VISÃO (CEO E NOVATOS)
 # ==========================================================
