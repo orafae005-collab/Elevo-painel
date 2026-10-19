@@ -243,18 +243,26 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 2.5. BOAS-VINDAS CINEMÁTICA (ÁUDIO ÚNICO)
+# 2.5. BOAS-VINDAS CINEMÁTICA (TELA DE IGNIÇÃO OBRIGATÓRIA)
 # ==========================================================
+import base64
+import requests
+import io
+from gtts import gTTS
+
+# Controles de fluxo da tela de boas-vindas
 if "boas_vindas_verificada" not in st.session_state: st.session_state["boas_vindas_verificada"] = False
+if "precisa_tela_ignicao" not in st.session_state: st.session_state["precisa_tela_ignicao"] = False
+if "autorizado_tocar_audio" not in st.session_state: st.session_state["autorizado_tocar_audio"] = False
 
 if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
     st.session_state["boas_vindas_verificada"] = True 
     email_atual = st.session_state.get("email_usuario", "")
-    nome_atual = st.session_state.get("nome_usuario", "Sócio")
-    tocar_audio = False
     
+    # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida
     if robo_sheets and email_atual:
         try:
+            import re
             match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
             if match_id:
                 planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
@@ -262,31 +270,59 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 except:
                     aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="1")
                     aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
+                
+                # Se o e-mail NÃO estiver na lista, ele vai para a Tela de Ignição!
                 if email_atual not in aba_bv.col_values(1):
-                    tocar_audio = True
-                    aba_bv.append_row([email_atual])
+                    st.session_state["precisa_tela_ignicao"] = True
+                    aba_bv.append_row([email_atual]) # Regista para nunca mais tocar
         except Exception: pass
+
+# --- TELA DE IGNIÇÃO OBRIGATÓRIA (BLOQUEIA O RESTO DO APP) ---
+if st.session_state.get("precisa_tela_ignicao"):
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    col_ign1, col_ign2, col_ign3 = st.columns([1, 2, 1])
+    with col_ign2:
+        with st.container(border=True):
+            st.markdown("<h1 style='text-align: center; font-size: 80px; margin: 0; padding: 0;'>🦅</h1>", unsafe_allow_html=True)
+            st.markdown("<h2 style='text-align: center; color: #D4AF37; margin-top: 0;'>NOVO SÓCIO DETECTADO</h2>", unsafe_allow_html=True)
+            st.markdown("<p style='text-align: center; color: #A0A0A0; font-size: 1.1rem;'>O seu espaço no império foi reservado. Clique abaixo para ativar a inteligência central e carregar o seu painel de operações.</p>", unsafe_allow_html=True)
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            # O BOTÃO QUE DESBLOQUEIA A PLATAFORMA E O ÁUDIO
+            if st.button("🔥 INICIAR PROTOCOLO ÉLÉVO", type="primary", use_container_width=True):
+                st.session_state["precisa_tela_ignicao"] = False
+                st.session_state["autorizado_tocar_audio"] = True
+                st.rerun()
+    # O st.stop() impede que o resto da plataforma carregue até ele clicar no botão!
+    st.stop()
+
+# --- REPRODUÇÃO DO ÁUDIO APÓS O CLIQUE ---
+if st.session_state.get("autorizado_tocar_audio"):
+    st.session_state["autorizado_tocar_audio"] = False # Desativa para não tocar no próximo rerun
     
-    if tocar_audio:
-        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
-        audio_bytes = None
-        with st.spinner("🦅 Inicializando inteligência central..."):
-            try:
-                CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
-                if CHAVE_ELEVEN:
-                    resp_voz = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, timeout=10)
-                    if resp_voz.status_code == 200: audio_bytes = resp_voz.content
-                    else: raise Exception()
+    nome_atual = st.session_state.get("nome_usuario", "Sócio")
+    texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
+    audio_bytes = None
+    
+    with st.spinner("🦅 Inicializando núcleo da Aurora..."):
+        try:
+            CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
+            if CHAVE_ELEVEN:
+                resp_voz = requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, timeout=10)
+                if resp_voz.status_code == 200: audio_bytes = resp_voz.content
                 else: raise Exception()
-            except Exception:
-                tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
-                fp = io.BytesIO()
-                tts.write_to_fp(fp)
-                fp.seek(0)
-                audio_bytes = fp.read()
-        if audio_bytes:
-            st.markdown("""<style>[data-testid="stAudio"] { display: none !important; }</style>""", unsafe_allow_html=True)
-            st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
+            else: raise Exception()
+        except Exception:
+            tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
+            fp = io.BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            audio_bytes = fp.read()
+            
+    if audio_bytes:
+        # Player nativo escondido que roda com permissão total do navegador
+        st.markdown("""<style>[data-testid="stAudio"] { display: none !important; }</style>""", unsafe_allow_html=True)
+        st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
