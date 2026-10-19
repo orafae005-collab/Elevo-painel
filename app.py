@@ -1206,7 +1206,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             - Fator Animal (Mascotes Variados): Sorteie ou inclua organicamente um mascote de fundo realista para dar vida ao vlog (ex: um gato preguiçoso dormindo na poltrona/estante, um vira-lata caramelo deitado no tapete, um passarinho na janela aberta, etc.). Nunca repita o mesmo pet em todas as cenas.
             - Baguncinha Temática: Adicione micro-detalhes de caos cotidiano (xícara de café, óculos, livros, panos de prato, carregador de celular).
 
-            [EXEMPLO PRONTO 1 - MOLDE DE IMAGEM (Mínimo 1000 caracteres)]
+            [EXEMPLO PRONTO 1 - MOLDE DE IMAGEM (Mínimo 1100 caracteres)]
             RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. [DESCREVA O AMBIENTE V9.2 ESCOLHIDO, A BAGUNCINHA ORGÂNICA E O PET SORTEADO NO FUNDO]. [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]. The exact product(s) [NOME/QUANTIDADE] resting on the table or held MUST look compact, light, and perfectly proportioned. Unfiltered UGC vlog style, 8k resolution.
 
             [EXEMPLO PRONTO 2 - MOLDE DE VÍDEO UNIFICADO (Mínimo 1600 caracteres)]
