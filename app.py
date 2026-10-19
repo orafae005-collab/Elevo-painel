@@ -401,6 +401,90 @@ components.html(js_moeda, height=0, width=0)
 st.markdown('<div id="ancora-topo"></div>', unsafe_allow_html=True)
 st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+
+# ==========================================================
+# 2.5. BOAS-VINDAS CINEMÁTICA (ÁUDIO ÚNICO NA VIDA DO USUÁRIO)
+# ==========================================================
+import base64
+import requests
+import io
+from gtts import gTTS
+import streamlit.components.v1 as components
+
+# Variável para a tela atual não ficar a tentar ler a planilha em loop
+if "boas_vindas_verificada" not in st.session_state:
+    st.session_state["boas_vindas_verificada"] = False
+
+if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
+    st.session_state["boas_vindas_verificada"] = True # Marca que já verificámos nesta sessão
+    
+    email_atual = st.session_state.get("email_usuario", "")
+    nome_atual = st.session_state.get("nome_usuario", "Sócio")
+    tocar_audio = False
+    
+    # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida
+    if robo_sheets and email_atual:
+        try:
+            import re
+            match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+            if match_id:
+                planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+                try:
+                    aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
+                except Exception:
+                    aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="1")
+                    aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
+                
+                lista_emails_bv = aba_bv.col_values(1)
+                
+                # Se o e-mail NÃO estiver na lista, ele vai ouvir e ser registado!
+                if email_atual not in lista_emails_bv:
+                    tocar_audio = True
+                    aba_bv.append_row([email_atual]) # Regista para nunca mais tocar
+        except Exception as e:
+            pass # Se houver erro, ignora e não toca para não travar a plataforma
+    
+    if tocar_audio:
+        texto_cinematico = f"Acesso VIP confirmado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a inteligência artificial central da sua operação. A partir de agora, o seu império está conectado ao meu sistema. Eu monitoro o seu caixa, analiso o seu funil de conversão e forjo os seus roteiros de vendas com precisão militar. Tudo o que você precisa para dominar o mercado está nesta tela. Sistemas online. O jogo começou."
+        
+        with st.spinner("🦅 Inicializando inteligência central da plataforma..."):
+            try:
+                # Tenta usar a voz premium da ElevenLabs
+                ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
+                CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
+                
+                if CHAVE_ELEVEN:
+                    url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
+                    headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}
+                    payload = {
+                        "text": texto_cinematico, 
+                        "model_id": "eleven_turbo_v2_5", 
+                        "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}
+                    }
+                    
+                    resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=10)
+                    if resp_voz.status_code == 200:
+                        audio_b64 = base64.b64encode(resp_voz.content).decode('utf-8')
+                    else:
+                        raise Exception("Falha na ElevenLabs")
+                else:
+                    raise Exception("Sem chave ElevenLabs")
+            except Exception:
+                # Plano B: Voz Grátis (gTTS)
+                tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
+                fp = io.BytesIO()
+                tts.write_to_fp(fp)
+                fp.seek(0)
+                audio_b64 = base64.b64encode(fp.read()).decode('utf-8')
+
+        # Código HTML invisível que força o áudio a tocar automaticamente
+        html_audio_intro = f"""
+        <audio autoplay style="display: none;">
+            <source src="data:audio/mp3;base64,{audio_b64}" type="audio/mpeg">
+        </audio>
+        """
+        components.html(html_audio_intro, height=0, width=0)
+
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
