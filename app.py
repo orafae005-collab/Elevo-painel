@@ -53,6 +53,9 @@ robo_sheets = conectar_robo()
 # ==========================================================
 # 0. PORTARIA VIP (SISTEMA DE LOGIN E BANCO DE DADOS SAAS)
 # ==========================================================
+from streamlit_cookies_controller import CookieController
+controller = CookieController()
+
 try:
     EMAIL_MESTRE = st.secrets["EMAIL_MESTRE"]
     SENHA_MESTRA = st.secrets["SENHA_MESTRA"]
@@ -62,10 +65,20 @@ except KeyError:
 
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
 
+# Tenta puxar os dados do Cookie (Navegador)
+cookie_email = controller.get("elevo_email")
+cookie_nome = controller.get("elevo_nome")
+
 if "usuario_logado" not in st.session_state:
-    st.session_state["usuario_logado"] = False
-    st.session_state["email_usuario"] = ""
-    st.session_state["nome_usuario"] = ""
+    # Se encontrou o cookie, entra direto sem pedir senha!
+    if cookie_email and cookie_nome:
+        st.session_state["usuario_logado"] = True
+        st.session_state["email_usuario"] = cookie_email
+        st.session_state["nome_usuario"] = cookie_nome
+    else:
+        st.session_state["usuario_logado"] = False
+        st.session_state["email_usuario"] = ""
+        st.session_state["nome_usuario"] = ""
 
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
@@ -145,7 +158,7 @@ if not st.session_state["usuario_logado"]:
                 with st.form("form_login"):
                     email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
                     senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
-                    lembrar_dados = st.checkbox("Lembrar meus dados (Salvar no navegador)")
+                    lembrar_dados = st.checkbox("Mantenha-me Logado (Salvar)")
                     submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
                 
                 if submit_login:
@@ -154,6 +167,12 @@ if not st.session_state["usuario_logado"]:
                         st.session_state["usuario_logado"] = True
                         st.session_state["email_usuario"] = EMAIL_MESTRE
                         st.session_state["nome_usuario"] = "Sócio"
+                        
+                        # Salva o Cookie se a caixa foi marcada
+                        if lembrar_dados:
+                            controller.set("elevo_email", EMAIL_MESTRE, max_age=86400 * 30) # Salva por 30 dias
+                            controller.set("elevo_nome", "Sócio", max_age=86400 * 30)
+                            
                         st.rerun()
                     elif email_clean and senha_input:
                         with st.spinner("A verificar credenciais no servidor..."):
@@ -164,6 +183,11 @@ if not st.session_state["usuario_logado"]:
                                     st.session_state["usuario_logado"] = True
                                     st.session_state["email_usuario"] = email_clean
                                     st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
+                                    
+                                    if lembrar_dados:
+                                        controller.set("elevo_email", email_clean, max_age=86400 * 30)
+                                        controller.set("elevo_nome", str(usuario_encontrado.get("Nome", "Usuário")), max_age=86400 * 30)
+                                        
                                     st.rerun()
                                 else:
                                     st.error("🚨 Conta não encontrada ou senha incorreta!")
@@ -200,6 +224,7 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("❌ Falha de conexão com o banco de dados mestre.")
     st.stop()
+
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V5.8 - ULTRA VIP PREMIUM)
