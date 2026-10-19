@@ -249,6 +249,7 @@ import base64
 import requests
 import io
 from gtts import gTTS
+import streamlit.components.v1 as components
 
 # Controles de fluxo da tela de boas-vindas
 if "boas_vindas_verificada" not in st.session_state: st.session_state["boas_vindas_verificada"] = False
@@ -259,6 +260,8 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
     st.session_state["boas_vindas_verificada"] = True 
     email_atual = st.session_state.get("email_usuario", "")
     
+    ja_ouviu = False # A nossa nova trava de segurança!
+    
     # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida
     if robo_sheets and email_atual:
         try:
@@ -266,16 +269,23 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
             match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
             if match_id:
                 planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-                try: aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
-                except:
+                try: 
+                    aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
+                except Exception:
                     aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="1")
                     aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
                 
-                # Se o e-mail NÃO estiver na lista, ele vai para a Tela de Ignição!
-                if email_atual not in aba_bv.col_values(1):
-                    st.session_state["precisa_tela_ignicao"] = True
+                lista_emails_bv = aba_bv.col_values(1)
+                if email_atual in lista_emails_bv:
+                    ja_ouviu = True
+                else:
                     aba_bv.append_row([email_atual]) # Regista para nunca mais tocar
-        except Exception: pass
+        except Exception: 
+            pass # Se o Google falhar, 'ja_ouviu' continua False e ele vai para a Tela de Ignição!
+            
+    # Se não ouviu (ou se o Google deu erro), dispara a tela bloqueadora!
+    if not ja_ouviu:
+        st.session_state["precisa_tela_ignicao"] = True
 
 # --- TELA DE IGNIÇÃO OBRIGATÓRIA (BLOQUEIA O RESTO DO APP) ---
 if st.session_state.get("precisa_tela_ignicao"):
@@ -323,7 +333,6 @@ if st.session_state.get("autorizado_tocar_audio"):
         # Player nativo escondido que roda com permissão total do navegador
         st.markdown("""<style>[data-testid="stAudio"] { display: none !important; }</style>""", unsafe_allow_html=True)
         st.audio(audio_bytes, format="audio/mpeg", autoplay=True)
-
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
