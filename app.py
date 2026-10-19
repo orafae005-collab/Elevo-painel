@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / 9 SEGUNDOS - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 - Ultimate Edition)</h3>", unsafe_allow_html=True)
@@ -1129,7 +1129,7 @@ def carregar_ultimo_roteiro_salvo(email_usr):
     except Exception: pass
     return None
 
-def salvar_roteiro_no_drive(email_usr, json_str):
+def salvar_roteiro_no_drive(email_usr, texto_str):
     if not robo_sheets: return
     try:
         match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
@@ -1140,7 +1140,7 @@ def salvar_roteiro_no_drive(email_usr, json_str):
                 aba_hist = planilha_mestre.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
                 aba_hist.append_row(["Email", "DataHora", "JsonRoteiro"])
             agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            aba_hist.append_row([email_usr, agora_str, json_str])
+            aba_hist.append_row([email_usr, agora_str, texto_str])
     except Exception: pass
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
@@ -1173,58 +1173,88 @@ with st.container(border=True):
     with col_dados:
         st.markdown("<br><br>", unsafe_allow_html=True)
         if not pode_gerar_roteiro:
-            st.error("🚨 LIMITE ATINGIDO!")
+            st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
             btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True)
         else:
             txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR ({3 - usos_feitos} Restantes)"
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura otimizada para 9 segundos..."):
+    with st.spinner("🦅 Lendo Manuais V31.1 e forjando estrutura hiper-densa..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
             instrucao_ouro = """
-            Você é o Diretor de Criação de Elite do TikTok Shop.
-            Analise a imagem APENAS para identificar produto, marca e quantidade (se é unidade ou Kit). NÃO descreva a embalagem.
+            Você é o Diretor de Criação de Elite do TikTok Shop. Não poupe palavras nem tokens.
+            Analise a imagem APENAS para identificar produto, marca e quantidade. NÃO descreva embalagem, a IA geradora de vídeo já possui a foto de referência.
             
-            [MANUAL MESTRE DE CRIAÇÃO - PROTOCOLO V31.1]
-            1. O produto NÃO pode virar balde. Use SEMPRE: [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale].
-            2. FALA DE 9 SEGUNDOS: A fala da Aurora DEVE ter no MÁXIMO 25 a 30 palavras para caber em um vídeo de 9 segundos.
+            === MANUAL MESTRE DE CRIAÇÃO — VENDAS NO TIKTOK SHOP (Protocolo V31.1) ===
+            1. OBJETIVO: Criar vídeos UGC Visceral e Caótico de alta retenção.
+            2. BLINDAGEM COMERCIAL: Zero Menção a Preço/Valores. Gatilho de Escassez e Lote Secreto ("estoque derretendo"). Foco na Dor Real.
+            3. IDENTIDADE VISUAL: Microfone de Lapela na Aurora. Ambiente Real. Baguncinha Orgânica.
+            4. CONTROLE DE FÍSICA E ESCALA (1:1 REAL SCALE):
+            - Frascos Compactos (Ex: 250ml): [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize].
+            - Potes Médios (Ex: 400g): [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize].
+            
+            [MANUAL DE AMBIENTES V9.2 E BAGUNCINHA - SORTEIE 1 PARA O CENÁRIO]
+            1. Varanda Tropical Brasileira: Samambaias, Costela-de-Adão, luz de sol filtrada, xícara de café.
+            2. Banheiro Rústico com Tempestade: Cimento queimado, vapor, janela embaçada, chuva forte, eucalipto pendurado.
+            3. Quarto Minimalista (Morning Glow): Cortina de linho, cama desfeita, livro aberto.
+            4. Cozinha Rústica Orgânica: Madeira de demolição, grãos, pano de prato, luz lateral.
+            5. Varanda de Praia (Coastal Vibe): Brisa, chapéu de palha, luz dourada.
+            6. Escritório Criativo Desorganizado: Estante de livros, plantas pendentes, bloco de notas.
+            7. Quintal Arborizado: Árvores frutíferas, luz filtrada.
+            8. Sala de Estar Aconchegante: Almofadas, planta grande de canto, entardecer.
+            9. Banheiro Moderno Clean: Mármore claro, box com reflexos de água, LED quente.
+            10. Área Gourmet Externa: Churrasqueira desfocada, plantas tropicais.
+            11. Varanda com Chuva Fina (Garoa): Vidro molhado, som de pingo d'água.
+            12. Quarto com Decoração Boho: Macramê na parede, abajur.
+            13. Terraço Urbano Verde: Vasos de plantas, muro de tijolinho.
+            14. Cantinho de Leitura: Poltrona de vime, manta jogada, estante rústica.
+            15. Cozinha Americana Integrada: Bancada de granito, fruteira tropical.
+            16. Varanda de Inverno: Luz fria, xícara soltando vapor.
+            17. Jardim Vertical Interno: Parede coberta de samambaias e lírios, luz zenital.
+            18. Casa de Campo Rústica: Vigas de madeira, janela antiga.
+            19. Ateliê de Criação: Tintas, pincéis, clarabóia.
+            20. Varanda Ensolarada de Fim de Semana: Tapete geométrico, planta Strelitzia.
+            21. Corredor Verde de Entrada: Plantas criando túnel.
+            22. Cenário Urbano-Natural: Janela para rua arborizada.
+            * REGRA DE ANIMAL (STORYTELLING V9): Sorteie um mascote realista para o fundo (Vira-lata caramelo dormindo, gato, pássaro).
 
-            === INÍCIO DO EXEMPLO MESTRE DE REFERÊNCIA ===
-            [MOLDE DE IMAGEM BASE]
+            [MANUAL DE GUINDASTES / CÂMERA - SORTEIE 2]
+            1. Foco Reverso/Macro Zoom. 2. Andadinha Frontal. 3. Gossip Lean. 4. Teste Tátil. 5. Giro Orgânico 360. 6. Foco-Hunt. 7. Rack Focus. 8. Saboneteira/Chest-Up. 9. Deslocamento Lateral. 10. Corte Seco com Glitch.
+
+            === INÍCIO DO EXEMPLO MESTRE DE REFERÊNCIA (COPIE ESTA DENSIDADE E FORMATO) ===
+            ### 📸 PROMPT DE IMAGEM
             RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT "Reconstrutor Novex Max Keratin 250ml" bottle matching reference image. Unfiltered UGC vlog style, 8k resolution.
-            
-            [MOLDE DE VÍDEO UNIFICADO]
-            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a table where the bottle rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product "Max Keratin" bottle held firmly. CRITICAL PHYSICS: 1:1 scale (compact 250ml size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top red cap twice to emphasize its mechanism. NO pixel melting.]
-            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP Pan and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (micro-fone de lapela visível na gola da camisa, decoração de plantas e baguncinha orgânica no fundo com o vira-lata caramelo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+
+            ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
+            - Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a table where the bottle rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product "Max Keratin" bottle held firmly. CRITICAL PHYSICS: 1:1 scale (compact 250ml size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize its mechanism. NO pixel melting.]
+            - Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas e baguncinha orgânica no fundo com o vira-lata caramelo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
             - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             - Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
             - Fala da AURORA (Português - 100% Blindada Contra o Robô):
-            "Amiga, o cabelo tá ralo e quebrando? Esse tratamento encorpa os fios na hora! O lote secreto liberou na vitrine e tá derretendo. Corre na sacolinha antes que acabe!"
-            (Nota: Exatas 29 palavras. IDEAL PARA 9 SEGUNDOS DE VÍDEO. Começa no 0:00 cravado. Zero menção a preço ou valores, focando exclusivamente na dor e escassez).
+            "Amiga, você não vai acreditar! Sabe aquele clássico que salva o cabelo elástico e dá uma força de milhões? O lote secreto desse achadinho acabou de liberar na vitrine e o estoque tá derretendo! Eu já garanti o meu, corre na sacolinha antes que esgote!"
+            (Nota: Exatas 43 palavras. Começa no 0:00 cravado. Zero menção a preço ou valores, focando exclusivamente na dor do cabelo elástico e na escassez real de estoque para blindar a conta contra infrações).
             - Texto na Tela (Nativo TikTok - Foco na Dor):
-            * "⚠️ CABELO ELÁSTICO E QUEBRADIÇO? 🛑"
-            * "CAUTERIZAÇÃO E FORÇA ✨"
+            * "⚠️ CABELO ELÁSTICO & QUEBRADIÇO? 🛑"
+            * "CAUTERIZAÇÃO PROFISSIONAL & FORÇA ✨"
             * "LOTE SECRETO LIBERADO 🛒👇"
+
+            ### 🔑 TÍTULOS SEO (Separados)
+            **🔍 Geral (Dor):** Como encorpar cabelo elástico em casa rápido.
+            **💡 Solução (Produto):** Reconstrutor Novex Max Keratin 250ml.
+            **🏷️ Marca (Resenha):** Novex Max Keratin resenha.
             === FIM DO EXEMPLO MESTRE ===
 
-            Retorne EXATAMENTE no formato JSON estrito abaixo. Você DEVE expandir monstruosamente os detalhes do ambiente (varie da lista de 22 ambientes V9.2) e da câmera para que o prompt_imagem ultrapasse 1000 caracteres e o prompt_video_completo ultrapasse 1600 caracteres. A Fala da Aurora DEVE ter entre 25 e 30 palavras.
-            {
-                "prompt_imagem": "Substitua adaptando para o novo produto, variando o ambiente e pet, escrevendo um texto MUITO detalhado e longo para passar de 1000 caracteres.",
-                "prompt_video_completo": "Substitua adaptando para o novo produto, unificando Shot 1, Shot 2, Interaction, Áudio, Fala CURTA DE 9 SEGUNDOS, e Texto na Tela com extrema densidade igual ao exemplo para passar de 1600 caracteres.",
-                "titulo_geral": "Como [resolver a dor] em casa.",
-                "titulo_solucao": "[Nome Exato do Produto e Quantidade].",
-                "titulo_marca": "[Nome do Produto Marca] resenha."
-            }
+            REGRAS FINAIS DE FORMATAÇÃO:
+            Retorne em Markdown puro. Substitua os colchetes com os dados reais do produto da imagem. Expanda o ambiente sorteado (da lista de 22) para que o prompt_imagem ultrapasse 1000 caracteres. Mantenha os prompts técnicos em inglês e a fala/textos em português. NUNCA USE JSON.
             """
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
-                response_format={ "type": "json_object" },
                 messages=[
-                    {"role": "system", "content": "Você é o diretor de arte. Espelhe a densidade massiva do EXEMPLO MESTRE. NÃO POUPE TOKENS NO VISUAL, MAS SEJA ESTRITO NA FALA DE 9 SEGUNDOS (25 a 30 palavras). Responda apenas com o JSON estruturado."},
+                    {"role": "system", "content": "Gere a resposta em Markdown puro copiando o molde fornecido. NUNCA use JSON."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_ouro},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
@@ -1233,45 +1263,30 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 max_tokens=4096, temperature=0.7
             )
             
-            conteudo_json = resp.choices[0].message.content.strip()
-            st.session_state["roteiro_temporario"] = conteudo_json
-            salvar_roteiro_no_drive(email_sessao, conteudo_json)
+            conteudo_texto = resp.choices[0].message.content.strip()
+            st.session_state["roteiro_temporario"] = conteudo_texto
+            salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
             if not E_O_CEO and aba_limites is not None:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Forjado com Máxima Potência (Otimizado para 9s)!")
+            st.success("✅ Pacote Forjado com Máxima Potência!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
 if st.session_state["roteiro_temporario"]:
-    try:
-        dados_r = json.loads(st.session_state["roteiro_temporario"])
-        with st.container(border=True):
-            st.markdown("<h4 style='color:#D4AF37;'>📸 PROMPT DE IMAGEM</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("prompt_imagem",""), language="text")
-            
-            st.markdown("<h4 style='color:#D4AF37;'>🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO</h4>", unsafe_allow_html=True)
-            st.code(dados_r.get("prompt_video_completo",""), language="text")
-            
-            st.markdown("<h4 style='color:#00FFFF;'>🔑 TÍTULOS SEO (Separados)</h4>", unsafe_allow_html=True)
-            c1, c2, c3 = st.columns(3)
-            with c1: 
-                st.caption("🔍 Geral (Dor)")
-                st.code(dados_r.get("titulo_geral",""), language="text")
-            with c2: 
-                st.caption("💡 Solução (Produto)")
-                st.code(dados_r.get("titulo_solucao",""), language="text")
-            with c3: 
-                st.caption("🏷️ Marca (Resenha)")
-                st.code(dados_r.get("titulo_marca",""), language="text")
-                
+    with st.container(border=True):
+        st.markdown(st.session_state["roteiro_temporario"], unsafe_allow_html=True)
+        
+        st.markdown("<br><hr><br>", unsafe_allow_html=True)
+        
+        st.caption("📋 CÓDIGO FONTE (Clique no ícone de copiar no canto direito para copiar todo o texto de uma vez)")
+        st.code(st.session_state["roteiro_temporario"], language="markdown")
+        
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
             st.rerun()
-    except Exception: 
-        st.warning("Erro de formatação.")
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
