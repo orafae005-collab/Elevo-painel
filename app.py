@@ -1107,7 +1107,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (PADRÃO OFICIAL UNIFICADO - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (COM MEMÓRIA PERSISTENTE NO DRIVE - V31.1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1)</h3>", unsafe_allow_html=True)
@@ -1115,8 +1115,48 @@ st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Cr
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
 
-if "ultimo_roteiro_gerado" not in st.session_state: 
-    st.session_state["ultimo_roteiro_gerado"] = None
+# Função para buscar o último roteiro salvo na planilha do usuário/mestre
+def carregar_ultimo_roteiro_salvo(email_usr):
+    if not robo_sheets: return None
+    try:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if match_id:
+            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+            try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
+            except:
+                aba_hist = planilha_mestre.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
+                aba_hist.append_row(["Email", "DataHora", "JsonRoteiro"])
+                return None
+            
+            registros = aba_hist.get_all_records()
+            # Filtra os registros do usuário atual de trás para frente (mais recente)
+            usuario_regs = [r for r in registros if str(r.get("Email","")).strip().lower() == email_usr.strip().lower()]
+            if usuario_regs:
+                return usuario_regs[-1].get("JsonRoteiro", None)
+    except Exception: pass
+    return None
+
+def salvar_roteiro_no_drive(email_usr, json_str):
+    if not robo_sheets: return
+    try:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if match_id:
+            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+            try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
+            except:
+                aba_hist = planilha_mestre.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
+                aba_hist.append_row(["Email", "DataHora", "JsonRoteiro"])
+            
+            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+            aba_hist.append_row([email_usr, agora_str, json_str])
+    except Exception: pass
+
+# Se a sessão estiver vazia, tenta puxar do banco do Drive
+email_sessao = st.session_state.get("email_usuario", "anonimo")
+if not st.session_state["roteiro_temporario"]:
+    roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
+    if roteiro_salvo_nuvem:
+        st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
 
 pode_gerar_roteiro = True
 usos_feitos = 0
@@ -1133,7 +1173,7 @@ if not E_O_CEO and robo_sheets:
                 aba_limites.append_row(["Email", "Gerou"])
             
             lista_usos = aba_limites.col_values(1)
-            usos_feitos = lista_usos.count(st.session_state.get("email_usuario", ""))
+            usos_feitos = lista_usos.count(email_sessao)
             if usos_feitos >= 3:
                 pode_gerar_roteiro = False
     except Exception: pass
@@ -1152,7 +1192,7 @@ with st.container(border=True):
             btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura rigorosa no padrão oficial exato..."):
+    with st.spinner("🦅 Forjando estrutura rigorosa no padrão oficial e salvando na nuvem..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
@@ -1199,21 +1239,21 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             
             conteudo_json = resp.choices[0].message.content.strip()
             st.session_state["roteiro_temporario"] = conteudo_json
-            st.session_state["ultimo_roteiro_gerado"] = conteudo_json
+            
+            # Salva permanentemente no Google Sheets do usuário/mestre
+            salvar_roteiro_no_drive(email_sessao, conteudo_json)
             
             if not E_O_CEO and aba_limites is not None:
-                try: aba_limites.append_row([st.session_state.get("email_usuario", ""), "Sim"])
+                try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Estrutura gerada no padrão oficial!")
+            st.success("✅ Estrutura gerada e salva com sucesso na nuvem!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
-roteiro_para_exibir = st.session_state["roteiro_temporario"] or st.session_state["ultimo_roteiro_gerado"]
-
-if roteiro_para_exibir:
+if st.session_state["roteiro_temporario"]:
     try:
-        dados_r = json.loads(roteiro_para_exibir)
+        dados_r = json.loads(st.session_state["roteiro_temporario"])
         with st.container(border=True):
             st.markdown("<h4 style='color:#D4AF37;'>📸 PROMPT DE IMAGEM</h4>", unsafe_allow_html=True)
             st.code(dados_r.get("prompt_imagem",""), language="text")
@@ -1235,7 +1275,6 @@ if roteiro_para_exibir:
                 
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
-            st.session_state["ultimo_roteiro_gerado"] = None
             st.rerun()
     except Exception: 
         st.warning("Erro ao carregar o formato do roteiro.")
