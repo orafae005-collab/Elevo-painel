@@ -288,7 +288,7 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
                 if CHAVE_ELEVEN:
                     resp_voz = requests.post(
-                        f"https://api.elevenlabs.io/v1/text-to-speech/FGY2WhTYpPnrIDTdsKH5", 
+                        f"https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T", 
                         json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
                         headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
                         timeout=10
@@ -666,7 +666,7 @@ st.divider()
 st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
 
-ID_VOZ_LAURA = "FGY2WhTYpPnrIDTdsKH5"
+ID_VOZ_LAURA = "MLAEAegxkMReslK34j8T"
 
 try:
     CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
