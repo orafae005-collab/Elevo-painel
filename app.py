@@ -243,27 +243,24 @@ st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 2.5. BOAS-VINDAS CINEMÁTICA (BOTÃO PLAY NATIVO - ESTILO AURORA)
+# 2.5. BOAS-VINDAS CINEMÁTICA (BLINDADA CONTRA SUMIÇO E RERUN)
 # ==========================================================
-import base64
-import requests
-import io
-from gtts import gTTS
-import streamlit.components.v1 as components
-
 if "boas_vindas_verificada" not in st.session_state: 
     st.session_state["boas_vindas_verificada"] = False
+if "audio_boas_vindas_b64" not in st.session_state:
+    st.session_state["audio_boas_vindas_b64"] = None
+if "mostrar_player_bv" not in st.session_state:
+    st.session_state["mostrar_player_bv"] = False
 
+# 1. VERIFICAÇÃO NO BANCO E GERAÇÃO (Roda apenas 1 vez por login)
 if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_verificada"]:
     st.session_state["boas_vindas_verificada"] = True 
-    email_atual = st.session_state.get("email_usuario", "")
+    email_atual = st.session_state.get("email_usuario", "").strip().lower()
     nome_atual = st.session_state.get("nome_usuario", "Sócio")
     precisa_tocar = False
     
-    # Verifica no BANCO DE DADOS MESTRE se ele já ouviu na vida (Pelo Gmail)
     if robo_sheets and email_atual:
         try:
-            import re
             match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
             if match_id:
                 planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
@@ -273,11 +270,13 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                     aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="1")
                     aba_bv.append_row(["Emails_Que_Ja_Ouviram"])
                 
-                lista_emails_bv = aba_bv.col_values(1)
+                # Limpa espaços e letras maiúsculas para não falhar na comparação
+                lista_emails_bv = [str(e).strip().lower() for e in aba_bv.col_values(1)]
                 if email_atual not in lista_emails_bv:
                     precisa_tocar = True
                     aba_bv.append_row([email_atual]) 
-        except Exception: pass
+        except Exception: 
+            pass
     
     if precisa_tocar:
         texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
@@ -288,14 +287,17 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
                 if CHAVE_ELEVEN:
                     resp_voz = requests.post(
-                        f"https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T", 
+                        "https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T", 
                         json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
                         headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
                         timeout=10
                     )
-                    if resp_voz.status_code == 200: audio_bytes = resp_voz.content
-                    else: raise Exception()
-                else: raise Exception()
+                    if resp_voz.status_code == 200: 
+                        audio_bytes = resp_voz.content
+                    else: 
+                        raise Exception()
+                else: 
+                    raise Exception()
             except Exception:
                 tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
                 fp = io.BytesIO()
@@ -304,67 +306,79 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
                 audio_bytes = fp.read()
                 
         if audio_bytes:
-            audio_b64 = base64.b64encode(audio_bytes).decode('utf-8')
-            
-            # --- O BOTÃO DE PLAY QUE SE TRANSFORMA NAS ONDAS DA AURORA ---
-            html_play_intro = f"""
-            <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 30px auto; max-width: 600px; transition: opacity 1s ease;">
-                <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
-                <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
-                    Novo sócio detectado. Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
-                </p>
-                
-                <button id="btn-tocar" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
-                    ▶ REPRODUZIR MENSAGEM
-                </button>
+            # 🔥 SALVA NA MEMÓRIA DA SESSÃO! Se a página recarregar sozinha, o áudio NÃO SOME!
+            st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
+            st.session_state["mostrar_player_bv"] = True
 
-                <div id="visualizer-intro" style="display: none; justify-content: center; align-items: center; gap: 4px; height: 60px; margin-top: 10px;">
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                    <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-                </div>
-                
-                <audio id="audio-intro" src="data:audio/mp3;base64,{audio_b64}"></audio>
-            </div>
+# 2. EXIBIÇÃO PERSISTENTE (Fica firme na tela até o usuário ouvir)
+if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
+    audio_b64 = st.session_state["audio_boas_vindas_b64"]
+    
+    html_play_intro = f"""
+    <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 10px auto; max-width: 600px; transition: opacity 1s ease;">
+        <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
+        <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
+            Novo sócio detectado. Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
+        </p>
+        
+        <button id="btn-tocar" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
+            ▶ REPRODUZIR MENSAGEM
+        </button>
+
+        <div id="visualizer-intro" style="display: none; justify-content: center; align-items: center; gap: 4px; height: 60px; margin-top: 10px;">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+        </div>
+        
+        <audio id="audio-intro" src="data:audio/mp3;base64,{audio_b64}" preload="auto"></audio>
+    </div>
+    
+    <style>
+        .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
+        .playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
+        .playing:nth-child(1) {{ animation-delay: 0.0s; }} .playing:nth-child(2) {{ animation-delay: 0.1s; }}
+        .playing:nth-child(3) {{ animation-delay: 0.2s; }} .playing:nth-child(4) {{ animation-delay: 0.3s; }}
+        .playing:nth-child(5) {{ animation-delay: 0.1s; }} .playing:nth-child(6) {{ animation-delay: 0.4s; }}
+        .playing:nth-child(7) {{ animation-delay: 0.2s; }} .playing:nth-child(8) {{ animation-delay: 0.0s; }}
+        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
+    </style>
+    
+    <script>
+        const btn = document.getElementById('btn-tocar');
+        const aud = document.getElementById('audio-intro');
+        const vis = document.getElementById('visualizer-intro');
+        const box = document.getElementById('caixa-intro');
+        const bars = document.querySelectorAll('.bar');
+        
+        if(btn && aud) {{
+            btn.addEventListener('click', function() {{
+                aud.play();
+                btn.style.display = 'none';
+                vis.style.display = 'flex';
+                box.style.borderColor = '#00FFFF';
+                box.style.boxShadow = '0px 0px 25px rgba(0, 255, 255, 0.2)';
+            }});
             
-            <style>
-                .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
-                .playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
-                .playing:nth-child(1) {{ animation-delay: 0.0s; }} .playing:nth-child(2) {{ animation-delay: 0.1s; }}
-                .playing:nth-child(3) {{ animation-delay: 0.2s; }} .playing:nth-child(4) {{ animation-delay: 0.3s; }}
-                .playing:nth-child(5) {{ animation-delay: 0.1s; }} .playing:nth-child(6) {{ animation-delay: 0.4s; }}
-                .playing:nth-child(7) {{ animation-delay: 0.2s; }} .playing:nth-child(8) {{ animation-delay: 0.0s; }}
-                @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
-            </style>
+            aud.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
+            aud.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
             
-            <script>
-                const btn = document.getElementById('btn-tocar');
-                const aud = document.getElementById('audio-intro');
-                const vis = document.getElementById('visualizer-intro');
-                const box = document.getElementById('caixa-intro');
-                const bars = document.querySelectorAll('.bar');
-                
-                if(btn && aud) {{
-                    btn.addEventListener('click', function() {{
-                        aud.play();
-                        btn.style.display = 'none';
-                        vis.style.display = 'flex';
-                        box.style.borderColor = '#00FFFF'; // Muda a borda para a cor da Aurora
-                        box.style.boxShadow = '0px 0px 25px rgba(0, 255, 255, 0.2)';
-                    }});
-                    
-                    aud.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-                    aud.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-                    
-                    // Quando a voz acaba, a caixa some da tela para deixar a plataforma limpa!
-                    aud.addEventListener('ended', () => {{ 
-                        bars.forEach(bar => bar.classList.remove('playing')); 
-                        box.style.opacity = '0';
-                        setTimeout(() => {{ box.style.display = 'none'; }}, 1000);
-                    }});
-                }}
-            </script>
-            """
-            components.html(html_play_intro, height=280)
+            aud.addEventListener('ended', () => {{ 
+                bars.forEach(bar => bar.classList.remove('playing')); 
+                box.style.opacity = '0';
+                setTimeout(() => {{ box.style.display = 'none'; }}, 1000);
+            }});
+        }}
+    </script>
+    """
+    components.html(html_play_intro, height=260)
+    
+    # Botão para limpar o player do código depois de ouvir (ou se quiser pular)
+    col_v1, col_btn_fechar, col_v2 = st.columns([1, 1, 1])
+    with col_btn_fechar:
+        if st.button("✅ JÁ OUVI / FECHAR MENSAGEM", use_container_width=True):
+            st.session_state["mostrar_player_bv"] = False
+            st.session_state["audio_boas_vindas_b64"] = None
+            st.rerun()
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
@@ -400,6 +414,9 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
+    st.session_state["boas_vindas_verificada"] = False # <-- Adicione esta linha!
+    st.session_state["mostrar_player_bv"] = False      # <-- Adicione esta linha!
+    st.session_state["audio_boas_vindas_b64"] = None   # <-- Adicione esta linha!
     if "sessao" in st.query_params: del st.query_params["sessao"]
     st.rerun()
 
