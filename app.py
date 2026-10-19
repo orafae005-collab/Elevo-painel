@@ -268,7 +268,7 @@ if st.session_state.get("usuario_logado") and not st.session_state["boas_vindas_
         except Exception: pass
     
     if tocar_audio:
-        texto_cinematico = f"Acesso VIP confirmado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a inteligência artificial central da sua operação. A partir de agora, o seu império está conectado ao meu sistema. Eu monitoro o seu caixa, analiso o seu funil de conversão e forjo os seus roteiros de vendas com precisão militar. Tudo o que você precisa para dominar o mercado está nesta tela. Sistemas online. O jogo começou."
+        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_atual}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
         audio_bytes = None
         with st.spinner("🦅 Inicializando inteligência central..."):
             try:
@@ -761,7 +761,6 @@ if st.session_state["roteiro_temporario"]:
             with c3: st.caption("🏷️ Marca"); st.code(dados_r.get("titulo_marca",""), language="text")
         if st.button("🗑️ Apagar Roteiro", use_container_width=True): st.session_state["roteiro_temporario"]=None; st.rerun()
     except: st.warning("Erro JSON.")
-
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
