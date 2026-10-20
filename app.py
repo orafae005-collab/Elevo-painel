@@ -175,13 +175,12 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V7.0 - LUXURY DUAL THEME: OBSIDIAN & PEARL)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V7.1 - MOLDURA LED & LUXURY DUAL THEME)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
 if modo_claro:
-    # ☀️ TEMA PEARL & ROYAL GOLD (MODO CLARO DE ELITE)
     bg_color = "linear-gradient(180deg, #F8FAFC 0%, #EFF4F8 100%)"
     bg_solid = "#F4F6F9"
     text_color = "#1E293B"
@@ -196,14 +195,14 @@ if modo_claro:
     shadow_base = "0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.04)"
     accent_primary = "#00897B"
     accent_gold = "#9A6F00"
+    led_glow = "0 0 15px rgba(0, 191, 165, 0.25), inset 0 0 8px rgba(212, 175, 55, 0.15)"
 else:
-    # 🌙 TEMA OBSIDIAN & NEON CYAN (MODO ESCURO VIP)
     bg_color = "radial-gradient(circle at 50% 0%, #161B26 0%, #0B0E14 100%)"
     bg_solid = "#0B0E14"
     text_color = "#F1F5F9"
     subtext_color = "#94A3B8"
     card_bg = "rgba(20, 24, 33, 0.85)"
-    border_color = "rgba(212, 175, 55, 0.22)"
+    border_color = "rgba(0, 229, 255, 0.4)"
     btn_bg = "#161B24"
     btn_text = "#E2E8F0"
     input_bg = "#0F131A"
@@ -212,10 +211,10 @@ else:
     shadow_base = "0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4)"
     accent_primary = "#00BFA5"
     accent_gold = "#D4AF37"
+    # 🔥 O EFEITO DE MOLDURA COM LED CYAN / DOURADO NEON NO ESCURO
+    led_glow = "0 0 20px rgba(0, 229, 255, 0.35), 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 12px rgba(0, 229, 255, 0.2)"
 
-# Regra extra que corrige cores neon soltas quando o Modo Claro é ativado
 ajuste_modo_claro_css = """
-    /* No Modo Claro, transforma Ciano Neon e Dourado Claro em tons fortes e elegantes */
     [style*="#00FFFF"], [style*="#00E5FF"] { color: #006978 !important; }
     [style*="#D4AF37"] { color: #9A6F00 !important; }
     [style*="#A0A0A0"] { color: #475569 !important; }
@@ -228,36 +227,34 @@ st.markdown(f"""
     [data-testid="stAppViewContainer"] {{ background: {bg_color} !important; background-color: {bg_solid} !important; }}
     [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="collapsedControl"], footer {{ display: none !important; }}
     
-    /* Textos Gerais com Contraste Perfeito */
     h1, h2, h3, h4, h5, h6, p, label, li {{ color: {text_color} !important; }}
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
     [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
-    /* Título Principal ÉLÉVO com Gradiente Metálico */
     .titulo-elevo {{ 
         font-size: 3.4rem; font-weight: 900; text-align: center; 
         background: linear-gradient(135deg, {accent_primary} 0%, {accent_gold} 100%);
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 5px; 
-        filter: drop-shadow(0px 4px 12px rgba(0, 191, 165, 0.15));
+        filter: drop-shadow(0px 4px 12px rgba(0, 191, 165, 0.2));
     }}
     .subtitulo {{ 
         text-align: center; font-size: 0.9rem; margin-bottom: 30px; font-weight: 600; 
         letter-spacing: 2px; text-transform: uppercase; color: {subtext_color} !important; 
     }}
     
-    /* Cards, Containers e Expanders com Efeito Glassmorphism */
+    /* 🔥 MOLDURA COM EFEITO DE LED NAS CAIXAS E MÉTRICAS 🔥 */
     [data-testid="stMetric"], 
     div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"],
     [data-testid="stExpander"],
     [data-testid="stForm"] {{ 
         background: {card_bg} !important; 
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        border: 1px solid {border_color} !important; 
+        backdrop-filter: blur(14px) !important;
+        -webkit-backdrop-filter: blur(14px) !important;
+        border: 1.5px solid {border_color} !important; 
         border-radius: 16px !important; 
-        box-shadow: {shadow_base} !important; 
-        transition: all 0.25s ease !important;
+        box-shadow: {shadow_base}, {led_glow} !important; 
+        transition: all 0.3s ease !important;
     }}
     [data-testid="stMetricValue"] div {{
         color: {accent_gold} !important;
@@ -268,11 +265,12 @@ st.markdown(f"""
         color: {text_color} !important;
     }}
 
-    /* Blocos de Código (st.code) Elegantes nos Dois Modos */
+    /* Blocos de Código (st.code) com Borda de LED */
     [data-testid="stCodeBlock"], [data-testid="stCode"], pre, code {{
         background-color: {code_bg} !important;
-        border: 1px solid {border_color} !important;
+        border: 1.5px solid {border_color} !important;
         border-radius: 12px !important;
+        box-shadow: {led_glow} !important;
     }}
     [data-testid="stCodeBlock"] pre, [data-testid="stCode"] pre, pre code {{
         background-color: transparent !important;
@@ -298,7 +296,7 @@ st.markdown(f"""
     .stButton > button, [data-testid="stFormSubmitButton"] > button {{ 
         background: {btn_bg} !important; 
         color: {btn_text} !important; 
-        border: 1px solid {border_color} !important; 
+        border: 1.5px solid {border_color} !important; 
         border-radius: 10px !important; 
         box-shadow: {shadow_base} !important; 
         font-weight: 600 !important; 
@@ -308,29 +306,30 @@ st.markdown(f"""
     .stButton > button:hover {{ 
         transform: translateY(-2px); 
         border-color: {accent_gold} !important; 
-        color: {accent_gold} !important; 
+        color: {accent_gold} !important;
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
     }}
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
         background: linear-gradient(135deg, #004D40 0%, #00796B 100%) !important; 
         color: #FFFFFF !important; 
-        border: 1px solid #00BFA5 !important; 
-        box-shadow: 0 4px 15px rgba(0, 191, 165, 0.25) !important;
+        border: 1.5px solid #00BFA5 !important; 
+        box-shadow: 0 4px 20px rgba(0, 191, 165, 0.35) !important;
     }}
     .stButton > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {{ 
         background: linear-gradient(135deg, #00695C 0%, #009688 100%) !important; 
-        box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4) !important; 
+        box-shadow: 0 0 25px rgba(0, 229, 255, 0.6) !important; 
         border-color: #00E5FF !important; 
         color: #FFFFFF !important; 
     }}
     
-    /* Inputs, TextAreas, NumberInputs e Menus Dropdown */
+    /* Inputs, TextAreas e Menus Dropdown com Moldura de LED Sutil */
     div[data-baseweb="input"], div[data-baseweb="input"] > div, 
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, 
     div[data-baseweb="select"] > div,
     input, textarea {{ 
         background-color: {input_bg} !important; 
-        border: 1px solid {border_color} !important; 
+        border: 1.5px solid {border_color} !important; 
         color: {text_color} !important; 
         -webkit-text-fill-color: {text_color} !important;
         border-radius: 10px !important; 
@@ -338,7 +337,7 @@ st.markdown(f"""
     ul[data-baseweb="menu"], div[data-baseweb="popover"] > div {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
-        border: 1px solid {accent_gold} !important;
+        border: 1.5px solid {accent_gold} !important;
     }}
     li[role="option"] {{ background-color: {input_bg} !important; color: {text_color} !important; }}
     li[role="option"]:hover, li[aria-selected="true"] {{
@@ -352,13 +351,13 @@ st.markdown(f"""
     }}
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"] > div:focus-within {{ 
         border-color: {accent_gold} !important; 
-        box-shadow: 0 0 10px rgba(212, 175, 55, 0.25) !important; 
+        box-shadow: 0 0 15px rgba(212, 175, 55, 0.4) !important; 
     }}
     
     /* Uploader de Arquivos */
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
-    [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {border_color} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; }}
-    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_gold} !important; background-color: rgba(212, 175, 55, 0.06) !important; }}
+    [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {accent_gold} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; box-shadow: inset 0 0 10px rgba(212,175,55,0.1) !important; }}
+    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_primary} !important; background-color: rgba(0, 191, 165, 0.05) !important; }}
     [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{ color: {text_color} !important; background-color: transparent !important; }}
     [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; font-weight: 600 !important; }}
     
@@ -373,7 +372,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #D4AF37; box-shadow: 0px 4px 15px rgba(212,175,55,0.35); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 0px 20px rgba(0,191,165,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
         function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
