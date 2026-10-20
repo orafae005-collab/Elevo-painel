@@ -175,27 +175,27 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V7.1 - MOLDURA LED & LUXURY DUAL THEME)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V7.2 - AZUL MARINHO CLÁSSICO & MOLDURA LED)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
 if modo_claro:
-    bg_color = "linear-gradient(180deg, #F8FAFC 0%, #EFF4F8 100%)"
+    bg_color = "linear-gradient(180deg, #F4F6F9 0%, #E2E8F0 100%)"
     bg_solid = "#F4F6F9"
     text_color = "#1E293B"
     subtext_color = "#475569"
     card_bg = "rgba(255, 255, 255, 0.96)"
-    border_color = "rgba(184, 134, 11, 0.25)"
+    border_color = "rgba(0, 43, 91, 0.2)"
     btn_bg = "#FFFFFF"
     btn_text = "#1E293B"
     input_bg = "#FFFFFF"
     code_bg = "#F1F5F9"
     code_text = "#0F172A"
     shadow_base = "0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.04)"
-    accent_primary = "#00897B"
-    accent_gold = "#9A6F00"
-    led_glow = "0 0 15px rgba(0, 191, 165, 0.25), inset 0 0 8px rgba(212, 175, 55, 0.15)"
+    accent_primary = "#002B5B"  # Azul Marinho Clássico
+    accent_gold = "#D4AF37"
+    led_glow = "0 0 12px rgba(0, 43, 91, 0.15), inset 0 0 6px rgba(212, 175, 55, 0.1)"
 else:
     bg_color = "radial-gradient(circle at 50% 0%, #161B26 0%, #0B0E14 100%)"
     bg_solid = "#0B0E14"
@@ -209,13 +209,12 @@ else:
     code_bg = "#0B0E14"
     code_text = "#00E5FF"
     shadow_base = "0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4)"
-    accent_primary = "#00BFA5"
+    accent_primary = "#00E5FF"  # Azul Ciano Neon Original
     accent_gold = "#D4AF37"
-    # 🔥 O EFEITO DE MOLDURA COM LED CYAN / DOURADO NEON NO ESCURO
     led_glow = "0 0 20px rgba(0, 229, 255, 0.35), 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 12px rgba(0, 229, 255, 0.2)"
 
 ajuste_modo_claro_css = """
-    [style*="#00FFFF"], [style*="#00E5FF"] { color: #006978 !important; }
+    [style*="#00FFFF"], [style*="#00E5FF"] { color: #002B5B !important; }
     [style*="#D4AF37"] { color: #9A6F00 !important; }
     [style*="#A0A0A0"] { color: #475569 !important; }
 """ if modo_claro else ""
@@ -231,19 +230,23 @@ st.markdown(f"""
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
     [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
+    /* 🔥 TÍTULO ÉLÉVO ORIGINAL (Azul Marinho / Dourado Metálico Original) 🔥 */
     .titulo-elevo {{ 
-        font-size: 3.4rem; font-weight: 900; text-align: center; 
-        background: linear-gradient(135deg, {accent_primary} 0%, {accent_gold} 100%);
+        font-size: 4rem; font-weight: 900; text-align: center; 
+        background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
+        background-size: 200% 200%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 5px; 
-        filter: drop-shadow(0px 4px 12px rgba(0, 191, 165, 0.2));
+        animation: brilho-evolucao 4s ease infinite;
+        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 15px; 
     }}
+    @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
+
     .subtitulo {{ 
-        text-align: center; font-size: 0.9rem; margin-bottom: 30px; font-weight: 600; 
-        letter-spacing: 2px; text-transform: uppercase; color: {subtext_color} !important; 
+        text-align: center; font-size: 1.1rem; margin-bottom: 40px; font-weight: 300; 
+        letter-spacing: 2px; text-transform: uppercase; color: {text_color} !important; 
     }}
     
-    /* 🔥 MOLDURA COM EFEITO DE LED NAS CAIXAS E MÉTRICAS 🔥 */
+    /* Moldura com LED nos Cards e Métricas */
     [data-testid="stMetric"], 
     div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"],
     [data-testid="stExpander"],
@@ -309,20 +312,21 @@ st.markdown(f"""
         color: {accent_gold} !important;
         box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
     }}
+    /* Botão Principal com o Azul Marinho Clássico */
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
-        background: linear-gradient(135deg, #004D40 0%, #00796B 100%) !important; 
+        background: linear-gradient(135deg, #002B5B 0%, #004080) !important; 
         color: #FFFFFF !important; 
-        border: 1.5px solid #00BFA5 !important; 
-        box-shadow: 0 4px 20px rgba(0, 191, 165, 0.35) !important;
+        border: 1.5px solid #00E5FF !important; 
+        box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3) !important;
     }}
     .stButton > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {{ 
-        background: linear-gradient(135deg, #00695C 0%, #009688 100%) !important; 
+        background: linear-gradient(135deg, #004080 0%, #0059b3) !important; 
         box-shadow: 0 0 25px rgba(0, 229, 255, 0.6) !important; 
-        border-color: #00E5FF !important; 
+        border-color: #00FFFF !important; 
         color: #FFFFFF !important; 
     }}
     
-    /* Inputs, TextAreas e Menus Dropdown com Moldura de LED Sutil */
+    /* Inputs, TextAreas e Menus Dropdown */
     div[data-baseweb="input"], div[data-baseweb="input"] > div, 
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, 
@@ -357,7 +361,7 @@ st.markdown(f"""
     /* Uploader de Arquivos */
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
     [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {accent_gold} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; box-shadow: inset 0 0 10px rgba(212,175,55,0.1) !important; }}
-    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_primary} !important; background-color: rgba(0, 191, 165, 0.05) !important; }}
+    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_primary} !important; background-color: rgba(0, 229, 255, 0.05) !important; }}
     [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{ color: {text_color} !important; background-color: transparent !important; }}
     [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; font-weight: 600 !important; }}
     
@@ -372,7 +376,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #002B5B; box-shadow: 0px 0px 20px rgba(0,43,91,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
         function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
