@@ -1277,13 +1277,10 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
 if st.session_state["roteiro_temporario"]:
     with st.container(border=True):
+        # Exibe o roteiro limpo e direto na tela para você copiar com o mouse/dedo
         st.markdown(st.session_state["roteiro_temporario"], unsafe_allow_html=True)
         
-        st.markdown("<br><hr><br>", unsafe_allow_html=True)
-        
-        st.caption("📋 CÓDIGO FONTE (Clique no ícone de copiar no canto direito para copiar todo o texto de uma vez)")
-        st.code(st.session_state["roteiro_temporario"], language="markdown")
-        
+        st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
             st.rerun()
