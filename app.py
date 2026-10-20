@@ -175,7 +175,7 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V7.2 - AZUL MARINHO CLÁSSICO & MOLDURA LED)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V7.3 - CORREÇÃO DE TEXTO NO BOTÃO MODO CLARO)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -193,7 +193,7 @@ if modo_claro:
     code_bg = "#F1F5F9"
     code_text = "#0F172A"
     shadow_base = "0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.04)"
-    accent_primary = "#002B5B"  # Azul Marinho Clássico
+    accent_primary = "#002B5B"
     accent_gold = "#D4AF37"
     led_glow = "0 0 12px rgba(0, 43, 91, 0.15), inset 0 0 6px rgba(212, 175, 55, 0.1)"
 else:
@@ -209,7 +209,7 @@ else:
     code_bg = "#0B0E14"
     code_text = "#00E5FF"
     shadow_base = "0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4)"
-    accent_primary = "#00E5FF"  # Azul Ciano Neon Original
+    accent_primary = "#00E5FF"
     accent_gold = "#D4AF37"
     led_glow = "0 0 20px rgba(0, 229, 255, 0.35), 0 0 40px rgba(212, 175, 55, 0.15), inset 0 0 12px rgba(0, 229, 255, 0.2)"
 
@@ -230,10 +230,9 @@ st.markdown(f"""
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
     [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
-    /* 🔥 TÍTULO ÉLÉVO ORIGINAL (Azul Marinho / Dourado Metálico Original) 🔥 */
     .titulo-elevo {{ 
         font-size: 4rem; font-weight: 900; text-align: center; 
-        background: linear-gradient(270deg, #D4AF37, #00E5FF, #D4AF37);
+        background: linear-gradient(270deg, #D4AF37, #002B5B, #D4AF37);
         background-size: 200% 200%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
         animation: brilho-evolucao 4s ease infinite;
@@ -246,7 +245,6 @@ st.markdown(f"""
         letter-spacing: 2px; text-transform: uppercase; color: {text_color} !important; 
     }}
     
-    /* Moldura com LED nos Cards e Métricas */
     [data-testid="stMetric"], 
     div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"],
     [data-testid="stExpander"],
@@ -268,7 +266,6 @@ st.markdown(f"""
         color: {text_color} !important;
     }}
 
-    /* Blocos de Código (st.code) com Borda de LED */
     [data-testid="stCodeBlock"], [data-testid="stCode"], pre, code {{
         background-color: {code_bg} !important;
         border: 1.5px solid {border_color} !important;
@@ -295,7 +292,6 @@ st.markdown(f"""
         opacity: 1 !important;
     }}
 
-    /* Botões Gerais VIP */
     .stButton > button, [data-testid="stFormSubmitButton"] > button {{ 
         background: {btn_bg} !important; 
         color: {btn_text} !important; 
@@ -312,12 +308,18 @@ st.markdown(f"""
         color: {accent_gold} !important;
         box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
     }}
-    /* Botão Principal com o Azul Marinho Clássico */
+    
+    /* 🔥 CORREÇÃO DO BOTÃO PRIMÁRIO: Letra branca cristalina em cima do fundo azul marinho em ambos os modos */
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
         background: linear-gradient(135deg, #002B5B 0%, #004080) !important; 
         color: #FFFFFF !important; 
+        -webkit-text-fill-color: #FFFFFF !important;
         border: 1.5px solid #00E5FF !important; 
         box-shadow: 0 4px 20px rgba(0, 229, 255, 0.3) !important;
+    }}
+    .stButton > button[kind="primary"] p, .stButton > button[kind="primary"] span {{
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
     }}
     .stButton > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {{ 
         background: linear-gradient(135deg, #004080 0%, #0059b3) !important; 
@@ -326,7 +328,6 @@ st.markdown(f"""
         color: #FFFFFF !important; 
     }}
     
-    /* Inputs, TextAreas e Menus Dropdown */
     div[data-baseweb="input"], div[data-baseweb="input"] > div, 
     div[data-baseweb="base-input"],
     div[data-baseweb="textarea"], div[data-baseweb="textarea"] > textarea, 
@@ -358,7 +359,6 @@ st.markdown(f"""
         box-shadow: 0 0 15px rgba(212, 175, 55, 0.4) !important; 
     }}
     
-    /* Uploader de Arquivos */
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
     [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {accent_gold} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; box-shadow: inset 0 0 10px rgba(212,175,55,0.1) !important; }}
     [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_primary} !important; background-color: rgba(0, 229, 255, 0.05) !important; }}
