@@ -1417,9 +1417,9 @@ if E_O_CEO:
                                 st.success("Banido!"); time.sleep(1); st.rerun()
                             else: st.warning("Não encontrado.")
                         except: pass
-
+                            
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + MULTI-INFLUENCER)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + TRAVA DE ESCALA 1:1)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 - Ultimate Edition)</h3>", unsafe_allow_html=True)
@@ -1502,14 +1502,12 @@ if not st.session_state["roteiro_temporario"]:
     roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
     if roteiro_salvo_nuvem: st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
 
-# Carrega a Influencer salva do usuário na memória da sessão
 if "influencer_atual" not in st.session_state or st.session_state.get("email_inf_carregado") != email_sessao:
     st.session_state["influencer_atual"] = gerenciar_influencer_usuario("ler", email_sessao)
     st.session_state["email_inf_carregado"] = email_sessao
 
 inf_salva = st.session_state.get("influencer_atual")
 
-# Define qual Influencer vai atuar nos roteiros (CEO tem Aurora nativa, mas se salvar outra, usa a nova; Usuário comum usa a dele ou Aurora padrão)
 if inf_salva and inf_salva.get("Descricao_Visual"):
     nome_inf_ativa = inf_salva.get("Nome_Influencer", "Influencer")
     desc_inf_ativa = inf_salva.get("Descricao_Visual")
@@ -1537,6 +1535,10 @@ if not E_O_CEO and robo_sheets:
             if usos_feitos >= 3: pode_gerar_roteiro = False
     except Exception: pass
 
+# 🔥 CADEADOS DE FÍSICA E ESCALA OFICIAIS (1:1 REAL SCALE)
+CADEADO_FRASCO_250ML = "[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm, with her fingers naturally wrapping around it. Absolutely DO NOT oversize, DO NOT make it look like a giant 2-liter bottle]."
+CADEADO_POTE_400G = "[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize, DO NOT make it look like a giant bucket]."
+
 with st.container(border=True):
     aba_gerador_360, aba_config_influencer = st.tabs([
         "📸 Gerar Roteiro & Diretrizes", 
@@ -1555,6 +1557,14 @@ with st.container(border=True):
         col_img, col_dados = st.columns([1, 1])
         with col_img: 
             img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+            trava_tamanho_selecionada = st.selectbox(
+                "🔒 Cadeado de Escala Física (Anti-Produto Gigante):",
+                [
+                    "🤖 Detectar Automaticamente pelo Rótulo (250ml vs 400g)",
+                    "🧴 Forçar Frasco Compacto (250ml / 300ml / Queratina / Creme Pentear)",
+                    "🫙 Forçar Pote Médio (400g / Máscaras de Hidratação / Kits)"
+                ]
+            )
         with col_dados:
             explicacao_video_usuario = st.text_area(
                 "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
@@ -1612,21 +1622,37 @@ with st.container(border=True):
                             st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Lendo Manuais V31.1 e forjando estrutura hiper-densa..."):
+    with st.spinner("🦅 Aplicando Cadeado de Escala 1:1 e Manuais V31.1..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
-            instrucao_ouro = """
+            # Define qual cadeado de escala será obrigatoriamente injetado
+            if "Frasco Compacto" in trava_tamanho_selecionada:
+                regra_cadeado_ativa = f"USE OBRIGATORIAMENTE ESTE CADEADO DE ESCALA LITERAL (COPIE E COLE SEM ALTERAR UMA PALAVRA): {CADEADO_FRASCO_250ML}"
+            elif "Pote Médio" in trava_tamanho_selecionada:
+                regra_cadeado_ativa = f"USE OBRIGATORIAMENTE ESTE CADEADO DE ESCALA LITERAL (COPIE E COLE SEM ALTERAR UMA PALAVRA): {CADEADO_POTE_400G}"
+            else:
+                regra_cadeado_ativa = f"""
+                VERIFIQUE A EMBALAGEM NA FOTO E COPIE LITERALMENTE O CADEADO CORRESPONDENTE:
+                - Se for Frasco/Garrafa/Spray (Ex: 250ml, 300ml): {CADEADO_FRASCO_250ML}
+                - Se for Pote/Máscara/Kit (Ex: 400g): {CADEADO_POTE_400G}
+                """
+
+            instrucao_ouro = f"""
             Você é o Diretor de Criação de Elite do TikTok Shop. Não poupe palavras nem tokens.
             Analise a imagem APENAS para identificar produto, marca e quantidade. NÃO descreva embalagem, a IA geradora de vídeo já possui a foto de referência.
             
-            === MANUAL MESTRE DE CRIAÇÃO — VENDAS NO TIKTOK SHOP (Protocolo V31.1) ===
-            1. OBJETIVO: Criar vídeos UGC Visceral e Caótico de alta retenção.
-            2. BLINDAGEM COMERCIAL: Zero Menção a Preço/Valores. Gatilho de Escassez e Lote Secreto ("estoque derretendo"). Foco na Dor Real.
-            3. IDENTIDADE VISUAL: Microfone de Lapela na Aurora. Ambiente Real. Baguncinha Orgânica.
-            4. CONTROLE DE FÍSICA E ESCALA (1:1 REAL SCALE):
-            - Frascos Compactos (Ex: 250ml): [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize].
-            - Potes Médios (Ex: 400g): [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize].
+            === 📖 MANUAL DE SEGURANÇA E TRAVA DE ESCALA (Padrão Oficial V31.1) ===
+            1. SEGURANÇA E REGRAS DO TIKTOK SHOP (Blindagem Contra Punições):
+            - Zero Menção a Preço ou Valores: É terminantemente proibido falar valores numéricos (ex: R$ 10, vinte reais) ou descontos no áudio ou na tela. Se o preço mudar na vitrine, o TikTok pune a conta.
+            - O Truque do Lote Secreto: Em vez de falar de preço, use sempre o gatilho da escassez de estoque e do lote (ex: "o estoque desse lote secreto tá derretendo", "liberou na vitrine secreta").
+            - Foco na Dor Real: Comece sempre atacando um problema que o cliente não consegue ignorar (ex: cabelo elástico, quebrando à toa, ralo ou ressecado), mostrando que o produto auxilia no tratamento de forma contínua.
+            
+            2. O CADEADO DE ESCALA: COMO DEIXAR O PRODUTO NO TAMANHO IDEAL (ANTI-GIGANTE):
+            O maior erro das geradoras de IA é distorcer e transformar frascos ou potes em embalagens gigantescas e irreais. Você DEVE incluir o bloco de instrução de escala 1:1 EXATAMENTE como escrito abaixo TANTO dentro do 'PROMPT DE IMAGEM' quanto no 'Shot 1' do 'PROMPT DE VÍDEO':
+            {regra_cadeado_ativa}
+            
+            3. IDENTIDADE VISUAL: Microfone de Lapela na Influencer. Ambiente Real. Baguncinha Orgânica.
             
             [MANUAL DE AMBIENTES V9.2 E BAGUNCINHA - SORTEIE 1 PARA O CENÁRIO]
             1. Varanda Tropical Brasileira: Samambaias, Costela-de-Adão, luz de sol filtrada, xícara de café.
@@ -1658,13 +1684,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
             === INÍCIO DO EXEMPLO MESTRE DE REFERÊNCIA (COPIE ESTA DENSIDADE E FORMATO) ===
             ### 📸 PROMPT DE IMAGEM
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT "Reconstrutor Novex Max Keratin 250ml" bottle matching reference image. Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT "Reconstrutor Novex Max Keratin 250ml" bottle matching reference image, with her fingers naturally wrapping around its small,真实-sized circumference. Unfiltered UGC vlog style, 8k resolution.
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            - Shot 1 Macro Hook & Physics POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a table where the bottle rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product "Max Keratin" bottle held firmly. CRITICAL PHYSICS: 1:1 scale (compact 250ml size, perfectly proportioned to her hand, do not oversize). The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize its mechanism. NO pixel melting.]
-            - Shot 2 Whip Pan & Visceral Emotion 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas e baguncinha orgânica no fundo com o vira-lata caramelo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.
+            - Shot 1 Macro Hook & Physics POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product held firmly in one hand. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize its mechanism. NO pixel melting, NO giant morphing.
+            - Shot 2 Whip Pan & Visceral Emotion 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, decoração de plantas e baguncinha orgânica no fundo com o vira-lata caramelo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning while keeping the compact, small-scale product in hand.
             - Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
-            - Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret
+            - Áudio (Inglês): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret]
             - Fala da AURORA (Português - 100% Blindada Contra o Robô):
             "Amiga, você não vai acreditar! Sabe aquele clássico que salva o cabelo elástico e dá uma força de milhões? O lote secreto desse achadinho acabou de liberar na vitrine e o estoque tá derretendo! Eu já garanti o meu, corre na sacolinha antes que esgote!"
             (Nota: Exatas 43 palavras. Começa no 0:00 cravado. Zero menção a preço ou valores, focando exclusivamente na dor do cabelo elástico e na escassez real de estoque para blindar a conta contra infrações).
@@ -1680,10 +1706,10 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             === FIM DO EXEMPLO MESTRE ===
 
             REGRAS FINAIS DE FORMATAÇÃO:
-            Retorne em Markdown puro. Substitua os colchetes com os dados reais do produto da imagem. Expanda o ambiente sorteado (da lista de 22) para que o prompt_imagem ultrapasse 1000 caracteres. Mantenha os prompts técnicos em inglês e a fala/textos em português. NUNCA USE JSON.
+            Retorne em Markdown puro. Substitua os nomes com os dados reais do produto da imagem, MAS MANTENHA O BLOCO [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK...] INTACTO EM INGLÊS TANTO NA IMAGEM QUANTO NO SHOT 1 DO VÍDEO. Expanda o ambiente sorteado (da lista de 22) para que o prompt_imagem ultrapasse 1000 caracteres. Mantenha os prompts técnicos em inglês e a fala/textos em português. NUNCA USE JSON.
             """
             
-            # 🔥 INJETA A INFLUENCER CUSTOMIZADA E A EXPLICAÇÃO OPCIONAL DO USUÁRIO (SEM TOCAR NO MANUAL PADRÃO)
+            # 🔥 INJETA A INFLUENCER CUSTOMIZADA E A EXPLICAÇÃO OPCIONAL DO USUÁRIO
             complemento_dinamico_usuario = ""
             if eh_customizada:
                 complemento_dinamico_usuario += f"""
@@ -1691,14 +1717,14 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 O usuário logado configurou a sua própria Influencer personalizada:
                 - Nome da Influencer: {nome_inf_ativa}
                 - Descrição Visual da Influencer: {desc_inf_ativa}
-                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola). No título da fala em português, use 'Fala da {nome_inf_ativa.upper()}'.
+                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola e o cadeado de escala 1:1 do produto). No título da fala em português, use 'Fala da {nome_inf_ativa.upper()}'.
                 """
             
             if explicacao_video_usuario and explicacao_video_usuario.strip():
                 complemento_dinamico_usuario += f"""
                 \n=== 📝 DIRETRIZES ESPECÍFICAS DO USUÁRIO PARA ESTE VÍDEO ===
                 O usuário pediu para incluir/focar no seguinte detalhe: "{explicacao_video_usuario.strip()}"
-                REGRA CRÍTICA: Adapte a cena do vídeo, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo toda a estrutura técnica, escala 1:1 e blindagem comercial do Manual V31.1!
+                REGRA CRÍTICA: Adapte a cena do vídeo, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo toda a estrutura técnica, o cadeado de escala 1:1 [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK...] e a blindagem comercial (zero preço / lote secreto) do Manual!
                 """
                 
             instrucao_final_completa = instrucao_ouro + complemento_dinamico_usuario
@@ -1706,13 +1732,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Gere a resposta em Markdown puro copiando o molde fornecido. NUNCA use JSON."},
+                    {"role": "system", "content": "Gere a resposta em Markdown puro copiando o molde fornecido. Você é obrigado a manter a tag [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK...] literalmente no Prompt de Imagem e no Shot 1 do Vídeo. NUNCA use JSON."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_final_completa},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
-                max_tokens=4096, temperature=0.7
+                max_tokens=4096, temperature=0.65
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
@@ -1723,20 +1749,19 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Forjado com Máxima Potência!")
+            st.success("✅ Pacote Forjado com Trava Física 1:1 e Blindagem Comercial!")
             time.sleep(1); st.rerun()
         except Exception as e: st.error(f"Erro ao gerar: {e}")
 
 if st.session_state["roteiro_temporario"]:
     with st.container(border=True):
-        # Exibe o roteiro limpo e direto na tela para você copiar com o mouse/dedo
         st.markdown(st.session_state["roteiro_temporario"], unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
-            st.rerun()
-
+                st.rerun()
+            
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
