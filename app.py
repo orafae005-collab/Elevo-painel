@@ -551,6 +551,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
             st.session_state["mostrar_player_bv"] = False
             st.session_state["audio_boas_vindas_b64"] = None
             st.rerun()
+
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
@@ -591,6 +592,7 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["audio_boas_vindas_b64"] = None
     if "sessao" in st.query_params: del st.query_params["sessao"]
     st.rerun()
+
 # ==========================================================
 # 4 a 9 E 14. NÚCLEO FINANCEIRO VIP E GRÁFICOS (EXCLUSIVO DO CEO)
 # ==========================================================
@@ -769,6 +771,7 @@ if E_O_CEO and link_planilha_ativa:
             }}
         </style>
         """, unsafe_allow_html=True)
+
 # ==========================================================
 # 10. MOTOR DE ELITE (DISCIPLINA + GRÁFICO DE MISSÕES EXCLUSIVO CEO)
 # ==========================================================
@@ -900,6 +903,7 @@ if E_O_CEO and link_planilha_ativa and robo_sheets:
         st.bar_chart(df_plot, color="#00E5FF")
     else:
         st.info("Nenhum histórico de missões ainda.")
+
 # ==========================================================
 # 11 a 13. RADAR, ENGENHARIA DE FUNIL (RAIO-X CEO), LABORATÓRIO E ROTEIROS
 # ==========================================================
@@ -1376,11 +1380,13 @@ if st.session_state["ultimo_audio_b64"]:
         @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
     </style>
     <script>
-        const audio = document.getElementById('audio_aurora');
+        const audio = document.getElementById('aurora_audio');
         const bars = document.querySelectorAll('.bar');
-        audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-        audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-        audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+        if(audio) {{
+            audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
+            audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+            audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
+        }}
     </script>
     """
     
@@ -1413,7 +1419,7 @@ if E_O_CEO:
                         except: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + MULTI-INFLUENCER)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 - Ultimate Edition)</h3>", unsafe_allow_html=True)
@@ -1449,10 +1455,69 @@ def salvar_roteiro_no_drive(email_usr, texto_str):
             aba_hist.append_row([email_usr, agora_str, texto_str])
     except Exception: pass
 
+# 🔥 BANCO DE MEMÓRIA DE INFLUENCERS EXCLUSIVO POR LOGIN (GMAIL)
+def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf=""):
+    if not robo_sheets: return None
+    try:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if not match_id: return None
+        planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+        try:
+            aba_inf = planilha_mestre.worksheet("Banco_Influencers")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="4")
+            aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao"])
+        
+        email_clean = str(email_usr).strip().lower()
+        
+        if acao == "ler":
+            registros = aba_inf.get_all_records()
+            user_inf = [r for r in registros if str(r.get("Email", "")).strip().lower() == email_clean]
+            if user_inf:
+                return user_inf[-1]
+            return None
+            
+        elif acao == "salvar":
+            col_emails = aba_inf.col_values(1)
+            for i in range(len(col_emails), 1, -1):
+                if str(col_emails[i-1]).strip().lower() == email_clean:
+                    aba_inf.delete_rows(i)
+            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+            aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(), agora_str])
+            return True
+            
+        elif acao == "excluir":
+            col_emails = aba_inf.col_values(1)
+            apagou = False
+            for i in range(len(col_emails), 1, -1):
+                if str(col_emails[i-1]).strip().lower() == email_clean:
+                    aba_inf.delete_rows(i)
+                    apagou = True
+            return apagou
+    except Exception:
+        return None
+
 email_sessao = st.session_state.get("email_usuario", "anonimo")
 if not st.session_state["roteiro_temporario"]:
     roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
     if roteiro_salvo_nuvem: st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
+
+# Carrega a Influencer salva do usuário na memória da sessão
+if "influencer_atual" not in st.session_state or st.session_state.get("email_inf_carregado") != email_sessao:
+    st.session_state["influencer_atual"] = gerenciar_influencer_usuario("ler", email_sessao)
+    st.session_state["email_inf_carregado"] = email_sessao
+
+inf_salva = st.session_state.get("influencer_atual")
+
+# Define qual Influencer vai atuar nos roteiros (CEO tem Aurora nativa, mas se salvar outra, usa a nova; Usuário comum usa a dele ou Aurora padrão)
+if inf_salva and inf_salva.get("Descricao_Visual"):
+    nome_inf_ativa = inf_salva.get("Nome_Influencer", "Influencer")
+    desc_inf_ativa = inf_salva.get("Descricao_Visual")
+    eh_customizada = True
+else:
+    nome_inf_ativa = "Aurora"
+    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair)"
+    eh_customizada = False
 
 pode_gerar_roteiro = True
 usos_feitos = 0
@@ -1473,17 +1538,78 @@ if not E_O_CEO and robo_sheets:
     except Exception: pass
 
 with st.container(border=True):
-    col_img, col_dados = st.columns([1, 1])
-    with col_img: 
-        img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
-    with col_dados:
-        st.markdown("<br><br>", unsafe_allow_html=True)
-        if not pode_gerar_roteiro:
-            st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
-            btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True)
+    aba_gerador_360, aba_config_influencer = st.tabs([
+        "📸 Gerar Roteiro & Diretrizes", 
+        "👤 Configurar Minha Influencer"
+    ])
+    
+    with aba_gerador_360:
+        if eh_customizada:
+            st.info(f"✨ **Influencer Ativa no seu Login:** `{nome_inf_ativa}` — *{desc_inf_ativa}*")
         else:
-            txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR ({3 - usos_feitos} Restantes)"
-            btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
+            if E_O_CEO:
+                st.caption("🦅 **Influencer Padrão do CEO Ativa:** Aurora Original (Para testar outra personagem, acesse a aba ao lado).")
+            else:
+                st.warning("⚠️ Você ainda não cadastrou a sua própria Influencer! O sistema usará a personagem padrão (Aurora). Vá na aba **'👤 Configurar Minha Influencer'** acima para criar e salvar a sua!")
+        
+        col_img, col_dados = st.columns([1, 1])
+        with col_img: 
+            img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+        with col_dados:
+            explicacao_video_usuario = st.text_area(
+                "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
+                placeholder="Ex: Quero que ela mostre a textura do creme na mão, foque no brilho que dá no cabelo cacheado e fale com tom de segredo...",
+                height=115,
+                help="Se você deixar em branco, a máquina criará todo o prompt e roteiro 100% no automático!"
+            )
+            if not pode_gerar_roteiro:
+                st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
+                btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True)
+            else:
+                txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR ({3 - usos_feitos} Restantes)"
+                btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True)
+
+    with aba_config_influencer:
+        st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influencer</h4>", unsafe_allow_html=True)
+        st.caption("Configure as características físicas da sua personagem. Ela ficará gravada exclusivamente no seu login para todos os seus próximos vídeos.")
+        
+        if eh_customizada:
+            st.success(f"✅ **Influencer Salva na Memória:** {nome_inf_ativa}")
+            st.markdown(f"**Descrição Visual Aplicada:**\n> *{desc_inf_ativa}*")
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("🔄 Trocar / Excluir Influencer Atual", type="secondary", use_container_width=True):
+                with st.spinner("Removendo influencer da memória para liberar novo cadastro..."):
+                    gerenciar_influencer_usuario("excluir", email_sessao)
+                    st.session_state["influencer_atual"] = None
+                    st.success("🧹 Influencer removida! Agora você pode cadastrar uma nova abaixo.")
+                    time.sleep(1)
+                    st.rerun()
+        else:
+            if E_O_CEO:
+                st.info("👑 **Modo CEO:** A sua influencer padrão (Aurora) já está ativa nativamente. Se quiser testar uma nova influencer temporária ou fixa, preencha abaixo e aplique:")
+            
+            novo_nome_inf = st.text_input("👤 Nome da sua Influencer:", placeholder="Ex: Maya, Valentina, Bia...")
+            nova_desc_inf = st.text_area(
+                "🎨 Descrição Visual Completa (Cabelo, Pele, Idade, Estilo, Expressão):",
+                placeholder="Ex: Mulher brasileira jovem de 24 anos, pele morena iluminada, cabelos cacheados volumosos e brilhantes na altura dos ombros, olhos castanhos expressivos, usando uma camiseta básica branca, expressão de amiga fofoqueira...",
+                height=130
+            )
+            if st.button("💾 APLICAR E SALVAR INFLUENCER NO MEU LOGIN", type="primary", use_container_width=True):
+                if not novo_nome_inf.strip() or not nova_desc_inf.strip():
+                    st.warning("⚠️ Preencha o nome e a descrição visual completa da sua influencer para aplicar no sistema!")
+                else:
+                    with st.spinner("Gravando a sua Influencer no banco de memória exclusivo do seu login..."):
+                        if gerenciar_influencer_usuario("salvar", email_sessao, novo_nome_inf, nova_desc_inf):
+                            st.session_state["influencer_atual"] = {
+                                "Email": email_sessao,
+                                "Nome_Influencer": novo_nome_inf.strip(),
+                                "Descricao_Visual": nova_desc_inf.strip()
+                            }
+                            st.success(f"🔥 {novo_nome_inf} foi aplicada ao sistema e vinculada ao seu login!")
+                            time.sleep(1)
+                            st.rerun()
+                        else:
+                            st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
     with st.spinner("🦅 Lendo Manuais V31.1 e forjando estrutura hiper-densa..."):
@@ -1557,12 +1683,32 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             Retorne em Markdown puro. Substitua os colchetes com os dados reais do produto da imagem. Expanda o ambiente sorteado (da lista de 22) para que o prompt_imagem ultrapasse 1000 caracteres. Mantenha os prompts técnicos em inglês e a fala/textos em português. NUNCA USE JSON.
             """
             
+            # 🔥 INJETA A INFLUENCER CUSTOMIZADA E A EXPLICAÇÃO OPCIONAL DO USUÁRIO (SEM TOCAR NO MANUAL PADRÃO)
+            complemento_dinamico_usuario = ""
+            if eh_customizada:
+                complemento_dinamico_usuario += f"""
+                \n=== 👤 SUBSTITUIÇÃO OBRIGATÓRIA DE INFLUENCER ===
+                O usuário logado configurou a sua própria Influencer personalizada:
+                - Nome da Influencer: {nome_inf_ativa}
+                - Descrição Visual da Influencer: {desc_inf_ativa}
+                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola). No título da fala em português, use 'Fala da {nome_inf_ativa.upper()}'.
+                """
+            
+            if explicacao_video_usuario and explicacao_video_usuario.strip():
+                complemento_dinamico_usuario += f"""
+                \n=== 📝 DIRETRIZES ESPECÍFICAS DO USUÁRIO PARA ESTE VÍDEO ===
+                O usuário pediu para incluir/focar no seguinte detalhe: "{explicacao_video_usuario.strip()}"
+                REGRA CRÍTICA: Adapte a cena do vídeo, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo toda a estrutura técnica, escala 1:1 e blindagem comercial do Manual V31.1!
+                """
+                
+            instrucao_final_completa = instrucao_ouro + complemento_dinamico_usuario
+            
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "Gere a resposta em Markdown puro copiando o molde fornecido. NUNCA use JSON."},
                     {"role": "user", "content": [
-                        {"type": "text", "text": instrucao_ouro},
+                        {"type": "text", "text": instrucao_final_completa},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
@@ -1590,6 +1736,7 @@ if st.session_state["roteiro_temporario"]:
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
             st.rerun()
+
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
