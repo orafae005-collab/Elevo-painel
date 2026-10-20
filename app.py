@@ -175,7 +175,7 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V7.3 - CORREÇÃO DE TEXTO NO BOTÃO MODO CLARO)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
@@ -230,13 +230,15 @@ st.markdown(f"""
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
     [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
+    /* 🔥 TÍTULO ÉLÉVO ORIGINAL RESTAURADO + LED VERDE VIVO NO DEGRADÊ 🔥 */
     .titulo-elevo {{ 
         font-size: 4rem; font-weight: 900; text-align: center; 
-        background: linear-gradient(270deg, #D4AF37, #002B5B, #D4AF37);
-        background-size: 200% 200%;
+        background: linear-gradient(270deg, #D4AF37, #002B5B, #00FF9D, #00E5FF, #D4AF37);
+        background-size: 300% 300%;
         -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        animation: brilho-evolucao 4s ease infinite;
+        animation: brilho-evolucao 5s ease infinite;
         margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 15px; 
+        filter: drop-shadow(0px 0px 20px rgba(0, 255, 157, 0.35));
     }}
     @keyframes brilho-evolucao {{ 0% {{background-position: 0% 50%;}} 50% {{background-position: 100% 50%;}} 100% {{background-position: 0% 50%;}} }}
 
@@ -309,7 +311,7 @@ st.markdown(f"""
         box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
     }}
     
-    /* 🔥 CORREÇÃO DO BOTÃO PRIMÁRIO: Letra branca cristalina em cima do fundo azul marinho em ambos os modos */
+    /* Botão Primário com Azul Marinho e Letra Branca Perfeita */
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
         background: linear-gradient(135deg, #002B5B 0%, #004080) !important; 
         color: #FFFFFF !important; 
@@ -361,7 +363,7 @@ st.markdown(f"""
     
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
     [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {accent_gold} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; box-shadow: inset 0 0 10px rgba(212,175,55,0.1) !important; }}
-    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_primary} !important; background-color: rgba(0, 229, 255, 0.05) !important; }}
+    [data-testid="stFileUploadDropzone"]:hover {{ border-color: #00FF9D !important; background-color: rgba(0, 255, 157, 0.05) !important; }}
     [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{ color: {text_color} !important; background-color: transparent !important; }}
     [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; font-weight: 600 !important; }}
     
@@ -376,7 +378,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #002B5B; box-shadow: 0px 0px 20px rgba(0,43,91,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00FF9D; box-shadow: 0px 0px 20px rgba(0,255,157,0.4); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
         function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
