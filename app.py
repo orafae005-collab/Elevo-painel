@@ -46,7 +46,7 @@ def conectar_robo():
         credenciais = dict(st.secrets["gcp_service_account"])
         gc = gspread.service_account_from_dict(credenciais)
         return gc
-    except Exception as e:
+    except Exception:
         return None
 
 robo_sheets = conectar_robo()
@@ -86,7 +86,6 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
             return True
     except Exception: return None
 
-# Memória por URL
 if not st.session_state["usuario_logado"] and "sessao" in st.query_params:
     try:
         codigo_sessao = st.query_params["sessao"]
@@ -230,7 +229,6 @@ st.markdown(f"""
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
     [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
-    /* 🔥 TÍTULO ÉLÉVO ORIGINAL RESTAURADO + LED VERDE VIVO NO DEGRADÊ 🔥 */
     .titulo-elevo {{ 
         font-size: 4rem; font-weight: 900; text-align: center; 
         background: linear-gradient(270deg, #D4AF37, #002B5B, #00FF9D, #00E5FF, #D4AF37);
@@ -311,7 +309,6 @@ st.markdown(f"""
         box-shadow: 0 0 15px rgba(212, 175, 55, 0.3) !important;
     }}
     
-    /* Botão Primário com Azul Marinho e Letra Branca Perfeita */
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
         background: linear-gradient(135deg, #002B5B 0%, #004080) !important; 
         color: #FFFFFF !important; 
@@ -409,11 +406,9 @@ if "audio_boas_vindas_b64" not in st.session_state:
 if "mostrar_player_bv" not in st.session_state:
     st.session_state["mostrar_player_bv"] = False
 
-# Captura e padroniza o GMAIL (Única identidade que importa para o sistema)
 email_logado_agora = str(st.session_state.get("email_usuario", "")).strip().lower()
 nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
 
-# 1. VERIFICAÇÃO EXCLUSIVA POR GMAIL (Se mudar o Gmail, ele verifica tudo do zero!)
 if st.session_state.get("usuario_logado") and email_logado_agora != "" and st.session_state["email_bv_verificado"] != email_logado_agora:
     st.session_state["email_bv_verificado"] = email_logado_agora
     st.session_state["mostrar_player_bv"] = False
@@ -431,7 +426,6 @@ if st.session_state.get("usuario_logado") and email_logado_agora != "" and st.se
                     aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
                     aba_bv.append_row(["Gmail_Unico", "Data_Acesso"])
                 
-                # Lê apenas a Coluna 1 (Gmails) e ignora totalmente os nomes
                 lista_gmails_ja_ouviram = [str(e).strip().lower() for e in aba_bv.col_values(1) if "@" in str(e)]
                 
                 if email_logado_agora not in lista_gmails_ja_ouviram:
@@ -470,19 +464,15 @@ if st.session_state.get("usuario_logado") and email_logado_agora != "" and st.se
             st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
             st.session_state["mostrar_player_bv"] = True
             
-            # Registra o GMAIL no banco de dados após gerar o áudio com sucesso
             try:
                 agora_reg = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
                 aba_bv.append_row([email_logado_agora, agora_reg])
             except Exception:
                 pass
 
-# 2. EXIBIÇÃO BLINDADA COM ASSINATURA DO GMAIL NO HTML
 if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
     audio_b64 = st.session_state["audio_boas_vindas_b64"]
     
-    # O comentário invisível <!-- GMAIL: ... --> força o navegador a criar um novo botão 
-    # mesmo que duas pessoas tenham exatamente o mesmo nome!
     html_play_intro = f"""
     <!-- GMAIL_ID_UNICO: {email_logado_agora} -->
     <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 10px auto; max-width: 600px; transition: opacity 1s ease;">
@@ -564,7 +554,7 @@ link_planilha_ativa = ""
 if E_O_CEO:
     COFRE_DE_LINKS = {"O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit", "O Garimpo Chic": ""}
     opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
-    st.success(f"Bem-vindo de volta, Sócio! O império aguarda as suas ordens. 🦅")
+    st.success("Bem-vindo de volta, Sócio! O império aguarda as suas ordens. 🦅")
     with st.container(border=True):
         col_conta, col_filtro = st.columns(2)
         with col_conta:
@@ -587,7 +577,7 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["usuario_logado"] = False
     st.session_state["email_usuario"] = ""
     st.session_state["nome_usuario"] = ""
-    st.session_state["email_bv_verificado"] = "" # <-- Limpa o vínculo do Gmail anterior
+    st.session_state["email_bv_verificado"] = ""
     st.session_state["mostrar_player_bv"] = False
     st.session_state["audio_boas_vindas_b64"] = None
     if "sessao" in st.query_params: del st.query_params["sessao"]
@@ -668,7 +658,6 @@ if E_O_CEO and link_planilha_ativa:
         </div>
     """, unsafe_allow_html=True)
 
-    # 🔥 GRÁFICOS DE VENDA E PRODUTO CAMPEÃO DO CÓDIGO ANTIGO (EXCLUSIVOS DO CEO)
     if not df_timeline.empty and not df_campeao.empty:
         with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS E TOP PRODUTOS", expanded=True):
             col_g1, col_g2 = st.columns(2)
@@ -693,7 +682,6 @@ if E_O_CEO and link_planilha_ativa:
                 fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-    # Injetor de caixa guardado de forma limpa e opcional caso o CEO queira alimentar a planilha
     with st.expander("🤖 Injetor Rápido de Caixa & Protocolo Águia (Opcional)", expanded=False):
         if "dados_prontos" not in st.session_state: st.session_state["dados_prontos"] = []
         texto_copiado = st.text_area("Cole os dados para alimentar a planilha:", height=100)
@@ -727,7 +715,6 @@ if E_O_CEO and link_planilha_ativa:
                 if str(col_dt[i-1]).strip() == hj_str: aba.delete_rows(i); time.sleep(0.4)
             carregar_dados_dinamicos.clear(); st.rerun()
 
-    # 🔥 TERMÔMETRO DO CORAÇÃO DA EMPRESA CAMALEÃO (DIA & NOITE LUXURY)
     if not df.empty and "Data_Parsed" in df.columns:
         agora_brasil = datetime.utcnow() - timedelta(hours=3)
         hoje = pd.Timestamp(agora_brasil.date())
@@ -814,7 +801,7 @@ def buscar_oportunidade_do_dia(dt_cache):
         pmt_op = "Gere uma tática de expansão digital (TikTok, YT Shorts, UGC, etc). Retorne JSON: {'titulo': '...', 'pitch': '...', 'passos': '1. Passo um... \\n2. Passo dois...'}"
         resp = cliente_openai.chat.completions.create(model="gpt-4o-mini", response_format={"type":"json_object"}, messages=[{"role":"system","content":sys_op},{"role":"user","content":pmt_op}], temperature=0.85)
         return json.loads(resp.choices[0].message.content)
-    except:
+    except Exception:
         return {"titulo": "Shopee Video", "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros lá para criar uma segunda fonte de renda!", "passos": "1. Crie conta afiliado.\n2. Suba o vídeo já gravado.\n3. Marque o produto na sacola laranja."}
 
 op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"))
@@ -857,7 +844,6 @@ with col_m2:
     else:
         st.success("Missão de Hoje Cumprida! 🦅")
 
-# 🔥 GRÁFICO DE MISSÕES DE 30 DIAS RESTAURADO (VISÍVEL SOMENTE PARA O CEO)
 if E_O_CEO and link_planilha_ativa and robo_sheets:
     st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
     try:
@@ -937,7 +923,7 @@ if st.button("🔍 Buscar Tendência Oculta de Beleza (TikTok Shop)", type="prim
         except Exception: st.error("Erro no Radar.")
 
 # ==========================================================
-# 12. RAIO-X DA OPERAÇÃO / ENGENHARIA DO SEU FUNIL (🔥 RESTAURADO - EXCLUSIVO DO CEO)
+# 12. RAIO-X DA OPERAÇÃO / ENGENHARIA DO SEU FUNIL
 # ==========================================================
 aba_raiox = None
 historico_raiox = []
@@ -1124,9 +1110,6 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado.")
     st.stop()
 
-# ==========================================
-# 🧠 BANCO DE MEMÓRIA PERMANENTE INVISÍVEL
-# ==========================================
 aba_memoria_voz = None
 historico_banco_dados = []
 
@@ -1141,7 +1124,7 @@ if link_planilha_ativa and robo_sheets:
             aba_memoria_voz.append_row(["DataHora", "Role", "Conteudo"])
 
         historico_banco_dados = aba_memoria_voz.get_all_records()
-    except Exception as e:
+    except Exception:
         pass
 
 nome_usuario_atual = st.session_state.get("nome_usuario", "Sócio")
@@ -1159,9 +1142,6 @@ if "ultimo_audio_b64" not in st.session_state:
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
-# ==========================================================
-# 🔥 CSS VIP 3D: CONSOLE NEUMÓRFICO E ÁGUIA REATIVA
-# ==========================================================
 st.markdown("""
 <style>
     audio { display: none !important; }
@@ -1237,18 +1217,13 @@ if audio_gravado is not None:
                         if aba_memoria_voz is not None:
                             aba_memoria_voz.append_row([agora_str, "user", texto_falado])
 
-                        # ==========================================
-                        # 📊 CÁLCULO DE 100% DO BANCO DE DADOS E APLICATIVO
-                        # ==========================================
                         canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
 
-                        # 1. Contar Usuários Cadastrados
                         total_usuarios = 0
                         bd_users = conectar_banco_usuarios("ler")
                         if bd_users is not None:
                             total_usuarios = len(bd_users)
 
-                        # 2. Dados Financeiros
                         fat_total_global = 0.0
                         fat_pendente_global = 0.0
                         fat_30d = 0.0
@@ -1273,8 +1248,6 @@ if audio_gravado is not None:
                                 top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
 
                         crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
-                        
-                        # 3. Puxar a NOTA DA OPERAÇÃO exata
                         estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
                         nota_atual = nota_empresa if 'nota_empresa' in globals() else "N/A"
 
@@ -1288,7 +1261,6 @@ if audio_gravado is not None:
                         conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
                         feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
 
-                        # 🔥 PROMPT ORIGINAL RESTAURADO: A AMIGA FOFOQUEIRA DO BEM E DIRETORA OMNISCIENTE
                         sistema_mentor = f"""
                         Você é a Aurora, uma Inteligência Artificial de elite construída pelo CEO Rafael e pela empresa ÉLÉVO. Você é a diretora de operações (COO) desta plataforma.
                         Responda de forma fluida, incisiva e inteligente ao áudio do usuário, em até 4 frases curtas. 
@@ -1327,9 +1299,6 @@ if audio_gravado is not None:
                         if aba_memoria_voz is not None:
                             aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
 
-                        # ==========================================
-                        # 🔥 PLANO A (ElevenLabs) e PLANO B (Voz Grátis)
-                        # ==========================================
                         url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
                         headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
                         payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
@@ -1416,8 +1385,8 @@ if E_O_CEO:
                                 a_bd.delete_rows(next(i for i,e in enumerate(em_col) if e.lower() == email_excluir.lower())+1)
                                 st.success("Banido!"); time.sleep(1); st.rerun()
                             else: st.warning("Não encontrado.")
-                        except: pass
-                            
+                        except Exception: pass
+
 # ==========================================================
 # 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + TRAVA DE ESCALA 1:1)
 # ==========================================================
@@ -1434,7 +1403,7 @@ def carregar_ultimo_roteiro_salvo(email_usr):
         if match_id:
             planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
             try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
-            except: return None
+            except Exception: return None
             registros = aba_hist.get_all_records()
             usuario_regs = [r for r in registros if str(r.get("Email","")).strip().lower() == email_usr.strip().lower()]
             if usuario_regs: return usuario_regs[-1].get("JsonRoteiro", None)
@@ -1448,14 +1417,13 @@ def salvar_roteiro_no_drive(email_usr, texto_str):
         if match_id:
             planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
             try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
-            except:
+            except Exception:
                 aba_hist = planilha_mestre.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
                 aba_hist.append_row(["Email", "DataHora", "JsonRoteiro"])
             agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
             aba_hist.append_row([email_usr, agora_str, texto_str])
     except Exception: pass
 
-# 🔥 BANCO DE MEMÓRIA DE INFLUENCERS EXCLUSIVO POR LOGIN (GMAIL)
 def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf=""):
     if not robo_sheets: return None
     try:
@@ -1527,7 +1495,7 @@ if not E_O_CEO and robo_sheets:
         if match_id:
             planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
             try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
-            except:
+            except Exception:
                 aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
                 aba_limites.append_row(["Email", "Gerou"])
             lista_usos = aba_limites.col_values(1)
@@ -1535,7 +1503,6 @@ if not E_O_CEO and robo_sheets:
             if usos_feitos >= 3: pode_gerar_roteiro = False
     except Exception: pass
 
-# 🔥 CADEADOS DE FÍSICA E ESCALA OFICIAIS (1:1 REAL SCALE)
 CADEADO_FRASCO_250ML = "[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm, with her fingers naturally wrapping around it. Absolutely DO NOT oversize, DO NOT make it look like a giant 2-liter bottle]."
 CADEADO_POTE_400G = "[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize, DO NOT make it look like a giant bucket]."
 
@@ -1626,7 +1593,6 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
-            # Define qual cadeado de escala será obrigatoriamente injetado
             if "Frasco Compacto" in trava_tamanho_selecionada:
                 regra_cadeado_ativa = f"USE OBRIGATORIAMENTE ESTE CADEADO DE ESCALA LITERAL (COPIE E COLE SEM ALTERAR UMA PALAVRA): {CADEADO_FRASCO_250ML}"
             elif "Pote Médio" in trava_tamanho_selecionada:
@@ -1684,7 +1650,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
             === INÍCIO DO EXEMPLO MESTRE DE REFERÊNCIA (COPIE ESTA DENSIDADE E FORMATO) ===
             ### 📸 PROMPT DE IMAGEM
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT "Reconstrutor Novex Max Keratin 250ml" bottle matching reference image, with her fingers naturally wrapping around its small,真实-sized circumference. Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, ordinary middle-class Brazilian kitchen. In the background, an open balcony door reveals beautiful lush green potted plants (ferns and monsteras) bathed in natural morning daylight, and a small caramel dog is resting on a rug. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the kitchen counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. She is firmly holding the EXACT "Reconstrutor Novex Max Keratin 250ml" bottle matching reference image, with her fingers naturally wrapping around its small circumference. Unfiltered UGC vlog style, 8k resolution.
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
             - Shot 1 Macro Hook & Physics POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement. The camera violently tilts up from a table where the product rests. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product held firmly in one hand. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. This is a compact 250ml spray/liquid bottle. The bottle held in her hand MUST look compact, light, and perfectly proportioned to fit comfortably inside a single human palm. Absolutely DO NOT oversize]. The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the top cap twice to emphasize its mechanism. NO pixel melting, NO giant morphing.
@@ -1709,7 +1675,6 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             Retorne em Markdown puro. Substitua os nomes com os dados reais do produto da imagem, MAS MANTENHA O BLOCO [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK...] INTACTO EM INGLÊS TANTO NA IMAGEM QUANTO NO SHOT 1 DO VÍDEO. Expanda o ambiente sorteado (da lista de 22) para que o prompt_imagem ultrapasse 1000 caracteres. Mantenha os prompts técnicos em inglês e a fala/textos em português. NUNCA USE JSON.
             """
             
-            # 🔥 INJETA A INFLUENCER CUSTOMIZADA E A EXPLICAÇÃO OPCIONAL DO USUÁRIO
             complemento_dinamico_usuario = ""
             if eh_customizada:
                 complemento_dinamico_usuario += f"""
@@ -1750,8 +1715,10 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 except Exception: pass
                 
             st.success("✅ Pacote Forjado com Trava Física 1:1 e Blindagem Comercial!")
-            time.sleep(1); st.rerun()
-        except Exception as e: st.error(f"Erro ao gerar: {e}")
+            time.sleep(1)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Erro ao gerar: {e}")
 
 if st.session_state["roteiro_temporario"]:
     with st.container(border=True):
@@ -1760,8 +1727,8 @@ if st.session_state["roteiro_temporario"]:
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True): 
             st.session_state["roteiro_temporario"] = None
-                st.rerun()
-            
+            st.rerun()
+
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
 # ==========================================================
