@@ -372,7 +372,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 0px 20px rgba(0,191,165,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
         function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
