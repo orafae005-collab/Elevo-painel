@@ -544,7 +544,7 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     if "sessao" in st.query_params: del st.query_params["sessao"]
     st.rerun()
 # ==========================================================
-# 4 a 9 E 14. NÚCLEO FINANCEIRO VIP (EXCLUSIVO DO CEO)
+# 4 a 9 E 14. NÚCLEO FINANCEIRO VIP E GRÁFICOS (EXCLUSIVO DO CEO)
 # ==========================================================
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
@@ -566,6 +566,7 @@ def carregar_dados_dinamicos(url):
 
 df, df_filtrado, df_campeao, df_timeline = pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 produto_campeao, aprovado, pendente, crescimento, simbolo, nota_empresa = "Nenhum", 0.0, 0.0, 0.0, "N/A", "N/A"
+rev_7d = 0.0
 
 if E_O_CEO and link_planilha_ativa:
     df = carregar_dados_dinamicos(link_planilha_ativa)
@@ -603,18 +604,23 @@ if E_O_CEO and link_planilha_ativa:
             df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
 
     st.markdown(f"### 📊 Faturamento: {nome_canal_ativo}")
+    aprovado_str = f"R$ {aprovado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    pendente_str = f"R$ {pendente:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    campeao_str = str(produto_campeao)[:12] + "..." if len(str(produto_campeao)) > 12 else str(produto_campeao)
+
     c_txt_v = "#D4AF37" if not modo_claro else "#B8860B"
     c_txt_t = "#A0A0A0" if not modo_claro else "#555555"
     st.markdown(f"""
         <div style="display: flex; justify-content: space-between; text-align: center; margin-bottom: 20px;">
-            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">💰 Lucro</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">R$ {aprovado:,.2f}</p></div>
-            <div style="flex: 1; border-left: 1px solid rgba(212,175,55,0.2); border-right: 1px solid rgba(212,175,55,0.2);"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">⏳ Pendente</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">R$ {pendente:,.2f}</p></div>
-            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">🏆 Campeão</p><p style="margin: 0; font-size: 0.9rem; font-weight: 900; color: #00E5FF; padding-top: 5px;">{str(produto_campeao)[:12] + '...' if len(str(produto_campeao))>12 else produto_campeao}</p></div>
+            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">💰 Lucro</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">{aprovado_str}</p></div>
+            <div style="flex: 1; border-left: 1px solid rgba(212,175,55,0.2); border-right: 1px solid rgba(212,175,55,0.2);"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">⏳ Pendente</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">{pendente_str}</p></div>
+            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">🏆 Campeão</p><p style="margin: 0; font-size: 0.9rem; font-weight: 900; color: #00E5FF; padding-top: 5px;">{campeao_str}</p></div>
         </div>
     """, unsafe_allow_html=True)
 
+    # 🔥 GRÁFICOS DE VENDA E PRODUTO CAMPEÃO DO CÓDIGO ANTIGO (EXCLUSIVOS DO CEO)
     if not df_timeline.empty and not df_campeao.empty:
-        with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS", expanded=False):
+        with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS E TOP PRODUTOS", expanded=True):
             col_g1, col_g2 = st.columns(2)
             c_line = "#005C66" if modo_claro else "#00E5FF"
             c_pt = "#B8860B" if modo_claro else "#D4AF37"
@@ -630,59 +636,48 @@ if E_O_CEO and link_planilha_ativa:
                 st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
             with col_g2:
                 st.markdown("##### 🏆 Top 10 Produtos Mais Vendidos")
-                fig_bar = px.bar(df_campeao.head(10), x="Comissao_R$", y="Produto", orientation='h', text="Comissao_R$", color_discrete_sequence=[c_pt])
+                fig_bar = px.bar(df_campeao.head(10).copy(), x="Comissao_R$", y="Produto", orientation='h', text="Comissao_R$", color_discrete_sequence=[c_pt])
                 fig_bar.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, marker_line_color=c_line, marker_line_width=1.5, opacity=0.9)
                 fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color=text_color), margin=dict(l=0, r=80, t=40, b=0), height=380, dragmode=False)
                 fig_bar.update_xaxes(showgrid=False, title="", visible=False, fixedrange=True)
                 fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
                 st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
 
-    if "dados_prontos" not in st.session_state: st.session_state["dados_prontos"] = []
-    st.markdown("### 🤖 Motor de Auditoria e Injeção (Aurora)")
-    texto_copiado = st.text_area("Cole o relatório do TikTok Shop (dados brutos):", height=150)
-    if st.button("🚀 Extrair Dados do Texto", type="primary", use_container_width=True):
-        if texto_copiado.strip() == "": st.warning("⚠️ Cole algum texto primeiro.")
-        else:
-            with st.spinner("🦅 Aurora organizando caixa..."):
-                dt_hj = datetime.utcnow().strftime("%d/%m/%Y")
-                pmt_aur = f"Extraia sem erro e sem usar cálculos os valores EXATOS, pontos no lugar de vírgulas. DATA: {dt_hj}. Texto bruto:\n{texto_copiado}"
-                res_aur = chamar_ia_global(pmt_aur, "Você é Aurora, Auditora Financeira. Retorne APENAS dados no formato Data;Produto;Canal;Status;Qtd;Valor.")
-                if "ERRO" not in res_aur and res_aur:
-                    for l in res_aur.split('\n'):
-                        its = l.split(';')
-                        if len(its) >= 6 and "Data;" not in l: st.session_state["dados_prontos"].append({"Data":its[0].strip(), "Produto":its[1].strip(), "Canal":its[2].strip(), "Status":its[3].strip(), "Quantidade":its[4].strip(), "Comissao_R$":its[5].strip()})
-                    if not st.session_state["dados_prontos"]: st.error("⚠️ Dados não encontrados.")
-                else: st.error(f"Erro IA: {res_aur}")
-    
-    if st.session_state["dados_prontos"]:
-        st.success("✨ Dados validados!")
-        if st.button("🗑️ Limpar Lista"): st.session_state["dados_prontos"] = []; st.rerun()
-        df_ed = st.data_editor(pd.DataFrame(st.session_state["dados_prontos"]), num_rows="dynamic", use_container_width=True)
-        if st.button("💾 INJETAR DADOS NA PLANILHA", type="primary"):
-            with st.spinner("Injetando no Google Drive..."):
-                try:
+    # Injetor de caixa guardado de forma limpa e opcional caso o CEO queira alimentar a planilha
+    with st.expander("🤖 Injetor Rápido de Caixa & Protocolo Águia (Opcional)", expanded=False):
+        if "dados_prontos" not in st.session_state: st.session_state["dados_prontos"] = []
+        texto_copiado = st.text_area("Cole os dados para alimentar a planilha:", height=100)
+        if st.button("🚀 Extrair Dados", type="primary", use_container_width=True):
+            if texto_copiado.strip():
+                with st.spinner("🦅 Aurora organizando caixa..."):
+                    dt_hj = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y")
+                    pmt_aur = f"Extraia os valores EXATOS com ponto decimal. DATA: {dt_hj}. Canal: {nome_canal_ativo}. Texto:\n{texto_copiado}"
+                    res_aur = chamar_ia_global(pmt_aur, f"Retorne APENAS dados no formato Data;Produto;{nome_canal_ativo};Aprovado;Qtd;Valor.")
+                    if "ERRO" not in res_aur and res_aur:
+                        for l in res_aur.split('\n'):
+                            its = l.split(';')
+                            if len(its) >= 6 and "Data;" not in l: st.session_state["dados_prontos"].append({"Data":its[0].strip(), "Produto":its[1].strip(), "Canal":its[2].strip(), "Status":its[3].strip(), "Quantidade":its[4].strip(), "Comissao_R$":its[5].strip()})
+        if st.session_state["dados_prontos"]:
+            df_ed = st.data_editor(pd.DataFrame(st.session_state["dados_prontos"]), num_rows="dynamic", use_container_width=True)
+            c_inj1, c_inj2 = st.columns(2)
+            with c_inj1:
+                if st.button("💾 INJETAR NA PLANILHA", type="primary", use_container_width=True):
                     aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).sheet1
                     linhas_ins = [[str(d.get(k,"")) for k in ["Data","Produto","Canal","Status","Quantidade","Comissao_R$"]] for d in df_ed.to_dict('records')]
                     aba.insert_rows(linhas_ins, row=len([x for x in aba.col_values(1) if x.strip()!=""])+1, value_input_option="USER_ENTERED")
-                    st.success("🔥 SUCESSO! Planilha atualizada!"); st.balloons(); st.session_state["dados_prontos"] = []; carregar_dados_dinamicos.clear(); st.rerun()
-                except Exception as e: st.error(f"❌ Erro: {e}")
-                
-    st.markdown("<br>", unsafe_allow_html=True)
-    with st.expander("🦅 PROTOCOLO ÁGUIA (Limpar Erros de Hoje)", expanded=False):
-        st.warning("⚠️ APAGA TODAS as vendas de HOJE no Drive.")
-        if st.button("🦅 ACIONAR ÁGUIA", type="secondary", use_container_width=True):
-            with st.spinner("Apagando..."):
-                try:
-                    aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).sheet1
-                    col_dt = aba.col_values(1)
-                    hj_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y")
-                    apgs = 0
-                    for i in range(len(col_dt), 1, -1):
-                        if str(col_dt[i-1]).strip() == hj_str: aba.delete_rows(i); apgs += 1; time.sleep(0.5)
-                    st.success(f"🦅 {apgs} linhas apagadas." if apgs > 0 else "Nenhum dado hoje.")
-                    carregar_dados_dinamicos.clear(); time.sleep(2); st.rerun()
-                except Exception as e: st.error(f"Erro: {e}")
+                    st.session_state["dados_prontos"] = []; carregar_dados_dinamicos.clear(); st.rerun()
+            with c_inj2:
+                if st.button("🗑️ Limpar Lista", use_container_width=True): st.session_state["dados_prontos"] = []; st.rerun()
+        st.divider()
+        if st.button("🦅 ACIONAR ÁGUIA (Apagar Vendas de Hoje)", type="secondary", use_container_width=True):
+            aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).sheet1
+            col_dt = aba.col_values(1)
+            hj_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y")
+            for i in range(len(col_dt), 1, -1):
+                if str(col_dt[i-1]).strip() == hj_str: aba.delete_rows(i); time.sleep(0.4)
+            carregar_dados_dinamicos.clear(); st.rerun()
 
+    # Termômetro do Coração da Empresa (Bloco 14 integrado)
     if not df.empty and "Data_Parsed" in df.columns:
         agora_brasil = datetime.utcnow() - timedelta(hours=3)
         hoje = pd.Timestamp(agora_brasil.date())
@@ -701,9 +696,8 @@ if E_O_CEO and link_planilha_ativa:
         </div>
         <style>@keyframes pulse-cor {{ 0% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }} 50% {{ box-shadow: 0 0 20px {cor_anim}; transform: scale(1.02); }} 100% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }} }}</style>
         """, unsafe_allow_html=True)
-
 # ==========================================================
-# 10. MOTOR DE ELITE (DISCIPLINA) - PARA TODOS OS USUÁRIOS
+# 10. MOTOR DE ELITE (DISCIPLINA + GRÁFICO DE MISSÕES EXCLUSIVO CEO)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Disciplina & Expansão</h3>", unsafe_allow_html=True)
@@ -711,9 +705,31 @@ st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite
 agora_brasil = datetime.utcnow() - timedelta(hours=3)
 dia_do_ano = agora_brasil.timetuple().tm_yday
 
-frases = ["O sucesso é a soma de pequenos esforços repetidos.", "Grave aquele vídeo agora!", "A constância abre a porta da escala.", "Seu próximo vídeo pode ser viral.", "Feito é melhor que perfeito."]
-missoes = ["Gravar 5 vídeos originais com gancho forte.", "Analisar 3 produtos novos no TikTok.", "Gravar 3 vídeos review do Produto Campeão.", "Revisar o vídeo mais vendido e replicar estilo."]
-dicas = ["Invista 20% do lucro no negócio.", "Construa caixa de guerra.", "Impulsione o vídeo que vendeu bem orgânico.", "Diversifique faturando fora do TikTok."]
+frases = [
+    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
+    "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
+    "A constância é a chave que abre a porta da escala.",
+    "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
+    "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!"
+]
+missoes = [
+    "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
+    "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
+    "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
+    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje."
+]
+dicas = [
+    "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
+    "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
+    "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
+    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?"
+]
+
+frase_hoje = frases[dia_do_ano % len(frases)]
+missao_hoje = missoes[dia_do_ano % len(missoes)]
+dica_hoje = dicas[dia_do_ano % len(dicas)]
+dias_cumpridos = 0
+taxa_acerto = 0.0
 
 @st.cache_data(ttl=86400)
 def buscar_oportunidade_do_dia(dt_cache):
@@ -721,15 +737,16 @@ def buscar_oportunidade_do_dia(dt_cache):
         sys_op = "Estrategista de Negócios Sênior em Afiliados. Responda em JSON."
         pmt_op = "Gere uma tática de expansão digital (TikTok, YT Shorts, UGC, etc). Retorne JSON: {'titulo': '...', 'pitch': '...', 'passos': '1. Passo um... \\n2. Passo dois...'}"
         resp = cliente_openai.chat.completions.create(model="gpt-4o-mini", response_format={"type":"json_object"}, messages=[{"role":"system","content":sys_op},{"role":"user","content":pmt_op}], temperature=0.85)
-        import json; return json.loads(resp.choices[0].message.content)
-    except: return {"titulo": "Shopee Video", "pitch": "Reaproveite roteiros lá para segunda fonte.", "passos": "1. Crie conta afiliado.\n2. Suba o vídeo."}
+        return json.loads(resp.choices[0].message.content)
+    except:
+        return {"titulo": "Shopee Video", "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros lá para criar uma segunda fonte de renda!", "passos": "1. Crie conta afiliado.\n2. Suba o vídeo já gravado.\n3. Marque o produto na sacola laranja."}
 
 op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"))
 
 col_m1, col_m2 = st.columns([1, 1])
 with col_m1:
-    st.info(f"💎 **Visão de Águia:** {frases[dia_do_ano % len(frases)]}")
-    st.warning(f"📈 **Dica Financeira:** {dicas[dia_do_ano % len(dicas)]}")
+    st.info(f"💎 **Visão de Águia:** {frase_hoje}")
+    st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
     
     with st.container(border=True):
         st.markdown(f"**🚀 Oportunidade Oculta: {op_hoje.get('titulo', 'Nova Oportunidade')}**")
@@ -737,47 +754,245 @@ with col_m1:
         with st.expander("🛠️ Ver Passo a Passo de Execução", expanded=False):
             st.markdown(f"**Como aplicar agora:**\n\n{op_hoje.get('passos', '')}")
 
-if f"missao_{agora_brasil.strftime('%Y-%m-%d')}" not in st.session_state: st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
+if f"missao_{agora_brasil.strftime('%Y-%m-%d')}" not in st.session_state:
+    st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
 
 with col_m2:
-    st.markdown(f"🎯 **Sua Missão de Hoje:** {missoes[dia_do_ano % len(missoes)]}")
+    st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
     if not st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"]:
         if st.button("✅ CONCLUIR MISSÃO DE HOJE", type="primary", use_container_width=True):
             st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = True
-            st.success("🔥 SENSACIONAL! Missão cravada."); st.balloons()
-            if E_O_CEO and 'link_planilha_ativa' in globals() and link_planilha_ativa and robo_sheets:
+            st.success("🔥 SENSACIONAL! Missão cravada. O algoritmo e o seu bolso agradecem!")
+            st.balloons()
+            if E_O_CEO and link_planilha_ativa and robo_sheets:
                 try:
-                    aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).worksheet("Historico_Missoes")
-                    if agora_brasil.strftime("%d/%m/%Y") not in aba.col_values(1): aba.append_row([agora_brasil.strftime("%d/%m/%Y"), "Concluída"])
+                    planilha = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa))
+                    try:
+                        aba_historico = planilha.worksheet("Historico_Missoes")
+                    except gspread.exceptions.WorksheetNotFound:
+                        aba_historico = planilha.add_worksheet(title="Historico_Missoes", rows="1000", cols="2")
+                        aba_historico.append_row(["Data", "Status"])
+                    hoje_str = agora_brasil.strftime("%d/%m/%Y")
+                    if hoje_str not in aba_historico.col_values(1):
+                        aba_historico.append_row([hoje_str, "Concluída"])
                 except Exception: pass
-            time.sleep(2); st.rerun()
-    else: st.success("Missão de Hoje Cumprida! 🦅")
+            time.sleep(2)
+            st.rerun()
+    else:
+        st.success("Missão de Hoje Cumprida! 🦅")
+
+# 🔥 GRÁFICO DE MISSÕES DE 30 DIAS RESTAURADO (VISÍVEL SOMENTE PARA O CEO)
+if E_O_CEO and link_planilha_ativa and robo_sheets:
+    st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
+    try:
+        sheet_id = extrair_id_planilha(link_planilha_ativa)
+        planilha = robo_sheets.open_by_key(sheet_id)
+        try:
+            aba_historico = planilha.worksheet("Historico_Missoes")
+            dados_hist = aba_historico.get_all_records()
+            df_hist = pd.DataFrame(dados_hist)
+        except gspread.exceptions.WorksheetNotFound:
+            df_hist = pd.DataFrame(columns=["Data", "Status"])
+    except Exception:
+        df_hist = pd.DataFrame(columns=["Data", "Status"])
+        
+    if not df_hist.empty and "Data" in df_hist.columns:
+        df_hist["Data_Parsed"] = pd.to_datetime(df_hist["Data"], format="%d/%m/%Y", errors="coerce")
+        hoje_data = pd.Timestamp(agora_brasil.date())
+        limite_30d = hoje_data - timedelta(days=29)
+        
+        df_30d = df_hist[df_hist["Data_Parsed"] >= limite_30d]
+        dias_cumpridos = df_30d["Data"].nunique()
+        taxa_acerto = (dias_cumpridos / 30) * 100
+        
+        dias_lista = pd.date_range(start=limite_30d, end=hoje_data)
+        df_grafico_missoes = pd.DataFrame({"Data_Parsed": dias_lista})
+        df_grafico_missoes["Status_Num"] = df_grafico_missoes["Data_Parsed"].isin(df_30d["Data_Parsed"]).astype(int)
+        df_grafico_missoes["Data_Formatada"] = df_grafico_missoes["Data_Parsed"].dt.strftime("%d/%m")
+        
+        df_plot = df_grafico_missoes.set_index("Data_Formatada")["Status_Num"]
+        
+        col_stat1, col_stat2, col_stat3 = st.columns(3)
+        col_stat1.metric("⚔️ Dias Cumpridos", f"{dias_cumpridos}/30")
+        col_stat2.metric("📈 Taxa de Disciplina", f"{taxa_acerto:.1f}%")
+        
+        if taxa_acerto >= 80:
+            col_stat3.markdown("<h1 style='text-align: center;'>😎🦅</h1>", unsafe_allow_html=True)
+            st.success("STATUS ELITE: Você é uma máquina. Continue empilhando vitórias!")
+        elif taxa_acerto >= 50:
+            col_stat3.markdown("<h1 style='text-align: center;'>😐⚖️</h1>", unsafe_allow_html=True)
+        else:
+            col_stat3.markdown("<h1 style='text-align: center;'>😟📉</h1>", unsafe_allow_html=True)
+            
+        st.bar_chart(df_plot, color="#00E5FF")
+    else:
+        st.info("Nenhum histórico de missões ainda.")
 # ==========================================================
-# 11 a 13. FERRAMENTAS DE CRIAÇÃO E VISÃO (CEO E NOVATOS)
+# 11 a 13. RADAR, ENGENHARIA DE FUNIL (RAIO-X CEO), LABORATÓRIO E ROTEIROS
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
+
+historico_radar = []
+aba_radar = None
+hoje_str_radar = agora_brasil.strftime("%d/%m/%Y")
+
+if E_O_CEO and link_planilha_ativa and robo_sheets:
+    try:
+        planilha = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa))
+        try:
+            aba_radar = planilha.worksheet("Memoria_Radar")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_radar = planilha.add_worksheet(title="Memoria_Radar", rows="1000", cols="2")
+            aba_radar.append_row(["Data", "Conteudo"])
+        historico_radar = aba_radar.get_all_records()
+    except Exception: pass
+
 if st.button("🔍 Buscar Tendência Oculta de Beleza (TikTok Shop)", type="primary", use_container_width=True):
     with st.spinner("Minerando produtos ocultos com a Aurora..."):
         try:
-            res_rad = chamar_ia_global("Recomende 1 produto bombando. Porquê vende? Pitch sensorial de 9s. 3 Palavras-chave. Feche: 'Corre no carrinho!'", "Você é Aurora, especialista fofoqueira em TikTok Shop (Beleza).")
+            res_rad = chamar_ia_global("Recomende 3 produtos de beleza/cabelo com potencial de viralização. Para cada um dê: 1. Nome do Produto, 2. Por que está bombando, 3. Ideia de Roteiro Rápido sensorial (sem falar cura/elimina), 4. 3 Palavras-chave. Feche com: 'Já garanti o meu, corre no carrinho!'", "Você é Aurora, especialista fofoqueira do bem em TikTok Shop (Beleza).")
+            if E_O_CEO and aba_radar is not None:
+                try: aba_radar.append_row([hoje_str_radar, res_rad])
+                except Exception: pass
             st.success("✨ Radar captou sinal!")
             st.markdown(res_rad)
         except Exception: st.error("Erro no Radar.")
 
+# ==========================================================
+# 12. RAIO-X DA OPERAÇÃO / ENGENHARIA DO SEU FUNIL (🔥 RESTAURADO - EXCLUSIVO DO CEO)
+# ==========================================================
+aba_raiox = None
+historico_raiox = []
+
+if E_O_CEO:
+    st.divider()
+    st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧬 Raio-X da Operação (Engenharia do Seu Funil)</h3>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #A0A0A0;'>Envie os prints do Analytics. A IA vai cruzar as imagens com o Feedback dos Clientes para hackear o padrão e criar seu funil.</p>", unsafe_allow_html=True)
+
+    if link_planilha_ativa and robo_sheets:
+        try:
+            sheet_id = extrair_id_planilha(link_planilha_ativa)
+            planilha = robo_sheets.open_by_key(sheet_id)
+            try:
+                aba_raiox = planilha.worksheet("Memoria_RaioX")
+            except gspread.exceptions.WorksheetNotFound:
+                aba_raiox = planilha.add_worksheet(title="Memoria_RaioX", rows="1000", cols="2")
+                aba_raiox.append_row(["Data", "Funil"])
+            historico_raiox = aba_raiox.get_all_records()
+        except Exception:
+            pass
+
+    col_raiox1, col_raiox2 = st.columns([1, 2])
+
+    with col_raiox1:
+        imgs_analytics = st.file_uploader("📸 Prints do Analytics (Máx: 5)", type=["png", "jpg", "jpeg"], accept_multiple_files=True, key="raiox_img_vip")
+        texto_contexto = st.text_area("✍️ Palavras-chave ou Contexto", placeholder="Ex: O vídeo que mais vendeu foi de resenha...")
+        btn_raiox = st.button("💀 Hackear Próprio Funil", type="primary", use_container_width=True)
+        
+        if historico_raiox:
+            st.markdown("### 💾 Ações do Funil")
+            ultimo_funil = historico_raiox[-1]["Funil"]
+            st.download_button(
+                label="📥 Baixar Mapa Mental (.txt)", data=ultimo_funil,
+                file_name=f"Estrategia_Elevo_{agora_brasil.strftime('%Y%m%d')}.txt",
+                mime="text/plain", use_container_width=True
+            )
+            if st.button("🗑️ Apagar Mapa Salvo", use_container_width=True):
+                if aba_raiox is not None:
+                    with st.spinner("A apagar estratégia do banco de dados..."):
+                        aba_raiox.clear()
+                        aba_raiox.append_row(["Data", "Funil"])
+                        st.success("🧹 Memória limpa com sucesso!")
+                        time.sleep(1)
+                        st.rerun()
+
+    with col_raiox2:
+        if btn_raiox:
+            if not texto_contexto and not imgs_analytics:
+                st.warning("⚠️ Forneça pelo menos uma imagem do Analytics ou escreva o contexto para a IA conseguir trabalhar!")
+            elif imgs_analytics and len(imgs_analytics) > 5:
+                st.error("🚨 Limite excedido! Envie no máximo 5 imagens.")
+            else:
+                with st.spinner("A iniciar a Engenharia Reversa com a Visão da OpenAI e Dados de Feedback..."):
+                    try:
+                        sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
+                        
+                        conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
+                        feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
+                        
+                        texto_instrucao = f"Contexto do usuário: {texto_contexto}\n\n"
+                        texto_instrucao += f"DADOS DO LABORATÓRIO (CRUZE ISTO COM AS IMAGENS):\n- Taxa de Conversão: {conversao_atual:.2f}%\n- Mente do Cliente: {feedback_atual}\n\n"
+                        texto_instrucao += "Sua missão: Descubra o padrão de sucesso analisando os dados, a conversão, o feedback e as imagens. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável (Ataque as objeções listadas)\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
+                        
+                        conteudo_prompt = [{"type": "text", "text": texto_instrucao}]
+                        
+                        if imgs_analytics:
+                            for img in imgs_analytics:
+                                img_b64 = base64.b64encode(img.getvalue()).decode('utf-8')
+                                conteudo_prompt.append({
+                                    "type": "image_url",
+                                    "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
+                                })
+                        
+                        response = cliente_openai.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[
+                                {"role": "system", "content": sistema_raiox},
+                                {"role": "user", "content": conteudo_prompt}
+                            ],
+                            max_tokens=1500,
+                            temperature=0.7
+                        )
+                        resposta_raiox = response.choices[0].message.content.replace("*", "").strip()
+                        
+                        if aba_raiox is not None:
+                            aba_raiox.append_row([agora_brasil.strftime("%d/%m/%Y"), resposta_raiox])
+                        
+                        st.success("✅ Raio-X concluído e integrado com o feedback dos clientes!")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"❌ Erro na visão da IA: {e}")
+        else:
+            if historico_raiox:
+                st.info("💡 **Seu Mapa Mental e Funil salvo no sistema:**")
+                st.markdown(historico_raiox[-1]["Funil"])
+            else:
+                st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
+
+# ==========================================================
+# 12.5. LABORATÓRIO DE INSIGHTS E CONVERSÃO (CEO E NOVATOS)
+# ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🔬 Laboratório de Insights e Conversão</h3>", unsafe_allow_html=True)
 c_conv, c_feed = st.columns(2)
 with c_conv:
     with st.container(border=True):
-        st.markdown("<h4 style='color: #00FFFF;'>📈 Simulador de CTR</h4>", unsafe_allow_html=True)
+        st.markdown("<h4 style='color: #00FFFF;'>📈 Simulador de CTR & Escala</h4>", unsafe_allow_html=True)
         vw = st.number_input("👁️ Views", min_value=0, step=100)
         cq = st.number_input("🖱️ Cliques", min_value=0, step=10)
-        vd = st.number_input("🛍️ Vendas", min_value=0, step=1)
+        
+        if E_O_CEO and not df_campeao.empty:
+            vd_padrao = int(df_campeao.iloc[0]["Quantidade"])
+            st.caption(f"🏆 Vendas automáticas do Campeão na Planilha: **{vd_padrao}**")
+        else:
+            vd_padrao = 0
+            
+        vd = st.number_input("🛍️ Vendas", min_value=0, value=vd_padrao, step=1)
         if vw > 0 and cq > 0:
-            st.session_state["ultima_taxa_conversao"] = (vd / cq) * 100
-            st.metric("CTR", f"{(cq / vw) * 100:.2f}%")
-            st.metric("Conversão", f"{st.session_state['ultima_taxa_conversao']:.2f}%")
+            taxa_clique = (cq / vw) * 100
+            taxa_conversao = (vd / cq) * 100
+            st.session_state["ultima_taxa_conversao"] = taxa_conversao
+            col_met1, col_met2 = st.columns(2)
+            col_met1.metric("CTR", f"{taxa_clique:.2f}%")
+            col_met2.metric("Conversão", f"{taxa_conversao:.2f}%")
+            if taxa_conversao >= 2.0:
+                st.success("🔥 Conversão Nível Elite! O teu funil está perfeito. Impulsiona isso urgente!")
+            elif taxa_conversao >= 0.5:
+                st.warning("⚖️ Conversão Média. O produto atrai, mas há atrito no preço ou na página.")
+            else:
+                st.error("🚨 Conversão Baixa. Muito clique e pouca venda. A promessa do vídeo não bate com o produto.")
+
 with c_feed:
     with st.container(border=True):
         st.markdown("<h4 style='color: #00FFFF;'>🗣️ Mente do Cliente</h4>", unsafe_allow_html=True)
@@ -786,18 +1001,36 @@ with c_feed:
         if st.button("🧠 Hackear Sentimento", use_container_width=True):
             if txt_cmt:
                 with st.spinner("Analisando dor..."):
-                    res_fd = chamar_ia_global(f"Prod: {pd_alvo}. Coment: {txt_cmt}. Dê: MAIOR DESEJO, PRINCIPAL OBJEÇÃO e GANCHO MATADOR (1 linha cada).", "Analista Comportamental TikTok")
+                    res_fd = chamar_ia_global(f"Prod: {pd_alvo}. Coment: {txt_cmt}. Analise e retorne EXATAMENTE neste formato:\n🔥 MAIOR DESEJO: [1 frase]\n🚧 PRINCIPAL OBJEÇÃO: [1 frase]\n💡 GANCHO MATADOR: [1 frase]", "Analista Comportamental TikTok")
                     st.session_state["ultimo_feedback_analisado"] = res_fd
                     st.success("Hackeado!")
             else: st.warning("Cole os comentários.")
         if "ultimo_feedback_analisado" in st.session_state: st.markdown(st.session_state["ultimo_feedback_analisado"])
 
+# ==========================================================
+# 13. MÁQUINA DE ROTEIROS 9s (TRÍADE DE ESCALA 360º)
+# ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros (Geração via Texto)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
 if st.button("⚡ GERAR 3 ROTEIROS DE 9s (Estratégia)", type="primary", use_container_width=True):
-    with st.spinner("Forjando roteiros de elite..."):
+    with st.spinner("Forjando roteiros de elite cruzando Funil, Tendências e Objeções..."):
+        alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Produto principal"
+        vendas_atuais = f"R$ {aprovado:,.2f}"
+        tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência."
+        ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco na curiosidade."
         fd = st.session_state.get("ultimo_feedback_analisado", "Dores capilares.")
-        st.markdown(chamar_ia_global(f"Crie 3 roteiros TikTok de 9s. Público: Feminino Buscadora de Atalhos. Produto principal. Objeção para usar no roteiro 3: {fd}. PROIBIDO falar de cura e milagre. Tom: Amiga fofoqueira (Aurora).", "Copywriter TikTok Shop"))
+        
+        prompt_rot_9s = f"""
+        Crie 3 roteiros TikTok de EXATOS 9 SEGUNDOS para vender [{alvo_campeao}]. Público: Feminino Buscadora de Atalhos.
+        Dados da Operação: Faturamento {vendas_atuais} | Tendência: {tendencia_aurora} | Funil Validado: {ultimo_funil_texto} | Missão: {missao_hoje}.
+        Objeção Real dos Clientes para quebrar no Roteiro 3: {fd}.
+        PROIBIDO falar de cura, elimina, milagre. Tom: Amiga fofoqueira do bem (Aurora).
+        ROTEIRO 1: O Choque / Escassez
+        ROTEIRO 2: O Segredo Revelado
+        ROTEIRO 3: A Quebra de Objeção (Baseado na Mente do Cliente)
+        Separe [AÇÃO NA TELA] de [VOZ DA AURORA].
+        """
+        st.markdown(chamar_ia_global(prompt_rot_9s, "Copywriter de Elite TikTok Shop"))
 
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
