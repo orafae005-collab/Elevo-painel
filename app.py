@@ -175,60 +175,108 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # ==========================================================
-# 2. DESIGN E TEMA DINÂMICO (🔥 V6.1 - ZERO QUADROS BRANCOS)
+# 2. DESIGN E TEMA DINÂMICO (🔥 V7.0 - LUXURY DUAL THEME: OBSIDIAN & PEARL)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
 with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False)
 
-bg_color = "#F4F4F9" if modo_claro else "#0E1117"
-text_color = "#222222" if modo_claro else "#F0F0F0"
-card_bg = "#FFFFFF" if modo_claro else "rgba(25, 27, 31, 0.85)"
-border_color = "rgba(0, 0, 0, 0.15)" if modo_claro else "rgba(212, 175, 55, 0.25)"
-btn_bg = "#F9F9F9" if modo_claro else "#1A1C20"
-btn_text = "#222222" if modo_claro else "#E0E0E0"
-input_bg = "#FFFFFF" if modo_claro else "#121519"
-code_bg = "#EAEAEA" if modo_claro else "#121519"
-code_text = "#111111" if modo_claro else "#00E5FF"
-shadow_base = "rgba(0, 0, 0, 0.05)" if modo_claro else "rgba(0, 0, 0, 0.4)"
+if modo_claro:
+    # ☀️ TEMA PEARL & ROYAL GOLD (MODO CLARO DE ELITE)
+    bg_color = "linear-gradient(180deg, #F8FAFC 0%, #EFF4F8 100%)"
+    bg_solid = "#F4F6F9"
+    text_color = "#1E293B"
+    subtext_color = "#475569"
+    card_bg = "rgba(255, 255, 255, 0.96)"
+    border_color = "rgba(184, 134, 11, 0.25)"
+    btn_bg = "#FFFFFF"
+    btn_text = "#1E293B"
+    input_bg = "#FFFFFF"
+    code_bg = "#F1F5F9"
+    code_text = "#0F172A"
+    shadow_base = "0 10px 25px -5px rgba(15, 23, 42, 0.06), 0 4px 10px -2px rgba(15, 23, 42, 0.04)"
+    accent_primary = "#00897B"
+    accent_gold = "#9A6F00"
+else:
+    # 🌙 TEMA OBSIDIAN & NEON CYAN (MODO ESCURO VIP)
+    bg_color = "radial-gradient(circle at 50% 0%, #161B26 0%, #0B0E14 100%)"
+    bg_solid = "#0B0E14"
+    text_color = "#F1F5F9"
+    subtext_color = "#94A3B8"
+    card_bg = "rgba(20, 24, 33, 0.85)"
+    border_color = "rgba(212, 175, 55, 0.22)"
+    btn_bg = "#161B24"
+    btn_text = "#E2E8F0"
+    input_bg = "#0F131A"
+    code_bg = "#0B0E14"
+    code_text = "#00E5FF"
+    shadow_base = "0 12px 30px -5px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4)"
+    accent_primary = "#00BFA5"
+    accent_gold = "#D4AF37"
+
+# Regra extra que corrige cores neon soltas quando o Modo Claro é ativado
+ajuste_modo_claro_css = """
+    /* No Modo Claro, transforma Ciano Neon e Dourado Claro em tons fortes e elegantes */
+    [style*="#00FFFF"], [style*="#00E5FF"] { color: #006978 !important; }
+    [style*="#D4AF37"] { color: #9A6F00 !important; }
+    [style*="#A0A0A0"] { color: #475569 !important; }
+""" if modo_claro else ""
 
 st.markdown(f"""
 <style>
-    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;800&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800;900&display=swap');
     html, body, [class*="css"] {{ font-family: 'Montserrat', sans-serif !important; }}
-    [data-testid="stAppViewContainer"] {{ background-color: {bg_color} !important; }}
+    [data-testid="stAppViewContainer"] {{ background: {bg_color} !important; background-color: {bg_solid} !important; }}
     [data-testid="stSidebar"], [data-testid="stHeader"], [data-testid="collapsedControl"], footer {{ display: none !important; }}
     
-    /* Textos Gerais com Contraste Forte */
+    /* Textos Gerais com Contraste Perfeito */
     h1, h2, h3, h4, h5, h6, p, label, li {{ color: {text_color} !important; }}
     [data-testid="stMarkdownContainer"] span {{ color: {text_color} !important; }}
+    [data-testid="stCaptionContainer"] p {{ color: {subtext_color} !important; }}
     
-    .titulo-elevo {{ font-size: 3.2rem; font-weight: 800; text-align: center; color: #00BFA5 !important; margin-bottom: -10px; letter-spacing: 3px; text-transform: uppercase; margin-top: 5px; }}
-    .subtitulo {{ text-align: center; font-size: 0.95rem; margin-bottom: 30px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase; color: {text_color} !important; opacity: 0.7; }}
+    /* Título Principal ÉLÉVO com Gradiente Metálico */
+    .titulo-elevo {{ 
+        font-size: 3.4rem; font-weight: 900; text-align: center; 
+        background: linear-gradient(135deg, {accent_primary} 0%, {accent_gold} 100%);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        margin-bottom: -10px; letter-spacing: 4px; text-transform: uppercase; margin-top: 5px; 
+        filter: drop-shadow(0px 4px 12px rgba(0, 191, 165, 0.15));
+    }}
+    .subtitulo {{ 
+        text-align: center; font-size: 0.9rem; margin-bottom: 30px; font-weight: 600; 
+        letter-spacing: 2px; text-transform: uppercase; color: {subtext_color} !important; 
+    }}
     
-    /* Cards, Containers e Expanders */
+    /* Cards, Containers e Expanders com Efeito Glassmorphism */
     [data-testid="stMetric"], 
     div[data-testid="stVerticalBlock"] > div > div[data-testid="stVerticalBlockBorderWrapper"],
     [data-testid="stExpander"],
     [data-testid="stForm"] {{ 
         background: {card_bg} !important; 
+        backdrop-filter: blur(12px) !important;
+        -webkit-backdrop-filter: blur(12px) !important;
         border: 1px solid {border_color} !important; 
-        border-radius: 12px !important; 
-        box-shadow: 0 4px 10px {shadow_base} !important; 
+        border-radius: 16px !important; 
+        box-shadow: {shadow_base} !important; 
+        transition: all 0.25s ease !important;
+    }}
+    [data-testid="stMetricValue"] div {{
+        color: {accent_gold} !important;
+        font-weight: 800 !important;
     }}
     [data-testid="stExpander"] summary, [data-testid="stExpander"] div {{
         background-color: transparent !important;
         color: {text_color} !important;
     }}
 
-    /* 🔥 ANIQUILAR QUADROS BRANCOS NOS BLOCOS DE CÓDIGO (st.code) EM TODA A PLATAFORMA 🔥 */
+    /* Blocos de Código (st.code) Elegantes nos Dois Modos */
     [data-testid="stCodeBlock"], [data-testid="stCode"], pre, code {{
         background-color: {code_bg} !important;
         border: 1px solid {border_color} !important;
-        border-radius: 10px !important;
+        border-radius: 12px !important;
     }}
     [data-testid="stCodeBlock"] pre, [data-testid="stCode"] pre, pre code {{
         background-color: transparent !important;
-        color: {text_color} !important;
+        color: {code_text} !important;
         font-family: 'Montserrat', monospace !important;
         font-weight: 500 !important;
         white-space: pre-wrap !important;
@@ -238,38 +286,39 @@ st.markdown(f"""
         color: {text_color} !important;
         background-color: transparent !important;
     }}
-    /* Botão de Copiar dentro das caixas de código */
     [data-testid="stCodeBlock"] button, [data-testid="stCode"] button, [data-testid="stCopyButton"] {{
         background-color: {btn_bg} !important;
-        color: #D4AF37 !important;
-        border: 1px solid rgba(212, 175, 55, 0.5) !important;
-        border-radius: 6px !important;
+        color: {accent_gold} !important;
+        border: 1px solid {border_color} !important;
+        border-radius: 8px !important;
         opacity: 1 !important;
     }}
-    [data-testid="stCodeBlock"] button:hover, [data-testid="stCode"] button:hover {{
-        border-color: #00E5FF !important;
-        color: #00E5FF !important;
-    }}
 
-    /* Botões Gerais */
+    /* Botões Gerais VIP */
     .stButton > button, [data-testid="stFormSubmitButton"] > button {{ 
         background: {btn_bg} !important; 
         color: {btn_text} !important; 
         border: 1px solid {border_color} !important; 
-        border-radius: 8px !important; 
-        box-shadow: 0 2px 5px {shadow_base} !important; 
+        border-radius: 10px !important; 
+        box-shadow: {shadow_base} !important; 
         font-weight: 600 !important; 
-        transition: all 0.3s ease !important; 
+        padding: 0.55rem 1.2rem !important;
+        transition: all 0.25s ease !important; 
     }}
-    .stButton > button:hover {{ transform: translateY(-2px); box-shadow: 0 6px 12px {shadow_base} !important; border-color: #D4AF37 !important; color: #D4AF37 !important; }}
+    .stButton > button:hover {{ 
+        transform: translateY(-2px); 
+        border-color: {accent_gold} !important; 
+        color: {accent_gold} !important; 
+    }}
     .stButton > button[kind="primary"], [data-testid="stFormSubmitButton"] > button[kind="primary"] {{ 
-        background: #004D40 !important; 
+        background: linear-gradient(135deg, #004D40 0%, #00796B 100%) !important; 
         color: #FFFFFF !important; 
         border: 1px solid #00BFA5 !important; 
+        box-shadow: 0 4px 15px rgba(0, 191, 165, 0.25) !important;
     }}
     .stButton > button[kind="primary"]:hover, [data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {{ 
-        background: #00695C !important; 
-        box-shadow: 0 6px 15px rgba(0, 191, 165, 0.4) !important; 
+        background: linear-gradient(135deg, #00695C 0%, #009688 100%) !important; 
+        box-shadow: 0 6px 20px rgba(0, 191, 165, 0.4) !important; 
         border-color: #00E5FF !important; 
         color: #FFFFFF !important; 
     }}
@@ -284,42 +333,36 @@ st.markdown(f"""
         border: 1px solid {border_color} !important; 
         color: {text_color} !important; 
         -webkit-text-fill-color: {text_color} !important;
-        border-radius: 8px !important; 
+        border-radius: 10px !important; 
     }}
-    /* Lista suspensa quando clica no Selectbox */
     ul[data-baseweb="menu"], div[data-baseweb="popover"] > div {{
         background-color: {input_bg} !important;
         color: {text_color} !important;
-        border: 1px solid #D4AF37 !important;
+        border: 1px solid {accent_gold} !important;
     }}
-    li[role="option"] {{
-        background-color: {input_bg} !important;
-        color: {text_color} !important;
-    }}
+    li[role="option"] {{ background-color: {input_bg} !important; color: {text_color} !important; }}
     li[role="option"]:hover, li[aria-selected="true"] {{
-        background-color: rgba(212, 175, 55, 0.2) !important;
-        color: #D4AF37 !important;
+        background-color: rgba(212, 175, 55, 0.18) !important;
+        color: {accent_gold} !important;
     }}
-
-    /* Botões + e - do Number Input */
     [data-testid="stNumberInputStepDown"], [data-testid="stNumberInputStepUp"] {{
         background-color: {btn_bg} !important;
         color: {text_color} !important;
         border-color: {border_color} !important;
     }}
-
     div[data-baseweb="input"] > div:focus-within, div[data-baseweb="textarea"]:focus-within, div[data-baseweb="select"] > div:focus-within {{ 
-        border-color: #D4AF37 !important; 
-        box-shadow: 0 0 8px rgba(212, 175, 55, 0.2) !important; 
+        border-color: {accent_gold} !important; 
+        box-shadow: 0 0 10px rgba(212, 175, 55, 0.25) !important; 
     }}
     
     /* Uploader de Arquivos */
     [data-testid="stFileUploader"] > div > section, [data-testid="stFileUploadDropzone"] {{ background-color: {input_bg} !important; }}
-    [data-testid="stFileUploadDropzone"] {{ border: 1px dashed rgba(212, 175, 55, 0.5) !important; border-radius: 12px !important; padding: 20px !important; transition: all 0.3s ease !important; }}
-    [data-testid="stFileUploadDropzone"]:hover {{ border-color: #D4AF37 !important; background-color: rgba(212, 175, 55, 0.08) !important; }}
+    [data-testid="stFileUploadDropzone"] {{ border: 1.5px dashed {border_color} !important; border-radius: 14px !important; padding: 22px !important; transition: all 0.3s ease !important; }}
+    [data-testid="stFileUploadDropzone"]:hover {{ border-color: {accent_gold} !important; background-color: rgba(212, 175, 55, 0.06) !important; }}
     [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{ color: {text_color} !important; background-color: transparent !important; }}
-    [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid rgba(212, 175, 55, 0.3) !important; border-radius: 8px !important; font-weight: 500 !important; }}
-    [data-testid="stFileUploadDropzone"] button:hover {{ border-color: #D4AF37 !important; color: #D4AF37 !important; }}
+    [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; font-weight: 600 !important; }}
+    
+    {ajuste_modo_claro_css}
 </style>
 """, unsafe_allow_html=True)
 
@@ -330,7 +373,7 @@ js_moeda = """
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
         btn.innerHTML = "🦅";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: #1a1c20; width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00BFA5; box-shadow: 0px 4px 10px rgba(0,0,0,0.5); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
+        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #D4AF37; box-shadow: 0px 4px 15px rgba(212,175,55,0.35); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
         function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
@@ -677,24 +720,49 @@ if E_O_CEO and link_planilha_ativa:
                 if str(col_dt[i-1]).strip() == hj_str: aba.delete_rows(i); time.sleep(0.4)
             carregar_dados_dinamicos.clear(); st.rerun()
 
-    # Termômetro do Coração da Empresa (Bloco 14 integrado)
+    # 🔥 TERMÔMETRO DO CORAÇÃO DA EMPRESA CAMALEÃO (DIA & NOITE LUXURY)
     if not df.empty and "Data_Parsed" in df.columns:
         agora_brasil = datetime.utcnow() - timedelta(hours=3)
         hoje = pd.Timestamp(agora_brasil.date())
         rev_7d = df[(df["Data_Parsed"] >= (hoje - timedelta(days=7))) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
         rev_p_7d = df[(df["Data_Parsed"] >= (hoje - timedelta(days=14))) & (df["Data_Parsed"] < (hoje - timedelta(days=7))) & (df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False))]["Comissao_R$"].sum()
         crescimento = ((rev_7d - rev_p_7d) / rev_p_7d * 100) if rev_p_7d > 0 else (100.0 if rev_7d > 0 else 0.0)
-        if crescimento > 5: cor_anim, sombra_anim, nota_empresa, simbolo = "#00FF7F", "rgba(0, 255, 127, 0.4)", "A+", "🚀 ESCALANDO"
-        elif crescimento < -5: cor_anim, sombra_anim, nota_empresa, simbolo = "#FF0040", "rgba(255, 0, 64, 0.4)", "C-", "🚨 QUEDA"
-        else: cor_anim, sombra_anim, nota_empresa, simbolo = "#FFD700", "rgba(212, 175, 55, 0.4)", "B", "⚖️ ESTÁVEL"
+        
+        if crescimento > 5:
+            nota_empresa, simbolo = "A+", "🚀 ESCALANDO"
+            if modo_claro:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#059669", "linear-gradient(145deg, #FFFFFF 0%, #ECFDF5 100%)", "rgba(5, 150, 105, 0.22)", "#0F172A", "#475569"
+            else:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#00FF9D", "linear-gradient(145deg, rgba(16, 22, 30, 0.95) 0%, rgba(6, 40, 30, 0.88) 100%)", "rgba(0, 255, 157, 0.3)", "#FFFFFF", "#94A3B8"
+        elif crescimento < -5:
+            nota_empresa, simbolo = "C-", "🚨 QUEDA"
+            if modo_claro:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#DC2626", "linear-gradient(145deg, #FFFFFF 0%, #FEF2F2 100%)", "rgba(220, 38, 38, 0.22)", "#0F172A", "#475569"
+            else:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#FF2E54", "linear-gradient(145deg, rgba(16, 22, 30, 0.95) 0%, rgba(45, 12, 20, 0.88) 100%)", "rgba(255, 46, 84, 0.3)", "#FFFFFF", "#94A3B8"
+        else:
+            nota_empresa, simbolo = "B", "⚖️ ESTÁVEL"
+            if modo_claro:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#B45309", "linear-gradient(145deg, #FFFFFF 0%, #FFFBEB 100%)", "rgba(180, 83, 9, 0.22)", "#0F172A", "#475569"
+            else:
+                cor_anim, bg_coracao, sombra_anim, txt_meio, txt_sub = "#FFD700", "linear-gradient(145deg, rgba(16, 22, 30, 0.95) 0%, rgba(40, 32, 10, 0.88) 100%)", "rgba(255, 215, 0, 0.28)", "#FFFFFF", "#94A3B8"
+
         st.markdown(f"""
-        <div style="background: rgba(15,15,15,0.8); backdrop-filter: blur(10px); border: 2px solid {cor_anim}; border-radius: 16px; padding: 15px 20px; text-align: center; box-shadow: 0 0 15px {sombra_anim}; animation: pulse-cor 2s infinite ease-in-out; margin: 10px auto; max-width: 400px;">
-            <h2 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-weight: 900; letter-spacing: 1px; margin: 0; font-size: 1rem;">STATUS DA OPERAÇÃO</h2>
-            <h1 style="color: {cor_anim}; font-family: 'Montserrat', sans-serif; font-size: 2.5rem; font-weight: 900; margin: 5px 0; text-shadow: 0px 0px 10px {sombra_anim};">NOTA {nota_empresa}</h1>
-            <h3 style="color: #FFFFFF; font-family: 'Montserrat', sans-serif; font-weight: 600; margin: 5px 0; font-size: 1rem;">{simbolo} | {crescimento:+.1f}%</h3>
-            <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 0.75rem; margin-bottom: 0;">Comparativo 7d vs semana anterior.</p>
+        <div style="background: {bg_coracao}; backdrop-filter: blur(14px); border: 2px solid {cor_anim}; border-radius: 20px; padding: 20px 24px; text-align: center; box-shadow: 0 8px 25px {sombra_anim}; animation: pulse-cor 2.5s infinite ease-in-out; margin: 15px auto; max-width: 420px;">
+            <div style="display: inline-block; padding: 4px 12px; border-radius: 50px; background: rgba(128,128,128,0.1); margin-bottom: 6px;">
+                <span style="color: {cor_anim} !important; font-family: 'Montserrat', sans-serif; font-weight: 800; letter-spacing: 2px; font-size: 0.75rem;">⚡ STATUS DA OPERAÇÃO</span>
+            </div>
+            <h1 style="color: {cor_anim} !important; font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900; margin: 4px 0; text-shadow: 0px 2px 12px {sombra_anim};">NOTA {nota_empresa}</h1>
+            <h3 style="color: {txt_meio} !important; font-family: 'Montserrat', sans-serif; font-weight: 700; margin: 6px 0; font-size: 1.05rem;">{simbolo} &bull; {crescimento:+.1f}%</h3>
+            <p style="color: {txt_sub} !important; font-family: 'Montserrat', sans-serif; font-size: 0.78rem; margin-bottom: 0; font-weight: 500;">Comparativo de lucro (7 dias vs. semana anterior)</p>
         </div>
-        <style>@keyframes pulse-cor {{ 0% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }} 50% {{ box-shadow: 0 0 20px {cor_anim}; transform: scale(1.02); }} 100% {{ box-shadow: 0 0 5px {sombra_anim}; transform: scale(1); }} }}</style>
+        <style>
+            @keyframes pulse-cor {{ 
+                0% {{ box-shadow: 0 4px 15px {sombra_anim}; transform: scale(1); }} 
+                50% {{ box-shadow: 0 8px 28px {sombra_anim}; transform: scale(1.015); }} 
+                100% {{ box-shadow: 0 4px 15px {sombra_anim}; transform: scale(1); }} 
+            }}
+        </style>
         """, unsafe_allow_html=True)
 # ==========================================================
 # 10. MOTOR DE ELITE (DISCIPLINA + GRÁFICO DE MISSÕES EXCLUSIVO CEO)
