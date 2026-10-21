@@ -1388,7 +1388,7 @@ if E_O_CEO:
                         except Exception: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + DENSIDADE MÁXIMA DINÂMICA)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / TODOS OS MANUAIS - V31.1 + ANTI-BLOQUEIO OPENAI)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 - Ultimate Edition)</h3>", unsafe_allow_html=True)
@@ -1589,7 +1589,7 @@ if inf_salva and inf_salva.get("Descricao_Visual"):
     eh_customizada = True
 else:
     nome_inf_ativa = "Aurora"
-    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair)"
+    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, expressive friendly conspiracy look, incredibly shiny and healthy-looking hair)"
     eh_customizada = False
 
 pode_gerar_roteiro = True
@@ -1691,69 +1691,60 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
+            # Prompt estruturado como Direção de Arte Publicitária para evitar falsos bloqueios da OpenAI
             instrucao_ouro = """
-            Você é o Diretor de Criação de Elite. Não poupe palavras nem tokens. NUNCA resuma ou encurte descrições.
-            Analise a imagem enviada para identificar exatamente o produto, categoria (cosmético, roupa, acessório, eletrônico, kit, etc.), marca, volume/tamanho e quantidade de itens.
-            
-            === 📖 REGRAS DE OURO: DENSIDADE MÍNIMA (SEM TETO MÁXIMO) E CRIATIVIDADE AUTOMÁTICA ===
-            1. PISO MÍNIMO DE CARACTERES (SEM LIMITE MÁXIMO):
-            - O '### 📸 PROMPT DE IMAGEM' DEVE ter NO MÍNIMO 1.200 caracteres (podendo passar de 1.800+ caracteres livremente). É TERMINANTEMENTE PROIBIDO gerar um prompt curto mostrando apenas o produto sozinho. A Influencer DEVE aparecer segurando o produto com descrição anatômica e facial completa (poros, peach fuzz, iluminação natural, microfone de lapela na gola, cenário detalhado em profundidade, objetos de baguncinha orgânica e mascote ao fundo).
-            - O '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO' DEVE ter NO MÍNIMO 2.000 caracteres (sem teto máximo, escreva o mais detalhado e rico possível).
-            
-            2. CRIATIVIDADE DINÂMICA AUTOMÁTICA (NUNCA COPIE O MESMO AMBIENTE OU ROTEIRO DO EXEMPLO):
-            - O exemplo abaixo serve APENAS como referência de tamanho, estrutura e nível de detalhe hiper-realista.
-            - A cada geração, você DEVE INVENTAR E VARIAR AUTOMATICAMENTE o ambiente (sorteie da lista de 22 ambientes ou crie novos ambientes brasileiros autênticos, aconchegantes e inéditos), varie a iluminação, mude os objetos da baguncinha orgânica, mude o mascote ao fundo, crie um novo ângulo/gancho de câmera e desenvolva uma nova estratégia persuasiva de fala focada na dor específica do produto da foto!
-            
-            3. CADEADO DE ESCALA IDÊNTICA IMAGEM = VÍDEO (1:1 REAL-WORLD SCALE):
-            - O bloco [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] deve ser incluído TANTO no PROMPT DE IMAGEM quanto no Shot 1 e Shot 2 do PROMPT DE VÍDEO, adaptado ao tamanho real do produto (ex: 400g, 250ml, kit, peça de roupa), garantindo proporção perfeita na mão humana (sem ficar gigante e sem encolher).
-            
-            4. SEGURANÇA E PRISTINE CANVAS LOCK:
-            - Zero menção a preços/valores. Use o gatilho de Lote Secreto / Escassez.
-            - Mantenha obrigatoriamente o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS] no vídeo.
-            
-            [INSPIRAÇÕES DE AMBIENTES V9.2 (SORTEIE OU CRIE NOVOS CENÁRIOS RICOS A CADA GERAÇÃO)]
-            Varanda Tropical, Banheiro Rústico com Vapor, Quarto Minimalista Morning Glow, Cozinha Rústica Orgânica, Varanda Coastal Vibe, Escritório Criativo, Quintal Arborizado, Sala de Estar Entardecer, Banheiro Mármore Clean, Área Gourmet, Varanda com Garoa, Quarto Boho com Macramê, Terraço Urbano, Cantinho de Leitura, Cozinha Americana, Jardim Vertical Interno, Casa de Campo, Ateliê Iluminado, Closet Moderno Organizado, Lavabo de Luxo, Estúdio Fotográfico Caseiro, Pátio Ensolarado.
+            Atue como um Diretor de Arte e Roteirista Publicitário de UGC para e-commerce.
+            Sua tarefa é ler o rótulo/produto da imagem anexada e redigir uma ficha técnica criativa em Markdown contendo 3 seções detalhadas: Prompt Fotográfico, Prompt Cinematográfico de Vídeo e Títulos de Busca.
 
-            === INÍCIO DA REFERÊNCIA ESTRUTURAL E DE DENSIDADE (MUDE O AMBIENTE, O GANCHO E A ESTRATÉGIA!) ===
+            DIRETRIZES CRIATIVAS E DE EXTENSÃO (SEM TETO MÁXIMO):
+            1. EXTENSÃO RICA:
+            - A seção '### 📸 PROMPT DE IMAGEM' deve ser longa e descritiva (mínimo de 1.200 caracteres, sem limite máximo), descrevendo sempre a apresentadora segurando o produto em um cenário brasileiro inédito e rico em detalhes.
+            - A seção '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO' deve ser extensa e completa (mínimo de 2.000 caracteres, sem limite máximo).
+            
+            2. VARIAÇÃO AUTOMÁTICA DE CENÁRIO E ESTRATÉGIA:
+            - Nunca repita o mesmo cenário do exemplo. A cada geração, sorteie ou crie um ambiente inédito (ex: Varanda Tropical Ensolarada, Quarto Boho com luz da manhã, Sala de Estar Aconchegante com plantas, Cozinha Rústica Iluminada, Closet Organizado, Cantinho de Leitura, Jardim de Inverno, etc.), variando também os objetos de decoração cotidiana e o animal de estimação descansando ao fundo (ex: vira-lata caramelo, gato persa, calopsita, etc.).
+            - Crie um gancho visual novo e uma fala persuasiva original em português focada nos benefícios reais do produto da foto, usando o gatilho de "lote secreto liberado na vitrine" e zero menção a preços ou valores numéricos.
+
+            3. PROPORÇÃO REALISTA 1:1 (IMAGEM E VÍDEO):
+            - Inclua a nota técnica de proporção `[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...]` ajustada ao tamanho real do produto (ex: 400g, 250ml, kit, vestuário) tanto no Prompt de Imagem quanto no Shot 1 e Shot 2 do Vídeo, garantindo que a embalagem tenha seu tamanho comercial exato na mão da apresentadora (sem aumentar e sem diminuir).
+
+            MODELO DE ESTRUTURA A SEGUIR (ADAPTE COM CENÁRIO INÉDITO E DADOS DO PRODUTO DA FOTO):
+
             ### 📸 PROMPT DE IMAGEM
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a [INSIRA AQUI UM AMBIENTE INÉDITO ULTRA-DETALHADO COM MAIS DE 400 CARACTERES DESCREVENDO ARQUITETURA, TEXTURAS, PLANTAS, LUZ NATURAL, OBJETOS DE BAGUNCINHA ORGÂNICA E UM MASCOTE REALISTA NO FUNDO]. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize, and DO NOT shrink]. She is firmly holding the EXACT "[NOME E TAMANHO DO PRODUTO DA FOTO]" matching reference image, with her fingers naturally wrapping around its authentic retail circumference (if it is a kit with multiple items, she holds one firmly in hand while the other identical item(s) rest clearly visible on the surface right next to her). Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [DESCREVA AQUI EM INGLÊS UM NOVO CENÁRIO BRASILEIRO HIPER-DETALHADO COM MAIS DE 450 CARACTERES, INCLUINDO ILUMINAÇÃO NATURAL, PLANTAS, TEXTURAS, OBJETOS COTIDIANOS E UM ANIMAL DE ESTIMAÇÃO AO FUNDO]. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize, and DO NOT shrink]. She is firmly holding the EXACT "[NOME DO PRODUTO IDENTIFICADO NA FOTO]" matching reference image, with her fingers naturally wrapping around its authentic retail circumference (if it is a kit with multiple units, she holds one unit in hand while the other unit rests clearly visible on the surface next to her). Unfiltered UGC vlog style, 8k resolution.
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement with organic handheld shake. [DESCREVA UM MOVIMENTO DE CÂMERA E GANCHO VISUAL INÉDITO E DINÂMICO FOCANDO NO PRODUTO]. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference product: [NOME DO PRODUTO] matching reference image. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand, maintaining the exact same 1:1 physical volume from the reference image. Absolutely DO NOT oversize, and strictly DO NOT shrink]. The item remains perfectly solid with micro-reflections bouncing off the surface as natural light hits it. SINGLE MOTION TRICK: [DESCREVA UMA INTERAÇÃO TÁTIL REALISTA COM OS DEDOS NO PRODUTO]. NO pixel melting, NO size morphing.]
-            Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, [REPITA OS DETALHES RICOS DO AMBIENTE SORTEADO E DO MASCOTE AO FUNDO]). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning while holding the product at its exact 1:1 real-world commercial size.]
-            Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Shot 1 (Macro Hook & Physics): [POV dynamic handheld mobile video, authentic UGC aesthetic. Dynamic spatial movement with natural handheld motion. The camera smoothly tilts up from a surface where the product rests. Starts with a fast Macro Zoom In exclusively on the EXACT reference product: [NOME DO PRODUTO] matching reference image. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand, maintaining the exact same 1:1 physical volume from the reference image. Absolutely DO NOT oversize, and strictly DO NOT shrink]. The item remains perfectly solid with micro-reflections bouncing off the surface as natural light hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it. NO pixel melting, NO size morphing.]
+            Shot 2 (Whip Pan & Visceral Emotion): [0:03: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, [DESCREVA OS DETALHES DO CENÁRIO SORTEADO E O MASCOTE AO FUNDO]). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), speaking with enthusiastic urgency and expressive eyes while holding the product at its exact 1:1 real-world commercial size.]
+            Interaction (3D CTA): [She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
             🎙️ Áudio e Fala da Aurora (Português — 100% Blindada Contra o Robô):
-            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product interaction). Authentic room acoustics with subtle background ambient tones. Urgent, breathless, conspiratorial voice, speaking as if revealing a highly guarded secret].
+            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da Aurora:
-            "[CRIE UMA FALA INÉDITA, VISCERAL E ALTAMENTE PERSUASIVA DE 40 A 48 PALAVRAS ATACANDO UMA DOR FORTE DO PRODUTO E FECHANDO COM ESCASSEZ DO LOTE SECRETO E SACOLINHA, ZERO PREÇO]"
+            "[ESCREVA UMA FALA ORIGINAL E PERSUASIVA DE 40 A 48 PALAVRAS SOBRE O PRODUTO DA IMAGEM, FOCADA NA DOR QUE ELE RESOLVE E FECHANDO COM O LOTE SECRETO NA SACOLINHA, SEM CITAR PREÇOS]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
-            ⚠️ [DOR IMPACTANTE EM CAIXA ALTA]? 🛑
-            ✨ [BENEFÍCIO PRINCIPAL DE TRANSFORMAÇÃO]
+            ⚠️ [FRASE CURTA DE IMPACTO SOBRE O PROBLEMA]? 🛑
+            ✨ [BENEFÍCIO PRINCIPAL DO PRODUTO]
             🛒 LOTE SECRETO LIBERADO 👇
 
             ### 🔑 TÍTULOS SEO (Separados)
-            **🔍 Geral (Dor):** [Título focado na dor/solução buscada]
-            **💡 Solução (Produto):** [Nome completo do produto + tamanho]
-            **🏷️ Marca (Resenha):** [Marca + produto + vale a pena resenha]
-            === FIM DA REFERÊNCIA ===
+            **🔍 Geral (Dor):** [Título focado na solução do problema]
+            **💡 Solução (Produto):** [Nome completo do produto e volume]
+            **🏷️ Marca (Resenha):** [Marca e nome do produto resenha]
             """
             
             complemento_dinamico_usuario = ""
             if eh_customizada:
                 complemento_dinamico_usuario += f"""
-                \n=== 👤 SUBSTITUIÇÃO OBRIGATÓRIA DE INFLUENCER ===
-                O usuário logado configurou a sua própria Influencer personalizada:
-                - Nome da Influencer: {nome_inf_ativa}
-                - Descrição Visual da Influencer: {desc_inf_ativa}
-                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola e o cadeado de escala 1:1). Na seção de fala em português, use 'Fala da {nome_inf_ativa}:'.
+                \nNOTA DE ELENCO: Substitua a descrição física da apresentadora Aurora no Prompt de Imagem e no Prompt de Vídeo por esta apresentadora:
+                - Nome: {nome_inf_ativa}
+                - Características físicas (traduza detalhadamente para o inglês): {desc_inf_ativa}
+                Mantenha o microfone de lapela na gola e use 'Fala da {nome_inf_ativa}:' na seção de áudio.
                 """
             
             if explicacao_video_usuario and explicacao_video_usuario.strip():
                 complemento_dinamico_usuario += f"""
-                \n=== 📝 DIRETRIZES ESPECÍFICAS DO USUÁRIO PARA ESTE VÍDEO ===
-                O usuário pediu para incluir/focar no seguinte detalhe: "{explicacao_video_usuario.strip()}"
-                REGRA CRÍTICA: Adapte a cena do vídeo, o ambiente, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo a super densidade de caracteres, o cadeado de escala 1:1 e o [PRISTINE CANVAS LOCK - ZERO WATERMARKS]!
+                \nNOTA DE DIREÇÃO DO USUÁRIO: Inclua este detalhe solicitado pelo usuário na cena e na fala: "{explicacao_video_usuario.strip()}".
                 """
                 
             instrucao_final_completa = instrucao_ouro + complemento_dinamico_usuario
@@ -1761,16 +1752,32 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Você é um gerador de prompts cinematográficos ultra-densos. NUNCA resuma. O Prompt de Imagem deve ter SEMPRE a influencer segurando o produto em um ambiente inédito riquíssimo (mínimo de 1.200 caracteres, sem máximo). O Prompt de Vídeo deve ser gigantesco e completo (mínimo de 2.000 caracteres, sem máximo). Varie sempre o cenário, o gancho e a estratégia. NUNCA use JSON."},
+                    {"role": "system", "content": "Você é um assistente criativo de direção de arte e publicidade para e-commerce. Gere a ficha técnica completa em Markdown puro seguindo exatamente os 3 títulos solicitados, com descrições longas, ricas e cenários variados."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_final_completa},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
-                max_tokens=8192, temperature=0.82
+                max_tokens=4096, temperature=0.78
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
+            
+            # Caso a IA recuse por algum reflexo na imagem, faz fallback imediato descrevendo sem travar
+            if "unable to assist" in conteudo_texto.lower() or "sorry" in conteudo_texto.lower() and len(conteudo_texto) < 120:
+                resp_retry = cliente_openai.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[
+                        {"role": "system", "content": "Você é um redator publicitário de e-commerce. Analise apenas o rótulo comercial do produto na imagem e gere o roteiro completo em Markdown."},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": "Identifique o nome do produto comercial nesta embalagem e preencha o modelo abaixo em Markdown:\n\n" + instrucao_final_completa},
+                            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
+                        ]}
+                    ],
+                    max_tokens=4096, temperature=0.7
+                )
+                conteudo_texto = resp_retry.choices[0].message.content.strip()
+
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -1778,7 +1785,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Ultra-Denso Forjado com Ambiente Inédito e Escala 1:1!")
+            st.success("✅ Pacote Ultra-Denso Forjado com Sucesso!")
             time.sleep(1)
             st.rerun()
         except Exception as e:
