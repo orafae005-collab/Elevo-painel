@@ -1687,7 +1687,7 @@ with st.container(border=True):
                             st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando estrutura campeã com Escala Automática 1:1 e Pristine Canvas Lock..."):
+    with st.spinner("🦅 Forjando estrutura campeã com Escala Espelhada 1:1 (Imagem = Vídeo) e Pristine Canvas Lock..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             
@@ -1695,18 +1695,18 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             Você é o Diretor de Criação de Elite. Não poupe palavras nem tokens.
             Analise a imagem enviada para identificar exatamente o produto, categoria (cosmético, roupa, acessório, eletrônico, kit, etc.), marca, volume/tamanho e quantidade de itens.
             
-            === 📖 MANUAL DE SEGURANÇA, ESCALA AUTOMÁTICA 1:1 E ZERO MARCA D'ÁGUA (Padrão Oficial V31.1) ===
+            === 📖 MANUAL DE SEGURANÇA, ESCALA ESPELHADA 1:1 E ZERO MARCA D'ÁGUA (Padrão Oficial V31.1) ===
             1. SEGURANÇA COMERCIAL (Blindagem Contra Punições):
             - Zero Menção a Preço ou Valores: É terminantemente proibido falar valores numéricos (ex: R$ 10, vinte reais) ou descontos no áudio ou na tela.
             - O Truque do Lote Secreto: Use sempre o gatilho da escassez de estoque e do lote (ex: "o estoque desse lote secreto tá acabando em minutos", "liberou na vitrine").
             - Foco na Dor Real: Comece atacando um problema real que o produto resolve.
             
-            2. CADEADO DE ESCALA FÍSICA UNIVERSAL E AUTOMÁTICA (1:1 REAL-WORLD SCALE):
-            - Adapte automaticamente a trava [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] para a natureza exata do produto da foto (seja um frasco de 250ml, pote de 400g, kit com mais de uma unidade, peça de roupa, calçado ou objeto).
-            - O produto NUNCA pode ficar gigante ou desproporcional em relação ao corpo/mão humana. Se for um kit com 2 ou mais itens, posicione 1 na mão da influencer e o(s) outro(s) apoiado(s) na bancada/mesa ao lado, mantendo a proporção real de prateleira.
+            2. CADEADO DE ESCALA IDÊNTICA IMAGEM = VÍDEO (ANTI-ENCOLHIMENTO E ANTI-GIGANTE):
+            - O bloco [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] que funciona perfeitamente no PROMPT DE IMAGEM deve ser COPIADO E REPETIDO IDENTICAMENTE dentro do Shot 1 e do Shot 2 do PROMPT DE VÍDEO.
+            - PROIBIDO usar palavras como "small-scale", "tiny", "miniature" ou "small circumference" no Prompt de Vídeo, pois isso faz a IA encolher o produto no vídeo. Use sempre "authentic, full-bodied standard commercial size (400g/250ml/etc.), maintaining the EXACT same 1:1 physical dimensions and volume from the reference image: neither oversized nor undersized/shrunk".
             
             3. PRISTINE CANVAS LOCK (ZERO WATERMARKS / ZERO LOGOS):
-            - Mantenha obrigatoriamente o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS] dentro do Prompt de Vídeo para impedir que a geradora de vídeo crie logotipos de redes sociais, marcas d'água ou @usernames nos cantos.
+            - Mantenha obrigatoriamente o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS] dentro do Prompt de Vídeo para impedir marcas d'água ou @usernames nos cantos.
             
             [MANUAL DE AMBIENTES V9.2 E BAGUNCINHA - SORTEIE 1 PARA O CENÁRIO]
             1. Varanda Tropical Brasileira: Samambaias, Costela-de-Adão, luz de sol filtrada, xícara de café.
@@ -1740,11 +1740,11 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             ### 📸 PROMPT DE IMAGEM
             RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a vibrant, sunlit Brazilian kitchen connected directly to a dense, lush green balcony filled with cascading ferns, monsteras, and warm tropical sunlight filtering through the leaves, with a small caramel dog resting on a colorful rug in the background. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the wooden counter.
 
-            [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The two jars shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the tubs from the "Kit 2 Creme de Tratamento Novex Reposição de Massa" matching reference image, while the second identical tub rests neatly on the wooden counter right next to her, making both products clearly visible in the scene. Unfiltered UGC vlog style, 8k resolution.
+            [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The two jars shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize, and DO NOT shrink]. She is firmly holding ONE of the tubs from the "Kit 2 Creme de Tratamento Novex Reposição de Massa" matching reference image, while the second identical tub rests neatly on the wooden counter right next to her, making both products clearly visible in the scene. Unfiltered UGC vlog style, 8k resolution.
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement with organic handheld shake. The camera violently tilts up from a wooden desk where the product jars rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference products: Kit 2 Creme de Tratamento Novex Reposição de Massa matching reference image. CRITICAL PHYSICS: 1:1 scale (proportional 400g jars, fitting naturally in her grip, do not oversize. One jar is held firmly, while the second jar rests on the desk). The items remain perfectly solid with micro-reflections bouncing off the plastic as light hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it. NO pixel melting.]
-            Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, estante de livros e aconchegante home office ao fundo com um gato dormindo na poltrona). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning.]
+            Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement with organic handheld shake. The camera violently tilts up from a wooden desk where the product jars rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference products: Kit 2 Creme de Tratamento Novex Reposição de Massa matching reference image. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The jars held or shown must maintain their exact, authentic full-bodied retail proportions from the reference image, fitting naturally and substantially in her hand. Absolutely DO NOT oversize, and strictly DO NOT shrink or miniaturize the product]. One jar is held firmly in her hand at true-to-life 1:1 retail size, while the second identical jar rests on the desk. The items remain perfectly solid with micro-reflections bouncing off the plastic as light hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it. NO pixel melting, NO size shrinking.]
+            Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, estante de livros e aconchegante home office ao fundo com um gato dormindo na poltrona). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning while holding the product at its exact 1:1 real-world commercial size (strictly maintaining the exact same volume and proportions from the reference image, never shrinking).]
             Interaction (3D CTA): [She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
             🎙️ Áudio e Fala da Aurora (Português — 100% Blindada Contra o Robô):
@@ -1763,7 +1763,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             === FIM DO EXEMPLO MESTRE ===
 
             REGRAS FINAIS DE FORMATAÇÃO:
-            Retorne em Markdown puro seguindo exatamente os cabeçalhos (### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, ### 🔑 TÍTULOS SEO (Separados)). Adapte perfeitamente o bloco [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] para o tipo, tamanho real e quantidade do produto identificado na imagem enviada, garantindo realismo 1:1. Mantenha o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS] intacto. NUNCA USE JSON.
+            Retorne em Markdown puro seguindo exatamente os cabeçalhos (### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, ### 🔑 TÍTULOS SEO (Separados)). Copie exatamente a mesma trava de escala [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] do PROMPT DE IMAGEM para dentro do Shot 1 e Shot 2 do PROMPT DE VÍDEO, garantindo que o produto mantenha o tamanho comercial real e idêntico ao da foto gerada (sem ficar gigante e sem encolher). NUNCA use a palavra "small-scale" no vídeo. Mantenha o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS] intacto. NUNCA USE JSON.
             """
             
             complemento_dinamico_usuario = ""
@@ -1773,14 +1773,14 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 O usuário logado configurou a sua própria Influencer personalizada:
                 - Nome da Influencer: {nome_inf_ativa}
                 - Descrição Visual da Influencer: {desc_inf_ativa}
-                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola e o cadeado de escala 1:1 do produto). Na seção de fala em português, use 'Fala da {nome_inf_ativa}:'.
+                REGRA CRÍTICA: No 'PROMPT DE IMAGEM' e no 'PROMPT DE VÍDEO', substitua a aparência física da Aurora pela descrição visual de '{nome_inf_ativa}' traduzida com extrema riqueza de detalhes para o inglês hiper-realista (mantendo obrigatoriamente o microfone de lapela na gola e o cadeado de escala 1:1 idêntico na imagem e no vídeo). Na seção de fala em português, use 'Fala da {nome_inf_ativa}:'.
                 """
             
             if explicacao_video_usuario and explicacao_video_usuario.strip():
                 complemento_dinamico_usuario += f"""
                 \n=== 📝 DIRETRIZES ESPECÍFICAS DO USUÁRIO PARA ESTE VÍDEO ===
                 O usuário pediu para incluir/focar no seguinte detalhe: "{explicacao_video_usuario.strip()}"
-                REGRA CRÍTICA: Adapte a cena do vídeo, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo toda a estrutura técnica, o cadeado de escala 1:1, o [PRISTINE CANVAS LOCK - ZERO WATERMARKS] e a blindagem comercial (zero preço / lote secreto)!
+                REGRA CRÍTICA: Adapte a cena do vídeo, a interação com o produto e a fala em português para atender perfeitamente a esse pedido do usuário, mantendo toda a estrutura técnica, o cadeado de escala 1:1 espelhado entre imagem e vídeo, o [PRISTINE CANVAS LOCK - ZERO WATERMARKS] e a blindagem comercial (zero preço / lote secreto)!
                 """
                 
             instrucao_final_completa = instrucao_ouro + complemento_dinamico_usuario
@@ -1788,7 +1788,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Gere a resposta em Markdown puro copiando exatamente o molde campeão fornecido, adaptando a trava de escala 1:1 para o produto da imagem e mantendo o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS]. NUNCA use JSON."},
+                    {"role": "system", "content": "Gere a resposta em Markdown puro copiando exatamente o molde campeão fornecido. Repita a exata mesma trava [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...] do Prompt de Imagem dentro do Prompt de Vídeo para que o produto nunca encolha nem fique gigante. NUNCA use a expressão 'small-scale'. Mantenha o bloco [PRISTINE CANVAS LOCK - ZERO WATERMARKS]. NUNCA use JSON."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_final_completa},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
@@ -1805,7 +1805,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Campeão Forjado com Escala Automática 1:1 e Zero Marca D'água!")
+            st.success("✅ Pacote Campeão Forjado com Escala 1:1 Idêntica (Imagem = Vídeo) e Zero Marca D'água!")
             time.sleep(1)
             st.rerun()
         except Exception as e:
