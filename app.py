@@ -1,6 +1,7 @@
 import base64
 import requests
 import time
+import random
 import streamlit as st
 import streamlit.components.v1 as components
 import pandas as pd
@@ -760,7 +761,7 @@ if E_O_CEO and link_planilha_ativa:
         """, unsafe_allow_html=True)
 
 # ==========================================================
-# 10. MOTOR DE ELITE (DISCIPLINA + GRÁFICO DE MISSÕES EXCLUSIVO CEO)
+# 10. MOTOR DE ELITE (DISCIPLINA + OPORTUNIDADES EMPRESARIAIS OCULTAS 24H)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Disciplina & Expansão</h3>", unsafe_allow_html=True)
@@ -769,53 +770,89 @@ agora_brasil = datetime.utcnow() - timedelta(hours=3)
 dia_do_ano = agora_brasil.timetuple().tm_yday
 
 frases = [
-    "O sucesso é a soma de pequenos esforços repetidos dia após dia.",
-    "Não espere por oportunidades, crie-as. Grave aquele vídeo agora!",
-    "A constância é a chave que abre a porta da escala.",
-    "O seu próximo vídeo pode ser o que vai te deixar milionário. Não pare!",
-    "Feito é melhor que perfeito. Ajuste a rota enquanto caminha!"
+    "Quem domina a atenção e a velocidade de execução constrói um monopólio silencioso.",
+    "Afiliado amador caça comissão; CEO de Elite constrói ativos, marca própria e recorrência.",
+    "A constância cirúrgica vence o talento errático 100% das vezes.",
+    "Cada vídeo validado não é apenas um post: é um ativo digital gerando fluxo de caixa 24h.",
+    "Enquanto o mercado copia o que já saturou, a Águia antecipa o próximo movimento do capital."
 ]
 missoes = [
-    "Gravar e postar 5 vídeos originais hoje usando a técnica do gancho forte.",
-    "Analisar 3 produtos novos na 'peneira' do TikTok e favoritar o melhor.",
-    "Gravar 3 vídeos review focados no seu Produto Campeão atual.",
-    "Revisar o vídeo que mais vendeu na semana e replicar o mesmo estilo hoje."
+    "Subir 5 criativos com ganchos de quebra de padrão nos primeiros 0.5s e mapear o CTR.",
+    "Garimpar 3 produtos/kits com ticket maior (1kg / Kits Completos) para dobrar a comissão por venda.",
+    "Gravar 3 variações de ângulo (Choque, Segredo, Quebra de Objeção) do seu Produto Campeão.",
+    "Auditar os comentários dos concorrentes, extrair a maior reclamação e criar um vídeo esmagando essa dor."
 ]
-dicas = [
-    "Pegue 20% da comissão e invista na operação (tráfego, microfone, iluminação).",
-    "Construa uma reserva de emergência da operação. Não gaste todo o lucro no primeiro mês!",
-    "Reinvista no Produto Campeão. Se está vendendo orgânico, imagina com um pouco de impulsionamento!",
-    "Diversificação: Que tal guardar parte do lucro no Tesouro Direto ou CDB para render juros?"
+dicas_ceo = [
+    "Alocação Assimétrica de Capital: Separe 30% do lucro líquido para testar criação de Marca Própria (White-Label) do produto que você já validou como afiliado — transforme 10% de comissão em 65% de margem líquida.",
+    "Blindagem Patrimonial & Caixa de Guerra: Mantenha 3 meses do custo operacional em liquidez imediata indexada a 100%+ do CDI, e use o excedente para comprar tráfego ou financiar estoque próprio sem pagar juros bancários.",
+    "Efeito Composto em Ativos Digitais: Nunca drene 100% do caixa para consumo pessoal. Todo real reinvestido em automação, ferramentas de IA e canais satélites multiplica o Valuation da sua empresa.",
+    "Diversificação de Receita em Moeda Forte: Destine parte do tempo e caixa da operação para construir ativos que faturem em Dólar/Euro (TikTok Rewards Global, SaaS ou Infoprodutos Low-Ticket lá fora), protegendo seu poder de compra.",
+    "Engenharia de LTV (Lifetime Value): O lucro real não está na primeira venda, está na recompra. Crie comunidades VIP no WhatsApp/Telegram de Achadinhos para vender toda semana para o mesmo cliente a custo zero."
 ]
 
 frase_hoje = frases[dia_do_ano % len(frases)]
 missao_hoje = missoes[dia_do_ano % len(missoes)]
-dica_hoje = dicas[dia_do_ano % len(dicas)]
+dica_hoje = dicas_ceo[dia_do_ano % len(dicas_ceo)]
 dias_cumpridos = 0
 taxa_acerto = 0.0
 
+TEMAS_OPORTUNIDADES_OCULTAS = [
+    "Transição de Afiliado para Dono de Marca Própria (Private Label / White-Label com indústrias nacionais de cosméticos ou encapsulados)",
+    "Micro-SaaS B2B Nichado com IA (Vender assinaturas mensais de R$ 97 a R$ 297 para lojistas e criadores locais)",
+    "Arbitragem Internacional de Conteúdo UGC em Dólar e Euro (Modelagem de criativos validados no Brasil para TikTok Shop US/UK e Amazon Influencer Program)",
+    "Ecossistema de Canais Dark + Grupos VIP de Ofertas Automatizados no WhatsApp/Telegram com Bots de Disparo e Cupons Exclusivos",
+    "Agência Enxuta de Criativos de IA para Marcas e Clínicas (Pacotes mensais recorrentes usando a tecnologia de geração 360º)",
+    "Importação Simplificada & Kits Proprietários em Marketplaces (Criar combos exclusivos de alto ticket que não sofrem guerra de preço)",
+    "Licenciamento de Avatares e Influenciadoras Virtuais de IA para Marcas de Moda e Beleza (Contrato fixo mensal + royalties)"
+]
+
 @st.cache_data(ttl=86400)
-def buscar_oportunidade_do_dia(dt_cache):
+def buscar_oportunidade_do_dia(dt_cache, indice_tema):
+    tema_sorteado = TEMAS_OPORTUNIDADES_OCULTAS[indice_tema % len(TEMAS_OPORTUNIDADES_OCULTAS)]
     try:
-        sys_op = "Estrategista de Negócios Sênior em Afiliados. Responda em JSON."
-        pmt_op = "Gere uma tática de expansão digital (TikTok, YT Shorts, UGC, etc). Retorne JSON: {'titulo': '...', 'pitch': '...', 'passos': '1. Passo um... \\n2. Passo dois...'}"
-        resp = cliente_openai.chat.completions.create(model="gpt-4o-mini", response_format={"type":"json_object"}, messages=[{"role":"system","content":sys_op},{"role":"user","content":pmt_op}], temperature=0.85)
+        sys_op = (
+            "Você é um Conselheiro de M&A, Estrategista de Negócios Digitais e Caçador de Oceanos Azuis. "
+            "Sua missão é entregar uma Oportunidade Oculta de Negócio/Empresa de alto nível, visão de longo prazo, "
+            "alta margem de lucro e barreira de entrada inteligente (NUNCA dê dicas rasas ou clichês). Responda estritamente em JSON."
+        )
+        pmt_op = f"""
+        Data de referência (Muda a cada 24h): {dt_cache}.
+        Tema Estratégico do Dia: {tema_sorteado}.
+        
+        Desenvolva uma oportunidade oculta de negócio/expansão empresarial com visão de médio/longo prazo.
+        Retorne APENAS um objeto JSON com esta exata estrutura:
+        {{
+            "titulo": "Nome executivo e magnético da oportunidade de negócio",
+            "pitch": "Explicação estratégica profunda (3 a 4 frases) revelando por que essa oportunidade está oculta, como o dinheiro grande é feito nela e qual é a visão de longo prazo (construção de patrimônio/empresa).",
+            "passos": "1. **Mapeamento & Validação:** [Ação prática e cirúrgica]\\n2. **Estruturação do Ativo/Fornecedor:** [Como montar a operação sem custo alto]\\n3. **Engenharia de Tráfego & Aquisição:** [Como atrair os primeiros clientes/vendas]\\n4. **Automação & Margem:** [Como delegar ou automatizar com IA]\\n5. **Escala & Visão de Império:** [Como transformar isso em receita recorrente ou ativo vendável]"
+        }}
+        """
+        resp = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini",
+            response_format={"type": "json_object"},
+            messages=[{"role": "system", "content": sys_op}, {"role": "user", "content": pmt_op}],
+            temperature=0.85
+        )
         return json.loads(resp.choices[0].message.content)
     except Exception:
-        return {"titulo": "Shopee Video", "pitch": "O Shopee Video está entregando tráfego orgânico absurdo. Reaproveite seus roteiros lá para criar uma segunda fonte de renda!", "passos": "1. Crie conta afiliado.\n2. Suba o vídeo já gravado.\n3. Marque o produto na sacola laranja."}
+        return {
+            "titulo": "Marca Própria White-Label (De Afiliado a Dono do Produto)",
+            "pitch": "Enquanto 99% dos afiliados brigam por 10% a 15% de comissão, os grandes players usam o TikTok Shop como laboratório gratuito. Quando um cosmético ou suplemento explode de vender nos seus vídeos, você contrata uma fábrica terceirizada nacional (White-Label), coloca o seu rótulo e passa a embolsar 65% a 75% de margem líquida, construindo uma marca real que pode ser vendida no futuro.",
+            "passos": "1. **Mapeamento & Validação:** Identifique no seu painel qual produto já passou de 50 vendas orgânicas consistentes.\n2. **Estruturação do Ativo/Fornecedor:** Contate fábricas terceirizadas no Brasil (cosméticos/nutracêuticos) que oferecem lote mínimo baixo já registrado na Anvisa.\n3. **Engenharia de Tráfego & Aquisição:** Crie uma embalagem premium focada na dor exata que você já validou nos vídeos de 9 segundos.\n4. **Automação & Margem:** Cadastre o produto como Lojista Oficial no TikTok Shop e Shopee, oferecendo 20% de comissão para centenas de outros afiliados venderem para você.\n5. **Escala & Visão de Império:** Você deixa de depender de um único vídeo e passa a ter um exército de afiliados vendendo a sua própria marca todos os dias."
+        }
 
-op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"))
+op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"), dia_do_ano)
 
 col_m1, col_m2 = st.columns([1, 1])
 with col_m1:
     st.info(f"💎 **Visão de Águia:** {frase_hoje}")
-    st.warning(f"📈 **Dica Financeira:** {dica_hoje}")
+    st.warning(f"📈 **Inteligência Financeira & Patrimônio:** {dica_hoje}")
     
     with st.container(border=True):
-        st.markdown(f"**🚀 Oportunidade Oculta: {op_hoje.get('titulo', 'Nova Oportunidade')}**")
-        st.markdown(f"<p style='font-size: 0.9em; color: #A0A0A0;'>{op_hoje.get('pitch', '')}</p>", unsafe_allow_html=True)
-        with st.expander("🛠️ Ver Passo a Passo de Execução", expanded=False):
-            st.markdown(f"**Como aplicar agora:**\n\n{op_hoje.get('passos', '')}")
+        st.markdown(f"**🚀 Oportunidade Empresarial Oculta (24h): {op_hoje.get('titulo', 'Nova Oportunidade')}**")
+        st.markdown(f"<p style='font-size: 0.92em; color: #A0A0A0; line-height: 1.5;'>{op_hoje.get('pitch', '')}</p>", unsafe_allow_html=True)
+        with st.expander("🛠️ Ver Plano Executivo de Implementação (5 Passos)", expanded=False):
+            st.markdown(f"**Mapa de Execução Estratégica:**\n\n{op_hoje.get('passos', '')}")
 
 if f"missao_{agora_brasil.strftime('%Y-%m-%d')}" not in st.session_state:
     st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
@@ -1388,10 +1425,10 @@ if E_O_CEO:
                         except Exception: pass
 
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (V31.2 + TRAVA DE KITS MÚLTIPLOS + INTERLIGAÇÃO V9)
+# 17. MÁQUINA DE CRIAÇÃO 360º (V32.0 - ESCALA UNIVERSAL 50ml A 2L/1KG + AMBIENTES INÉDITOS)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.2 & Entidade V9)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V32.0 Universal Scale & Entidade V9)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1629,7 +1666,7 @@ if not E_O_CEO and robo_sheets:
 with st.container(border=True):
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
-        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V31.2)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
+        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V32.0 Universal)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
             st.session_state["modo_entidade_v9"] = False
             st.rerun()
     with col_sel2:
@@ -1653,7 +1690,7 @@ with st.container(border=True):
         
         col_img, col_dados = st.columns([1, 1])
         with col_img: 
-            img_produto = st.file_uploader("📸 Foto do Produto (Unidade ou Kit)", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+            img_produto = st.file_uploader("📸 Foto do Produto (Qualquer Tamanho: 50ml a 2L / 1kg / Kits)", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
             if E_O_CEO:
                 logo_input_direto = st.text_input(
                     "🏷️ Logo do Glitch Final (Padrão CEO já ativo — altere apenas se quiser outra):",
@@ -1674,21 +1711,21 @@ with st.container(border=True):
         with col_dados:
             explicacao_video_usuario = st.text_area(
                 "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
-                placeholder="Ex: São 3 potes no kit, quero que os 3 apareçam juntos! Ou deixe em branco para detecção automática de kit...",
+                placeholder="Ex: São 3 potões de 1kg, quero que pareçam grandes e pesados de verdade! Ou deixe em branco para leitura automática do tamanho...",
                 height=115,
-                help="A máquina detecta automaticamente se a foto tem 1, 2, 3 ou mais produtos e obriga todos a aparecerem na imagem e no vídeo!",
+                help="O Motor Universal lê automaticamente se o produto tem 100ml, 400g, 1kg ou 2 Litros e adapta a pegada da mão e o tamanho real na Imagem e no Vídeo!",
                 key="txt_diretrizes_360"
             )
             btn_gerar_roteiro = False
             if not st.session_state["modo_entidade_v9"]:
                 if not pode_gerar_roteiro:
                     st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
-                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V31.2)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
+                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V32.0)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                 else:
                     txt_botao = "⚡ LER RÓTULO E GERAR NO BLOCO 17 (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR NO BLOCO 17 ({3 - usos_feitos} Restantes)"
                     btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
             else:
-                st.success("🧬 **MODO ENTIDADE V9 ATIVADO!** Clique no botão vermelho do **Bloco 17.2** logo abaixo para disparar a Matriz V8/V9 com Trava de Kit Completa.")
+                st.success("🧬 **MODO ENTIDADE V9 ATIVADO!** Clique no botão vermelho do **Bloco 17.2** logo abaixo para disparar a Matriz V8/V9 com Escala Universal.")
 
     with aba_config_influencer:
         st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influencer & Logo da Marca</h4>", unsafe_allow_html=True)
@@ -1741,60 +1778,100 @@ with st.container(border=True):
                         else:
                             st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
-# TRAVA UNIVERSAL DE KITS E MÚLTIPLOS PRODUTOS (VALE PARA BLOCO 17 E BLOCO 17.2 V9)
-REGRA_KIT_MULTI_PRODUTOS = """
-🚨 [REGRA CRÍTICA ABSOLUTA DE CONTAGEM DE PRODUTOS / KITS (MULTI-PRODUCT LOCK)]:
-Antes de escrever qualquer palavra, CONTE quantos produtos/potes/frascos/peças existem na imagem enviada!
-- Se a imagem mostrar um KIT com 2, 3 ou mais produtos (exemplo: Kit com 3 Máscaras de cores diferentes como Verde, Rosa e Laranja, ou Kit com várias peças), é TERMINANTEMENTE PROIBIDO escolher apenas 1 produto e ignorar os outros!
-- TODOS OS PRODUTOS DA IMAGEM (ex: TODOS OS 3 POTES com suas respectivas cores e rótulos exatos) DEVEM APARECER JUNTOS E VISÍVEIS TANTO NO PROMPT DE IMAGEM QUANTO NO PROMPT DE VÍDEO!
-- Como posicionar Kits no Prompt de Imagem e Vídeo: Descreva explicitamente em inglês a quantidade exata e a cor de cada unidade (ex: "ALL 3 EXACT JARS from the reference kit MUST be clearly visible in the frame: she is holding the green jar in one hand while the pink jar and the orange jar rest right next to her in the immediate foreground on the counter, or she cradles all 3 units together on the counter"). NUNCA escreva apenas "(green variant)" isolado se houverem 3 potes na foto!
+# ==========================================================
+# MOTOR UNIVERSAL DE ESCALA FÍSICA E VARIADOR DE AMBIENTES/GANCHOS (ANTI-MINIATURIZAÇÃO)
+# ==========================================================
+LISTA_AMBIENTES_DINAMICOS = [
+    "Sun-drenched Brazilian wooden varanda (deck) surrounded by hanging green ferns (samambaias) and a tropical Areca palm swaying in the morning breeze, with a sweating glass of iced water and a hair clip on the wooden railing",
+    "Lived-in modern Brazilian kitchen with a dark Ubatuba granite countertop, an open window showing lush backyard mango trees, a steaming ceramic mug of fresh coffee, spilled coffee beans, and a dish towel casually resting on the counter",
+    "Cozy Brazilian master bedroom with warm golden-hour sunlight streaming through sheer white linen curtains, an unmade bed with textured cotton sheets, a vanity mirror with warm bulbs, and a pair of sunglasses on the nightstand",
+    "Steamy, authentic Brazilian bathroom right after a hot shower, frosted basculante window filtering bright morning light beams through the mist, a sprawling Aloe Vera (babosa) in a pot, tangled hair dryer cords, and a damp white towel dripping water",
+    "Covered rustic wooden porch of a Brazilian house during a tropical summer rainstorm, heavy rain falling outside, a tall coconut tree swaying in the wind in the background, and a pair of flip-flops on the wet wooden floor",
+    "Sunlit Brazilian backyard gourmet area (área de churrasqueira/varanda gourmet) with rustic brick walls, hangingiboia (pothos) plants, a wooden table with a half-cut lemon and a cold glass of juice with condensation",
+    "Bright, airy Brazilian laundry and service terrace (área de serviço ensolarada) with white tiles, a basket of clean folded clothes, a lush Monstera deliciosa plant by the open glass door, and bright natural midday light",
+    "Chic Brazilian apartment balcony at late afternoon (golden hour), glass and wood railing overlooking green treetops, a woven straw bag resting on a chair, and an iced tea glass with water droplets",
+    "Rustic wooden deck of a regional boat cruising smoothly along a lush green Brazilian river, bright sunlight reflecting off the water ripples, an orange life jacket and a thermos cup on a wooden bench",
+    "Lived-in Brazilian living room (sala de estar) with a terracotta floor, a comfortable fabric sofa, a large Ficus Lyrata plant in a clay pot, a ceiling fan spinning slowly, and a smartphone resting face-down on the coffee table"
+]
+
+LISTA_MASCOTES_DINAMICOS = [
+    "a realistic Brazilian caramel mutt dog (vira-lata caramelo) sleeping heavily in the background, its hind leg and tail subtly twitching as if dreaming",
+    "a fluffy orange tabby cat lazily stretching its paws in a warm sunbeam on the floor in the background",
+    "a colorful tropical bird (sabiá/bem-te-vi) perched on a branch just outside the open window/balcony, tilting its head and ruffling its feathers",
+    "a friendly Golden Retriever resting on the floor in the background, its ears perking up and tail giving a subtle wag",
+    "a small wet bird huddled under the eaves of the wooden roof in the background, shaking water droplets off its wings",
+    "a calm Siamese cat sitting on a chair in the background, blinking slowly and swishing its tail"
+]
+
+LISTA_GANCHOS_DINAMICOS = [
+    "O Choque de Realidade / Indignação Amiga (abre com som ASMR do produto e pergunta afiada sobre o erro que a cliente comete em casa)",
+    "O Segredo Proibido de Salão / Resort (tom de fofoca urgente revelando que descobriu o fornecedor ou lote escondido)",
+    "A Prova de Volume / Potão Gigante (destaca o tamanho absurdo de 1kg/1L/Kit completo que dura meses pelo valor de um único item pequeno)",
+    "O Socorro de Emergência / UTI Imediata (foco na transformação instantânea para quem já estava quase desistindo ou passando a tesoura)",
+    "O Erro de Sistema / Lote Vazado na Vitrine (senso de urgência máximo avisando que o estoque promocional na sacolinha laranja vai zerar)"
+]
+
+MOTOR_UNIVERSAL_ESCALA_E_KITS = """
+🚨 [UNIVERSAL DYNAMIC MASS, ERGONOMIC GRIP & MULTI-UNIT KIT ENGINE — LEITURA OBRIGATÓRIA DA FOTO]:
+NUNCA use um tamanho fixo (como "400g compact jar") para todos os produtos! Você DEVE inspecionar visualmente a imagem enviada, ler o peso/volume no rótulo (ex: 50ml, 180ml, 250ml, 400g, 500ml, 1kg / 1000g, 1 Litro, 2 Litros, Kit ou Vestuário) e aplicar a FÍSICA REALISTA EXATA DO TAMANHO tanto no PROMPT DE IMAGEM quanto no PROMPT DE VÍDEO:
+
+1. SE FOR PRODUTO GRANDE / PESADO (ex: Pote de 1kg / 1000g "Potão", Garrafa de 1L, 1.5L, 2L ou Eletrodoméstico/Utensílio Grande):
+   - PROIBIDO usar as palavras "compact", "small", "light" ou "fits inside one single hand"!
+   - VOCÊ DEVE ESCREVER EM INGLÊS: `[CRITICAL REAL-WORLD JUMBO MASS & 1:1 SCALE LOCK: This is a LARGE, HEAVY, WIDE-BODY 1kg (1000g) / 1L-2L JUMBO container. Absolutely DO NOT shrink or miniaturize it into a small 300g jar! It must look substantial, wide, tall, and heavy in relation to her body and hands]`.
+   - FÍSICA DA PEGADA (HEAVY GRIP): Como é um potão pesado de 1kg/1L/2L, descreva que ela o segura com pegada de peso real (`supporting its heavy base with one palm while her other hand wraps around or taps the wide lid, or resting the massive 1kg/2L containers solidly on the foreground counter right against her torso so their true large commercial volume is 100% unmistakable`).
+
+2. SE FOR PRODUTO MÉDIO (ex: Pote de 300g a 500g, Shampoo de 300ml a 500ml):
+   - Descreva a escala exata de cilindro médio comercial (`medium-sized 300ml-500g retail container, proportioned naturally to a human hand wrapping around its middle`).
+
+3. SE FOR PRODUTO PEQUENO / COMPACTO (ex: Sérum 30ml, Spray 100ml-250ml, Maquiagem, Coador):
+   - Descreva a escala compacta real (`compact 100ml-250ml bottle fitting comfortably inside one single hand, DO NOT oversize`).
+
+4. SE FOR KIT COM 2, 3 OU MAIS PRODUTOS (ex: Kit com 3 Potões de 1kg de cores diferentes, ou Kit de 6 peças):
+   - É TERMINANTEMENTE PROIBIDO escolher apenas 1 pote e ignorar os outros!
+   - TODOS os produtos da foto (ex: TODOS os 3 potões de 1kg — cite a cor exata de cada um, como verde, rosa e laranja) DEVEM aparecer juntos na Imagem e no Vídeo, TODOS mantendo seu tamanho real (se forem 3 potes de 1kg, os 3 têm que parecer potões grandes e pesados de 1kg lado a lado ou 1 apoiado no braço/mão e os outros 2 colados na bancada em primeiro plano!).
 """
 
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Forjando prompts hiper-densos (Com Trava de Kits Múltiplos 100% Ativa)..."):
+    with st.spinner("🦅 Analisando tamanho/peso real do produto e sorteando ambiente inédito (V32.0)..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
+            amb_sorteado = random.choice(LISTA_AMBIENTES_DINAMICOS)
+            pet_sorteado = random.choice(LISTA_MASCOTES_DINAMICOS)
+            gancho_sorteado = random.choice(LISTA_GANCHOS_DINAMICOS)
             
             instrucao_ouro = f"""
             Atue como um Diretor de Arte e Roteirista Publicitário de UGC para e-commerce.
-            Sua tarefa é ler o rótulo/produto (ou KIT de produtos) da imagem anexada e redigir uma ficha técnica criativa em Markdown contendo 3 seções detalhadas: Prompt Fotográfico, Prompt Cinematográfico de Vídeo e Títulos de Busca.
+            Sua tarefa é analisar a foto do produto anexada (identificando seu NOME, CORES, QUANTIDADE DE ITENS NO KIT e seu TAMANHO/PESO REAL como 1kg, 2L, 500ml, 200ml ou peça de roupa) e redigir uma ficha técnica criativa em Markdown contendo 3 seções detalhadas: Prompt Fotográfico, Prompt Cinematográfico de Vídeo e Títulos de Busca.
 
-            {REGRA_KIT_MULTI_PRODUTOS}
+            {MOTOR_UNIVERSAL_ESCALA_E_KITS}
 
-            DIRETRIZES CRIATIVAS E DE EXTENSÃO (SEM TETO MÁXIMO):
-            1. EXTENSÃO RICA:
-            - A seção '### 📸 PROMPT DE IMAGEM' deve ser longa e descritiva (mínimo de 1.200 caracteres, sem limite máximo), descrevendo sempre a apresentadora e TODOS os produtos da foto em um cenário brasileiro inédito e rico em detalhes.
-            - A seção '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO' deve ser extensa e completa (mínimo de 2.000 caracteres, sem limite máximo).
-            
-            2. VARIAÇÃO AUTOMÁTICA DE CENÁRIO E ESTRATÉGIA:
-            - Nunca repita o mesmo cenário do exemplo. A cada geração, sorteie ou crie um ambiente inédito, variando também os objetos de decoração cotidiana e o animal de estimação descansando ao fundo.
-            - Crie um gancho visual novo e uma fala persuasiva original em português focada nos benefícios reais do produto/kit da foto, usando o gatilho de "lote secreto liberado na vitrine" e zero menção a preços fixos.
+            🎲 [SORTEIO OBRIGATÓRIO DE CENÁRIO E GANCHO DESTA GERAÇÃO (PROIBIDO REPETIR CENÁRIO ANTIGO)]:
+            - CENÁRIO SORTEADO PARA HOJE: {amb_sorteado}
+            - MASCOTE / FATOR ANIMAL EM AÇÃO: {pet_sorteado}
+            - ÂNGULO DO GANCHO DE ÁUDIO: {gancho_sorteado}
 
-            3. PROPORÇÃO REALISTA 1:1 E VISIBILIDADE TOTAL DO KIT (IMAGEM E VÍDEO):
-            - Inclua a nota técnica de proporção `[CRITICAL ABSOLUTE PHYSICS, SIZE & MULTI-UNIT KIT LOCK: STRICT 1:1 real-world scale...]` ajustada ao tamanho real e à QUANTIDADE EXATA de itens da foto tanto no Prompt de Imagem quanto no Shot 1 e Shot 2 do Vídeo. Se forem 3 produtos na foto, os 3 produtos têm que aparecer claramente na Imagem e no Vídeo!
-
-            MODELO DE ESTRUTURA A SEGUIR:
+            MODELO DE ESTRUTURA A SEGUIR (ADAPTE A ESCALA FÍSICA AO TAMANHO REAL DO PRODUTO DA FOTO):
 
             ### 📸 PROMPT DE IMAGEM
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [DESCREVA AQUI EM INGLÊS UM NOVO CENÁRIO BRASILEIRO HIPER-DETALHADO COM MAIS DE 450 CARACTERES, INCLUINDO ILUMINAÇÃO NATURAL, PLANTAS, TEXTURAS, OBJETOS COTIDIANOS E UM ANIMAL DE ESTIMAÇÃO AO FUNDO]. [CRITICAL ABSOLUTE PHYSICS, SIZE & MULTI-UNIT KIT LOCK: STRICT 1:1 real-world scale. Perfectly proportioned to fit comfortably in hand. Absolutely DO NOT oversize, and DO NOT shrink. IF THE REFERENCE IMAGE SHOWS A KIT OF 2 OR 3+ PRODUCTS, ALL UNITS MUST BE 100% VISIBLE IN THE SCENE]. [DESCREVA AQUI EM INGLÊS O PRODUTO OU TODOS OS PRODUTOS DO KIT COM SUAS CORES EXATAS: ex: She is firmly holding the green jar in one hand while the pink jar and orange jar from the exact 3-piece kit sit clearly visible right in front of her on the counter edge, showing all 3 products together in the frame]. Unfiltered UGC vlog style, 8k resolution.
+            RAW photography, mid-shot POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [{amb_sorteado}, enriquecido com micro-detalhes de iluminação natural, texturas reais e {pet_sorteado}]. [INSIRA AQUI O BLOCO DE ESCALA FÍSICA ADEQUADO AO TAMANHO REAL DO PRODUTO LIDO NA FOTO: Se for 1kg/1L/2L, exija LARGE HEAVY WIDE-BODY 1KG/2L JUMBO SCALE e proíba encolher; se for 200ml, exija escala compacta; se for Kit com 3 unidades, exija TODAS as 3 unidades visíveis com suas cores exatas e tamanho real]. [DESCREVA COMO ELA SEGURA/EXIBE O PRODUTO OU TODOS OS ITENS DO KIT RESPEITANDO O PESO REAL]. Unfiltered UGC vlog style, 8k resolution.
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            POV dynamic handheld mobile video, authentic UGC aesthetic. Dynamic spatial movement with natural handheld motion. The camera smoothly tilts up from a surface where the product/kit rests. Starts with a fast Macro Zoom In exclusively on the EXACT reference product/kit: [NOME DO PRODUTO E TODAS AS UNIDADES/CORES DO KIT] matching reference image. [CRITICAL ABSOLUTE PHYSICS, SIZE & MULTI-UNIT KIT LOCK: STRICT 1:1 real-world scale. ALL PRODUCTS FROM THE REFERENCE IMAGE MUST APPEAR TOGETHER IN THE VIDEO FRAME. Absolutely DO NOT oversize, and strictly DO NOT shrink]. The items remain perfectly solid with micro-reflections bouncing off the surface as natural light hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lids of the products to emphasize the complete kit. NO pixel melting, NO size morphing.]
-            Shot 2 (Whip Pan & Visceral Emotion): [0:03: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, [DESCREVA OS DETALHES DO CENÁRIO SORTEADO E O MASCOTE AO FUNDO]). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), speaking with enthusiastic urgency and expressive eyes while keeping ALL units of the product/kit clearly visible in the foreground at their exact 1:1 real-world commercial size.]
-            Interaction (3D CTA): [She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            POV dynamic handheld mobile video, authentic UGC aesthetic. Dynamic spatial movement with natural handheld motion. Starts with a fast Macro Zoom In exclusively on the EXACT reference product/kit: [NOME DO PRODUTO, VOLUME/PESO REAL EX: 1KG/2L E TODAS AS UNIDADES/CORES DO KIT] matching reference image. [INSIRA AQUI O BLOCO DE ESCALA FÍSICA E MASSA REALISTA: ex: CRITICAL REAL-WORLD 1KG/2L JUMBO MASS & MULTI-UNIT LOCK — ALL units from the reference image must appear at their true large, heavy commercial volume, DO NOT shrink into small jars]. The items remain perfectly solid with micro-reflections bouncing off the surface as natural light hits them. SINGLE MOTION TRICK (The Tactile Proof): [Descreva o toque físico adequado ao produto: batidinha dupla na tampa larga do potão de 1kg, abertura de tampa com estalo, puxadinha na trama do tecido ou pressão do dedo]. NO pixel melting, NO size morphing.]
+            Shot 2 (Whip Pan & Visceral Emotion): [0:04: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola, no cenário: {amb_sorteado} com {pet_sorteado} se mexendo sutilmente ao fundo). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), speaking with enthusiastic urgency and expressive eyes while keeping ALL units of the product/kit clearly visible in the foreground at their exact 1:1 real-world commercial size and heavy mass.]
+            Interaction (3D CTA): [0:08: She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
-            🎙️ Áudio e Fala da Aurora (Português — 100% Blindada Contra o Robô):
-            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret .
+            🎙️ Áudio e Fala da Aurora (Português — Ângulo: {gancho_sorteado}):
+            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap/lid). Authentic room acoustics. Enthusiastic, urgent, conspiratorial voice.]
             Fala da Aurora:
-            "[ESCREVA UMA FALA ORIGINAL E PERSUASIVA DE 40 A 48 PALAVRAS SOBRE O PRODUTO/KIT DA IMAGEM, DESTACANDO SE FOR O KIT COMPLETO COM AS 3 UNIDADES E FECHANDO COM O LOTE SECRETO NA SACOLINHA, SEM CITAR PREÇOS]"
+            "[ESCREVA UMA FALA INÉDITA E PERSUASIVA DE 40 A 48 PALAVRAS SOBRE O PRODUTO/KIT DA IMAGEM, DESTACANDO O TAMANHO REAL (ex: potão de 1 quilo / kit completo) E FECHANDO COM O LOTE SECRETO NA SACOLINHA, SEM CITAR PREÇOS]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
             ⚠️ [FRASE CURTA DE IMPACTO SOBRE O PROBLEMA]? 🛑
-            ✨ [BENEFÍCIO PRINCIPAL DO PRODUTO / KIT COMPLETO]
+            ✨ [BENEFÍCIO PRINCIPAL + TAMANHO/KIT]
             🛒 LOTE SECRETO LIBERADO 👇
 
             ### 🔑 TÍTULOS SEO (Separados)
             **🔍 Geral (Dor):** [Título focado na solução do problema]
-            **💡 Solução (Produto):** [Nome completo do produto/kit e volume]
+            **💡 Solução (Produto):** [Nome completo do produto/kit e peso/volume exato]
             **🏷️ Marca (Resenha):** [Marca e nome do produto/kit resenha]
             """
             
@@ -1817,13 +1894,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Você é um assistente criativo de direção de arte e publicidade para e-commerce. Conte todos os itens da imagem: se for um kit com 2, 3 ou mais produtos, obrigue TODOS os produtos (com a cor de cada pote/item) a aparecerem juntos tanto no Prompt de Imagem quanto no Prompt de Vídeo."},
+                    {"role": "system", "content": "Você é um diretor de arte especialista em escala física realista de embalagens (50ml até 2 Litros / 1kg). Analise o tamanho real e a quantidade de itens na foto enviada e gere o prompt em Markdown garantindo que produtos de 1kg/1L/2L pareçam grandes, largos e pesados, e nunca encolhidos."},
                     {"role": "user", "content": [
                         {"type": "text", "text": instrucao_final_completa},
                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                     ]}
                 ],
-                max_tokens=4096, temperature=0.78
+                max_tokens=4096, temperature=0.82
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
@@ -1832,13 +1909,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 resp_retry = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "Você é um redator publicitário de e-commerce. Analise todos os itens do produto/kit na imagem e gere o roteiro completo em Markdown."},
+                        {"role": "system", "content": "Você é um redator publicitário de e-commerce. Analise todos os itens e o peso/volume na embalagem da imagem e gere o roteiro completo em Markdown."},
                         {"role": "user", "content": [
-                            {"type": "text", "text": "Identifique todos os produtos comerciais nesta embalagem/kit e preencha o modelo abaixo em Markdown:\n\n" + instrucao_final_completa},
+                            {"type": "text", "text": "Identifique todos os produtos comerciais e seu peso/volume real nesta foto e preencha o modelo abaixo em Markdown:\n\n" + instrucao_final_completa},
                             {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_roteiro}"}}
                         ]}
                     ],
-                    max_tokens=4096, temperature=0.7
+                    max_tokens=4096, temperature=0.75
                 )
                 conteudo_texto = resp_retry.choices[0].message.content.strip()
 
@@ -1849,129 +1926,106 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Ultra-Denso (V31.2) Forjado com Sucesso!")
+            st.success("✅ Pacote V32.0 (Escala Física Realista + Cenário Inédito) Forjado com Sucesso!")
             time.sleep(1)
             st.rerun()
         except Exception as e:
             st.error(f"Erro ao gerar: {e}")
 
 # ==========================================================
-# 17.2. CRIAÇÃO V9 — A MATRIZ DE HIPER-REALIDADE E PROTOCOLO O.U.R.O. (COM TRAVA DE KITS 3+ PRODUTOS)
+# 17.2. CRIAÇÃO V9 — MATRIZ DE HIPER-REALIDADE + ESCALA UNIVERSAL (50ml A 2L/1KG) + SORTEIO DE AMBIENTES
 # ==========================================================
 if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 BLOCO 17.2: CRIAÇÃO V9 (MATRIZ DE HIPER-REALIDADE ABSOLUTA)</h3>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Conectado ao Bloco 17 &bull; Influencer Ativa: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Trava Multi-Kit Ativa</b></p>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 BLOCO 17.2: CRIAÇÃO V9 (ESCALA UNIVERSAL 1KG/2L + AMBIENTES INÉDITOS)</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Conectado ao Bloco 17 &bull; Influencer: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Escala Dinâmica 50ml a 2L/1kg Ativa</b></p>", unsafe_allow_html=True)
 
-        with st.expander("📚 VER ACERVO COMPLETO DE MANUAIS, CÓDIGO-FONTE E GABARITOS V8/V9 (100% INTEGRADO)", expanded=False):
+        with st.expander("📚 VER ACERVO COMPLETO DE MANUAIS, ESCALA UNIVERSAL 1KG/2L E GABARITOS V8/V9", expanded=False):
             st.markdown("""
-            **🔥 MATRIZ V8 & CÓDIGO-FONTE V9 INTEGRADOS NO NÚCLEO:**
-            * **0. Trava de Kit Múltiplo (`[MULTI-UNIT KIT LOCK]`):** Se a foto tiver 3 potes/produtos, os 3 aparecem obrigatoriamente na Imagem e no Vídeo (1 na mão + 2 na bancada em primeiro plano ou os 3 juntos).
-            * **1. Micro-Física e Macro-Detalhes (Nível Deus):** Reflexos reais no frasco/tecido, gotas de condensação escorrendo, micro-fios arrepiados, textura 1:1 inquebrável e micro-efeito ASMR nos primeiros 0.5s.
-            * **2. Direção Cinética e Cortes (Câmera Viva):** `FOCO REVERSO`, `Whip Pan`, `Macro Zoom In`, `Brutal Focus Pull` e `The Gossip Lean`.
-            * **3. Emoção Visceral (Avatar V9):** Pupilas dilatadas, respiração ofegante, micro-sorriso de choque e franja reta blindada (`straight bangs`) ou fidelidade total à Influencer configurada.
-            * **4. Caos Orgânico (Baguncinha Nível 99) + Fator Animal Storytelling:** Toalha pingando água no chão, fios de chapinha embolados, copo suado, planta viva interagindo com o clima e animal vivendo a história.
-            * **5. Prova Sensorial por Nicho:** `The Trigger Tap`, `The Cap Pop`, `A Andadinha`, `The Crochet Pull / Fabric Swish / Fringe Swish`, toque de unha em porcelana/inox ou pressão de dedo em estofado.
+            **🔥 NOVO MOTOR UNIVERSAL V32.0 + ENTIDADE V9 INTEGRADOS:**
+            * **0. Escala Física Universal (`50ml a 2L / 1kg`):** Analisa o rótulo automaticamente. Se for **Potão de 1kg ou Garrafa de 1L/2L**, aplica `LARGE HEAVY WIDE-BODY JUMBO MASS` e pegada de peso real (`heavy grip`), proibindo que o gerador deixe o pote pequeno!
+            * **1. Trava de Kit Múltiplo (`[MULTI-UNIT KIT LOCK]`):** Se a foto tiver 3 potes/produtos, os 3 aparecem obrigatoriamente na Imagem e no Vídeo com suas cores e tamanhos reais.
+            * **2. Sorteio Dinâmico de Cenários, Mascotes e Ganchos:** A cada clique, sorteia um ambiente brasileiro inédito (Varanda com Samambaias, Cozinha de Granito, Tempestade Tropical, Quarto Resort, Área Gourmet, Barco na Amazônia, Banheiro com Vapor, etc.) para nunca viciar no mesmo cenário.
+            * **3. Sacolinha 3D Laranja + Glitch Digital Final:** Aos `0:08` aponta para a sacolinha 3D flutuante e aos `0:09-0:10` entra o Glitch Digital Vermelho com a logo configurada.
             """)
 
         if not pode_gerar_roteiro:
             st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
             btn_disparar_v9 = st.button("🔥 FORJAR PACOTE ENTIDADE V9", type="primary", use_container_width=True, disabled=True, key="btn_v9_disabled")
         else:
-            txt_btn_v9 = "🔥 FORJAR PACOTE ENTIDADE V9 (HIPER-REALIDADE + TRAVA DE KITS - ILIMITADO)" if E_O_CEO else f"🔥 FORJAR PACOTE ENTIDADE V9 ({3 - usos_feitos} Restantes)"
+            txt_btn_v9 = "🔥 FORJAR PACOTE ENTIDADE V9 (ESCALA REAL 1KG/2L + AMBIENTE INÉDITO - ILIMITADO)" if E_O_CEO else f"🔥 FORJAR PACOTE ENTIDADE V9 ({3 - usos_feitos} Restantes)"
             btn_disparar_v9 = st.button(txt_btn_v9, type="primary", use_container_width=True, key="btn_v9_ativo")
 
         if btn_disparar_v9:
             if not img_produto:
-                st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro para a Entidade V9 ler o rótulo/kit!")
+                st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro para a Entidade V9 analisar o tamanho e o rótulo!")
             else:
-                with st.spinner("🧬 Entidade V9 em execução: Escaneando todas as unidades da foto e forjando Matriz V8/V9..."):
+                with st.spinner("🧬 Entidade V9 calculando massa/volume real do produto (50ml a 2L/1kg) e sorteando cenário inédito..."):
                     try:
                         img_b64_v9 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
+                        amb_v9_sorteado = random.choice(LISTA_AMBIENTES_DINAMICOS)
+                        pet_v9_sorteado = random.choice(LISTA_MASCOTES_DINAMICOS)
+                        gancho_v9_sorteado = random.choice(LISTA_GANCHOS_DINAMICOS)
 
                         acervo_integral_v8_v9 = f"""
 Você é a ENTIDADE V9 de Direção de Arte, Hiper-Realidade e Copywriting Cinético para TikTok Shop.
-Abaixo está 100% da sua base de conhecimento operacional (Matriz V8 + Código-Fonte V9 + Esteira de 5 Blocos + Todos os Exemplos Reais Validados). Use essa exata engenharia, densidade e vocabulário para criar o roteiro do novo produto/kit enviado na imagem.
+Abaixo está 100% da sua base operacional (Motor Universal de Escala Física + Matriz V8 + Código-Fonte V9 + Todos os Gabaritos Reais Validados, incluindo o Gabarito Oficial de Potões de 1kg).
 
-{REGRA_KIT_MULTI_PRODUTOS}
+{MOTOR_UNIVERSAL_ESCALA_E_KITS}
 
-====================================================================
-[ 🧬 DIRETRIZES MESTRAS V8 & V9 ]
-- Hiper-Realismo Ambiental Dinâmico: Não é só ter a planta, é o pé de coqueiro balançando com fúria se for cena de chuva, ou a Areca Palm oscilando levemente na brisa costeira se for sol. O ambiente tem que respirar junto com a apresentadora.
-- Fator Animal Storytelling: A garça caçando no fundo do deck, o beija-flor parando na planta estratégica, o passarinho se escondendo todo molhado da tempestade debaixo do telhado, o vira-lata caramelo tremendo a pata sonhando ou o Golden Retriever mexendo a orelha. O bicho vive a história da cena.
-- Fisiologia do Clima: Se está chovendo ou com vapor, a apresentadora, o cabelo e o cenário reagem fisicamente (gotas pingando, condensação, vapor nas bordas da lente).
-- Regra de Ouro (Blindagem Total e Testes Físicos):
-  * Para Moda/Crochê/Tricô/Alfaiataria: A Andadinha + A Puxadinha do Crochê (The Crochet Pull / The Fabric Swish / The Fringe Swish & Pull) ou puxar o cós/cinto para testar a trama e o caimento, voltando ao lugar sem derreter pixels (e usando solid beige swimwear bottom por baixo quando for saída de praia).
-  * Para Cosméticos/Frascos/Potes/Kits: Foco Reverso / The Trigger Tap (toque duplo na tampa/gatilho) ou The Cap Pop (abrir e fechar a tampa com estalo) + tamanho 1:1 realista. SE FOR KIT DE 2 OU 3+ POTES, TODOS OS POTES APARECEM NA CENA (ex: ela segura o pote verde na mão enquanto o pote rosa e o pote laranja estão posicionados bem ao lado na quina da bancada em primeiro plano, e ela bate o dedo nas tampas mostrando que são os 3!).
-  * Para Casa/Cozinha/Banheiro: Toque firme no filtro/pote ou pressão do dedo mostrando maciez/rigidez.
-- Piso de Ouro de Tamanho: Nunca menos de 1.400 caracteres por prompt (idealmente 1.800 a 2.500+ caracteres), sem teto máximo.
-
-[ 🧬 CÓDIGO-FONTE V9 : HIPER-REALIDADE ABSOLUTA ]
-1. MICRO-FÍSICA E MACRO-DETALHES (O Nível Deus): Reflexos no frasco do produto, gotas de condensação, micro-fios de cabelo, textura saltando da tela e som ASMR na descrição.
-2. DIREÇÃO CINÉTICA E CORTES (Câmera Viva): Whip pan (corte seco com movimento rápido), Macro zoom in (zoom agressivo no produto/kit completo), Focus pull (foco muda do produto/fundo para o rosto), câmera nervosa simulando edição nativa do TikTok.
-3. EMOÇÃO VISCERAL (O Avatar V9): Pupilas dilatadas (heavily dilated pupils), respiração visivelmente ofegante (chest slightly heaving), micro-sorriso de choque, sobrancelhas franzidas em sinal de fofoca urgente, olhar perfurante (soul-piercing eye contact).
-4. CAOS ORGÂNICO (Baguncinha Nível 99): A bagunça interage com a cena (toalha pingando água no chão, fios de secador/chapinha embolados, copo suando, grãos de café espalhados, mala aberta).
-5. O GANCHO HIPNÓTICO (Neuro-Marketing 9s): Começa em 0.0s com micro-efeito ASMR ([Suspiro rápido], estalo, chuva, batidinha), seguido pela dor visceral e urgência do lote secreto/vazado.
-
-[ 📥 ESTEIRA DE GERAÇÃO (OS 5 BLOCOS OBRIGATÓRIOS INTEGRADOS NAS 3 SEÇÕES) ]
-1️⃣ MATRIZ DE IMAGEM (Protocolo Sniper / Hiper-Realismo RAW): Avatar Lock + Clone Lock 1:1 (com TODOS os itens do kit visíveis) + Nature Matrix + Caos Orgânico + Fator Animal + Bypass NSFW.
-2️⃣ MATRIZ CINÉTICA (Comando de Vídeo): Caos de Câmera + Microfísica Viva + Visibilidade total de todos os itens do kit + The Gossip Lean + Prova Sensorial Física.
-3️⃣ O ÁUDIO LETAL (O Gancho de Exatos 9 Segundos): 0.0s Micro-efeito ASMR + 0.5s Dedo na Ferida + CTA de Urgência.
-4️⃣ UI E FINALIZAÇÃO: 3 Linhas de Texto na Tela + Finalização com Glitch Digital Vermelho exibindo a logo '{logo_ativa_usuario}'.
-5️⃣ MÓDULO DE RASTREAMENTO: Legenda SEO + 3 Títulos SEO (Geral, Solução, Marca) + Hashtags de Conversão e Nicho.
+🎲 [SORTEIO OBRIGATÓRIO DE CENÁRIO, MASCOTE E GANCHO PARA ESTA GERAÇÃO — NÃO REPITA AMBIENTES]:
+- AMBIENTE BRASILEIRO SORTEADO AGORA: {amb_v9_sorteado} (Se o produto exigir um contexto específico, adapte este ambiente mantendo altíssimo nível de detalhes cotidianos e plantas).
+- ANIMAL STORYTELLING SORTEADO AGORA: {pet_v9_sorteado}
+- ESTRATÉGIA DE GANCHO SORTEADA AGORA: {gancho_v9_sorteado}
 
 ====================================================================
-[ 📚 BANCO DE GABARITOS E EXEMPLOS REAIS V8 & V9 (REFERÊNCIA INTEGRAL) ]
+[ 🧬 DIRETRIZES MESTRAS V8 & V9 + GABARITO OFICIAL DE POTÕES DE 1KG / 2L ]
+- Hiper-Realismo Ambiental Dinâmico: As plantas (Areca Palm, Samambaia, Coqueiro, Costela-de-Adão, Babosa) e a iluminação interagem fisicamente com a cena.
+- Fisiologia e Emoção Visceral: Pupilas dilatadas, respiração ofegante, micro-sorriso de choque ou expressão séria de alerta, pele com poros visíveis, sem flash artificial.
+- GABARITO OFICIAL V9 PARA PRODUTOS GRANDES DE 1KG / 1L / 2L (EXEMPLO VALIDADO SALON LINE 1KG):
+  `POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference 1kg SOS Salon Line tubs (all 3 large 1kg jars clearly visible: green, pink, and orange) held firmly in her heavy grip / resting solidly on the foreground counter against the green varanda background. [CRITICAL: realistic 1kg jumbo mass representation, wide and tall 1000g containers, exact match to reference — DO NOT shrink into small jars]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The items remain perfectly solid with micro-reflections bouncing off the plastic as sunlight hits them. SINGLE MOTION TRICK (The Tactile Grip V9): Her clean free index finger performs a deliberate micro-tap twice on the black lid of the tub to emphasize its massive 1kg size. NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while keeping the large 1kg tubs visible in the lower frame. [ENVIRONMENT REINFORCEMENT LOCK V9]: Bright Brazilian varanda, lush green ferns, warm sunlight. In the deep background, the caramel dog's tail gives a subtle twitch. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1]: A violent red digital glitch effect flashes across the screen with the logo '{logo_ativa_usuario}' appearing in the center, followed by a sudden dry cut. Clean screen, 8k resolution.`
+  🎙️ Áudio Blindado (Gancho Exatos 9 Segundos):
+  `(Abre em 0.0s com micro-efeito ASMR: Som de tampa de pote abrindo e um suspiro de advertência). Voz da Aurora (ofegante, indignada e conselheira): "Amiga, para tudo! Sabe aquele kit com três potões de um quilo da Salon Line que salva qualquer cabelo ressecado? O lote secreto dele acabou de vazar aqui por um valor que é piada! O estoque vai zerar hoje, corre na sacolinha!"`
 
---- EXEMPLO COMPLETO 1 (MATRIZ V8: TEMPESTADE TROPICAL / MODA CROCHÊ) ---
-1️⃣ Gabarito de Imagem Base:
-RAW photography, mid-shot POV handheld mobile phone selfie, framing from chest to mid-thigh. Extreme hyper-realism: dripping wet hair, water droplets rolling down the skin, natural skin pores, advanced subsurface scattering, moody natural lighting, NO flash. Photorealistic young Brazilian woman (Aurora) with an elegant feminine silhouette, standing under the wooden roof of a rustic beach house porch during a heavy tropical rainstorm. She is wearing the EXACT white knit crochet beach shorts (short saída de praia tricot crochê) with side lace cutouts and front drawstring, perfectly matching reference Captura de tela 2026-09-18 204156.jpg . The crochet fabric looks slightly damp but holds its perfect structure. She wears a safe, solid beige swimwear bottom underneath. [NATURE MATRIX ACTIVE]: In the stormy background, a tall coconut tree (pé de coco) is bending and swaying violently in the wind and heavy rain. [BAGUNCINHA TEMÁTICA]: A soaked beach towel and muddy flip-flops are carelessly discarded on the wet wooden floorboards. [ANIMAL FACTOR]: Up in the corner rafters, a realistic small wet bird is huddled and hiding from the rain. Moody, cool-toned stormy daylight creating high-contrast texture on the white open-knit crochet fabric. [CRITICAL: 1:1 real-world scale, strictly realistic product proportions, material integrity locked, safe context]. Unfiltered UGC raw aesthetic, heavy sensor noise, rain atmospheric effects, 8k.
-
-2️⃣ Comando de Vídeo e Áudio (A Puxadinha na Chuva):
-[POV erratic handheld mobile phone video, intense dynamic spatial movement. Raw UGC vlog style, 100% real-life aesthetic with noticeable hand shake and heavy rain atmospheric effects. Quick cell phone auto-focus hunting effect at 0:01. The photorealistic young Brazilian woman (wet hair, water dripping from her chin) makes intense eye contact. [ENVIRONMENT REINFORCEMENT LOCK: Beach porch during heavy rainstorm, violently swaying coconut tree in background, wet towel, huddled wet bird]. [CRITICAL PHYSICS & ANTI-MORPHING LOCK: 1:1 scale. She wears the EXACT white crochet shorts]. SPATIAL MOTION TRICK: She takes a natural step forward (A Andadinha). Her clean hand firmly pinches the side lace panel of the white crochet shorts, giving a purposeful outward tug (The Crochet Pull) to demonstrate the breathable open-knit texture and how it holds its shape even when damp. She releases it, and the fabric instantly springs back with absolute realistic physics and NO pixel melting. The hiding bird in the background shakes water off its wings (Organic Animal Motion). The rain pours heavily in the background. Camera tilts back up to her face as she leans in closely to the lens (The Gossip Lean). Clean screen, 8k.]
-🎙️ Áudio (Gancho V8: O Tiro Curto — Exatos 9 Segundos):
-(Acústica de varanda, som alto de chuva pesada e vento, voz ofegante, apressada e íntima)
-"Amiga, a chuva caiu, mas olha isso! Esse shortinho de crochê tem um caimento impecável e modela sem marcar. O lote secreto tá acabando, clica logo!"
-
---- EXEMPLO COMPLETO 2 (MATRIZ V9: MICROFÍSICA E CAOS ORGÂNICO / SPRAY E KITS CAPILARES) ---
-1️⃣ Gabarito de Imagem Base (CÓDIGO DENSO V9 - 2.260 Caracteres):
-RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, NO flash. The photorealistic young Brazilian woman (Aurora) with a deeply shocked, conspiratorial gossip micro-expression, making intense, direct, soul-piercing eye contact. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) that sway slightly in the draft]. Her hair is the ultimate proof of the product: ultra-straight, heavily sealed, zero-frizz, displaying an extreme mirror-like glass-hair shine (liso espelhado perfeito). She is standing inside a chaotic, intensely lived-in everyday Brazilian bathroom filled with dense post-shower steam that slightly blurs the extreme edges of the camera lens. She is wearing a simple, damp, light grey cotton tank top clinging to her skin. [CRITICAL PHYSICS, MULTI-UNIT KIT & REFERENCE LOCK]: If the reference image is a single bottle, she holds it firmly in one hand; IF THE REFERENCE IMAGE IS A 3-JAR KIT (such as the 3 Salon Line SOS Masks: 1 green jar, 1 pink jar, and 1 orange jar), ALL 3 EXACT JARS MUST BE 100% VISIBLE IN THE FRAME: she holds the green jar in one hand while the pink jar and the orange jar sit side-by-side right next to her hand on the front edge of the bathroom counter, displaying all 3 products together in strict 1:1 scale. DO NOT alter, redraw, or omit any unit of the kit. [NATURE MATRIX ACTIVE (DENSE)]: A sprawling Aloe Vera (Babosa) plant in a cut transparent PET bottle sits on the wet sink counter, its thick green leaves covered in heavy condensation droplets. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: A professional hair dryer and a flat iron (chapinha) are plugged in with their thick black cords violently tangled across the wet ceramic sink. A soaking wet white face towel is draped over the towel rack, actively dripping large water droplets onto the floor tiles. [ANIMAL FACTOR (STORYTELLING V9)]: A realistic caramel mutt dog (vira-lata caramelo) is sleeping heavily on the bathroom rug in the background, its back leg visibly twitching as if it is dreaming. Unfiltered UGC raw aesthetic, heavy sensor noise, 8k resolution.
-
-2️⃣ Comando de Vídeo e Áudio (Protocolo O.U.R.O. Nível Deus - 2.120 Caracteres):
-[POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens are slightly blurred by heavy bathroom steam. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product or COMPLETE 3-PIECE KIT (all units clearly visible together in 1:1 scale, e.g., green jar in hand + pink and orange jars right beside it on the counter). [ABSOLUTE PHYSICS & ANTI-MORPHING LOCK]: All jars/bottles remain perfectly solid in 1:1 scale with extreme micro-reflections bouncing off the curved plastic. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a micro-tap across the lids of the jars/bottle twice to emphasize the complete kit. NO hand overlapping, absolute physics stability, NO pixel melting. The background features a soaking wet white towel actively dripping large water droplets (splat visual effect) onto the floor. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face while keeping all units of the kit visible in the lower foreground. VISCERAL EMOTION ACTIVE: Her chest heaves with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, relatably shocked conspiratorial micro-smile, making intense soul-piercing eye contact. [ENVIRONMENT REINFORCEMENT LOCK V9]: Modest lived-in Brazilian bathroom, steam in the air, tangled hair dryer cords on the wet sink, Aloe Vera in a PET bottle covered in condensation. In the deep background, the sleeping caramel dog twitches its hind leg realistically, deeply dreaming. 0:08: She aggressively points her free index finger downwards towards the screen's UI. Clean screen, 8k resolution.]
-
---- DEMAIS EXEMPLOS DE IMAGEM E VÍDEO DO ACERVO OFICIAL ---
-* Exemplo Kit Petisqueiras + Cumbucas Coração (6 peças todas visíveis na mesa): [CRITICAL PIXEL-PERFECT CLONE LOCK: 1:1 real-world scale. The AI MUST extract the exact 3 white rectangular trays and 3 white heart-shaped bowls exclusively from the reference image, keeping all pieces visible on the table.]
-* Exemplo Coador Portátil de Inox (Cozinha): At 0:02, her clean hand firmly taps the side of the black filter with her index finger to emphasize its solid, reusable build.
-* Exemplo Assento Sanitário Acolchoado Mármore (Banheiro): At 0:02, her clean hand reaches down and firmly presses her index finger deep into the THICK WHITE CUSHIONED SEAT RING to emphasize its soft texture.
-* Exemplo Vestido Longo de Tricô / Short de Crochê / Saída Assimétrica / Short de Alfaiataria no Barco da Amazônia: SPATIAL MOTION TRICK (A Andadinha + The Fabric Swish / The Crochet Pull / The Fringe Swish & Pull / Puxadinha no Cós).
+--- DEMAIS GABARITOS DO ACERVO OFICIAL (ADAPTE CONFORME O NICHO DO PRODUTO) ---
+- Moda / Crochê / Tricô / Alfaiataria: `SPATIAL MOTION TRICK: She takes a natural step forward (A Andadinha) + The Crochet Pull / The Fabric Swish / The Fringe Swish & Pull / Waistband Pull`, mostrando a trama e o caimento 1:1 voltando ao lugar sem derreter pixels (com `solid beige swimwear bottom` seguro quando for saída de praia).
+- Frascos Médios/Pequenos (180ml a 300ml): `The Trigger Tap` (toque duplo no gatilho/tampa) ou `The Cap Pop` (abrir e fechar a tampa com o polegar).
+- Casa / Utensílios / Banheiro: Toque firme na estrutura de inox/porcelana ou pressão do dedo no assento acolchoado mostrando maciez real.
 ====================================================================
 
-AGORA, EXECUTE A GERAÇÃO V9 PARA O PRODUTO/KIT DA IMAGEM ANEXADA SEGUINDO RIGOROSAMENTE ESTE FORMATO DE SAÍDA EM 3 SEÇÕES:
+AGORA, ANALISE A IMAGEM ANEXADA, DESCUBRA O TAMANHO/PESO REAL DO PRODUTO E QUANTAS UNIDADES EXISTEM NA FOTO, E GERE O PACOTE V9 SEGUINDO RIGOROSAMENTE ESTE FORMATO EM 3 SEÇÕES:
 
 ### 📸 PROMPT DE IMAGEM
-[Escreva aqui o Prompt de Imagem Base em Inglês seguindo a Matriz V9: mínimo de 1.500 a 2.300+ caracteres. ATENÇÃO: Se a foto tiver 2, 3 ou mais produtos (ex: Kit com 3 potes), descreva obrigatoriamente TODOS os produtos e suas respectivas cores juntos na cena (ex: ela segurando 1 pote na mão e os outros 2 potes posicionados bem ao lado na bancada em primeiro plano, todos 100% visíveis em escala 1:1), além do Avatar Lock ({nome_inf_ativa}: {desc_inf_ativa}), Nature Matrix, Baguncinha V9 e Animal Factor, 8k resolution.]
+[Escreva aqui o Prompt de Imagem Base em Inglês seguindo a Matriz V9: mínimo de 1.600 a 2.400+ caracteres.
+- OBRIGATÓRIO: Use o cenário inédito sorteado ({amb_v9_sorteado}) e o animal em ação ({pet_v9_sorteado}) com riqueza extrema de detalhes e baguncinha temática viva.
+- OBRIGATÓRIO SOBRE O TAMANHO E QUANTIDADE: Descreva a escala física exata do produto lido na foto! Se for de 1kg, 1L ou 2L, escreva explicitamente `LARGE, HEAVY, WIDE-BODY 1KG / 2L JUMBO CONTAINER, realistic heavy mass representation, DO NOT shrink or miniaturize`, descrevendo uma pegada de peso real (`heavy two-handed grip or resting solidly on the foreground counter against her torso`). Se forem 2, 3 ou mais produtos no kit, descreva TODOS os produtos juntos na cena com suas cores e tamanhos reais!
+- Avatar Lock: ({nome_inf_ativa}: {desc_inf_ativa}), 8k resolution.]
 
 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-[Escreva aqui o Comando Visual Cinético em Inglês seguindo o Protocolo O.U.R.O. V9: mínimo de 1.600 a 2.300+ caracteres. ATENÇÃO: Se a foto tiver 2, 3 ou mais produtos, obrigue TODOS os produtos do kit a aparecerem juntos tanto no Macro Zoom In inicial (0-4s) quanto no Shot 2 após o Whip Pan, detalhando a cor de cada unidade para nenhum item ficar de fora! Inclua o Truque Físico Sensorial ideal, Visceral Emotion Active, Environment Reinforcement Lock V9, Organic Animal Motion, The Gossip Lean e apontar o dedo para o carrinho aos 0:08.]
+[Escreva aqui o Comando Visual Cinético em Inglês seguindo o Protocolo O.U.R.O. V9: mínimo de 1.800 a 2.500+ caracteres.
+- `FOCO REVERSO (0-4s)`: Comece com Macro Zoom In no produto/kit completo no cenário ({amb_v9_sorteado}). Crave o tamanho real (`CRITICAL: realistic mass and 1:1 volume representation` — se for 1kg/1L/2L, proíba encolher e exija aparência de potão/garrafão pesado; se for kit com 3 unidades, exija todas as 3 unidades visíveis!).
+- `SINGLE MOTION TRICK (The Tactile Grip V9)`: Toque físico sensorial perfeito para o produto.
+- `0:05: WHIP PAN and brutal focus pull!`: Foco salta para o rosto de {nome_inf_ativa} com `VISCERAL EMOTION ACTIVE` (`The Gossip Lean`), mantendo o produto/kit no tamanho real em primeiro plano e o animal ({pet_v9_sorteado}) reagindo no fundo.
+- `0:08: [CRITICAL PHYSICS & CTA LOCK]`: Ela aponta o dedo para o canto inferior e uma sacolinha de compras laranja 3D realista flutua no ar projetando sombra.
+- `0:09-0:10: [FINALIZAÇÃO P1]`: Efeito de Glitch Digital Vermelho violento com a logo '{logo_ativa_usuario}' no centro e corte seco imediato. Clean screen, 8k resolution.]
 
-🎙️ Áudio (Gancho V9: Hipnose e Urgência — Exatos 9 Segundos):
+🎙️ Áudio Blindado (Gancho V9: {gancho_v9_sorteado} — Exatos 9 Segundos):
 (Descreva a acústica real do ambiente sorteado e o micro-efeito ASMR em 0.0s)
-"[{nome_inf_ativa} inicia com micro-efeito ASMR] Escreva a fala letal de exatos 9 segundos em português, destacando se for o kit completo (ex: os 3 potes de 1kg) e fechando com o gatilho de lote secreto/vazado na sacolinha, sem mencionar preços fixos!"
+"[{nome_inf_ativa} inicia com micro-efeito ASMR] Escreva a fala letal e inédita de exatos 9 segundos em português, destacando o tamanho/kit real do produto (ex: kit com 3 potões de 1 quilo / garrafão de 2 litros / peça modeladora) e fechando com o lote secreto na sacolinha, sem mencionar preços fixos!"
 
 📝 Texto na Tela (Nativo TikTok):
 "⚠️ [LINHA 1: ALERTA DE IMPACTO SOBRE A DOR] 🛑"
-"[LINHA 2: BENEFÍCIO / KIT COMPLETO] ✨"
+"[LINHA 2: BENEFÍCIO + TAMANHO/KIT COMPLETO] ✨"
 "CORRE NA SACOLINHA 🛒👇"
 
-🎬 Finalização (Corte Seco):
-Glitch digital vermelho violento com a logo '{logo_ativa_usuario}'. O corte entra seco no milésimo seguinte após a última palavra, sem deixar respiro.
+🔥 Finalização P1:
+Glitch digital vermelho com a logo '{logo_ativa_usuario}' no milésimo final. Corte entra seco.
 
 ### 🔑 TÍTULOS SEO (Separados)
 **🔍 Geral (Dor):** [Título SEO Geral focado na dor/solução sem citar marca]
-**💡 Solução (Produto):** [Título SEO Solução descrevendo o produto/kit completo e benefício]
-**🏷️ Marca (Resenha):** [Título SEO De Marca com nome exato do produto/kit e marca]
+**💡 Solução (Produto):** [Título SEO Solução descrevendo o produto/kit completo, tamanho/peso e benefício]
+**🏷️ Marca (Resenha):** [Título SEO De Marca com nome exato do produto/kit, peso e marca]
 
 **📝 Legenda (SEO Validado):**
 [Escreva uma legenda persuasiva de 3 linhas com gatilho de escassez e urgência]
@@ -1985,14 +2039,14 @@ Glitch digital vermelho violento com a logo '{logo_ativa_usuario}'. O corte entr
                         resp_v9 = cliente_openai.chat.completions.create(
                             model="gpt-4o-mini",
                             messages=[
-                                {"role": "system", "content": "Você é a Entidade V9 de Direção de Arte e Copywriting Cinético para e-commerce. CONTE quantos produtos existem na imagem anexada: se for um kit com 2, 3 ou mais unidades (ex: 3 potes de cores diferentes), TODOS os produtos devem aparecer juntos e descritos individualmente por cor tanto no Prompt de Imagem quanto no Prompt de Vídeo. Gere a saída em Markdown seguindo rigorosamente as 3 seções solicitadas."},
+                                {"role": "system", "content": "Você é a Entidade V9 de Direção de Arte e Escala Física Universal para e-commerce. Analise a imagem anexada: 1) Verifique o peso/volume do produto (se for 1kg, 1L ou 2L, trate como JUMBO/HEAVY CONTAINER e proíba encolher); 2) Conte quantas unidades há na foto (se forem 3 potes, exiba os 3 juntos na imagem e no vídeo); 3) Use o cenário inédito sorteado. Gere a saída em Markdown seguindo rigorosamente as 3 seções solicitadas."},
                                 {"role": "user", "content": [
                                     {"type": "text", "text": acervo_integral_v8_v9},
                                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_v9}"}}
                                 ]}
                             ],
                             max_tokens=4096,
-                            temperature=0.8
+                            temperature=0.83
                         )
 
                         conteudo_v9 = resp_v9.choices[0].message.content.strip()
@@ -2001,14 +2055,14 @@ Glitch digital vermelho violento com a logo '{logo_ativa_usuario}'. O corte entr
                             resp_v9_retry = cliente_openai.chat.completions.create(
                                 model="gpt-4o-mini",
                                 messages=[
-                                    {"role": "system", "content": "Você é um diretor de arte publicitário de e-commerce. Identifique todas as unidades do produto/kit da foto e preencha a ficha técnica V9 completa em Markdown."},
+                                    {"role": "system", "content": "Você é um diretor de arte publicitário de e-commerce. Identifique todas as unidades e o tamanho/peso real do produto da foto e preencha a ficha técnica V9 completa em Markdown."},
                                     {"role": "user", "content": [
-                                        {"type": "text", "text": "Analise todas as unidades da embalagem/kit comercial desta foto e gere os prompts publicitários hiper-detalhados abaixo:\n\n" + acervo_integral_v8_v9},
+                                        {"type": "text", "text": "Analise todas as unidades e o peso/volume comercial desta foto e gere os prompts publicitários hiper-detalhados abaixo:\n\n" + acervo_integral_v8_v9},
                                         {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64_v9}"}}
                                     ]}
                                 ],
                                 max_tokens=4096,
-                                temperature=0.75
+                                temperature=0.78
                             )
                             conteudo_v9 = resp_v9_retry.choices[0].message.content.strip()
 
@@ -2019,7 +2073,7 @@ Glitch digital vermelho violento com a logo '{logo_ativa_usuario}'. O corte entr
                             try: aba_limites.append_row([email_sessao, "Sim_V9"])
                             except Exception: pass
 
-                        st.success("🔥 ENTIDADE V9 EXECUTADA! Todos os produtos do Kit foram travados na Imagem e no Vídeo!")
+                        st.success("🔥 ENTIDADE V9 EXECUTADA! Escala Física Universal (1kg/2L/Kits) + Ambiente Inédito Forjados com Sucesso!")
                         time.sleep(1)
                         st.rerun()
                     except Exception as e:
