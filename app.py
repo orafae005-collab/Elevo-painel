@@ -1424,10 +1424,10 @@ if E_O_CEO:
                             else: st.warning("Não encontrado.")
                         except Exception: pass
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (V33.2 - BOTÕES DE CÓPIA 100% GARANTIDOS + PISO MÍNIMO INFINITO + V9.2)
+# 17. MÁQUINA DE CRIAÇÃO 360º (V33.3 - CALIBRAGEM DE ESCALA REAL 1:1 SEM EXAGERO + BOTÕES 100%)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V33.2 Anti-Block & Entidade V9.2)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V33.3 True 1:1 Scale & Entidade V9.2)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1548,14 +1548,9 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     components.html(html_btn, height=48)
 
 def extrair_blocos_roteiro(md_texto):
-    """
-    Extrator Blindado V33.2: Funciona mesmo que a IA mude emojis, numeração ou formatação dos títulos,
-    garantindo que os botões de Copiar Imagem, Copiar Vídeo e Botões 1, 2 e 3 NUNCA desapareçam!
-    """
     dados = {"prompt_imagem": "", "prompt_video": "", "secao_seo_texto": "", "titulo_1": "", "titulo_2": "", "titulo_3": ""}
     if not md_texto: return dados
 
-    # Busca flexível para Prompt de Imagem
     m_img = re.search(
         r'(?:###|\*\*|1[\.\)]|📸)\s*(?:📸\s*)?PROMPT DE IMAGEM[^\n]*\n(.*?)(?=(?:###|\*\*|2[\.\)]|🎬)\s*(?:🎬\s*)?(?:PROMPT DE V[IÍ]DEO|COMANDO DE V[IÍ]DEO)|\Z)',
         md_texto, re.DOTALL | re.IGNORECASE
@@ -1563,7 +1558,6 @@ def extrair_blocos_roteiro(md_texto):
     if m_img:
         dados["prompt_imagem"] = m_img.group(1).strip().replace("**", "")
 
-    # Busca flexível para Prompt de Vídeo
     m_vid = re.search(
         r'(?:###|\*\*|2[\.\)]|🎬)\s*(?:🎬\s*)?(?:PROMPT DE V[IÍ]DEO|COMANDO DE V[IÍ]DEO)[^\n]*\n(.*?)(?=(?:###|\*\*|3[\.\)]|🔑)\s*(?:🔑\s*)?T[IÍ]TULOS SEO|\Z)',
         md_texto, re.DOTALL | re.IGNORECASE
@@ -1571,7 +1565,6 @@ def extrair_blocos_roteiro(md_texto):
     if m_vid:
         dados["prompt_video"] = m_vid.group(1).strip().replace("**", "")
 
-    # Busca flexível para Títulos SEO
     m_seo = re.search(
         r'(?:###|\*\*|3[\.\)]|🔑)\s*(?:🔑\s*)?T[IÍ]TULOS SEO[^\n]*\n(.*)',
         md_texto, re.DOTALL | re.IGNORECASE
@@ -1591,9 +1584,8 @@ def extrair_blocos_roteiro(md_texto):
         if len(titulos_limpos) >= 2: dados["titulo_2"] = titulos_limpos[1]
         if len(titulos_limpos) >= 3: dados["titulo_3"] = titulos_limpos[2]
 
-    # Fallback inteligente se a IA usar outro divisor
     if not dados["prompt_imagem"] and "RAW photography" in md_texto:
-        partes_raw = re.split(r'\[POV|POV ', md_texto, maxsplit=1)
+        partes_raw = re.split(r'\[POV|POV |\[VEO_GENERATION', md_texto, maxsplit=1)
         if len(partes_raw) == 2:
             idx_raw = partes_raw[0].find("RAW photography")
             dados["prompt_imagem"] = partes_raw[0][idx_raw:].strip().replace("**", "")
@@ -1669,37 +1661,45 @@ LISTA_GUINDASTES_V92 = [
 LISTA_GANCHOS_DINAMICOS = [
     "O Alerta da Amiga Preocupada (Interpelação direta sobre o dano invisível que a cliente sofre no dia a dia + solução imediata)",
     "O Erro no Sistema / Lote Promocional Vazado (Urgência máxima revelando que o estoque promocional foi liberado por engano na sacolinha)",
-    "A Prova de Volume / Kit Completo de Salão em Casa (Destaca o tamanho gigante de 1kg/2L ou a força do Kit Completo com todas as unidades)",
+    "A Prova de Volume / Kit Completo de Salão em Casa (Destaca o rendimento real do produto ou a força do Kit Completo com todas as unidades)",
     "O Socorro de Emergência / UTI Imediata (Foco em salvar o cabelo/pele/look no primeiro uso sem gastar fortuna)",
     "O Segredo de Elite Descoberto (Tom de fofoca confidencial revelando o achadinho que entrega resultado de luxo)"
 ]
 
 # ==========================================================
-# ETAPA 1: SCANNER COMERCIAL PURO (100% NEUTRO PARA NUNCA SER RECUSADO PELA OPENAI)
+# ETAPA 1: SCANNER COMERCIAL COM CALIBRAGEM CAMPEÃ DE TAMANHO REAL (ZERO 'JUMBO/MASSIVE' — PROPORÇÃO HUMANA EXATA)
 # ==========================================================
 def escanear_inventario_exato_da_foto(img_b64, diretriz_extra=""):
+    """
+    Calibrado com a Fórmula Campeã do Sócio:
+    Proíbe palavras que inflam o objeto ("JUMBO", "MASSIVE", "GIGANTIC") e aplica:
+    [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic <PESO/VOLUME> cosmetic size, DO NOT oversize, must fit normal hand proportions]
+    """
     prompt_scan = """
     You are an e-commerce catalog assistant. Inspect ONLY the commercial product packaging/apparel in this image (ignore any human faces on labels or in the background) and return a JSON object:
     1. "quantidade_exata": integer count of distinct product items/containers/pieces in the offer (e.g., 1, 2, 3, 5, 6).
-    2. "nome_comercial_pt": full commercial name of the product or kit in Portuguese (including volume/weight like 1kg, 300ml, 50ml if visible).
+    2. "nome_comercial_pt": full commercial name of the product or kit in Portuguese (including volume/weight like 1kg, 500g, 400g, 300ml, 200ml, 50ml if visible).
     3. "categoria_produto": one of ["cosmetico_pote_frasco", "moda_roupa_calcado", "casa_utensilio_outros"].
     4. "classe_tamanho_peso":
-       - "JUMBO_1KG_1L_2L" if it is a 1kg (1000g) hair mask tub, 1L/2L bottle, or large item.
-       - "MEDIO_300G_500ML" if 300ml-500g medium container.
-       - "COMPACTO_50ML_250ML" if 30ml-250ml small bottle/sachet/spray.
+       - "STANDARD_1KG_TUB" if it is a 1kg (1000g) hair mask tub or 1L bottle.
+       - "STANDARD_500G_400G" if 400g-500g/500ml container.
+       - "COMPACTO_50ML_300ML" if 30ml-300ml bottle/sachet/spray.
        - "VESTUARIO_CORPO_1_1" if clothing/apparel/shoes.
-    5. "inventario_detalhado_ingles": describe EVERY SINGLE UNIT from the image in English with its exact color, packaging shape, lid color, and volume/weight (e.g., "ALL 3 EXACT UNITS FROM THE KIT: (Unit 1) large 1kg green jar with black lid, (Unit 2) large 1kg pink jar with black lid, and (Unit 3) large 1kg orange jar with black lid").
+    5. "inventario_detalhado_ingles": describe EVERY SINGLE UNIT from the image in English with its exact body color, label colors, lid color, and volume/weight. NEVER use words like 'jumbo', 'massive', or 'huge'! Use 'standard 1kg cosmetic tub', 'standard 400g jar', or 'compact 200ml bottle' (e.g., "ALL 3 EXACT UNITS FROM THE KIT: (Unit 1) standard 1kg green jar with black lid, (Unit 2) standard 1kg pink jar with black lid, and (Unit 3) standard 1kg orange jar with black lid").
     6. "regra_posicionamento_ingles":
-       - If quantidade_exata == 1 and classe_tamanho_peso == "JUMBO_1KG_1L_2L": "STRICT SINGLE-UNIT & JUMBO 1KG/2L MASS LOCK: Show ONLY 1 SINGLE large, heavy, wide-body 1kg/2L container. DO NOT shrink or miniaturize it! She holds this single large heavy container with a firm two-handed grip supporting its heavy base."
-       - If quantidade_exata == 1 and classe_tamanho_peso != "JUMBO_1KG_1L_2L": "STRICT SINGLE-UNIT LOCK: Show ONLY 1 SINGLE unit of the product in exact 1:1 scale (do not duplicate or add extra bottles)."
-       - If quantidade_exata >= 2: "STRICT MULTI-UNIT KIT LOCK (MANDATORY FOREGROUND SURFACE): ALL units listed in the inventory MUST BE 100% VISIBLE TOGETHER IN BOTH THE IMAGE AND THE VIDEO! She stands right behind a foreground counter/table edge where all units are lined up side-by-side in crisp focus at their true 1:1 scale while she holds or taps Unit 1. NEVER show just one unit alone!"
+       - If quantidade_exata == 1 and classe_tamanho_peso == "STANDARD_1KG_TUB":
+         "[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic standard 1kg cosmetic tub size, DO NOT oversize, DO NOT make it look like a giant bucket, must fit normal hand proportions comfortably]. [CHROMATIC INTEGRITY LOCK: Exact body color, text, and solid lid exclusively from the reference]. Resting on the counter directly in front of her or held naturally in her hand is ONE standard 1kg tub EXACTLY from the reference image."
+       - If quantidade_exata == 1 and classe_tamanho_peso != "STANDARD_1KG_TUB":
+         "[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic compact/standard product size (200ml-400g), DO NOT oversize, must fit easily and proportionally inside one single hand]."
+       - If quantidade_exata >= 2:
+         "[CRITICAL SIZE & MULTI-UNIT KIT LOCK: 1:1 real-world scale, strictly realistic commercial size, DO NOT oversize, must fit normal hand proportions]. ALL units listed in the inventory MUST BE 100% VISIBLE TOGETHER IN BOTH THE IMAGE AND THE VIDEO! Resting on the counter directly in front of her are all units lined up side-by-side in crisp focus at their true compact/standard 1:1 scale while she holds one unit or double-taps the lid with her index finger. Hands and containers MUST remain 100% intact with clean separation."
     """
     try:
         resp_scan = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You are a helpful e-commerce product cataloging assistant. Output valid JSON only."},
+                {"role": "system", "content": "You are a helpful e-commerce product cataloging assistant. Output valid JSON only. Never use words like jumbo, massive, or giant when describing 1kg cosmetic tubs."},
                 {"role": "user", "content": [
                     {"type": "text", "text": prompt_scan},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
@@ -1713,9 +1713,9 @@ def escanear_inventario_exato_da_foto(img_b64, diretriz_extra=""):
             "quantidade_exata": 1,
             "nome_comercial_pt": diretriz_extra if diretriz_extra else "Produto Principal da Referência",
             "categoria_produto": "cosmetico_pote_frasco",
-            "classe_tamanho_peso": "MEDIO_300G_500ML",
-            "inventario_detalhado_ingles": "the exact product(s) shown in the reference image",
-            "regra_posicionamento_ingles": "Show the exact number of product units from the reference image in true 1:1 real-world scale."
+            "classe_tamanho_peso": "STANDARD_1KG_TUB",
+            "inventario_detalhado_ingles": "the exact standard-sized product(s) shown in the reference image",
+            "regra_posicionamento_ingles": "[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic size, DO NOT oversize, must fit normal hand proportions]."
         }
 
 pode_gerar_roteiro = True
@@ -1739,7 +1739,7 @@ if not E_O_CEO and robo_sheets:
 with st.container(border=True):
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
-        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V33.2 Universal)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
+        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V33.3 True 1:1 Scale)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
             st.session_state["modo_entidade_v9"] = False
             st.rerun()
     with col_sel2:
@@ -1763,7 +1763,7 @@ with st.container(border=True):
         
         col_img, col_dados = st.columns([1, 1])
         with col_img: 
-            img_produto = st.file_uploader("📸 Foto do Produto (1 Unidade, Kit de 2, 3 ou 5+ Produtos, Roupa ou Casa)", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
+            img_produto = st.file_uploader("📸 Foto do Produto (200ml, 400g, 500g, 1kg, Kits, Roupa ou Casa)", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
             if E_O_CEO:
                 logo_input_direto = st.text_input(
                     "🏷️ Logo do Glitch Final (Padrão CEO já ativo — altere apenas se quiser outra):",
@@ -1794,7 +1794,7 @@ with st.container(border=True):
                 )
 
             explicacao_video_usuario = st.text_area(
-                "📝 Diretrizes Extras (Opcional — O Scanner já conta os itens e mede 1kg/2L sozinho):",
+                "📝 Diretrizes Extras (Opcional — Calibragem 1:1 cabendo na mão já ativa para 200ml a 1kg):",
                 placeholder="Deixe em branco para o Scanner Automático agir, ou digite algum detalhe extra...",
                 height=85,
                 key="txt_diretrizes_360"
@@ -1803,12 +1803,12 @@ with st.container(border=True):
             if not st.session_state["modo_entidade_v9"]:
                 if not pode_gerar_roteiro:
                     st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
-                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V33.2)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
+                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V33.3)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                 else:
                     txt_botao = "⚡ ESCANEAR FOTO E GERAR NO BLOCO 17 (Ilimitado)" if E_O_CEO else f"⚡ ESCANEAR FOTO E GERAR NO BLOCO 17 ({3 - usos_feitos} Restantes)"
                     btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
             else:
-                st.success("🧬 **MODO ENTIDADE V9.2 ATIVADO!** Clique no botão vermelho do **Bloco 17.2** logo abaixo para rodar o Scanner de Inventário + Banco de Memória V6–V9.2.")
+                st.success("🧬 **MODO ENTIDADE V9.2 ATIVADO!** Clique no botão vermelho do **Bloco 17.2** logo abaixo para rodar o Scanner Calibrado 1:1 + Banco de Memória V6–V9.2.")
 
     with aba_config_influencer:
         st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influencer & Logo da Marca</h4>", unsafe_allow_html=True)
@@ -1861,17 +1861,23 @@ with st.container(border=True):
                         else:
                             st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
+# ==========================================================
+# BANCO DE MEMÓRIA IMUTÁVEL V6–V9.2 + GABARITO CAMPEÃO DE PROPORÇÃO 1:1 (200ml, 400g, 500g e 1kg)
+# ==========================================================
 BANCO_MEMORIA_MESTRE_V92 = """
-🔒 [ CÓDIGO-FONTE MESTRE : REGRA DE OURO SUPREMA (FUSÃO V6–V9.2 — PISO MÍNIMO DE 1.600 A 2.500+ CARACTERES, SEM LIMITE MÁXIMO!) ]
-- REGRA DE OURO DE TAMANHO MÍNIMO (PROIBIDO ENCURTAR): O Prompt de Imagem DEVE ter no mínimo entre 1.600 e 2.300+ caracteres (sem teto máximo). O Comando de Vídeo DEVE ser ainda mais longo, tendo no mínimo entre 2.000 e 2.800+ caracteres (sem teto máximo). Expanda cada micro-detalhe óptico, botânico, anatômico e de iluminação!
-- HERANÇA TOTAL (IMAGEM = VÍDEO): O prompt de vídeo DEVE clonar 100% do cenário, plantas, baguncinha, animal e TODAS AS UNIDADES DO PRODUTO dentro da trava `[ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: ...]`.
+🔒 [ CÓDIGO-FONTE MESTRE : REGRA DE OURO SUPREMA (FUSÃO V6–V9.2 + CALIBRAGEM DE ESCALA CAMPEÃ) ]
+- REGRA DE OURO DE TAMANHO REAL 1:1 (PROIBIDO EXAGERAR OU DEIXAR GIGANTE):
+  * NUNCA use palavras como "JUMBO", "MASSIVE", "HUGE", "GIANT" ou "OVERSIZED"! Essas palavras fazem a IA criar potes do tamanho de baldes!
+  * Tanto para produtos de 200ml/400g/500g quanto para potes de 1kg, SEMPRE aplique a trava campeã validada:
+    `[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic standard cosmetic size (fit normal hand proportions), DO NOT oversize, DO NOT shrink. Hands and container(s) MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs]`.
+  * Um pote de 1kg na vida real é um pote padrão de máscara capilar que cabe perfeitamente nas proporções normais da mão ou apoiado na bancada bem na frente dela (`Resting on the counter directly in front of her or held comfortably in normal hand proportions`).
+- PISO MÍNIMO DE DENSIDADE & ESPELHAMENTO TOTAL (IMAGEM = VÍDEO): Mínimo de 1.600 a 2.300+ caracteres por prompt (sem teto máximo). O prompt de vídeo DEVE clonar 100% do cenário, plantas, baguncinha, animal e TODAS AS UNIDADES DO PRODUTO dentro da trava `[ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: ...]`.
 - PROIBIÇÃO DE ASTERISCOS E PORTUGUÊS NO PROMPT VISUAL: Dentro do texto em inglês do Prompt de Imagem e do Comando Visual de Vídeo, NUNCA use asteriscos `**` e escreva 100% em inglês técnico cinematográfico!
-- FÍSICA ÓPTICA REAL: `Auto-focus hunting effect at 0:01`, `Local Rolling Shutter artifacts`, `heavy sensor noise`, `volumetric natural light rays with actively dancing dust motes`, `NO artificial flash`.
-- BIOLOGIA & MICROFÍSICA: `microscopic visible peach fuzz, natural skin pores, subtle T-zone glow, advanced subsurface scattering, dilated pupils, expressive urgent breathing (The Gossip Lean)`.
-- TRAVA DE QUANTIDADE EXATA E TAMANHO REAL:
+- GABARITO CAMPEÃO DE ESCALA E SEPARAÇÃO LIMPA (EXEMPLO DE OURO 1KG):
+  `Resting on the counter directly in front of her (or held naturally in hand) is the standard 1kg hair mask tub EXACTLY from the reference image. [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic 1kg cosmetic tub size, DO NOT oversize, must fit normal hand proportions]. [CHROMATIC INTEGRITY LOCK: Exact body color, text, and solid lid exclusively from the reference]. She DOES NOT open the product. She urgently double-taps the solid lid with her clean index finger. Hands and tub MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs.`
+- TRAVA DE QUANTIDADE EXATA (1 UNIDADE vs 2, 3, 5+ UNIDADES):
   * Se 1 produto: mostre APENAS 1 produto.
-  * Se 2, 3, 5+ produtos: nomeie CADA unidade e sua cor exata tanto na Imagem quanto no Vídeo, posicionando todas as unidades sobre uma bancada/mesa em primeiro plano (`foreground counter/table`) enquanto ela interage com elas!
-  * Se 1kg / 1L / 2L: exija `LARGE, HEAVY, WIDE-BODY 1KG/2L JUMBO CONTAINER, realistic heavy mass representation, DO NOT shrink or miniaturize`.
+  * Se 2, 3, 5+ produtos: nomeie CADA unidade e sua cor exata tanto na Imagem quanto no Vídeo, posicionando todas as unidades sobre a bancada/mesa em primeiro plano (`Resting on the counter directly in front of her`) em tamanho 1:1 real (`DO NOT oversize, must fit normal hand proportions`) enquanto ela toca na tampa com o indicador!
 """
 
 def forjar_roteiro_blindado_sem_bloqueio(instrucao_prompt):
@@ -1884,6 +1890,8 @@ def forjar_roteiro_blindado_sem_bloqueio(instrucao_prompt):
                     "You are an elite commercial creative director and copywriter for e-commerce product advertisements. "
                     "Write the requested 3-section Markdown creative brief using the exact section headers: "
                     "'### 📸 PROMPT DE IMAGEM', '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO', and '### 🔑 TÍTULOS SEO (Separados)'. "
+                    "CRITICAL SIZE RULE: Never use words like 'jumbo', 'massive', 'huge', or 'giant' for 1kg tubs! Always use "
+                    "'[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic tub/bottle size, DO NOT oversize, must fit normal hand proportions]'. "
                     "CRITICAL LENGTH RULE: Never summarize! The Image Prompt MUST be at least 1,600 to 2,300+ characters long, "
                     "and the Video Prompt MUST be at least 2,000 to 2,800+ characters long (no maximum limit). "
                     "Never use asterisks (**) inside the English visual prompts."
@@ -1897,10 +1905,10 @@ def forjar_roteiro_blindado_sem_bloqueio(instrucao_prompt):
     return resp.choices[0].message.content.strip()
 
 # ==========================================================
-# EXECUÇÃO DO BLOCO 17 (MODO PADRÃO V33.2 COM SCANNER DE 2 ETAPAS ANTI-BLOCK)
+# EXECUÇÃO DO BLOCO 17 (MODO PADRÃO V33.3 COM ESCALA REAL 1:1 CALIBRADA)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Etapa 1/2: Escaneando quantidade exata de produtos e tamanho/peso real na foto..."):
+    with st.spinner("🦅 Etapa 1/2: Escaneando quantidade exata de produtos e calibrando proporção 1:1 real na mão..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
             scan_info = escanear_inventario_exato_da_foto(img_b64_roteiro, explicacao_video_usuario)
@@ -1909,7 +1917,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             guindaste_escolhido = random.choice(LISTA_GUINDASTES_V92)
             gancho_escolhido = random.choice(LISTA_GANCHOS_DINAMICOS)
 
-            with st.spinner(f"🦅 Etapa 2/2: Detectado(s) {scan_info.get('quantidade_exata', 1)} item(ns) ({scan_info.get('classe_tamanho_peso')}). Forjando Prompts Gigantes V33.2..."):
+            with st.spinner(f"🦅 Etapa 2/2: Detectado(s) {scan_info.get('quantidade_exata', 1)} item(ns) ({scan_info.get('classe_tamanho_peso')}). Forjando Prompts Calibrados V33.3..."):
                 instrucao_v33 = f"""
                 Create a complete, ultra-dense e-commerce UGC creative brief in Markdown (MINIMUM 1,600+ characters for Image Prompt and MINIMUM 2,000+ characters for Video Prompt, NO maximum limit) based on the following scanned product data:
                 
@@ -1919,7 +1927,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 - CATEGORY: {scan_info.get('categoria_produto')}
                 - SIZE/WEIGHT CLASS: {scan_info.get('classe_tamanho_peso')}
                 - DETAILED ENGLISH INVENTORY OF ALL UNITS (MUST INCLUDE ALL IN IMAGE & VIDEO): {scan_info.get('inventario_detalhado_ingles')}
-                - PHYSICAL STAGING RULE: {scan_info.get('regra_posicionamento_ingles')}
+                - CALIBRATED 1:1 HAND-PROPORTION STAGING RULE: {scan_info.get('regra_posicionamento_ingles')}
 
                 🌿 [ENVIRONMENT & CAMERA MATRIX FOR THIS GENERATION]:
                 - LIVING BOTANICAL ENVIRONMENT: {amb_escolhido}
@@ -1931,19 +1939,19 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 GENERATE THE OUTPUT USING THESE EXACT 3 HEADERS (DO NOT CHANGE THE HEADERS):
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic mid-shot POV handheld mobile phone shot. Extreme hyper-realism: microscopic visible peach fuzz, detailed natural skin pores, subtle moisture on skin, advanced subsurface scattering, NO artificial flash. Photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [WRITE AN ULTRA-DENSE, 600+ CHARACTER ENGLISH DESCRIPTION OF THE ENVIRONMENT '{amb_escolhido}', HIGHLIGHTING LIVING PLANTS (FERNS, MONSTERAS, PALMS OR WATERFALL), VOLUMETRIC LIGHT RAYS WITH DANCING DUST MOTES, REACTIVE EVERYDAY CLUTTER, AND THE BACKGROUND ANIMAL IN ACTION]. [CRITICAL 1:1 SCALE & {scan_info.get('quantidade_exata')}-UNIT INVENTORY LOCK: {scan_info.get('regra_posicionamento_ingles')} — Specifically featuring: {scan_info.get('inventario_detalhado_ingles')}. Authentic retail packaging with realistic solid textures and micro-reflections]. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO UI]. Unfiltered UGC vlog style, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
+                RAW photography, cinematic mid-shot POV handheld mobile phone shot. Extreme hyper-realism: microscopic visible peach fuzz, detailed natural skin pores, subtle moisture on skin, advanced subsurface scattering, NO artificial flash. Photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [WRITE AN ULTRA-DENSE, 600+ CHARACTER ENGLISH DESCRIPTION OF THE ENVIRONMENT '{amb_escolhido}', HIGHLIGHTING LIVING PLANTS (FERNS, MONSTERAS, PALMS OR WATERFALL), VOLUMETRIC LIGHT RAYS WITH DANCING DUST MOTES, REACTIVE EVERYDAY CLUTTER, AND THE BACKGROUND ANIMAL IN ACTION]. [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic/product size, DO NOT oversize, must fit normal hand proportions comfortably]. [CHROMATIC & {scan_info.get('quantidade_exata')}-UNIT INVENTORY LOCK: {scan_info.get('regra_posicionamento_ingles')} — Specifically featuring: {scan_info.get('inventario_detalhado_ingles')}. Hands and product(s) MUST remain 100% intact with clean separation]. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO UI]. Unfiltered UGC vlog style, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [REPEAT IN FULL ULTRA-DENSE ENGLISH ALL DETAILS OF THE ENVIRONMENT '{amb_escolhido}', LIVING PLANTS, ACTIVE CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_escolhido} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_info.get('inventario_detalhado_ingles')}) in true 1:1 scale ({scan_info.get('classe_tamanho_peso')}). [CRITICAL MULTI-UNIT & PHYSICS LOCK]: {scan_info.get('regra_posicionamento_ingles')}. All {scan_info.get('quantidade_exata')} unit(s) remain 100% solid and visible with micro-reflections bouncing off the surface. SINGLE MOTION TRICK: [Describe in English the tactile physical test: The Trigger Tap on the lids / The Cap Pop / A Andadinha + The Crochet/Fabric Pull / Tactile press], zero pixel melting. 0:05: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel mic on collar). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), expressive urgent breathing, dilated pupils, while keeping ALL {scan_info.get('quantidade_exata')} unit(s) ({scan_info.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame at their true 1:1 size. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [FINALIZAÇÃO P1]: A red digital glitch effect flashes across the screen with the logo '{logo_ativa_usuario}' appearing in the center, followed by a sudden dry cut to a SOLID BLACK FRAME. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok watermarks or usernames]. Clean screen, 8k resolution.]
+                [POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [REPEAT IN FULL ULTRA-DENSE ENGLISH ALL DETAILS OF THE ENVIRONMENT '{amb_escolhido}', LIVING PLANTS, ACTIVE CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_escolhido} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_info.get('inventario_detalhado_ingles')}) resting on the foreground counter or held naturally in her hand. [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic product size, DO NOT oversize, must fit normal hand proportions]. [CHROMATIC & {scan_info.get('quantidade_exata')}-UNIT INTEGRITY LOCK]: {scan_info.get('regra_posicionamento_ingles')}. All {scan_info.get('quantidade_exata')} unit(s) remain 100% solid and visible with micro-reflections bouncing off the surface. She DOES NOT open the product. SINGLE MOTION TRICK: She urgently double-taps the solid lid/label with her clean index finger (or performs fabric swish if clothing). Hands and container(s) MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs. 0:05: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel mic on collar). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), expressive urgent breathing, dilated pupils, while keeping ALL {scan_info.get('quantidade_exata')} unit(s) ({scan_info.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame at their true compact/standard 1:1 size (fitting normal hand proportions). 0:08: [CRITICAL PHYSICS & CTA LOCK]: She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [FINALIZAÇÃO P1]: A red digital glitch effect flashes across the screen with the logo '{logo_ativa_usuario}' appearing in the center, followed by a sudden dry cut to a SOLID BLACK FRAME. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok watermarks or usernames]. Clean screen, 8k resolution.]
 
                 🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
                 Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro at 0.0s. Authentic room acoustics. Urgent, breathless, conspiratorial voice].
                 Fala da {nome_inf_ativa}:
-                "[ESCREVA EM PORTUGUÊS UMA FALA INÉDITA E PERSUASIVA DE 35 A 45 PALAVRAS SOBRE '{scan_info.get('nome_comercial_pt')}', CITANDO SE FOR O KIT COMPLETO COM AS {scan_info.get('quantidade_exata')} UNIDADES E O TAMANHO REAL, FECHANDO COM O LOTE SECRETO NA SACOLINHA SEM FALAR PREÇO NUMÉRICO]"
+                "[ESCREVA EM PORTUGUÊS UMA FALA INÉDITA E PERSUASIVA DE 35 A 45 PALAVRAS SOBRE '{scan_info.get('nome_comercial_pt')}', CITANDO SE FOR O KIT COMPLETO COM AS {scan_info.get('quantidade_exata')} UNIDADES E FECHANDO COM O LOTE SECRETO NA SACOLINHA SEM FALAR PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [FRASE CURTA DE IMPACTO SOBRE A DOR]? 🛑"
-                "✨ [BENEFÍCIO PRINCIPAL + KIT/TAMANHO]"
+                "✨ [BENEFÍCIO PRINCIPAL + KIT/PRODUTO]"
                 "🛒 CORRE NA SACOLINHA 👇"
 
                 🔥 Finalização P1:
@@ -1966,46 +1974,43 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                     try: aba_limites.append_row([email_sessao, "Sim"])
                     except Exception: pass
 
-                st.success(f"✅ Scanner V33.2 cravou {scan_info.get('quantidade_exata')} produto(s) ({scan_info.get('classe_tamanho_peso')}) com Todos os Botões de Cópia Ativos!")
+                st.success(f"✅ Escala Real 1:1 Calibrada ({scan_info.get('quantidade_exata')} produto(s), DO NOT oversize, normal hand proportions)!")
                 time.sleep(1)
                 st.rerun()
         except Exception as e:
             st.error(f"Erro ao gerar: {e}")
 
 # ==========================================================
-# 17.2. CRIAÇÃO V9.2 — MATRIZ DE HIPER-REALIDADE + SCANNER 2 ETAPAS ANTI-BLOCK + 22 AMBIENTES
+# 17.2. CRIAÇÃO V9.2 — MATRIZ DE HIPER-REALIDADE + ESCALA 1:1 CALIBRADA (SEM EXAGERO EM 1KG)
 # ==========================================================
 if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 BLOCO 17.2: ENTIDADE V9.2 (SCANNER DE INVENTÁRIO + 22 MATRIZES + LIVE/FEED)</h3>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Influencer: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Piso Mínimo 1.600 a 2.500+ Caracteres</b> &bull; <b>Botões de Cópia 100% Ativos</b></p>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 BLOCO 17.2: ENTIDADE V9.2 (PROPORÇÃO HUMANA 1:1 CALIBRADA + 22 MATRIZES)</h3>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Influencer: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Trava 1:1 Normal Hand Proportions (200ml a 1kg)</b></p>", unsafe_allow_html=True)
 
-        with st.expander("📚 ABRIR BANCO DE MEMÓRIA V9.2 (22 AMBIENTES + 10 GUINDASTES + 6 REGRAS DE OURO + GABARITOS)", expanded=False):
+        with st.expander("📚 ABRIR BANCO DE MEMÓRIA V9.2 (CALIBRAGEM 1:1 CAMPEÃ + 22 AMBIENTES + 10 GUINDASTES)", expanded=False):
             st.markdown("""
-            **🌿 1. AS 22 MATRIZES DE AMBIENTE (SEMPRE COM PLANTAS, CACHOEIRA OU NATUREZA VIVA):**
-            1. Varanda Tropical Brasileira (Samambaias + Costela-de-Adão + Caramelo) | 2. Banheiro Rústico com Tempestade & Eucalipto | 3. Quarto Minimalista com Luz Natural & Jiboias | 4. Cozinha de Batalha Orgânica | 5. Varanda de Praia & Coqueiros | 6. Jardim Tropical com Cachoeira ao Fundo | 7. Quintal Arborizado | 8. Sala Urban Jungle | 9. Banheiro Pós-Banho com Babosa | 10. Área Gourmet Tropical | 11. Varanda com Chuva & Coqueiro | 12. Quarto Boho Botânico | 13. Terraço Urbano Verde | 14. Cantinho de Leitura Botânico | 15. Cozinha Americana & Varanda Verde | 16. Varanda de Inverno com Samambaias | 17. Jardim Vertical Interno | 18. Casa de Campo & Mata Nativa | 19. Ateliê Botânico | 20. Varanda Strelitzia | 21. Corredor Verde | 22. Barco Regional na Natureza Amazônica.
+            **📏 1. CALIBRAGEM DE ESCALA CAMPEÃ (200ml, 400g, 500g e 1kg NA PROPORÇÃO REAL DA MÃO):**
+            * Removidos termos que inflam o pote (`jumbo`/`massive`).
+            * Aplicada a trava campeã: `[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic tub/bottle size, DO NOT oversize, must fit normal hand proportions]` + `[CHROMATIC INTEGRITY LOCK]` + `Hands and tub MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs`.
 
-            **🎥 2. OS 10 GUINDASTES CINÉTICOS V9.2:**
-            * Guindaste 01 (Foco Reverso / Macro Zoom + Whip Pan) | Guindaste 02 (Andadinha Frontal) | Guindaste 03 (Gossip Lean) | Guindaste 04 (Teste Tátil / Tilt Vertical) | Guindaste 05 (Giro Orgânico UGC) | Guindaste 06 (Foco-Hunt 0:01) | Guindaste 07 (Rack Focus) | Guindaste 08 (Chest-Up Rigoroso) | Guindaste 09 (Deslocamento Lateral) | Guindaste 10 (Corte Seco com Glitch Vermelho P1).
-
-            **🔒 3. PISO MÍNIMO INFINITO + BOTÕES DE CÓPIA GARANTIDOS:**
-            * Mínimo de **1.600 a 2.500+ caracteres** por prompt (sem limite máximo).
-            * Todos os 5 botões individuais de cópia (`📋 Copiar Imagem`, `📋 Copiar Vídeo`, `📋 Botão 1, 2 e 3`) sempre visíveis!
+            **🌿 2. AS 22 MATRIZES DE AMBIENTE (SEMPRE COM PLANTAS, CACHOEIRA OU NATUREZA VIVA):**
+            1. Varanda Tropical Brasileira | 2. Banheiro Rústico com Tempestade & Eucalipto | 3. Quarto Minimalista & Jiboias | 4. Cozinha de Batalha Orgânica | 5. Varanda de Praia & Coqueiros | 6. Jardim Tropical com Cachoeira | 7. Quintal Arborizado | 8. Sala Urban Jungle | 9. Banheiro Pós-Banho com Babosa | 10. Área Gourmet Tropical | 11. Varanda com Chuva & Coqueiro | 12. Quarto Boho Botânico | 13. Terraço Urbano Verde | 14. Cantinho de Leitura Botânico | 15. Cozinha Americana & Varanda Verde | 16. Varanda de Inverno com Samambaias | 17. Jardim Vertical Interno | 18. Casa de Campo & Mata Nativa | 19. Ateliê Botânico | 20. Varanda Strelitzia | 21. Corredor Verde | 22. Barco Regional na Natureza Amazônica.
             """)
 
         if not pode_gerar_roteiro:
             st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
             btn_disparar_v9 = st.button("🔥 FORJAR PACOTE ENTIDADE V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v9_disabled")
         else:
-            txt_btn_v9 = "🔥 ESCANEAR FOTO E FORJAR ENTIDADE V9.2 (1 A 10+ PRODUTOS + NATUREZA VIVA - ILIMITADO)" if E_O_CEO else f"🔥 ESCANEAR FOTO E FORJAR ENTIDADE V9.2 ({3 - usos_feitos} Restantes)"
+            txt_btn_v9 = "🔥 ESCANEAR FOTO E FORJAR ENTIDADE V9.2 (PROPORÇÃO REAL 1:1 NA MÃO - ILIMITADO)" if E_O_CEO else f"🔥 ESCANEAR FOTO E FORJAR ENTIDADE V9.2 ({3 - usos_feitos} Restantes)"
             btn_disparar_v9 = st.button(txt_btn_v9, type="primary", use_container_width=True, key="btn_v9_ativo")
 
         if btn_disparar_v9:
             if not img_produto:
-                st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro para o Scanner V9.2 contar as unidades e medir o tamanho!")
+                st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro para o Scanner V9.2 contar as unidades e calibrar a proporção 1:1!")
             else:
-                with st.spinner("🧬 Etapa 1/2 (Scanner V9.2): Contando unidades exatas na foto, lendo cores dos rótulos e medindo escala (50ml a 2L/1kg)..."):
+                with st.spinner("🧬 Etapa 1/2 (Scanner V9.2): Contando unidades exatas na foto e aplicando trava de proporção humana 1:1..."):
                     try:
                         img_b64_v9 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                         scan_v9 = escanear_inventario_exato_da_foto(img_b64_v9, explicacao_video_usuario)
@@ -2020,26 +2025,26 @@ if st.session_state.get("modo_entidade_v9"):
                                 bloco_modo_instrucao = f"""
                                 🔇 [MODO LIVE LOOP ATIVADO (POV MÃO REAL / ANTI-OPTICAL FLOW / ZERO VOZ E ZERO UI)]:
                                 - Na Imagem e no Vídeo: First-person POV vertical smartphone shot, close-up framing EXCLUSIVELY on her manicured hands and foreground surface (NO face shown).
-                                - Exiba TODAS as {scan_v9.get('quantidade_exata')} unidade(s) escaneadas ({scan_v9.get('inventario_detalhado_ingles')}) em escala 1:1 real ({scan_v9.get('classe_tamanho_peso')}).
-                                - Ação: Mão inclinando/girando levemente o(s) produto(s) sob a luz natural das plantas para criar reflexos dinâmicos + dois micro-toques de indicador nos detalhes do rótulo/tampa + leve rack focus para a baguncinha e o animal se mexendo ao fundo.
-                                - Na seção de áudio: Descreva APENAS Áudio Ambiente Exclusivo 100% Silencioso de Voz (micro-atrito de dedos no produto, som orgânico de gotas/vento/natureza ao fundo, ZERO VOZ, ZERO FALA, ZERO MÚSICA, ZERO TEXTO NA TELA, ZERO LOGO).
+                                - Exiba TODAS as {scan_v9.get('quantidade_exata')} unidade(s) escaneadas ({scan_v9.get('inventario_detalhado_ingles')}) com a trava campeã: `[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic size, DO NOT oversize, must fit normal hand proportions]`.
+                                - Ação: Ela NÃO abre o produto. Mão inclinando levemente o(s) produto(s) sob a luz natural das plantas + dois toques urgentes de indicador na tampa sólida (`urgently double-taps the solid lid with her clean index finger`). Hands and tub(s) MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs.
+                                - Na seção de áudio: Descreva APENAS Áudio Ambiente Exclusivo 100% Silencioso de Voz (ZERO VOZ, ZERO FALA, ZERO MÚSICA, ZERO TEXTO NA TELA, ZERO LOGO).
                                 """
                             else:
                                 bloco_modo_instrucao = f"""
-                                🔥 [MODO FEED VENDA 9s ATIVADO (COM {nome_inf_ativa} + SACOLINHA 3D + GLITCH LOGO '{logo_ativa_usuario}')]:
+                                🔥 [MODO FEED VENDA 9s ATIVADO (COM {nome_inf_ativa} + PROPORÇÃO 1:1 REAL + SACOLINHA 3D + GLITCH LOGO '{logo_ativa_usuario}')]:
                                 - Na Imagem: Mid-shot POV handheld mobile phone selfie framing from chest up (or chest to mid-thigh if clothing). {nome_inf_ativa} ({desc_inf_ativa}) com microfone de lapela na gola, emoção visceral V9 (dilated pupils, expressive urgent breathing, conspiratorial warning expression).
-                                - No Vídeo: Começa com FOCO REVERSO (0-4s) em Macro Zoom In mostrando TODAS as {scan_v9.get('quantidade_exata')} unidade(s) ({scan_v9.get('inventario_detalhado_ingles')}) + Teste Físico Sensorial (The Trigger Tap V9 nas tampas / The Cap Pop / A Andadinha + The Crochet/Fabric Pull). Aos 0:05 entra WHIP PAN e focus pull para o rosto de {nome_inf_ativa} (The Gossip Lean), mantendo TODAS as {scan_v9.get('quantidade_exata')} unidade(s) visíveis na bancada/mãos em primeiro plano! Aos 0:08 ela aponta para a sacolinha laranja 3D flutuante e aos 0:09-0:10 entra o Glitch Digital Vermelho com a logo '{logo_ativa_usuario}' e corte seco para SOLID BLACK FRAME.
+                                - No Vídeo: Começa com FOCO REVERSO (0-4s) mostrando TODAS as {scan_v9.get('quantidade_exata')} unidade(s) ({scan_v9.get('inventario_detalhado_ingles')}) com a trava campeã `[CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic/product size, DO NOT oversize, must fit normal hand proportions]`. Ela NÃO abre o pote; ela dá dois toques firmes com o dedo indicador limpo na tampa sólida (`She DOES NOT open the product. She urgently double-taps the solid lid with her clean index finger. Hands and tub MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs`). Aos 0:05 entra WHIP PAN e focus pull para o rosto de {nome_inf_ativa} (The Gossip Lean), mantendo TODAS as {scan_v9.get('quantidade_exata')} unidade(s) visíveis em tamanho 1:1 proporcional à mão! Aos 0:08 ela aponta para a sacolinha laranja 3D flutuante e aos 0:09-0:10 entra o Glitch Digital Vermelho com a logo '{logo_ativa_usuario}' e corte seco para SOLID BLACK FRAME.
                                 """
 
                             prompt_mestre_v92 = f"""
 Create the ultimate V9.2 creative brief in Markdown (MINIMUM 1,600+ characters for Image Prompt and MINIMUM 2,000+ characters for Video Prompt, NO maximum limit) based on the following scanned product inventory:
 
-🔍 [SCANNED PHYSICAL INVENTORY — MANDATORY LOCK]:
+🔍 [SCANNED PHYSICAL INVENTORY — MANDATORY 1:1 HAND-PROPORTION LOCK]:
 - IDENTIFIED PRODUCT/KIT (PT-BR): {scan_v9.get('nome_comercial_pt')}
 - EXACT PRODUCT COUNT IN IMAGE: {scan_v9.get('quantidade_exata')} unit(s)
 - SCALE & WEIGHT CLASS: {scan_v9.get('classe_tamanho_peso')}
 - INDIVIDUAL LIST OF ALL UNITS (MUST INCLUDE ALL IN ENGLISH): {scan_v9.get('inventario_detalhado_ingles')}
-- MANDATORY PHYSICAL STAGING: {scan_v9.get('regra_posicionamento_ingles')}
+- CHAMPION 1:1 SIZE & STAGING LOCK: {scan_v9.get('regra_posicionamento_ingles')}
 
 🌿 [SELECTED V9.2 ENVIRONMENT & CAMERA CRANE]:
 - BOTANICAL SCENERY MATRIX: {amb_v9}
@@ -2053,17 +2058,17 @@ Create the ultimate V9.2 creative brief in Markdown (MINIMUM 1,600+ characters f
 DELIVER USING THESE EXACT 3 SECTION HEADERS (DO NOT ALTER THE HEADERS):
 
 ### 📸 PROMPT DE IMAGEM
-RAW photography, cinematic macro mid-shot POV handheld mobile phone shot. Extreme V9.2 hyper-realism: microscopic visible peach fuzz, dilated pupils, expressive urgent breathing, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, volumetric natural light rays with actively dancing dust motes, NO artificial flash. [DESCRIBE IN ULTRA-DENSE 600+ CHARACTER ENGLISH THE PRESENTER {nome_inf_ativa} OR POV HANDS IF LIVE MODE, AND THE COMPLETE ENVIRONMENT '{amb_v9}', WITH LUSH LIVING PLANTS (MONSTERA, FERNS, COCONUT PALMS, ALOE VERA OR WATERFALL), REACTIVE EVERYDAY CLUTTER, AND THE ANIMAL IN LIVING ACTION IN THE BACKGROUND]. [CRITICAL 1:1 MASS & {scan_v9.get('quantidade_exata')}-UNIT INVENTORY LOCK]: {scan_v9.get('regra_posicionamento_ingles')} — Specifically displaying: {scan_v9.get('inventario_detalhado_ingles')}. Authentic retail packaging with solid textures and micro-reflections bouncing off the surfaces. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO social media UI]. Unfiltered UGC raw aesthetic, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
+RAW photography, cinematic macro mid-shot POV handheld mobile phone shot. Extreme V9.2 hyper-realism: microscopic visible peach fuzz, dilated pupils, expressive urgent breathing, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, volumetric natural light rays with actively dancing dust motes, NO artificial flash. [DESCRIBE IN ULTRA-DENSE 600+ CHARACTER ENGLISH THE PRESENTER {nome_inf_ativa} OR POV HANDS IF LIVE MODE, AND THE COMPLETE ENVIRONMENT '{amb_v9}', WITH LUSH LIVING PLANTS (MONSTERA, FERNS, COCONUT PALMS, ALOE VERA OR WATERFALL), REACTIVE EVERYDAY CLUTTER, AND THE ANIMAL IN LIVING ACTION IN THE BACKGROUND]. [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic/product size, DO NOT oversize, must fit normal hand proportions]. [CHROMATIC & {scan_v9.get('quantidade_exata')}-UNIT INTEGRITY LOCK]: {scan_v9.get('regra_posicionamento_ingles')} — Specifically displaying: {scan_v9.get('inventario_detalhado_ingles')}. Hands and container(s) MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO social media UI]. Unfiltered UGC raw aesthetic, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
 
 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-[POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok logos, ZERO floating usernames, ZERO watermarks]. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [CLONE 100% OF THE IMAGE ENVIRONMENT IN ULTRA-DENSE ENGLISH: '{amb_v9}', ALL LIVING PLANTS, VOLUMETRIC LIGHTING, ACTIVE DRIPPING CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_v9} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_v9.get('inventario_detalhado_ingles')}) at true 1:1 scale ({scan_v9.get('classe_tamanho_peso')}). [CRITICAL {scan_v9.get('quantidade_exata')}-UNIT PHYSICS LOCK]: {scan_v9.get('regra_posicionamento_ingles')}. Every single unit ({scan_v9.get('inventario_detalhado_ingles')}) remains 100% solid and visible with micro-reflections bouncing off the surface as natural light hits them. SINGLE MOTION TRICK (The Tactile Proof V9.2): [Describe in English the double index finger tap on the lids/triggers of the units, cap pop, or fabric pull], NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: [IF FEED MODE: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face with wireless lapel mic on collar, VISCERAL EMOTION ACTIVE (The Gossip Lean, dilated pupils, urgent breathing), while keeping ALL {scan_v9.get('quantidade_exata')} unit(s) ({scan_v9.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame! IF LIVE MODE: Smooth wrist rotation and rack focus between the product label details and the dripping towel/animal in the background]. 0:08: [IF FEED MODE: She points her free index finger downwards towards the bottom corner of the screen as a highly realistic 3D floating orange shopping bag object materializes in the air casting realistic shadows. 0:09-0:10: FINALIZAÇÃO P1 with a red digital glitch effect flashing the logo '{logo_ativa_usuario}' in the center, followed by a sudden dry cut to a SOLID BLACK FRAME]. Clean screen, 8k resolution.]
+[POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok logos, ZERO floating usernames, ZERO watermarks]. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [CLONE 100% OF THE IMAGE ENVIRONMENT IN ULTRA-DENSE ENGLISH: '{amb_v9}', ALL LIVING PLANTS, VOLUMETRIC LIGHTING, ACTIVE DRIPPING CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_v9} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_v9.get('inventario_detalhado_ingles')}) resting on the counter directly in front of her or held comfortably in her hand. [CRITICAL SIZE LOCK: 1:1 real-world scale, strictly realistic cosmetic/product size, DO NOT oversize, must fit normal hand proportions]. [CHROMATIC & {scan_v9.get('quantidade_exata')}-UNIT INTEGRITY LOCK]: {scan_v9.get('regra_posicionamento_ingles')}. Every single unit ({scan_v9.get('inventario_detalhado_ingles')}) remains 100% solid and visible with micro-reflections bouncing off the surface as natural light hits them. She DOES NOT open the product. SINGLE MOTION TRICK (The Tactile Proof V9.2): She urgently double-taps the solid lid with her clean index finger (or performs fabric swish if apparel). Hands and container(s) MUST remain 100% intact with clean separation. STRICTLY NO merging, melting, or ghost limbs. 0:05: [IF FEED MODE: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face with wireless lapel mic on collar, VISCERAL EMOTION ACTIVE (The Gossip Lean, dilated pupils, urgent breathing), while keeping ALL {scan_v9.get('quantidade_exata')} unit(s) ({scan_v9.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame at their true 1:1 size fitting normal hand proportions! IF LIVE MODE: Smooth wrist rotation and rack focus between the product label details and the dripping towel/animal in the background]. 0:08: [IF FEED MODE: She points her free index finger downwards towards the bottom corner of the screen as a highly realistic 3D floating orange shopping bag object materializes in the air casting realistic shadows. 0:09-0:10: FINALIZAÇÃO P1 with a red digital glitch effect flashing the logo '{logo_ativa_usuario}' in the center, followed by a sudden dry cut to a SOLID BLACK FRAME]. Clean screen, 8k resolution.]
 
 🎙️ Áudio Blindado (Gancho V9.2: {gancho_v9} — Exatos 9 Segundos):
-[Se Modo Feed: (Abre em 0.0s com micro-efeito ASMR + acústica real do ambiente) + Fala letal de {nome_inf_ativa} em português (35 a 45 palavras) destacando '{scan_v9.get('nome_comercial_pt')}' (citando as {scan_v9.get('quantidade_exata')} unidades/tamanho real) e fechando com lote secreto na sacolinha, sem preço numérico. Se Modo Live Loop: Descreva os efeitos sonoros ASMR silenciosos de toque na embalagem e ambiente, ZERO VOZ, ZERO FALA].
+[Se Modo Feed: (Abre em 0.0s com micro-efeito ASMR + acústica real do ambiente) + Fala letal de {nome_inf_ativa} em português (35 a 45 palavras) destacando '{scan_v9.get('nome_comercial_pt')}' (citando as {scan_v9.get('quantidade_exata')} unidades) e fechando com lote secreto na sacolinha, sem preço numérico. Se Modo Live Loop: Descreva os efeitos sonoros ASMR silenciosos de toque na embalagem e ambiente, ZERO VOZ, ZERO FALA].
 
 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
 "⚠️ [LINHA 1: ALERTA DE IMPACTO SOBRE A DOR] 🛑"
-"[LINHA 2: BENEFÍCIO + {scan_v9.get('quantidade_exata')} UNIDADE(S) / TAMANHO REAL] ✨"
+"[LINHA 2: BENEFÍCIO + {scan_v9.get('quantidade_exata')} UNIDADE(S)] ✨"
 "CORRE NA SACOLINHA 🛒👇"
 
 🔥 Finalização P1:
@@ -2092,7 +2097,7 @@ Glitch digital vermelho com a logo '{logo_ativa_usuario}' no milésimo final. Co
                                 try: aba_limites.append_row([email_sessao, "Sim_V92"])
                                 except Exception: pass
 
-                            st.success(f"🔥 ENTIDADE V9.2 EXECUTADA! Escaneado(s) {scan_v9.get('quantidade_exata')} produto(s) ({scan_v9.get('classe_tamanho_peso')}) + Botões de Cópia Ativos!")
+                            st.success(f"🔥 ENTIDADE V9.2 EXECUTADA! Escala 1:1 Calibrada ({scan_v9.get('quantidade_exata')} produto(s), DO NOT oversize, normal hand proportions)!")
                             time.sleep(1)
                             st.rerun()
                     except Exception as e:
@@ -2110,7 +2115,7 @@ if st.session_state["roteiro_temporario"]:
             col_tit_img, col_btn_img = st.columns([7, 3])
             with col_tit_img:
                 st.markdown("### 📸 PROMPT DE IMAGEM")
-                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_imagem'])} caracteres** (Sem limite máximo)")
+                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_imagem'])} caracteres** (Escala 1:1 Normal Hand Proportions)")
             with col_btn_img:
                 render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
@@ -2121,7 +2126,7 @@ if st.session_state["roteiro_temporario"]:
             col_tit_vid, col_btn_vid = st.columns([7, 3])
             with col_tit_vid:
                 st.markdown("### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO")
-                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_video'])} caracteres** (Sem limite máximo)")
+                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_video'])} caracteres** (Escala 1:1 Normal Hand Proportions)")
             with col_btn_vid:
                 render_botao_copiar_vip(partes_roteiro["prompt_video"], "📋 Copiar Vídeo", "copy_vid_360")
                 
@@ -2141,7 +2146,6 @@ if st.session_state["roteiro_temporario"]:
             with col_t3:
                 render_botao_copiar_vip(partes_roteiro["titulo_3"], "📋 Botão 3 (Título 3)", "copy_t3")
         else:
-            # Caso raro de formatação livre: ainda assim exibe o botão de copiar no topo!
             col_tit_full, col_btn_full = st.columns([7, 3])
             with col_tit_full:
                 st.markdown("### 📋 PACOTE CRIATIVO GERADO")
