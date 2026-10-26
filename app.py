@@ -1424,10 +1424,10 @@ if E_O_CEO:
                             else: st.warning("Não encontrado.")
                         except Exception: pass
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (V33.1 - BLINDAGEM ANTI-RECUSA OPENAI + SCANNER 2 ETAPAS)
+# 17. MÁQUINA DE CRIAÇÃO 360º (V33.2 - BOTÕES DE CÓPIA 100% GARANTIDOS + PISO MÍNIMO INFINITO + V9.2)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V33.1 Anti-Block & Entidade V9.2)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V33.2 Anti-Block & Entidade V9.2)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1502,15 +1502,17 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
         return None
 
 def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
-    if not texto_para_copiar: return
+    if not texto_para_copiar:
+        texto_para_copiar = " "
     b64_txt = base64.b64encode(texto_para_copiar.strip().encode('utf-8')).decode('utf-8')
     html_btn = f"""
     <div style="display: flex; justify-content: flex-end; align-items: center; margin: 2px 0;">
         <button id="btn_{id_unico}" onclick="copiarTexto_{id_unico}()" style="
             background: linear-gradient(135deg, #002B5B 0%, #004080 100%); color: #FFFFFF;
-            border: 1.5px solid #00E5FF; border-radius: 10px; padding: 8px 14px;
-            font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 700;
-            cursor: pointer; box-shadow: 0 3px 12px rgba(0, 229, 255, 0.25); width: 100%; text-align: center;
+            border: 1.5px solid #00E5FF; border-radius: 10px; padding: 9px 14px;
+            font-family: 'Montserrat', sans-serif; font-size: 12.5px; font-weight: 800;
+            cursor: pointer; box-shadow: 0 3px 12px rgba(0, 229, 255, 0.3); width: 100%; text-align: center;
+            transition: all 0.2s ease;
         ">{label_botao}</button>
     </div>
     <script>
@@ -1521,7 +1523,7 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
         const btn = document.getElementById("btn_{id_unico}");
         function confirmarCopia() {{
             const original = btn.innerHTML;
-            btn.innerHTML = "✅ COPIADO!";
+            btn.innerHTML = "✅ COPIADO COM SUCESSO!";
             btn.style.borderColor = "#00FF9D";
             btn.style.background = "linear-gradient(135deg, #059669 0%, #047857 100%)";
             setTimeout(() => {{
@@ -1543,16 +1545,37 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     }}
     </script>
     """
-    components.html(html_btn, height=45)
+    components.html(html_btn, height=48)
 
 def extrair_blocos_roteiro(md_texto):
+    """
+    Extrator Blindado V33.2: Funciona mesmo que a IA mude emojis, numeração ou formatação dos títulos,
+    garantindo que os botões de Copiar Imagem, Copiar Vídeo e Botões 1, 2 e 3 NUNCA desapareçam!
+    """
     dados = {"prompt_imagem": "", "prompt_video": "", "secao_seo_texto": "", "titulo_1": "", "titulo_2": "", "titulo_3": ""}
     if not md_texto: return dados
-    m_img = re.search(r'###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n(.*?)(?=###\s*🎬|\Z)', md_texto, re.DOTALL | re.IGNORECASE)
-    if m_img: dados["prompt_imagem"] = m_img.group(1).strip().replace("**", "")
-    m_vid = re.search(r'###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n(.*?)(?=###\s*🔑|\Z)', md_texto, re.DOTALL | re.IGNORECASE)
-    if m_vid: dados["prompt_video"] = m_vid.group(1).strip().replace("**", "")
-    m_seo = re.search(r'###\s*🔑\s*TÍTULOS SEO[^\n]*\n(.*)', md_texto, re.DOTALL | re.IGNORECASE)
+
+    # Busca flexível para Prompt de Imagem
+    m_img = re.search(
+        r'(?:###|\*\*|1[\.\)]|📸)\s*(?:📸\s*)?PROMPT DE IMAGEM[^\n]*\n(.*?)(?=(?:###|\*\*|2[\.\)]|🎬)\s*(?:🎬\s*)?(?:PROMPT DE V[IÍ]DEO|COMANDO DE V[IÍ]DEO)|\Z)',
+        md_texto, re.DOTALL | re.IGNORECASE
+    )
+    if m_img:
+        dados["prompt_imagem"] = m_img.group(1).strip().replace("**", "")
+
+    # Busca flexível para Prompt de Vídeo
+    m_vid = re.search(
+        r'(?:###|\*\*|2[\.\)]|🎬)\s*(?:🎬\s*)?(?:PROMPT DE V[IÍ]DEO|COMANDO DE V[IÍ]DEO)[^\n]*\n(.*?)(?=(?:###|\*\*|3[\.\)]|🔑)\s*(?:🔑\s*)?T[IÍ]TULOS SEO|\Z)',
+        md_texto, re.DOTALL | re.IGNORECASE
+    )
+    if m_vid:
+        dados["prompt_video"] = m_vid.group(1).strip().replace("**", "")
+
+    # Busca flexível para Títulos SEO
+    m_seo = re.search(
+        r'(?:###|\*\*|3[\.\)]|🔑)\s*(?:🔑\s*)?T[IÍ]TULOS SEO[^\n]*\n(.*)',
+        md_texto, re.DOTALL | re.IGNORECASE
+    )
     if m_seo:
         secao_seo = m_seo.group(1).strip()
         dados["secao_seo_texto"] = secao_seo
@@ -1561,12 +1584,21 @@ def extrair_blocos_roteiro(md_texto):
             if any(tag in l.lower() for tag in ["geral", "solução", "solucao", "marca"]) and ":" in l:
                 parte = l.split(":", 1)[1].replace("*", "").strip()
                 if parte: titulos_limpos.append(parte)
-            elif ":" in l and len(titulos_limpos) < 3 and not l.startswith("#"):
+            elif ":" in l and len(titulos_limpos) < 3 and not l.startswith("#") and "legenda" not in l.lower() and "hashtag" not in l.lower():
                 parte = l.split(":", 1)[1].replace("*", "").strip()
                 if parte: titulos_limpos.append(parte)
         if len(titulos_limpos) >= 1: dados["titulo_1"] = titulos_limpos[0]
         if len(titulos_limpos) >= 2: dados["titulo_2"] = titulos_limpos[1]
         if len(titulos_limpos) >= 3: dados["titulo_3"] = titulos_limpos[2]
+
+    # Fallback inteligente se a IA usar outro divisor
+    if not dados["prompt_imagem"] and "RAW photography" in md_texto:
+        partes_raw = re.split(r'\[POV|POV ', md_texto, maxsplit=1)
+        if len(partes_raw) == 2:
+            idx_raw = partes_raw[0].find("RAW photography")
+            dados["prompt_imagem"] = partes_raw[0][idx_raw:].strip().replace("**", "")
+            dados["prompt_video"] = ("[POV " + partes_raw[1]).strip().replace("**", "")
+
     return dados
 
 def resposta_foi_recusada(txt):
@@ -1707,7 +1739,7 @@ if not E_O_CEO and robo_sheets:
 with st.container(border=True):
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
-        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V33.1 Universal)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
+        if st.button("⚙️ MODO PADRÃO (Bloco 17 - V33.2 Universal)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_v31"):
             st.session_state["modo_entidade_v9"] = False
             st.rerun()
     with col_sel2:
@@ -1771,7 +1803,7 @@ with st.container(border=True):
             if not st.session_state["modo_entidade_v9"]:
                 if not pode_gerar_roteiro:
                     st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
-                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V33.1)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
+                    btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR (V33.2)", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                 else:
                     txt_botao = "⚡ ESCANEAR FOTO E GERAR NO BLOCO 17 (Ilimitado)" if E_O_CEO else f"⚡ ESCANEAR FOTO E GERAR NO BLOCO 17 ({3 - usos_feitos} Restantes)"
                     btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
@@ -1830,10 +1862,10 @@ with st.container(border=True):
                             st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
 
 BANCO_MEMORIA_MESTRE_V92 = """
-🔒 [ CÓDIGO-FONTE MESTRE : REGRA DE OURO SUPREMA (FUSÃO V6–V9.2) ]
-- REGRA DO BANCO DE MEMÓRIA: Use os exemplos abaixo como referência de estrutura e densidade óptica, criando um prompt 100% INÉDITO e focado exclusivamente no(s) produto(s) escaneado(s).
+🔒 [ CÓDIGO-FONTE MESTRE : REGRA DE OURO SUPREMA (FUSÃO V6–V9.2 — PISO MÍNIMO DE 1.600 A 2.500+ CARACTERES, SEM LIMITE MÁXIMO!) ]
+- REGRA DE OURO DE TAMANHO MÍNIMO (PROIBIDO ENCURTAR): O Prompt de Imagem DEVE ter no mínimo entre 1.600 e 2.300+ caracteres (sem teto máximo). O Comando de Vídeo DEVE ser ainda mais longo, tendo no mínimo entre 2.000 e 2.800+ caracteres (sem teto máximo). Expanda cada micro-detalhe óptico, botânico, anatômico e de iluminação!
+- HERANÇA TOTAL (IMAGEM = VÍDEO): O prompt de vídeo DEVE clonar 100% do cenário, plantas, baguncinha, animal e TODAS AS UNIDADES DO PRODUTO dentro da trava `[ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: ...]`.
 - PROIBIÇÃO DE ASTERISCOS E PORTUGUÊS NO PROMPT VISUAL: Dentro do texto em inglês do Prompt de Imagem e do Comando Visual de Vídeo, NUNCA use asteriscos `**` e escreva 100% em inglês técnico cinematográfico!
-- PISO MÍNIMO DE DENSIDADE & ESPELHAMENTO TOTAL (IMAGEM = VÍDEO): Mínimo de 1.500 a 2.300+ caracteres por prompt. O prompt de vídeo DEVE clonar 100% do cenário, plantas, baguncinha, animal e TODAS AS UNIDADES DO PRODUTO dentro da trava `[ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: ...]`.
 - FÍSICA ÓPTICA REAL: `Auto-focus hunting effect at 0:01`, `Local Rolling Shutter artifacts`, `heavy sensor noise`, `volumetric natural light rays with actively dancing dust motes`, `NO artificial flash`.
 - BIOLOGIA & MICROFÍSICA: `microscopic visible peach fuzz, natural skin pores, subtle T-zone glow, advanced subsurface scattering, dilated pupils, expressive urgent breathing (The Gossip Lean)`.
 - TRAVA DE QUANTIDADE EXATA E TAMANHO REAL:
@@ -1842,24 +1874,18 @@ BANCO_MEMORIA_MESTRE_V92 = """
   * Se 1kg / 1L / 2L: exija `LARGE, HEAVY, WIDE-BODY 1KG/2L JUMBO CONTAINER, realistic heavy mass representation, DO NOT shrink or miniaturize`.
 """
 
-# ==========================================================
-# FUNÇÃO CENTRAL DE GERAÇÃO DE TEXTO (ETAPA 2 DESACOPLADA DA IMAGEM = ZERO RECUSA DA OPENAI!)
-# ==========================================================
 def forjar_roteiro_blindado_sem_bloqueio(instrucao_prompt):
-    """
-    Como a Etapa 1 já extraiu todos os dados visuais da foto em JSON, a Etapa 2 envia o pedido
-    de redação publicitária em texto puro para o GPT-4o-mini. Isso impede 100% dos falsos bloqueios
-    de visão da OpenAI ("I'm sorry, but I can't assist with that").
-    """
     resp = cliente_openai.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "You are an expert commercial creative director and copywriter for e-commerce product advertisements. "
-                    "Write the requested 3-section Markdown creative brief (Image Prompt, Video Prompt, and SEO Titles) "
-                    "following the exact inventory count, container scale, and botanical environment provided. "
+                    "You are an elite commercial creative director and copywriter for e-commerce product advertisements. "
+                    "Write the requested 3-section Markdown creative brief using the exact section headers: "
+                    "'### 📸 PROMPT DE IMAGEM', '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO', and '### 🔑 TÍTULOS SEO (Separados)'. "
+                    "CRITICAL LENGTH RULE: Never summarize! The Image Prompt MUST be at least 1,600 to 2,300+ characters long, "
+                    "and the Video Prompt MUST be at least 2,000 to 2,800+ characters long (no maximum limit). "
                     "Never use asterisks (**) inside the English visual prompts."
                 )
             },
@@ -1871,7 +1897,7 @@ def forjar_roteiro_blindado_sem_bloqueio(instrucao_prompt):
     return resp.choices[0].message.content.strip()
 
 # ==========================================================
-# EXECUÇÃO DO BLOCO 17 (MODO PADRÃO V33.1 COM SCANNER DE 2 ETAPAS ANTI-BLOCK)
+# EXECUÇÃO DO BLOCO 17 (MODO PADRÃO V33.2 COM SCANNER DE 2 ETAPAS ANTI-BLOCK)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
     with st.spinner("🦅 Etapa 1/2: Escaneando quantidade exata de produtos e tamanho/peso real na foto..."):
@@ -1883,9 +1909,9 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             guindaste_escolhido = random.choice(LISTA_GUINDASTES_V92)
             gancho_escolhido = random.choice(LISTA_GANCHOS_DINAMICOS)
 
-            with st.spinner(f"🦅 Etapa 2/2: Detectado(s) {scan_info.get('quantidade_exata', 1)} item(ns) ({scan_info.get('classe_tamanho_peso')}). Forjando Prompts V33.1..."):
+            with st.spinner(f"🦅 Etapa 2/2: Detectado(s) {scan_info.get('quantidade_exata', 1)} item(ns) ({scan_info.get('classe_tamanho_peso')}). Forjando Prompts Gigantes V33.2..."):
                 instrucao_v33 = f"""
-                Create a complete, hyper-detailed e-commerce UGC creative brief in Markdown based on the following scanned product data:
+                Create a complete, ultra-dense e-commerce UGC creative brief in Markdown (MINIMUM 1,600+ characters for Image Prompt and MINIMUM 2,000+ characters for Video Prompt, NO maximum limit) based on the following scanned product data:
                 
                 🔍 [SCANNED PRODUCT INVENTORY — 100% MANDATORY COMPLIANCE]:
                 - COMMERCIAL NAME (PT-BR): {scan_info.get('nome_comercial_pt')}
@@ -1902,13 +1928,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
                 {BANCO_MEMORIA_MESTRE_V92}
 
-                GENERATE THE OUTPUT IN THIS EXACT 3-SECTION FORMAT:
+                GENERATE THE OUTPUT USING THESE EXACT 3 HEADERS (DO NOT CHANGE THE HEADERS):
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic mid-shot POV handheld mobile phone shot. Extreme hyper-realism: microscopic visible peach fuzz, detailed natural skin pores, subtle moisture on skin, advanced subsurface scattering, NO artificial flash. Photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [WRITE IN PURE, HYPER-DETAILED ENGLISH THE ENVIRONMENT '{amb_escolhido}', HIGHLIGHTING LIVING PLANTS (FERNS, MONSTERAS, PALMS OR WATERFALL), VOLUMETRIC LIGHT RAYS WITH DANCING DUST MOTES, REACTIVE EVERYDAY CLUTTER, AND THE BACKGROUND ANIMAL IN ACTION]. [CRITICAL 1:1 SCALE & {scan_info.get('quantidade_exata')}-UNIT INVENTORY LOCK: {scan_info.get('regra_posicionamento_ingles')} — Specifically featuring: {scan_info.get('inventario_detalhado_ingles')}. Authentic retail packaging with realistic solid textures and micro-reflections]. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO UI]. Unfiltered UGC vlog style, heavy sensor noise, 8k resolution.
+                RAW photography, cinematic mid-shot POV handheld mobile phone shot. Extreme hyper-realism: microscopic visible peach fuzz, detailed natural skin pores, subtle moisture on skin, advanced subsurface scattering, NO artificial flash. Photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [WRITE AN ULTRA-DENSE, 600+ CHARACTER ENGLISH DESCRIPTION OF THE ENVIRONMENT '{amb_escolhido}', HIGHLIGHTING LIVING PLANTS (FERNS, MONSTERAS, PALMS OR WATERFALL), VOLUMETRIC LIGHT RAYS WITH DANCING DUST MOTES, REACTIVE EVERYDAY CLUTTER, AND THE BACKGROUND ANIMAL IN ACTION]. [CRITICAL 1:1 SCALE & {scan_info.get('quantidade_exata')}-UNIT INVENTORY LOCK: {scan_info.get('regra_posicionamento_ingles')} — Specifically featuring: {scan_info.get('inventario_detalhado_ingles')}. Authentic retail packaging with realistic solid textures and micro-reflections]. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO UI]. Unfiltered UGC vlog style, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [REPEAT IN ENGLISH ALL DETAILS OF THE ENVIRONMENT '{amb_escolhido}', LIVING PLANTS, ACTIVE CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_escolhido} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_info.get('inventario_detalhado_ingles')}) in true 1:1 scale ({scan_info.get('classe_tamanho_peso')}). [CRITICAL MULTI-UNIT & PHYSICS LOCK]: {scan_info.get('regra_posicionamento_ingles')}. All {scan_info.get('quantidade_exata')} unit(s) remain 100% solid and visible with micro-reflections bouncing off the surface. SINGLE MOTION TRICK: [Describe in English the tactile physical test: The Trigger Tap on the lids / The Cap Pop / A Andadinha + The Crochet/Fabric Pull / Tactile press], zero pixel melting. 0:05: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel mic on collar). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), expressive urgent breathing, dilated pupils, while keeping ALL {scan_info.get('quantidade_exata')} unit(s) ({scan_info.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame at their true 1:1 size. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [FINALIZAÇÃO P1]: A red digital glitch effect flashes across the screen with the logo '{logo_ativa_usuario}' appearing in the center, followed by a sudden dry cut to a SOLID BLACK FRAME. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok watermarks or usernames]. Clean screen, 8k resolution.]
+                [POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [REPEAT IN FULL ULTRA-DENSE ENGLISH ALL DETAILS OF THE ENVIRONMENT '{amb_escolhido}', LIVING PLANTS, ACTIVE CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_escolhido} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_info.get('inventario_detalhado_ingles')}) in true 1:1 scale ({scan_info.get('classe_tamanho_peso')}). [CRITICAL MULTI-UNIT & PHYSICS LOCK]: {scan_info.get('regra_posicionamento_ingles')}. All {scan_info.get('quantidade_exata')} unit(s) remain 100% solid and visible with micro-reflections bouncing off the surface. SINGLE MOTION TRICK: [Describe in English the tactile physical test: The Trigger Tap on the lids / The Cap Pop / A Andadinha + The Crochet/Fabric Pull / Tactile press], zero pixel melting. 0:05: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel mic on collar). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), expressive urgent breathing, dilated pupils, while keeping ALL {scan_info.get('quantidade_exata')} unit(s) ({scan_info.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame at their true 1:1 size. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [FINALIZAÇÃO P1]: A red digital glitch effect flashes across the screen with the logo '{logo_ativa_usuario}' appearing in the center, followed by a sudden dry cut to a SOLID BLACK FRAME. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok watermarks or usernames]. Clean screen, 8k resolution.]
 
                 🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
                 Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro at 0.0s. Authentic room acoustics. Urgent, breathless, conspiratorial voice].
@@ -1940,7 +1966,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                     try: aba_limites.append_row([email_sessao, "Sim"])
                     except Exception: pass
 
-                st.success(f"✅ Scanner V33.1 cravou {scan_info.get('quantidade_exata')} produto(s) ({scan_info.get('classe_tamanho_peso')}) sem bloqueios!")
+                st.success(f"✅ Scanner V33.2 cravou {scan_info.get('quantidade_exata')} produto(s) ({scan_info.get('classe_tamanho_peso')}) com Todos os Botões de Cópia Ativos!")
                 time.sleep(1)
                 st.rerun()
         except Exception as e:
@@ -1953,7 +1979,7 @@ if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 BLOCO 17.2: ENTIDADE V9.2 (SCANNER DE INVENTÁRIO + 22 MATRIZES + LIVE/FEED)</h3>", unsafe_allow_html=True)
-        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Influencer: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Scanner Anti-Block Ativo</b> &bull; <b>22 Ambientes com Plantas/Natureza</b></p>", unsafe_allow_html=True)
+        st.markdown(f"<p style='text-align: center; color: #00E5FF; font-weight: 600;'>Influencer: <b>{nome_inf_ativa}</b> &bull; Logo Glitch: <b>{logo_ativa_usuario}</b> &bull; <b>Piso Mínimo 1.600 a 2.500+ Caracteres</b> &bull; <b>Botões de Cópia 100% Ativos</b></p>", unsafe_allow_html=True)
 
         with st.expander("📚 ABRIR BANCO DE MEMÓRIA V9.2 (22 AMBIENTES + 10 GUINDASTES + 6 REGRAS DE OURO + GABARITOS)", expanded=False):
             st.markdown("""
@@ -1963,9 +1989,9 @@ if st.session_state.get("modo_entidade_v9"):
             **🎥 2. OS 10 GUINDASTES CINÉTICOS V9.2:**
             * Guindaste 01 (Foco Reverso / Macro Zoom + Whip Pan) | Guindaste 02 (Andadinha Frontal) | Guindaste 03 (Gossip Lean) | Guindaste 04 (Teste Tátil / Tilt Vertical) | Guindaste 05 (Giro Orgânico UGC) | Guindaste 06 (Foco-Hunt 0:01) | Guindaste 07 (Rack Focus) | Guindaste 08 (Chest-Up Rigoroso) | Guindaste 09 (Deslocamento Lateral) | Guindaste 10 (Corte Seco com Glitch Vermelho P1).
 
-            **🔒 3. ARQUITETURA EM 2 ETAPAS ANTI-RECUSA OPENAI:**
-            * **Etapa 1 (Visão Neutra):** Extrai contagem exata de unidades, cores dos potes e peso/volume em JSON.
-            * **Etapa 2 (Redação Desacoplada):** Gera os prompts hiper-densos V9.2 sem acionar filtros de segurança da OpenAI!
+            **🔒 3. PISO MÍNIMO INFINITO + BOTÕES DE CÓPIA GARANTIDOS:**
+            * Mínimo de **1.600 a 2.500+ caracteres** por prompt (sem limite máximo).
+            * Todos os 5 botões individuais de cópia (`📋 Copiar Imagem`, `📋 Copiar Vídeo`, `📋 Botão 1, 2 e 3`) sempre visíveis!
             """)
 
         if not pode_gerar_roteiro:
@@ -2006,7 +2032,7 @@ if st.session_state.get("modo_entidade_v9"):
                                 """
 
                             prompt_mestre_v92 = f"""
-Create the ultimate V9.2 creative brief in Markdown based on the following scanned product inventory:
+Create the ultimate V9.2 creative brief in Markdown (MINIMUM 1,600+ characters for Image Prompt and MINIMUM 2,000+ characters for Video Prompt, NO maximum limit) based on the following scanned product inventory:
 
 🔍 [SCANNED PHYSICAL INVENTORY — MANDATORY LOCK]:
 - IDENTIFIED PRODUCT/KIT (PT-BR): {scan_v9.get('nome_comercial_pt')}
@@ -2024,13 +2050,13 @@ Create the ultimate V9.2 creative brief in Markdown based on the following scann
 
 {BANCO_MEMORIA_MESTRE_V92}
 
-DELIVER IN THIS EXACT 3-SECTION FORMAT:
+DELIVER USING THESE EXACT 3 SECTION HEADERS (DO NOT ALTER THE HEADERS):
 
 ### 📸 PROMPT DE IMAGEM
-RAW photography, cinematic macro mid-shot POV handheld mobile phone shot. Extreme V9.2 hyper-realism: microscopic visible peach fuzz, dilated pupils, expressive urgent breathing, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, volumetric natural light rays with actively dancing dust motes, NO artificial flash. [DESCRIBE THE PRESENTER {nome_inf_ativa} OR POV HANDS IF LIVE MODE, AND THE COMPLETE ENVIRONMENT '{amb_v9}' IN PURE ENGLISH, WITH LUSH LIVING PLANTS (MONSTERA, FERNS, COCONUT PALMS, ALOE VERA OR WATERFALL), REACTIVE EVERYDAY CLUTTER, AND THE ANIMAL IN LIVING ACTION IN THE BACKGROUND]. [CRITICAL 1:1 MASS & {scan_v9.get('quantidade_exata')}-UNIT INVENTORY LOCK]: {scan_v9.get('regra_posicionamento_ingles')} — Specifically displaying: {scan_v9.get('inventario_detalhado_ingles')}. Authentic retail packaging with solid textures and micro-reflections bouncing off the surfaces. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO social media UI]. Unfiltered UGC raw aesthetic, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
+RAW photography, cinematic macro mid-shot POV handheld mobile phone shot. Extreme V9.2 hyper-realism: microscopic visible peach fuzz, dilated pupils, expressive urgent breathing, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, volumetric natural light rays with actively dancing dust motes, NO artificial flash. [DESCRIBE IN ULTRA-DENSE 600+ CHARACTER ENGLISH THE PRESENTER {nome_inf_ativa} OR POV HANDS IF LIVE MODE, AND THE COMPLETE ENVIRONMENT '{amb_v9}', WITH LUSH LIVING PLANTS (MONSTERA, FERNS, COCONUT PALMS, ALOE VERA OR WATERFALL), REACTIVE EVERYDAY CLUTTER, AND THE ANIMAL IN LIVING ACTION IN THE BACKGROUND]. [CRITICAL 1:1 MASS & {scan_v9.get('quantidade_exata')}-UNIT INVENTORY LOCK]: {scan_v9.get('regra_posicionamento_ingles')} — Specifically displaying: {scan_v9.get('inventario_detalhado_ingles')}. Authentic retail packaging with solid textures and micro-reflections bouncing off the surfaces. [ABSOLUTE PLATFORM UI BAN: ZERO watermarks, ZERO text, ZERO social media UI]. Unfiltered UGC raw aesthetic, Local Rolling Shutter artifacts, heavy sensor noise, 8k resolution.
 
 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-[POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok logos, ZERO floating usernames, ZERO watermarks]. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [CLONE 100% OF THE IMAGE ENVIRONMENT IN ENGLISH: '{amb_v9}', ALL LIVING PLANTS, VOLUMETRIC LIGHTING, ACTIVE DRIPPING CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_v9} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_v9.get('inventario_detalhado_ingles')}) at true 1:1 scale ({scan_v9.get('classe_tamanho_peso')}). [CRITICAL {scan_v9.get('quantidade_exata')}-UNIT PHYSICS LOCK]: {scan_v9.get('regra_posicionamento_ingles')}. Every single unit ({scan_v9.get('inventario_detalhado_ingles')}) remains 100% solid and visible with micro-reflections bouncing off the surface as natural light hits them. SINGLE MOTION TRICK (The Tactile Proof V9.2): [Describe in English the double index finger tap on the lids/triggers of the units, cap pop, or fabric pull], NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: [IF FEED MODE: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face with wireless lapel mic on collar, VISCERAL EMOTION ACTIVE (The Gossip Lean, dilated pupils, urgent breathing), while keeping ALL {scan_v9.get('quantidade_exata')} unit(s) ({scan_v9.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame! IF LIVE MODE: Smooth wrist rotation and rack focus between the product label details and the dripping towel/animal in the background]. 0:08: [IF FEED MODE: She points her free index finger downwards towards the bottom corner of the screen as a highly realistic 3D floating orange shopping bag object materializes in the air casting realistic shadows. 0:09-0:10: FINALIZAÇÃO P1 with a red digital glitch effect flashing the logo '{logo_ativa_usuario}' in the center, followed by a sudden dry cut to a SOLID BLACK FRAME]. Clean screen, 8k resolution.]
+[POV erratic handheld mobile video, authentic UGC aesthetic, Local Rolling Shutter artifacts, heavy sensor noise. Auto-focus hunting effect at 0:01. [ABSOLUTE PLATFORM UI BAN: ZERO TikTok logos, ZERO floating usernames, ZERO watermarks]. [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE]: [CLONE 100% OF THE IMAGE ENVIRONMENT IN ULTRA-DENSE ENGLISH: '{amb_v9}', ALL LIVING PLANTS, VOLUMETRIC LIGHTING, ACTIVE DRIPPING CLUTTER, AND THE ANIMAL MOVING IN THE BACKGROUND]. FOCO REVERSO & {guindaste_v9} (0-4s): Video starts with a fast Macro Zoom In exclusively on the EXACT reference inventory ({scan_v9.get('inventario_detalhado_ingles')}) at true 1:1 scale ({scan_v9.get('classe_tamanho_peso')}). [CRITICAL {scan_v9.get('quantidade_exata')}-UNIT PHYSICS LOCK]: {scan_v9.get('regra_posicionamento_ingles')}. Every single unit ({scan_v9.get('inventario_detalhado_ingles')}) remains 100% solid and visible with micro-reflections bouncing off the surface as natural light hits them. SINGLE MOTION TRICK (The Tactile Proof V9.2): [Describe in English the double index finger tap on the lids/triggers of the units, cap pop, or fabric pull], NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: [IF FEED MODE: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto {nome_inf_ativa}'s face with wireless lapel mic on collar, VISCERAL EMOTION ACTIVE (The Gossip Lean, dilated pupils, urgent breathing), while keeping ALL {scan_v9.get('quantidade_exata')} unit(s) ({scan_v9.get('inventario_detalhado_ingles')}) clearly visible in the foreground frame! IF LIVE MODE: Smooth wrist rotation and rack focus between the product label details and the dripping towel/animal in the background]. 0:08: [IF FEED MODE: She points her free index finger downwards towards the bottom corner of the screen as a highly realistic 3D floating orange shopping bag object materializes in the air casting realistic shadows. 0:09-0:10: FINALIZAÇÃO P1 with a red digital glitch effect flashing the logo '{logo_ativa_usuario}' in the center, followed by a sudden dry cut to a SOLID BLACK FRAME]. Clean screen, 8k resolution.]
 
 🎙️ Áudio Blindado (Gancho V9.2: {gancho_v9} — Exatos 9 Segundos):
 [Se Modo Feed: (Abre em 0.0s com micro-efeito ASMR + acústica real do ambiente) + Fala letal de {nome_inf_ativa} em português (35 a 45 palavras) destacando '{scan_v9.get('nome_comercial_pt')}' (citando as {scan_v9.get('quantidade_exata')} unidades/tamanho real) e fechando com lote secreto na sacolinha, sem preço numérico. Se Modo Live Loop: Descreva os efeitos sonoros ASMR silenciosos de toque na embalagem e ambiente, ZERO VOZ, ZERO FALA].
@@ -2066,38 +2092,43 @@ Glitch digital vermelho com a logo '{logo_ativa_usuario}' no milésimo final. Co
                                 try: aba_limites.append_row([email_sessao, "Sim_V92"])
                                 except Exception: pass
 
-                            st.success(f"🔥 ENTIDADE V9.2 EXECUTADA SEM BLOQUEIOS! Escaneado(s) {scan_v9.get('quantidade_exata')} produto(s) ({scan_v9.get('classe_tamanho_peso')})!")
+                            st.success(f"🔥 ENTIDADE V9.2 EXECUTADA! Escaneado(s) {scan_v9.get('quantidade_exata')} produto(s) ({scan_v9.get('classe_tamanho_peso')}) + Botões de Cópia Ativos!")
                             time.sleep(1)
                             st.rerun()
                     except Exception as e:
                         st.error(f"Erro ao gerar na Entidade V9.2: {e}")
 
 # ==========================================================
-# EXIBIÇÃO UNIFICADA DO ROTEIRO (FUNCIONA PARA BLOCO 17 E BLOCO 17.2 V9.2)
+# EXIBIÇÃO UNIFICADA DO ROTEIRO (COM BOTÕES DE CÓPIA 100% GARANTIDOS EM QUALQUER CENÁRIO)
 # ==========================================================
 if st.session_state["roteiro_temporario"]:
     with st.container(border=True):
         partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
         
         if partes_roteiro["prompt_imagem"] and partes_roteiro["prompt_video"]:
+            # 1. SEÇÃO PROMPT DE IMAGEM + BOTÃO À DIREITA
             col_tit_img, col_btn_img = st.columns([7, 3])
             with col_tit_img:
                 st.markdown("### 📸 PROMPT DE IMAGEM")
+                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_imagem'])} caracteres** (Sem limite máximo)")
             with col_btn_img:
                 render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
             st.markdown(partes_roteiro["prompt_imagem"], unsafe_allow_html=True)
             st.divider()
             
+            # 2. SEÇÃO PROMPT DE VÍDEO (ATÉ TEXTO NA TELA / FINALIZAÇÃO GLITCH) + BOTÃO À DIREITA
             col_tit_vid, col_btn_vid = st.columns([7, 3])
             with col_tit_vid:
                 st.markdown("### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO")
+                st.caption(f"📏 Densidade do Prompt: **{len(partes_roteiro['prompt_video'])} caracteres** (Sem limite máximo)")
             with col_btn_vid:
                 render_botao_copiar_vip(partes_roteiro["prompt_video"], "📋 Copiar Vídeo", "copy_vid_360")
                 
             st.markdown(partes_roteiro["prompt_video"], unsafe_allow_html=True)
             st.divider()
             
+            # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
             st.markdown("### 🔑 TÍTULOS SEO (Separados)")
             st.markdown(partes_roteiro["secao_seo_texto"], unsafe_allow_html=True)
             
@@ -2110,6 +2141,12 @@ if st.session_state["roteiro_temporario"]:
             with col_t3:
                 render_botao_copiar_vip(partes_roteiro["titulo_3"], "📋 Botão 3 (Título 3)", "copy_t3")
         else:
+            # Caso raro de formatação livre: ainda assim exibe o botão de copiar no topo!
+            col_tit_full, col_btn_full = st.columns([7, 3])
+            with col_tit_full:
+                st.markdown("### 📋 PACOTE CRIATIVO GERADO")
+            with col_btn_full:
+                render_botao_copiar_vip(st.session_state["roteiro_temporario"], "📋 Copiar Tudo", "copy_full_360")
             st.markdown(st.session_state["roteiro_temporario"], unsafe_allow_html=True)
         
         st.markdown("<br>", unsafe_allow_html=True)
@@ -2186,4 +2223,3 @@ with st.container(border=True):
                     
                     st.info("💡 **Parecer Executivo da Aurora:**")
                     st.markdown(resposta_mentoria)
-
