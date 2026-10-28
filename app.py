@@ -2440,6 +2440,121 @@ def _fallback_video_v12(video_original, scan, ambiente, modo):
     return visual+enriquecimento+'\n'+audio
 
 
+# ==========================================================
+# ÉLÉVO V14 — MICROFÍSICA DO ECOSSISTEMA VIVO (SÓ NO VÍDEO)
+# A IMAGEM, SEO, LOGIN, DESIGN, TABELAS E DEMAIS BLOCOS SÃO IMUTÁVEIS.
+# O mapa físico abaixo deriva EXCLUSIVAMENTE do prompt de imagem aprovado.
+# ==========================================================
+
+def _evidencias_de_cena_v14(prompt_imagem):
+    """Lê a descrição existente; não solicita objetos nem novo cenário."""
+    original = str(prompt_imagem or '').strip()
+    t = original.lower()
+
+    def tem(*palavras):
+        return any(re.search(r'(?<!\w)' + re.escape(p) + r'(?!\w)', t) for p in palavras)
+
+    def proximidade(grupo_a, grupo_b, largura=160):
+        """Evita inventar toalha molhada porque há chuva do outro lado da janela."""
+        for a in grupo_a:
+            for m in re.finditer(re.escape(a), t):
+                janela = t[max(0, m.start()-largura):min(len(t), m.end()+largura)]
+                if any(b in janela for b in grupo_b):
+                    return True
+        return False
+
+    presentes = []
+    if tem('rain', 'raining', 'rainstorm', 'storm', 'stormy', 'chuva', 'tempestade', 'downpour', 'raindrops'):
+        presentes.append(('CHUVA', 'Real droplets fall in nonrepeating irregular trajectories consistent with the weather and wind. Where a window is explicitly present, outside droplets impact its OUTER face, merge into heavier beads, slide down under gravity leaving transparent trails and distorting the daylight. Do not soak interior surfaces unless they were already wet in the approved still image. Existing wet surfaces display correlated highlights and tiny runoff only at believable slopes.'))
+    if tem('steam', 'vapor', 'humid', 'steamy', 'mist', 'fog', 'embaçado', 'neblina'):
+        presentes.append(('VAPOR / UMIDADE', 'From the existing humid or hot-water source, uneven warm air rises by slow convection; wisps expand, curl and dissipate rather than looping identically. It may lightly soften the far edge of the frame and scatter the already-existing light, but never covers the package label or changes wall texture. No new shower, smoke machine or extra water source.'))
+    if tem('ferns','fern','samambaia','samambaias','monstera','plant','plants','foliage','leaf','leaves','folhas','garden','greenery','palm','palm tree','coqueiro','jardim','vegetation','costela-de-adão'):
+        presentes.append(('PLANTAS / VENTO', 'Animate only plants visible in the image: tiny leaves begin to deflect before the larger fronds, thin stems flex, broad leaves bend later and return with delayed inertia. The motion is asynchronous across leaves yet obeys ONE common, plausible airflow direction. If indoors and no draft is visible, use extremely restrained leaf-tip movement or keep leaves still; never introduce a fan or a gust for spectacle. Natural dappled-shadow movement is synchronized with the actual moving leaves, not arbitrary screen flicker.'))
+    if tem('waterfall','river','pool','fountain','stream','lake','cachoeira','riacho','piscina','água corrente','water surface'):
+        presentes.append(('ÁGUA VISÍVEL', 'Existing water flows downhill or ripples in its real container, with varying surface normals, irregular reflections and physically plausible contact with rocks, basin or pool edges. Splashes and mist arise only from pictured impacts. Never create a new river, stream or falling water.'))
+    tecido = tem('towel','linen','cloth','fabric','curtain','shirt','clothes','sleeve','garment','toalha','tecido','cortina','roupa','tricot','crochet','crochê','lençol','t-shirt')
+    if tecido:
+        dica = ('A clearly wet or soaked fabric carries additional water mass and sags; individual drops form at the LOWEST existing edge before detaching, falling vertically and making a brief tiny splash ONLY on the surface directly below.' if proximidade(['towel','toalha','cloth','linen','fabric','tecido'],['soaked','drenched','dripping','wet','molhada','encharcada','pingando','úmida','damp'], 75) else 'Do not make a dry towel suddenly drip: if the approved still merely shows a towel, preserve its dry state and folds.')
+        presentes.append(('TOALHAS / TECIDOS', 'Existing fabric has gravity, thickness, weave, wrinkles and friction with its support. It settles after touch or flexes with the same airflow moving the plants; wet and dry regions retain their actual depicted appearance. '+dica))
+    if tem('dog','dogs','cat','cats','bird','birds','butterfly','butterflies','animal','cachorro','cão','gato','passarinho','borboleta'):
+        # Never prescribe another species: match the individual already in this image.
+        if tem('dog','dogs','cachorro','cão'): especie='The dog may breathe with slight torso movement, blink, shift one ear or twitch a paw once, without repeatedly performing the same trick.'
+        elif tem('cat','cats','gato'): especie='The cat may blink slowly, shift an ear or tail tip and breathe at a natural rhythm, never looping identical motions.'
+        elif tem('bird','birds','passarinho'): especie='The bird may make a small weight shift, turn its head or shake wet feathers only if feathers are pictured as wet.'
+        else: especie='Only the pictured animal/insect can perform a species-appropriate subtle nonrepeating motion, never a repeated stock animation.'
+        presentes.append(('ANIMAL JÁ PRESENTE', especie+' Exact same species, size, fur/feather pattern and position from original frame, no new animals and no focus stealing from the product.'))
+    if tem('tv','television','monitor','screen','led','lamp','desk lamp','luminária','abajur','tela','televisão'):
+        presentes.append(('LUZ PRÁTICA', 'Any existing television/monitor or lamp may cause subtle REAL bounced-light fluctuations only if its pictured state motivates that change. Nearby objects and product reflect the same light change with consistent distance falloff; no strobe, random rainbow glow, or color palette change.'))
+    if tem('mug','cup','coffee','coffee mug','caneca','café','glass','water glass','copo','ceramic','cerâmica','dish','prato','pratinho','bowl','caderno','notebook','paper','papel','book','livro','phone','charger','mouse','mesa','desk','counter','balcão','bancada','shelf','prateleira'):
+        presentes.append(('BAGUNCINHA ORGÂNICA EXISTENTE', 'Preserve the EXACT original collection of everyday objects at their depicted coordinates: cup/mug, towel, book, charger, dish, bottle, tool or any other item ONLY IF the approved image contains it. Objects have mass, surface contact and occlusion and must NOT slide, multiply or vanish by themselves. A pictured cup may show a tiny reflection change as the hand-held camera moves; steam only if already present, pages flex only from genuine contact or an existing breeze, and each counter object keeps its own contact shadow.'))
+    if not presentes:
+        presentes.append(('MICRODINÂMICA DISCRETA', 'This exact still image has no explicit dynamic weather or props. Keep geometry fixed and create physical life only through subtle breathing, grip pressure, natural camera parallax and light response; do NOT add rain, animals, plants or clutter.'))
+    return presentes
+
+
+def _blocos_originais_da_cena_v14(prompt_imagem):
+    """Extract dense labeled details (when present) without any replacement."""
+    imagem=str(prompt_imagem or '').strip()
+    blocos=[]
+    etiquetas=(('NATURE MATRIX','🌿 NATURE MATRIX'),('BAGUNCINHA','🧺 BAGUNCINHA TEMÁTICA'),('ANIMAL FACTOR','🐾 ANIMAL FACTOR'),('ENVIRONMENT REINFORCEMENT','🏠 AMBIENTE ORIGINAL'),('DECORAÇÃO','🪴 DECORAÇÃO'))
+    for pref, rotulo in etiquetas:
+        p=re.compile(r'\['+re.escape(pref)+r'[^\]]*\]\s*:?',re.I)
+        m=p.search(imagem)
+        if not m: continue
+        apos=imagem[m.end():]
+        parada=re.search(r'\s*\[[A-Z][A-Z0-9 _&/()\-:.,+]{5,}\]',apos)
+        segmento=(apos[:parada.start()] if parada else apos).strip(' \n.[]')
+        if segmento and segmento not in ('...',):
+            blocos.append(f'{rotulo}: {segmento[:950]}')
+    return blocos
+
+
+def _reforco_ecossistema_v14(imagem, scan, modo):
+    """Deterministic injection into VIDEO only, honoring picture inventory and timeline."""
+    imagem=str(imagem or '').strip()
+    mapa=_evidencias_de_cena_v14(imagem)
+    partes=_blocos_originais_da_cena_v14(imagem)
+    qtd=max(1, int(scan.get('qtd',1)))
+    lista='\n'.join(f'• [{rotulo}] {regra}' for rotulo,regra in mapa)
+    imagem_dense=(imagem[:7000] if imagem else 'Scene source unavailable — do not invent scenery.')
+    secoes='\n'.join(partes) if partes else '(The approved image blueprint below is binding; do not add unsupported props.)'
+    return (
+        '\n\n🌍 [ÉLÉVO V14 — ENVIRONMENT REINFORCEMENT LOCK DENSE / REACTIVE BAGUNCINHA]\n'
+        'SOURCE OF TRUTH: This paragraph is VIDEO DIRECTION ONLY, not a request to change the still image. '
+        'Reconstruct the exact original room, location, light sources, weather, landscaping, prop placement, fabric, animal if present, and product arrangement from the original photograph. '
+        'The scene must be lived-in, not a sterile studio, yet never add a second cup, pet, puddle, window, plant or towel absent from the approved still. '
+        'The everyday clutter is a PHYSICAL INVENTORY: every original item stays where it belongs and reacts only to real causes.\n'
+        '[VERBATIM APPROVED IMAGE BLUEPRINT — COPY TO VIDEO AS SCENE CONSTRAINT, DO NOT GENERATE A NEW IMAGE]\n'
+        f'{imagem_dense}\n'
+        '[EXACT LABELED DETAILS PRESENT IN THIS IMAGE]\n'+secoes+'\n'
+        '[ENVIRONMENTAL PHYSICS — ACTIVE ONLY FOR ELEMENTS ABOVE]\n'+lista+'\n'
+        '🌪️ [REACTIVE BACKGROUND CAUSALITY — CONTINUOUS NOT LOOPED]\n'
+        'At 00:00–00:03, natural micro-events begin independently behind the product: any pictured breeze moves existing leaf tips and loose fibers first; rain already outside strikes its original glass/ground; preexisting steam rises from its actual source; existing pets breathe, blink or change one ear position. '
+        'At 00:03–00:06, as the camera re-frames toward the presenter, original small props produce real optical parallax without physical teleportation. The same wind vector acts on visible hair, fabric and foliage with different lag times; the light glints advance over the actual rigid package in sync with the camera path. '
+        'At 00:06–00:08, one purposeful hand interaction creates a touch and counter-reaction: friction, wrist stabilization, pressure marks, a tiny object impulse; background motion proceeds independently while the package and all original props remain spatially stable. '
+        'At 00:08–00:10, keep the world active until the final video frame: water/steam/leaves/animal IF PRESENT have natural non-repeated motion; no freeze, black screen, disappearance, glitch, new CTA object or additional logo. '
+        'One source must explain each visible movement. Do not synchronize all plants, animate uncaused dry towels dripping, or transform reflections into magic lights.\n'
+        '📦 [EXACT PRODUCT INVENTORY / NO TELEPORT]\n'
+        f'Precisely {qtd} original referenced product unit(s), matching distinct printed packaging and scale. '+(
+            f'Keep ONE firmly supported in the presenter’s hand and each of the other {qtd-1} supported at its exact image location for the whole 0:00–0:10; frame wide enough that ALL {qtd} remain recognizable in the opening, reaction and final shot. '
+            if qtd>1 else 'Keep the SAME single original item supported by hand or the ORIGINAL pictured surface throughout, with no spontaneous second unit. '
+        )+
+        'Accurate individual hard-body geometry, identical cap shape, legible unchanged label, gravity, table contact shadows, skin compression and consistent reflections at every timestamp. The closing frame still shows every unit fully intact.\n'
+        '🎥 [REAL PHONE / NATURAL DOCUMENTARY PERCEPTION]\n'
+        'Energy is allowed: purposeful tiny camera drift, responsive focus acquisition with occasional quick correction, subtle exposure adaptation and limited rolling-shutter skew during actual movement. No endless artificial shaking, focus jumps that erase products, waxy faces, exaggerated giant pupils, CGI glow, or fake repeating rain simulation. Keep the same approved lighting color, texture and clothing. '
+        'Preserve the original 🎬 shots, 🎙️ speech, 📝 CTA suggestions, ⚠️ ✨ 🛒 emojis and SEO outside the video untouched.\n'
+    )
+
+
+def _injetar_ecossistema_v14(video, imagem, scan, modo):
+    """Guaranteed scene-specific directions even when the LLM shortens its answer."""
+    if '[ÉLÉVO V14 — ENVIRONMENT REINFORCEMENT LOCK DENSE' in video:
+        return video
+    pedacos=re.split(r'(?=🎙️|🔊|Áudio \(Gancho|Áudio e Fala)', video, maxsplit=1)
+    visual=pedacos[0].rstrip()
+    resto=pedacos[1] if len(pedacos)>1 else ''
+    return (visual+_reforco_ecossistema_v14(imagem,scan,modo)+'\n'+resto).rstrip()
+
 def reforcar_apenas_video_v12(conteudo, scan, modo):
     """Second IA pass rewrites ONLY the video and leaves image/SEO byte-identical."""
     partes=extrair_blocos_roteiro(conteudo)
@@ -2469,6 +2584,7 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
         'Exigir ação física em cada etapa: energia documental, movimento natural, atmosfera viva e reações realistas, nunca estética de manequim.\n'
         f'Quantidade conferida pelo scanner: {qtd} UNIDADES. Se 2 ou 3 unidades, TODAS devem estar visíveis desde o primeiro até o último quadro: uma na mão, demais apoiadas conforme a IMAGEM. Não inventar unidades. {scan.get("regra_pos_vid", "")}\n'
         f'FÍSICA ATIVA ENCONTRADA NA IMAGEM (jamais introduzir causas ausentes):\n{ambiente}\n'
+        'BAGUNCINHA VIVA: descreva com eventos temporais o que já existe no PROMPT DE IMAGEM: toalha se move pela gravidade e pelo vento real; gotas APENAS se ela estiver molhada; caneca, livro, louça, cabo e mesa ficam fisicamente apoiados; plantas em vento assíncrono; animal somente se presente; chuva, vapor e iluminação coerentes com a locação. INSIRA esses eventos no VÍDEO, não no prompt de IMAGEM.\n'
         f'PRODUZA EXATAMENTE OS TÍTULOS E EMOJIS DESTA ESTRUTURA:\n{modelo_saida}\n'
         f'DIREÇÃO FÍSICA DETALHADA:\n{DIRETRIZ_VIDEO_V12}\n'
         f'\nPROMPT DE IMAGEM APROVADO — NÃO ALTERAR NENHUMA PALAVRA:\n{imagem}\n'
@@ -2508,6 +2624,9 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
                "remain at their exact still-image locations on the counter. Never remove, "
                "duplicate, recolor, resize, merge or teleport any of them.")
         novo_video=(linhas[0]+'\n'+regra+'\n'+linhas[1]) if len(linhas)>1 else (regra+'\n'+novo_video)
+    # V14: reforço determinístico, com descrição específica dos objetos da IMAGEM.
+    # Entra APENAS no texto do vídeo, mesmo quando a IA responde pouco ou pula detalhes.
+    novo_video=_injetar_ecossistema_v14(novo_video,imagem,scan,modo)
     final=_trocar_so_video_v12(conteudo,novo_video)
     validado=extrair_blocos_roteiro(final)
     if validado['prompt_imagem']!=imagem or validado['secao_seo_texto']!=partes['secao_seo_texto']:
@@ -2824,7 +2943,7 @@ if st.session_state["roteiro_temporario"]:
                 
             qtd_caracteres_video = len(partes_roteiro["prompt_video"])
             qtd_caracteres_visuais = _direcao_visual_caracteres_v12(partes_roteiro["prompt_video"])
-            st.caption(f"🎞️ Vídeo V12: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada".replace(",", "."))
+            st.caption(f"🎞️ Vídeo V14: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada | ecossistema vivo".replace(",", "."))
             st.markdown(partes_roteiro["prompt_video"], unsafe_allow_html=False)
             st.divider()
             
