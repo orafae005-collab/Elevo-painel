@@ -17,6 +17,7 @@ from datetime import datetime, timedelta
 import gspread
 import re
 import plotly.express as px
+import plotly.graph_objects as go
 from openai import OpenAI
 import hashlib
 import hmac
@@ -167,24 +168,88 @@ if not st.session_state["usuario_logado"] and cookies.get("login"):
         cookies.save()
 
 if not st.session_state["usuario_logado"]:
+    # Visual V13: somente apresentação; nenhuma mudança na lógica de credenciais/cookies.
     st.markdown("""
-        <style>
-            [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, header { display: none !important; visibility: hidden !important; }
-            .container-animacao-elevo { position: relative; width: 100%; height: 50px; display: flex; justify-content: center; align-items: center; margin-top: 15px; margin-bottom: -10px; overflow: visible; }
-            .dinheiro-voando { position: absolute; font-size: 22px; animation: subirDinheiro 2.2s infinite ease-in; opacity: 0; }
-            @keyframes subirDinheiro { 0% { bottom: -10px; opacity: 0; transform: scale(0.5) rotate(-10deg); } 30% { opacity: 1; } 80% { opacity: 1; transform: scale(1) rotate(10deg); } 100% { bottom: 45px; opacity: 0; transform: scale(1.1) rotate(0deg); } }
-            .aguia-cacadora { position: absolute; font-size: 35px; animation: vooAgressivo 2.2s infinite ease-in-out; z-index: 10; }
-            @keyframes vooAgressivo { 0% { top: -20px; transform: scale(0.8) rotate(-15deg); } 40% { top: 5px; transform: scale(1.1) rotate(0deg); } 60% { top: -5px; transform: scale(1) rotate(5deg); } 100% { top: -20px; transform: scale(0.8) rotate(-15deg); } }
-        </style>
-        <div class="container-animacao-elevo"><div class="dinheiro-voando">💵</div><div class="aguia-cacadora">🦅</div></div>
+    <style>
+      [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, header { display:none !important; }
+      [data-testid="stAppViewContainer"] {
+        background: radial-gradient(ellipse 85% 70% at 48% -18%, rgba(0,229,255,.12), transparent 73%),
+                    radial-gradient(circle at 90% 90%, rgba(212,175,55,.07), transparent 45%),
+                    #0B0E14 !important;
+      }
+      .block-container {max-width: 1050px; padding-top: clamp(1.3rem,3.5vw,3rem); padding-bottom: 2rem;}
+      .elevo-login-hero {text-align:center; position:relative; margin: 0 auto 1.55rem; padding: 0 10px;}
+      .elevo-login-eagle {position:relative; margin:0 auto 10px; width:82px; height:82px; display:grid;
+        place-items:center; border:1px solid rgba(0,229,255,.32); border-radius:25px;
+        background:linear-gradient(145deg,rgba(20,30,43,.98),rgba(8,12,19,.96));
+        box-shadow: 0 0 0 6px rgba(0,229,255,.035), 0 16px 42px rgba(0,0,0,.3), 0 0 35px rgba(0,229,255,.11);
+        animation: elevo-login-float 5.5s ease-in-out infinite;}
+      .elevo-login-eagle:before {content:""; position:absolute; inset:-9px; border-radius:30px;
+        background:conic-gradient(from 10deg,transparent,rgba(0,229,255,.27),transparent,rgba(212,175,55,.22),transparent);
+        filter:blur(10px); z-index:-1; animation:elevo-login-ring 16s linear infinite;}
+      .elevo-login-eagle span {font-size:39px; filter:drop-shadow(0 0 8px rgba(0,255,157,.35));}
+      .elevo-login-brand {font-family:Montserrat, sans-serif !important; font-size:clamp(3rem,7vw,4.65rem);
+        font-weight:900; line-height:1.1; letter-spacing:.13em; margin:0; padding-left:.13em;
+        background:linear-gradient(110deg,#D4AF37 4%,#00FF9D 28%,#00E5FF 51%,#8cc0ff 75%,#D4AF37 97%);
+        background-size:230% 100%; -webkit-background-clip:text; background-clip:text;
+        -webkit-text-fill-color:transparent; animation:elevo-login-spectrum 9s ease infinite;
+        filter:drop-shadow(0 2px 13px rgba(0,229,255,.16));}
+      .elevo-login-kicker {color:#A4B3C3 !important; font-size:.74rem; letter-spacing:.21em;
+        font-weight:600; text-transform:uppercase; margin:8px 0 10px;}
+      .elevo-login-chip {display:inline-flex; gap:7px; align-items:center; padding:6px 13px;
+        border-radius:30px; font:600 .68rem Montserrat,sans-serif; letter-spacing:.1em;
+        color:#A7FDE1; background:rgba(0,255,157,.06); border:1px solid rgba(0,255,157,.24);}
+      .elevo-login-dot {display:inline-block; height:7px;width:7px; border-radius:50%; background:#00FF9D;
+        box-shadow:0 0 9px #00FF9D; animation:elevo-login-blink 2.7s ease-in-out infinite;}
+      div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-login-card-mark) {
+        border-radius:24px !important; border:1px solid rgba(0,229,255,.32) !important;
+        background: linear-gradient(140deg,rgba(28,34,48,.93),rgba(9,14,22,.95)) !important;
+        box-shadow: 0 16px 60px rgba(0,0,0,.36),0 0 28px rgba(0,229,255,.065),inset 0 1px rgba(255,255,255,.06) !important;
+        backdrop-filter:blur(16px);}
+      .elevo-login-card-mark {margin:0 0 4px; color:#94A3B8; letter-spacing:.17em;
+        text-transform:uppercase; font:600 .65rem Montserrat,sans-serif; text-align:center;}
+      [data-testid="stForm"] {background:rgba(6,11,19,.18) !important; border-radius:16px !important;
+        border:1px solid rgba(0,229,255,.13) !important;}
+      .stTextInput input {border:1px solid rgba(0,229,255,.23) !important;
+        background:rgba(7,12,21,.7) !important; color:#F1F5F9 !important;
+        border-radius:11px !important; min-height:45px !important;}
+      .stTextInput input:focus {border-color:#00E5FF !important; box-shadow:0 0 0 2px rgba(0,229,255,.10) !important;}
+      [data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(105deg,#002B5B,#065a7e) !important;
+        color:white !important; border:1px solid #00E5FF !important; border-radius:12px !important;
+        min-height:46px !important; box-shadow:0 8px 24px rgba(0,229,255,.14) !important; font-weight:800 !important;}
+      [data-testid="stFormSubmitButton"] button[kind="primary"]:hover {filter:brightness(1.14); transform:translateY(-1px);}
+      [data-baseweb="tab-list"] {gap:.3rem !important; background:rgba(0,0,0,.12) !important;
+        padding:.35rem; border-radius:12px;}
+      [data-baseweb="tab"] {border-radius:10px;}
+      @keyframes elevo-login-spectrum {0%,100% {background-position:0% 50%} 50% {background-position:100% 50%}}
+      @keyframes elevo-login-float {0%,100% {transform:translateY(0)} 50% {transform:translateY(-4px)}}
+      @keyframes elevo-login-ring {to {transform:rotate(360deg)}}
+      @keyframes elevo-login-blink {0%,100% {opacity:1} 50% {opacity:.38}}
+      @media(max-width:750px) {
+        .block-container {padding:1rem .9rem 2rem;}
+        .elevo-login-eagle {width:67px;height:67px;border-radius:22px;}
+        .elevo-login-eagle span {font-size:32px;}
+        .elevo-login-kicker {font-size:.62rem;letter-spacing:.13em;}
+        .elevo-login-hero {margin-bottom:1.15rem;}
+        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:not(:has(.elevo-login-card-mark)) {display:none !important;}
+        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:has(.elevo-login-card-mark) {flex:1 1 100% !important;width:100% !important;min-width:0 !important;}
+      }
+      @media(prefers-reduced-motion:reduce) {
+        .elevo-login-eagle,.elevo-login-eagle:before,.elevo-login-brand,.elevo-login-dot {animation:none !important;}
+      }
+    </style>
+    <section class="elevo-login-hero" aria-label="Portal ÉLÉVO">
+      <div class="elevo-login-eagle" aria-hidden="true"><span>🦅</span></div>
+      <h1 class="elevo-login-brand">ÉLÉVO</h1>
+      <p class="elevo-login-kicker">Inteligência • Vendas • Criação</p>
+      <div class="elevo-login-chip"><span class="elevo-login-dot"></span> PORTAL DE ACESSO VIP</div>
+    </section>
     """, unsafe_allow_html=True)
 
-    st.markdown("<h1 class='titulo-elevo' style='font-size: 3.8rem; text-align: center; color: #00BFA5; margin-top: 0px;'>ÉLÉVO</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #A0A0A0; letter-spacing: 2px; text-transform: uppercase; font-size: 0.8rem; margin-bottom: 25px;'>Sistema de Inteligência e Escala de Vendas.</p>", unsafe_allow_html=True)
-    
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.container(border=True):
+            st.markdown('<div class="elevo-login-card-mark">IDENTIFICAÇÃO SEGURA • ÉLÉVO</div>', unsafe_allow_html=True)
             aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
             with aba_login:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
@@ -442,6 +507,59 @@ st.markdown(f"""
         .titulo-elevo, .stButton > button {{ animation: none !important; transition: none !important; }}
     }}
     {ajuste_modo_claro_css}
+</style>
+""", unsafe_allow_html=True)
+
+# ==========================================================
+# V13 - REFINAMENTO VISUAL RESPONSIVO (SEM TROCAR A PALETA)
+# ==========================================================
+st.markdown("""
+<style>
+  /* Cartões com microtextura e profundidade suave; preserva todos os tons oficiais. */
+  [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stForm"], [data-testid="stExpander"] {
+    background-image:linear-gradient(155deg,rgba(255,255,255,.04),rgba(255,255,255,0) 38%),
+                     radial-gradient(circle at 94% 4%,rgba(0,229,255,.035),transparent 44%) !important;
+    border-radius:19px !important;
+  }
+  [data-testid="stVerticalBlockBorderWrapper"] {min-width:0;}
+  .block-container {width:100%; max-width:1320px;}
+  [data-testid="stHorizontalBlock"] {min-width:0; align-items:stretch;}
+  [data-testid="stColumn"] {min-width:0 !important;}
+  [data-testid="stTextInput"] input, [data-testid="stTextArea"] textarea,
+  [data-baseweb="select"]>div {border-radius:12px !important; transition:border-color .16s ease,box-shadow .16s ease;}
+  [data-testid="stFileUploader"] section {border-radius:16px !important;}
+  .stButton button, [data-testid="stFormSubmitButton"] button {min-height:42px; letter-spacing:.015em;
+     transition:box-shadow .2s ease,transform .2s ease,border-color .2s ease !important;}
+  .stButton button:active, [data-testid="stFormSubmitButton"] button:active {transform:scale(.985) !important;}
+  [data-baseweb="tab-list"] {gap:6px;overflow-x:auto;scrollbar-width:thin;}
+  [data-baseweb="tab"] {border-radius:11px 11px 5px 5px;white-space:nowrap;}
+  .elevo-v13-panel-title {display:flex;align-items:center;gap:10px; margin:0 0 9px;
+     color:#00E5FF;font-size:.82rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;}
+  .elevo-v13-led {height:8px;width:8px;border-radius:50%;display:inline-block;
+     background:#00FF9D;box-shadow:0 0 4px #00FF9D, 0 0 13px rgba(0,255,157,.45);
+     animation:elevo-v13-beat 2.6s ease-in-out infinite;}
+  .elevo-v13-description {font-size:.77rem !important; margin:0 0 6px;color:#94A3B8 !important;}
+  /* Um brilho leve percorre as fatias; preserva as cores do grafico e seu hover. */
+  [data-testid="stPlotlyChart"] g.slice path {animation:elevo-v13-ring 5s ease-in-out infinite;}
+  [data-testid="stPlotlyChart"] g.slice:nth-child(2n) path {animation-delay:.9s;}
+  [data-testid="stPlotlyChart"] g.slice:nth-child(3n) path {animation-delay:1.8s;}
+  @keyframes elevo-v13-ring {0%,100% {filter:brightness(1)} 50% {filter:brightness(1.13)}}
+  @keyframes elevo-v13-beat {0%,100% {opacity:1;transform:scale(1)} 50% {opacity:.45;transform:scale(.75)}}
+  @media (max-width:767px) {
+     .block-container {padding:1rem .8rem 2.5rem !important;}
+     [data-testid="stHorizontalBlock"] {flex-wrap:wrap !important;gap:.7rem !important;}
+     [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+        flex:1 1 100% !important; width:100% !important; min-width:0 !important;
+     }
+     .titulo-elevo {font-size:clamp(2.4rem,11vw,3rem) !important;letter-spacing:.08em !important;}
+     .subtitulo {font-size:.7rem !important;letter-spacing:.09em !important;}
+     .stButton button,[data-testid="stFormSubmitButton"] button {min-height:46px !important;}
+     [data-testid="stVerticalBlockBorderWrapper"] {padding:0 !important;}
+     [data-testid="stPlotlyChart"] {max-width:100% !important;overflow:hidden;}
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .elevo-v13-led,.stButton button,[data-testid="stPlotlyChart"] g.slice path {animation:none !important;transition:none !important;}
+  }
 </style>
 """, unsafe_allow_html=True)
 
@@ -737,28 +855,84 @@ if E_O_CEO and link_planilha_ativa:
     """, unsafe_allow_html=True)
 
     if not df_timeline.empty and not df_campeao.empty:
-        with st.expander("📊 👁️ ABRIR GRÁFICOS FINANCEIROS E TOP PRODUTOS", expanded=True):
-            col_g1, col_g2 = st.columns(2)
-            c_line = "#005C66" if modo_claro else "#00E5FF"
-            c_pt = "#B8860B" if modo_claro else "#D4AF37"
-            c_grid = "rgba(0,0,0,0.05)" if modo_claro else "rgba(212,175,55,0.1)"
-            
+        with st.expander("💠 ÉLÉVO PULSE | Inteligência Financeira", expanded=True):
+            col_g1, col_g2 = st.columns(2, gap="medium")
+            pulso_tom = "#005C66" if modo_claro else "#00E5FF"
+            pulso_ponto = "#B8860B" if modo_claro else "#D4AF37"
+            fundo_tema = "#F4F6F9" if modo_claro else "#0B0E14"
+            texto_sutil = "#475569" if modo_claro else "#94A3B8"
+
             with col_g1:
-                st.markdown("##### 📈 Curva de Crescimento Diário")
-                fig_line = px.line(df_timeline, x="Data_Formatada", y="Comissao_R$", markers=True, text="Comissao_R$")
-                fig_line.update_traces(textposition='top center', texttemplate='R$ %{text:,.2f}', line=dict(color=c_line, width=4), marker=dict(color=c_pt, size=10, line=dict(color="white", width=1)), textfont=dict(color=c_pt, size=12, weight="bold"))
-                fig_line.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color=text_color), margin=dict(l=0, r=0, t=40, b=10), height=380, hovermode="x unified", dragmode=False)
-                fig_line.update_xaxes(showgrid=False, title="", fixedrange=True)
-                fig_line.update_yaxes(showgrid=True, gridcolor=c_grid, title="", visible=False, zeroline=False, fixedrange=True)
-                st.plotly_chart(fig_line, use_container_width=True, config={'displayModeBar': False})
+                st.markdown('<div class="elevo-v13-panel-title"><span class="elevo-v13-led"></span> 📡 Pulso de Faturamento</div>', unsafe_allow_html=True)
+                st.caption("Evolução do período, sem barras: sinal contínuo e interativo.")
+                serie = df_timeline.sort_values("Data_Parsed")
+                fig_pulso = go.Figure()
+                fig_pulso.add_trace(go.Scatter(
+                    x=serie["Data_Parsed"], y=serie["Comissao_R$"],
+                    mode="lines", hoverinfo="skip", showlegend=False,
+                    line=dict(color=pulso_tom, width=12, shape="spline", smoothing=0.45),
+                    opacity=0.12
+                ))
+                fig_pulso.add_trace(go.Scatter(
+                    x=serie["Data_Parsed"], y=serie["Comissao_R$"],
+                    mode="lines+markers", name="Faturamento",
+                    line=dict(color=pulso_tom, width=3.5, shape="spline", smoothing=0.45),
+                    marker=dict(size=7, color=pulso_ponto, line=dict(color=fundo_tema, width=1.5)),
+                    fill="tozeroy",
+                    fillcolor="rgba(0,229,255,0.09)" if not modo_claro else "rgba(0,43,91,0.07)",
+                    hovertemplate="<b>%{x|%d/%m/%Y}</b><br>R$ %{y:,.2f}<extra></extra>"
+                ))
+                fig_pulso.update_layout(
+                    height=320, margin=dict(l=8,r=12,t=16,b=8),
+                    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                    showlegend=False, hovermode="x unified",
+                    font=dict(color=texto_sutil, size=11)
+                )
+                fig_pulso.update_xaxes(title=None, showgrid=False, zeroline=False,
+                                       tickformat="%d/%m", tickfont=dict(size=10), fixedrange=True)
+                fig_pulso.update_yaxes(title=None, showgrid=True, zeroline=False,
+                                       gridcolor="rgba(148,163,184,.10)", tickprefix="R$ ",
+                                       tickfont=dict(size=10), fixedrange=True, rangemode="tozero")
+                st.plotly_chart(fig_pulso, use_container_width=True, config={"displayModeBar":False, "responsive":True})
+
             with col_g2:
-                st.markdown("##### 🏆 Top 10 Produtos Mais Vendidos")
-                fig_bar = px.bar(df_campeao.head(10).copy(), x="Comissao_R$", y="Produto", orientation='h', text="Comissao_R$", color_discrete_sequence=[c_pt])
-                fig_bar.update_traces(texttemplate='R$ %{text:,.2f}', textposition='outside', cliponaxis=False, marker_line_color=c_line, marker_line_width=1.5, opacity=0.9)
-                fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)", font=dict(color=text_color), margin=dict(l=0, r=80, t=40, b=0), height=380, dragmode=False)
-                fig_bar.update_xaxes(showgrid=False, title="", visible=False, fixedrange=True)
-                fig_bar.update_yaxes(showgrid=False, title="", autorange="reversed", fixedrange=True)
-                st.plotly_chart(fig_bar, use_container_width=True, config={'displayModeBar': False})
+                st.markdown('<div class="elevo-v13-panel-title"><span class="elevo-v13-led"></span> ◉ Radar de Produtos</div>', unsafe_allow_html=True)
+                st.caption("Fatias dos campeões de venda — painel circular exclusivo ÉLÉVO.")
+                recorte = df_campeao.head(5).copy()
+                nomes_completos = recorte["Produto"].astype(str).tolist()
+                montantes = recorte["Comissao_R$"].astype(float).tolist()
+                outros = float(df_campeao.iloc[5:]["Comissao_R$"].sum())
+                if outros > 0:
+                    nomes_completos.append("Outros produtos")
+                    montantes.append(outros)
+                total_painel = sum(montantes)
+                if total_painel > 0:
+                    rotulos = [n if len(n) <= 22 else n[:19] + "..." for n in nomes_completos]
+                    paleta_elevo = ["#00E5FF", "#00FF9D", "#D4AF37", "#4D95FF", "#00BFA5", "#68778A"]
+                    fig_radial = go.Figure(go.Pie(
+                        labels=rotulos, values=montantes, customdata=nomes_completos,
+                        hole=.69, sort=False, direction="clockwise", rotation=270,
+                        marker=dict(colors=paleta_elevo[:len(montantes)], line=dict(color=fundo_tema, width=2.5)),
+                        textinfo="none", showlegend=True,
+                        hovertemplate="<b>%{customdata}</b><br>R$ %{value:,.2f}<br>%{percent}<extra></extra>"
+                    ))
+                    centro_formatado = f"R$ {total_painel:,.0f}".replace(",", ".")
+                    fig_radial.update_layout(
+                        height=350, margin=dict(l=5,r=5,t=3,b=60),
+                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                        font=dict(color=texto_sutil, size=11),
+                        legend=dict(orientation="h",y=-.04,x=.5,xanchor="center",yanchor="top",
+                                    font=dict(size=10),itemsizing="constant",traceorder="normal"),
+                        annotations=[
+                            dict(text="ÉLÉVO",x=.5,y=.56,showarrow=False,
+                                 font=dict(size=17,color=pulso_tom,family="Montserrat, sans-serif")),
+                            dict(text=centro_formatado,x=.5,y=.45,showarrow=False,
+                                 font=dict(size=14,color=pulso_ponto,family="Montserrat, sans-serif"))
+                        ]
+                    )
+                    st.plotly_chart(fig_radial, use_container_width=True, config={"displayModeBar":False,"responsive":True})
+                else:
+                    st.info("O gráfico circular será exibido quando houver vendas com valores positivos.")
 
     with st.expander("🤖 Injetor Rápido de Caixa & Protocolo Águia (Opcional)", expanded=False):
         if "dados_prontos" not in st.session_state: st.session_state["dados_prontos"] = []
