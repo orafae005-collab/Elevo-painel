@@ -1424,10 +1424,10 @@ if E_O_CEO:
                             else: st.warning("Não encontrado.")
                         except Exception: pass
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / ESTRUTURA ORIGINAL INTACTA - V31.1)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / CONECTADA AO BANCO DE MEMÓRIA 17.3)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 - Ultimate Edition)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 + Banco de Memória 17.3)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1599,38 +1599,79 @@ def extrair_blocos_roteiro(md_texto):
         linhas_seo = [l.strip() for l in secao_seo.split('\n') if l.strip()]
         titulos_limpos = []
         for l in linhas_seo:
-            if ":" in l:
+            if ":" in l and not l.startswith("#") and "legenda" not in l.lower() and "hashtag" not in l.lower():
                 parte_limpa = l.split(":", 1)[1].replace("*", "").strip()
                 if parte_limpa:
                     titulos_limpos.append(parte_limpa)
-            else:
-                limpo = l.replace("*", "").strip()
-                if limpo:
-                    titulos_limpos.append(limpo)
         if len(titulos_limpos) >= 1: dados["titulo_1"] = titulos_limpos[0]
         if len(titulos_limpos) >= 2: dados["titulo_2"] = titulos_limpos[1]
         if len(titulos_limpos) >= 3: dados["titulo_3"] = titulos_limpos[2]
 
     return dados
 
-def escanear_produto_anti_bloqueio(img_b64):
-    """Extrai o nome, quantidade exata de unidades, cores e peso/volume da imagem para que nenhum item fique de fora e sem travar na OpenAI."""
+def escanear_contagem_limpa_da_foto(img_b64):
+    """
+    NÃO descreve cores nem devolve dicionários [{'color':...}] para não bugar o gerador de vídeo!
+    Extrai APENAS:
+    1) O nome comercial em português (para a fala e SEO).
+    2) A quantidade numérica exata (1, 2, 3, 5...).
+    3) A regra limpa de posicionamento em inglês (1 na mão + o resto parado na bancada do início ao fim).
+    """
     try:
         resp_s = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You are an e-commerce product cataloging assistant. Output JSON only."},
+                {"role": "system", "content": "You are a simple product counter. Output valid JSON with flat strings and integers only. NEVER output lists or nested dicts."},
                 {"role": "user", "content": [
-                    {"type": "text", "text": "Inspect the commercial product/kit in this image and return JSON with: 'nome_pt' (full product/kit name in Portuguese), 'qtd' (exact count of items/containers in the image: 1, 2, 3, 5, etc.), and 'desc_ingles' (detailed English description of EVERY unit, its exact color, lid color, and volume/weight like 250ml, 300ml, 400g, 500g, or 1kg)."},
+                    {"type": "text", "text": (
+                        "Inspect this image and return a JSON with ONLY 3 keys:\n"
+                        "1. 'nome_pt': string with the commercial name of the product/kit in Portuguese (e.g., 'Kit 3 Máscaras SOS Hidratação Salon Line').\n"
+                        "2. 'qtd': integer count of how many product units/pieces appear in the image (e.g., 1, 2, 3, 5).\n"
+                        "3. 'tipo_embalagem': short English word for the container type ONLY, without colors or dicts (e.g., '400g cosmetic tub', '300ml pump bottle', '250ml bottle', 'crochet shorts', 'wide-leg pants', 'platform sneakers')."
+                    )},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
                 ]}
             ],
             temperature=0.1
         )
-        return json.loads(resp_s.choices[0].message.content)
+        dados_scan = json.loads(resp_s.choices[0].message.content)
+        qtd = int(dados_scan.get("qtd", 1))
+        tipo_emb = str(dados_scan.get("tipo_embalagem", "product container"))
+        nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
     except Exception:
-        return {"nome_pt": "Produto Principal", "qtd": 1, "desc_ingles": "the exact product shown in the reference image"}
+        qtd = 1
+        tipo_emb = "product container"
+        nome_pt = "Produto Principal"
+
+    if qtd <= 1:
+        regra_pos_img = (
+            f"She is firmly holding ONE product, the EXACT {tipo_emb} from the provided reference image, in one hand. "
+            f"DO NOT alter, redraw, or describe the product colors, logo, or text — copy the source reference image 100% intact."
+        )
+        regra_pos_vid = (
+            f"holding the EXACT single {tipo_emb} from the reference image in one hand (DO NOT alter or describe colors/labels, copy reference 100% intact)."
+        )
+    else:
+        resto = qtd - 1
+        regra_pos_img = (
+            f"[MULTI-PRODUCT KIT LOCK — {qtd} UNITS TOTAL]: She is firmly holding ONLY ONE unit of the kit in her hand, "
+            f"while the other {resto} unit(s) from the reference image rest neatly side-by-side on the counter surface right next to her, "
+            f"making all {qtd} products from the reference image clearly visible in the scene. DO NOT alter, redraw, or describe the product colors — copy all {qtd} units from the reference image 100% intact."
+        )
+        regra_pos_vid = (
+            f"[MULTI-PRODUCT KIT LOCK — {qtd} UNITS TOTAL]: All {qtd} units from the reference image are clearly visible from 0:00 to the end, "
+            f"with ONLY ONE unit held in her hand while the other {resto} unit(s) remain resting stationary on the counter surface right beside her "
+            f"(NEVER hold all {qtd} units in her hands at the same time, and DO NOT alter or redraw the reference packaging)."
+        )
+
+    return {
+        "nome_pt": nome_pt,
+        "qtd": qtd,
+        "tipo_embalagem": tipo_emb,
+        "regra_pos_img": regra_pos_img,
+        "regra_pos_vid": regra_pos_vid
+    }
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
 if not st.session_state["roteiro_temporario"]:
@@ -1650,7 +1691,7 @@ if inf_salva and inf_salva.get("Descricao_Visual"):
     eh_customizada = True
 else:
     nome_inf_ativa = "Aurora"
-    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, expressive friendly conspiracy look, incredibly shiny and healthy-looking hair)"
+    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair)"
     eh_customizada = False
 
 logo_padrao_ceo = "O Achado Secreto"
@@ -1681,7 +1722,6 @@ if not E_O_CEO and robo_sheets:
     except Exception: pass
 
 with st.container(border=True):
-    # Chave para alternar entre o Bloco 17 (360º Original Sem Logo) e o Bloco 17.2 (Criação V9.2 Com Logo)
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
         if st.button("⚙️ MODO 360º PADRÃO (Bloco 17 - Sem Logo)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_17"):
@@ -1714,7 +1754,7 @@ with st.container(border=True):
                 "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
                 placeholder="Ex: Quero que ela mostre a textura do produto, foque nos detalhes ou fale com tom de segredo...",
                 height=115,
-                help="Se você deixar em branco, a máquina criará todo o prompt, ambiente novo e estratégia 100% no automático!",
+                help="Se você deixar em branco, a máquina puxará automaticamente um exemplo do Banco de Memória 17.3!",
                 key="txt_diretrizes_360"
             )
             btn_gerar_roteiro = False
@@ -1813,22 +1853,24 @@ if st.session_state.get("modo_entidade_v9"):
 # ==========================================================
 BANCO_DE_MEMORIA_17_3 = """
 ====================================================================
-[ 🧠 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (V3 A V9.2) ]
-INSTRUÇÃO SUPREMA DE TREINAMENTO: Abaixo estão todos os exemplos, diagnósticos, matrizes e gabaritos campeões validados do sistema (do mais recente V9.2 até as bases V8, V7, V6, V5, V4 e V3, além dos 5 Prompts de Ouro Master).
-Você NÃO precisa criar estruturas do zero: pegue o exemplo campeão abaixo que corresponde ao tipo e tamanho do produto da foto (Kit de 3 potes, Kit de 2 produtos, Frasco 250ml/300ml, Pote 500g, Potão 1kg, Roupa/Crochê/Conjunto/Pantalona/Alfaiataria, Tênis/Calçado ou Utensílio de Casa/Cozinha), mantenha 100% da qualidade, proporção realista 1:1 na mão e estrutura validada, e adapte/melhore para o produto enviado!
+[ 🧠 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (OS 5 PROMPTS DE OURO MASTER + ACERVO V3 A V9.2) ]
 
---- PARTE A: OS 5 PROMPTS DE OURO MASTER (PADRÃO 360º SEM LOGO) ---
+🚨 REGRAS INQUEBRÁVEIS DO BANCO DE MEMÓRIA (PARA IMAGEM E VÍDEO SAÍREM PERFEITOS):
+1. ZERO DESCRIÇÃO DE CORES OU DICIONÁRIOS DO PRODUTO: NUNCA tente descrever as cores ou o texto do rótulo e NUNCA escreva listas técnicas tipo `[{'color': ...}]`! Diga apenas: `the EXACT product(s) from the reference image — DO NOT alter, redraw, or describe the product colors, logo, or text; copy the reference image 100% intact`.
+2. REGRA DO KIT (1 NA MÃO + O RESTO NA BANCADA): Quando houverem 2, 3, 5 ou mais produtos na imagem, ELA NUNCA SEGURA TODOS NA MÃO AO MESMO TEMPO! Ela segura APENAS 1 unidade na mão (`firmly holding ONE of the units in her hand`), enquanto as outras unidades ficam apoiadas na bancada bem ao lado dela (`while the other unit(s) rest neatly on the counter beside her, making all units clearly visible in the scene`), tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo!
+3. ESPELHAMENTO IMAGEM = VÍDEO: O vídeo deve seguir o MESMO ambiente e o MESMO posicionamento dos produtos da imagem!
 
-📦 1. O GANCHO DO CAOS (Produto: Kit Terapia Coreana 3 Potes)
-- Ambiente Único: Cozinha orgânica de classe média alta em São Paulo, conectada a uma varanda botânica densa e verdejante.
-- Cenário de Fundo: Samambaias e costelas-de-adão iluminadas pela luz natural da manhã, uma xícara de cerâmica na bancada e um vira-lata caramelo deitado ao fundo.
-📸 GABARITO DE IMAGEM BASE (Ultra-Robusto):
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, vibrant, sunlit Brazilian kitchen connected directly to a dense, lush green balcony filled with cascading ferns, monsteras, and warm tropical sunlight filtering through the leaves, with a small caramel dog resting on a colorful rug in the background. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the wooden counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the tubs from the "Kit de Tratamento Novex Terapia Coreana", while the other two tubs rest neatly on the wooden counter behind her, making all three clearly visible in the scene. Unfiltered UGC vlog style, 8k resolution.
-🎬 COMANDO DE VÍDEO COMPLETO (Padrão Master - Mais de 1.200 caracteres):
-Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference products of the Novex Korean therapy jars held firmly in her hand against the green varanda background. [CRITICAL PHYSICS & SCALING]: 1:1 real-world scale, strictly realistic 400g size, perfectly proportioned to her hand, do not oversize. SINGLE MOTION TRICK (The Trigger Tap): Her clean free index finger performs a deliberate micro-tap on the lid of the main tub twice to emphasize it. NO hand overlapping, absolute physics stability, NO pixel melting.]
-Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning. ENVIRONMENT REINFORCEMENT LOCK: Bright Brazilian kitchen connected to a sunlit tropical varanda with dense green ferns. In the deep background, the caramel dog shifts position slightly.]
+--- PARTE A: OS 5 PROMPTS DE OURO MASTER (MOLDE OFICIAL DO BLOCO 17 - 360º SEM LOGO) ---
+
+📦 MOLDE 1: O GANCHO DO CAOS (Para Kits de 3 Potes / Múltiplas Unidades)
+📸 GABARITO DE IMAGEM BASE:
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, vibrant, sunlit Brazilian kitchen connected directly to a dense, lush green balcony filled with cascading ferns, monsteras, and warm tropical sunlight filtering through the leaves, with a small caramel dog resting on a colorful rug in the background. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the wooden counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the tubs from the reference kit in her hand, while the other two tubs rest neatly on the wooden counter right beside her, making all three clearly visible in the scene. DO NOT alter, redraw, or describe the product colors or text; copy the reference image 100% intact. Unfiltered UGC vlog style, 8k resolution.
+
+🎬 COMANDO DE VÍDEO COMPLETO:
+Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference kit products (one tub held firmly in her hand while the other two tubs rest neatly beside her on the wooden counter against the green varanda background, making all three clearly visible). [CRITICAL PHYSICS & SCALING]: 1:1 real-world scale, strictly realistic size, perfectly proportioned to her hand, do not oversize. DO NOT alter or redraw the reference packaging. SINGLE MOTION TRICK (The Trigger Tap): Her clean free index finger performs a deliberate micro-tap on the lid of the main tub twice to emphasize it. NO hand overlapping, absolute physics stability, NO pixel melting.]
+Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while holding ONLY ONE tub in her hand and keeping the other two tubs resting stationary on the counter right beside her. ENVIRONMENT REINFORCEMENT LOCK: Bright Brazilian kitchen connected to a sunlit tropical varanda with dense green ferns. In the deep background, the caramel dog shifts position slightly.]
 Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
-[PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only, allowing only the final authorized glitch branding logo at the very end.]
+[PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
 🎙️ Áudio e Fala da Aurora:
 (Micro-ASMR intro: som de batida seca na tampa plástica). "Amiga, você viu isso? O segredo das coreanas para deixar o cabelo com efeito espelhado e zero frizz acabou de chegar na vitrine! O estoque desse kit completo tá derretendo em minutos. Eu já garanti o meu, corre na sacolinha antes que esgote!"
 📝 Texto na Tela:
@@ -1836,150 +1878,83 @@ Interaction (3D CTA): [0:08: She aggressively points her free index finger downw
 ✨ EFEITO GLASS HAIR & HIDRATAÇÃO
 🛒 LOTE SECRETO LIBERADO 👇
 
-📦 2. O GANCHO DA TEMPESTADE (Produto: Reconstrutor Max Keratin 250ml)
-- Ambiente Único: Banheiro rústico de alvenaria aparente, tomado por vapor denso de água quente e uma janela vitrô com chuva torrencial do lado de fora.
-- Cenário de Fundo: Vidro embaçado pelas gotas da tempestade, reflexos difusos de luz amarelada e um maço de eucalipto fresco pendurado no box balançando com a corrente de ar.
-📸 GABARITO DE IMAGEM BASE (Ultra-Robusto):
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, microscopic droplets of warm steam condensation clinging delicately to her skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial expression, incredibly healthy hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her cotton shirt. She is standing in an intimate, steam-filled rustic bathroom. Heavy rainstorm visibly and dynamically pounding against the frosted glass window in the background, creating blurry streaks of water. A bundle of hanging eucalyptus leaves sways slightly from an indoor draft. Natural everyday clutter on the stone shelf: a small ceramic dish and a rolled linen hand towel. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale. The EXACT red 250ml 'Novex Max Keratin' bottle is held firmly in her hand, remaining a perfectly compact, lightweight 250ml size, perfectly proportioned to fit inside a human palm. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
-🎬 COMANDO DE VÍDEO COMPLETO (Padrão Master - Mais de 1.200 caracteres):
-[POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. Quick cell phone auto-focus hunting effect at 0:01 tracking the red bottle, then violently snapping to her face. ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: Steam-filled rustic bathroom, heavy rainstorm visibly and dynamically pounding against the frosted window in the background. A bundle of hanging eucalyptus sways slightly from a draft. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale. The EXACT red 250ml 'Novex Max Keratin' bottle is held firmly in her hand, remaining a perfectly small 250ml size. SPATIAL MOTION TRICK (The Andadinha): Aurora takes a purposeful, natural step forward towards the camera, shifting her weight organically. 0:02-0:04 (TACTILE TEST V9): Her clean free index finger performs a deliberate, hard double-tap on the top red cap of the bottle. NO hand overlapping, absolute physics stability, NO pixel melting. 0:05-0:08: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with visceral breathing. She makes intense, urgent eye contact. 0:09: She aggressively points her free index finger downwards to the right corner, where a realistic 3D floating orange shopping bag materializes. [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: Absolutely no platform UI, handles, corner watermarks, or embedded social media logos from start to finish. Pure clean video feed only.]
-🎙️ Áudio e Fala da Aurora:
-(Som ASMR: Batida de unha no plástico do frasco [toc-toc] + barulho de chuva forte e eco de banheiro). "Amiga, para tudo! O pessoal do estoque enlouqueceu e liberou o lote secreto do Max Keratin da Novex por um valor que é piada! Ele salva o cabelo elástico e quebrando na primeira aplicação. O carrinho tá voando, corre na sacolinha!"
-📝 Texto na Tela:
-⚠️ CABELO ELÁSTICO E QUEBRANDO? 🛑
-✨ CAUTERIZAÇÃO DE SALÃO
-🛒 CORRE NA SACOLINHA 👇
+📦 MOLDE 2: O GANCHO DA TEMPESTADE (Para Frascos Compactos 200ml-250ml - Banheiro Rústico com Vapor e Chuva)
+📸 GABARITO DE IMAGEM BASE:
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, microscopic droplets of warm steam condensation clinging delicately to her skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial expression, incredibly healthy hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her cotton shirt. She is standing in an intimate, steam-filled rustic bathroom. Heavy rainstorm visibly and dynamically pounding against the frosted glass window in the background, creating blurry streaks of water. A bundle of hanging eucalyptus leaves sways slightly from an indoor draft. Natural everyday clutter on the stone shelf: a small ceramic dish and a rolled linen hand towel. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale. The EXACT 250ml bottle from the reference image is held firmly in her hand, remaining a perfectly compact, lightweight size, perfectly proportioned to fit inside a human palm. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
+🎬 COMANDO DE VÍDEO COMPLETO:
+Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. Quick cell phone auto-focus hunting effect at 0:01 tracking the exact reference bottle in her hand. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale, remaining a perfectly compact size in her palm. SINGLE MOTION TRICK (Tactile Test V9): Her clean free index finger performs a deliberate, hard double-tap on the top cap of the bottle. NO hand overlapping, absolute physics stability, NO pixel melting.]
+Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! Camera snaps to Aurora's face (wireless lapel mic on shirt). SPATIAL MOTION TRICK (The Andadinha): Aurora takes a purposeful, natural step forward towards the camera, leaning in aggressively towards the lens (The Gossip Lean), her chest heaving with visceral breathing and urgent eye contact while holding the single compact bottle. ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: Steam-filled rustic bathroom, heavy rainstorm pounding against the frosted window, hanging eucalyptus swaying slightly.]
+Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards to the right corner, where a realistic 3D floating orange shopping bag materializes casting realistic shadows.]
+[PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Absolutely no platform UI, handles, corner watermarks, or embedded social media logos from start to finish. Pure clean video feed only.]
 
-📦 3. O GANCHO DO BORRIFADOR (Produto: Salon Line 3 em 1 - 300ml)
-- Ambiente Único: Varanda ensolarada de apartamento urbano, cercada por plantas tropicais luxuriantes e incidência de raios solares dourados da tarde.
-- Cenário de Fundo: Samambaias e vasos de barro rústicos, com o vira-lata caramelo deitado no chão de taco e dando leves batidas com o rabo no tapete.
-📸 GABARITO DE IMAGEM BASE (Ultra-Robusto):
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle warm glow of sun-kissed skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, straight bangs, sharp and intense conspiratorial expression). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing on a bright, airy Brazilian varanda surrounded by lush green hanging ferns, monsteras, and warm golden hour sunlight filtering through the foliage. In the deep background, a small caramel dog is resting peacefully on a woven rug. Natural everyday clutter on a small side table: a terracotta plant mister and an unfinished ceramic cup. [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale, strictly realistic product size, exact match to reference]. She is firmly holding the yellow and white Salon Line 3 em 1 300ml pump bottle. The bottle must look compact, light, and perfectly proportioned to her hand grip. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
-🎬 COMANDO DE VÍDEO COMPLETO (Padrão Master - Mais de 1.200 caracteres):
-[POV erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference yellow and white Salon Line 3 em 1 bottle held firmly in her hand against the green varanda background. [CRITICAL: 1:1 real-world scale, strictly realistic product size, exact match to reference]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The item remains perfectly solid with micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the yellow pump trigger twice to emphasize its mechanism. NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning. [ENVIRONMENT REINFORCEMENT LOCK V9]: Bright Brazilian varanda, lush green ferns, warm sunlight. In the deep background, the caramel dog's tail gives a subtle twitch. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: Absolute zero platform UI, handles, corner watermarks, or embedded social media logos throughout the entire video feed.]
-🎙️ Áudio e Fala da Aurora:
-(Micro-efeito ASMR: Som de borrifador espirrando e um suspiro de advertência). "Amiga, para tudo! Sabe aquele potão baratinho que salva o cabelo ressecado e dá um brilho espelhado? O lote secreto dele acabou de vazar aqui por um valor que é piada! Eu já garanti o meu, corre na sacolinha antes que esgote!"
-📝 Texto na Tela:
-⚠️ CABELO RESSECADO? 🛑
-✨ BRILHO ESPELHADO & NUTRIÇÃO
-🛒 CORRE NA SACOLINHA 👇
+📦 MOLDE 3: O GANCHO DO BORRIFADOR (Para Frascos 300ml-500ml - Varanda Ensolarada com Samambaias e Caramelo)
+📸 GABARITO DE IMAGEM BASE:
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle warm glow of sun-kissed skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, straight bangs, sharp and intense conspiratorial expression). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing on a bright, airy Brazilian varanda surrounded by lush green hanging ferns, monsteras, and warm golden hour sunlight filtering through the foliage. In the deep background, a small caramel dog is resting peacefully on a woven rug. Natural everyday clutter on a small side table: a terracotta plant mister and an unfinished ceramic cup. [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale, strictly realistic product size, exact match to reference]. She is firmly holding the exact bottle from the reference image. The bottle must look compact, light, and perfectly proportioned to her hand grip. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
 
-📦 4. O GANCHO DO PESO / IMPACTO (Produto: Potão 1kg Queratina)
-- Ambiente Único: Quarto de jovem adulto com decoração aconchegante, luz difusa de abajur e uma televisão de fundo piscando luzes coloridas na parede.
-- Cenário de Fundo: Cama com travesseiros jogados, livros empilhados na mesinha de cabeceira e a tela da TV emitindo reflexos dinâmicos de luzes de fundo.
-📸 GABARITO DE IMAGEM BASE (Ultra-Robusto):
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle cinematic contrast lighting, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, highly expressive mobile eyebrows, intense and focused look). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. ENVIRONMENT REINFORCEMENT: Ordinary Brazilian bedroom at night, active television screen emitting flickering ambient light across the room, natural clutter including an open notebook, loose clothes on a chair, and a half-full glass of water on the nightstand. [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 scale, strictly realistic 1kg cosmetic tub size, do not oversize, fitting normal hand proportions]. She firmly holds the 1kg tub of Keratin hair treatment mask. Unfiltered UGC vlog style, 8k resolution.
-🎬 COMANDO DE VÍDEO COMPLETO (Padrão Master - Mais de 1.200 caracteres):
-Shot 1 (Hook & Depth): [POV stationary camera moving smoothly. Medium shot with deep depth of field. ENVIRONMENT REINFORCEMENT LOCK: Ordinary Brazilian bedroom, active TV emitting flickering background light, natural clutter. VISUAL UGC LOCK: Wireless lapel microphone clipped firmly to her shirt. CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 scale. She holds the exact 1kg professional tub firmly in her hands. ANTI-MORPHING LOCK to prevent size distortion.]
-Shot 2 (Extreme Motion & Demo): [Dynamic Spatial Motion: The video starts with Aurora taking a deliberate half-step back. She heavily shifts her body weight from one leg to the other, making her hair bounce naturally. She dynamically gesticulates with her free hand while speaking, showing highly expressive eyebrows. She holds the 1kg tub firmly and taps her fingernails sharply on the plastic lid (Tactile Test ASMR). She briefly glances at the flickering TV behind her, then aggressively refocuses on the lens. She seamlessly walks forward doing the 'gossip lean', stepping very close to the camera lens. The wireless mic remains perfectly clipped. NO pixel melting, NO glitching.]
-Interaction (3D CTA): [She points firmly to the right side where an orange 3D shopping bag materializes with realistic shadows pointing to the checkout button.]
-[PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: Absolute zero platform UI, handles, usernames, profile pictures, or corner watermarks from start to finish. Pure clean video feed only.]
-🎙️ Áudio e Fala da Aurora:
-(Acústica de quarto. Batida seca e forte de unhas em pote de plástico espesso). "Amiga, seu cabelo tá quebrando ou elástico? Esse potão de queratina faz uma reconstrução de salão na hora! O estoque tá quase zerado, clica no carrinho laranja!"
-📝 Texto na Tela:
-⚠️ CABELO ELÁSTICO? 🛑
-✨ RECONSTRUÇÃO DE SALÃO
-🛒 CLICA NO CARRINHO 👇
+📦 MOLDE 4: O GANCHO DO PESO / IMPACTO (Para Pote Único de 1kg - Quarto com TV Piscando ou Varanda com Cachoeira)
+📸 GABARITO DE IMAGEM BASE:
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle cinematic contrast lighting, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense and focused look). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. ENVIRONMENT REINFORCEMENT: Ordinary Brazilian bedroom at night, active television screen emitting flickering ambient light across the room, natural clutter including an open notebook, loose clothes on a chair, and a half-full glass of water on the nightstand (or lush Varanda with Waterfall, butterflies and sleeping caramel dog). [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 scale, strictly realistic standard 1kg tub size fitting normal hand proportions, DO NOT oversize]. She firmly holds the single 1kg tub from the reference image. Unfiltered UGC vlog style, 8k resolution.
 
-📦 5. O GANCHO DO ACONCHEGO (Produto: Reposição de Massa - Kit 2 Potes 400g)
-- Ambiente Único: Home office residencial aconchegante, estante de livros ao fundo, luz suave de luminária de mesa e um gatinho dormindo enrolado na poltrona.
-- Cenário de Fundo: Livros organizados na estante, canecas, papéis espalhados com naturalidade e o clima acolhedor de quem trabalha em casa.
-📸 GABARITO DE IMAGEM BASE (Ultra-Robusto):
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, soft warm illumination from a desk lamp, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial facial expression, healthy shiny hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a cozy, lived-in modern home office space with a warm reading lamp casting soft shadows, a tall wooden bookshelf filled with books in the background, and a sleepy cat curled up on a soft armchair. Natural everyday clutter on the wooden desk: an open planner, a ceramic coffee mug with steam rising, and a pair of wire-rimmed glasses. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The two purple tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the purple tubs from the "Kit 2 Creme de Tratamento Novex Reposição de Massa", while the second identical tub rests neatly on the wooden desk right next to her, making both products clearly visible. Unfiltered UGC vlog style, 8k resolution.
-🎬 COMANDO DE VÍDEO COMPLETO (Padrão Master - Mais de 1.200 caracteres):
-[POV erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement with organic handheld shake. The camera violently tilts up from a wooden desk where the product jars rest. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference purple tubs of Novex Reposição de Massa. CRITICAL PHYSICS: 1:1 scale (proportional 400g jars, fitting naturally in her grip, do not oversize. One jar is held firmly, while the second jar rests on the desk). The items remain perfectly solid with micro-reflections bouncing off the plastic as light hits them. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it. NO pixel melting. 0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, estante de livros e home office ao fundo com um gato dormindo). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving slightly with urgent breathing, flashing a breathless, intensely serious expression of pure warning. 0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen, where a realistic 3D floating orange shopping bag materializes. [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: Absolute zero platform UI, usernames, profile pictures, or corner watermarks throughout the video feed.]
-🎙️ Áudio e Fala da Aurora:
-(Acústica de ambiente fechado/escritório. Dois toques secos na tampa do produto). "Amiga, se o seu cabelo tá fino, ralo e quebrando inteiro quando você escova, para tudo! Esse tratamento de reposição de massa encorpa os fios como nenhum outro e devolve a vida na primeira aplicação. O estoque desse lote secreto tá acabando em minutos, corre na sacolinha antes que esgote!"
-📝 Texto na Tela:
-⚠️ CABELO FINO E RALO? 🛑
-✨ ENCORPA OS FIOS NA HORA
-🛒 LOTE SECRETO LIBERADO 👇
+📦 MOLDE 5: O GANCHO DO ACONCHEGO (Para Kit com 2 Potes/Produtos - Home Office com Gato ou Cozinha de Batalha)
+📸 GABARITO DE IMAGEM BASE:
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, soft warm illumination from a desk lamp, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial facial expression, healthy shiny hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a cozy, lived-in modern home office space with a warm reading lamp casting soft shadows, a tall wooden bookshelf filled with books in the background, and a sleepy cat curled up on a soft armchair. Natural everyday clutter on the wooden desk: an open planner, a ceramic coffee mug with steam rising, and a pair of wire-rimmed glasses. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The two tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the units from the reference kit in her hand, while the second unit rests neatly on the wooden desk right next to her, making both products clearly visible. Unfiltered UGC vlog style, 8k resolution.
 
---- PARTE B: ACERVO COMPLETO V9.2, V9, V8, V7, V6, V5, V4 E V3 DO DOCUMENTO ---
-
-1. DIAGNÓSTICO DE NÚCLEO & FUSÃO V7+V8+V9 ABSOLUTA:
-- Óptica Suja e Realista: Auto-focus hunting at 0:01, Local Rolling Shutter artifacts, volumetric light rays with dancing dust motes, T-zone sweat glow, heavy sensor noise, microscopic peach fuzz, advanced subsurface scattering.
-- Ecossistema Vivo e Reativo: Baguncinha com física ativa (toalha pingando água com efeito splat, vapor embaçando a borda da lente, luz de TV oscilando, coqueiro envergando na tempestade, animais com micro-movimentos reais).
-- Espelhamento Denso (Imagem = Vídeo): O prompt de vídeo repete 100% da descrição física do ambiente da imagem dentro de [ENVIRONMENT REINFORCEMENT LOCK V9 DENSE] antes de ditar o movimento.
-
-2. GABARITO V9.2 CREME DEFINIÇÃO NATURAL 1KG (VARANDA TROPICAL COM CACHOEIRA E BORBOLETAS):
-- Imagem: RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman (Aurora) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing a forbidden secret. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta)]. Her hair is the ultimate proof of the product: ultra-hydrated, hyper-defined bouncy curls with extreme natural movement and absolute zero frizz. She is standing inside a vibrant, lived-in Brazilian varanda surrounded by lush tropical plants. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize]. She is firmly and naturally HOLDING ONE product, the EXACT 1kg white and blue pot of 'Salon Line Creme Para Pentear Definição Natural' from the provided reference image, in one hand, pressing it close to the lens. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface. [NATURE MATRIX ACTIVE (DENSE)]: Wild colorful butterflies fluttering dynamically across the mid-ground, massive Monstera leaves, and a gentle natural waterfall cascading in the deep background with visible mist. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: A rustic ceramic coffee mug and a tangled phone charger carelessly left on the wooden table. [ANIMAL FACTOR (STORYTELLING V9)]: A realistic caramel mutt dog (vira-lata caramelo) is sleeping peacefully on a colorful rug near the varanda edge in the background. High-contrast, cinematic atmospheric shadows, heavy sensor noise, 8k resolution.
-- Vídeo: [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch fine glistening mist from the background waterfall. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product held firmly in her hand against the tropical nature background. [CRITICAL: 1:1 real-world scale, strictly realistic product size, exact match to reference]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The pot remains perfectly solid with extreme micro-reflections bouncing off the plastic as sunlight hits it. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid light blue lid twice to emphasize its size. NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaves with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, relatably shocked conspiratorial micro-smile, making intense soul-piercing eye contact. [ENVIRONMENT REINFORCEMENT LOCK V9]: Lush varanda, waterfall cascading in the background, colorful butterflies passing across the frame, caramel dog sleeping near the rug. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom center of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME.]
-
-3. GABARITO V9.2 KIT PROHALL (PROTETOR TÉRMICO ABSOLUTO ONE + ÂMBAR OIL NA VARANDA TROPICAL):
-- Segura o frasco vermelho de 'Absoluto One' e o frasco dourado-rosado de 'Âmbar Oil' em escala 1:1 realista, folhas de Monstera e samambaias ao sol, caneca de cerâmica e carregador de celular embolado na mesa rústica, vira-lata caramelo dormindo no tapete colorido.
-
-4. GABARITO V9.2 KIT MELANCIA SALON LINE (POTE 1KG + ÓLEO 50ML NA COZINHA DE BATALHA):
-- Cozinha brasileira vivida no fim de tarde (golden hour), fatias de melancia fresca na tábua de madeira, esponja e copo alto de água gelada suando condensação na bancada, vira-lata caramelo deitado no piso frio da cozinha.
-
-5. GABARITO V9.2 CREME DE UREIA 10% 500G HIGIE+ (REFÚGIO DA CACHOEIRA):
-- Cachoeira cristalina ao fundo com névoa d'água, borboletas coloridas voando, pedras com musgo verde, cesto rústico de vime com toalha de linho enrolada, vira-lata caramelo descansando na grama verde.
-
-6. MÓDULO CAMALEÃO (OS 20 AMBIENTES OFICIAIS) & BANCO DE 10 GANCHOS DE RETENÇÃO:
-- Ambientes: 1. Banheiro Caótico | 2. Varanda Tropical | 3. Penteadeira Golden Hour | 4. Área de Serviço Raiz | 5. Jardim Rústico | 6. Cachoeira Secreta | 7. Cozinha Afetiva | 8. Quarto Desarrumado | 9. Quintal de Terra | 10. Deck de Piscina | 11. Estufa Caseira | 12. Garagem Aberta | 13. Sala de Estar Noturna | 14. Banheira Vintage | 15. Praia Deserta | 16. Mesa de Escritório | 17. Janela do Carro (Chuva) | 18. Canto da Leitura | 19. Lavabo Luxo Decadente | 20. Calçada Chuvosa.
-- Ganchos: 1. O Choque de Realidade | 2. A Fofoca Proibida | 3. A Dor Extrema | 4. O Erro de Sistema | 5. A Comparação Absurda | 6. O Segredo Revelado | 7. A Confissão | 8. O Resultado Imediato | 9. O Gatilho de Escassez | 10. O Achado de Ouro.
-
-7. GABARITOS HISTÓRICOS DE MODA, CALÇADOS E UTILIDADES (V8, V7, V6, V5, V4 E V3):
-- V8 Short Saída de Praia Crochê Branco na Tempestade: Varanda de praia na chuva forte, pé de coqueiro envergando, toalha molhada e chinelo no chão, passarinho molhado escondido nas vigas. Movimento: `The Andadinha` + `The Crochet Pull` (puxadinha na lateral da renda mostrando que volta ao lugar sem derreter pixels).
-- V8 Novex Queratina Absoluta 1kg no Banheiro Realista: Jiboia pendente, secador e escova na bancada de mármore, gato laranja limpando a pata no fundo. Movimento: `A Andadinha` + `The Hair Glide` (deslizar a mão pelos fios mostrando o liso espelhado).
-- V6+V5 Conjunto Cropped + Short Saia Preto Fivela Dourada: Varanda de madeira ao sol, copo de chá gelado suando e óculos na mesinha. Regra para Peças Curtas: ZERO voltinhas! Movimento: `A Andadinha` + `A Puxadinha` no cós perto da fivela dourada + `The Lean In`.
-- V7 Calça Pantalona Lanzinha Verde Militar com Gato Titi: Quarto vivido, TV ligada piscando luz, poeira nos feixes de sol, gato Titi pulando da cadeira. Movimento: `Andada 2.0` (3 passos, leve tropeço num sapato, olha pro gato falando '...shhh, Titi, deixa a mamãe!', puxa o elástico da cintura e desliza as mãos nos bolsos laterais).
-- V6 Cropped Moda Gringa Faixa Transversal (Night Out): Quarto à noite com luz quente de penteadeira, vestidos na cama e paleta de sombras aberta. Movimento: `A Voltinha` (giro 180º mostrando o recorte nas costas) + `The Gossip Lean`.
-- V5 Short Alfaiataria Vermelho Bordado (Quarto Lived-In) & V4 Short Alfaiataria Azul Claro (Barco Regional no Rio Amazonas): Puxadinha firme no cinto forrado mostrando a cintura estruturada.
-- V5 Tênis Plataforma Casual Preto na Calçada Portuguesa: Calçada portuguesa urbana ao sol, bolsa tote no ombro, nota fiscal caída no chão, pedestres desfocados ao fundo. Movimento: `Tilt Down` para os pés batendo a ponta do tênis duas vezes na pedra portuguesa e levantando levemente o calcanhar.
-- V3 Kit 6 Peças Petisqueiras + Cumbucas Coração (Mesa de Jantar com guardanapo amassado, taça de vinho e celular) & V3 Mini Coador de Café Inox (Cozinha com grãos de café espalhados e colher suja): Aos 0:02 bate com a unha/indicador no material para provar a resistência.
-- V3 Kit Triplo Salon Line 300g (Rosa, Azul e Laranja na Cozinha/Área de Serviço): Os 3 frascos alinhados na bancada, ela aproxima os 3 com as mãos e dá dois toques na tampa do frasco do meio.
+--- PARTE B: MOLDES ESPECÍFICOS DE MODA, CALÇADOS, CASA E V9.2 DO DOCUMENTO ---
+- Moda Peças Curtas / Crochê / Conjuntos / Alfaiataria (V5/V6/V8): Varanda de Praia na Chuva ou Varanda de Verão com chá gelado suando ou Barco no Rio Amazonas. ZERO voltinhas! Movimento: `A Andadinha` (passo firme para frente) + `A Puxadinha` (`The Crochet Pull` na lateral da renda ou puxadinha no cós/cinto forrado mostrando a estrutura que volta ao lugar sem derreter pixels) + `The Gossip Lean`.
+- Moda Calça Pantalona Lanzinha (V7 com Gato Titi): Quarto com TV ligada piscando luz e gato Titi pulando da cadeira. Movimento: `Andada 2.0` (3 passos, leve tropeço natural, olha para trás falando '...shhh, Titi, deixa a mamãe!', puxa o elástico da cintura e coloca as mãos nos bolsos laterais).
+- Moda Cropped Balada Detalhe nas Costas (V6): Quarto à noite com vestidos na cama. Movimento: `A Voltinha` (giro 180º mostrando o recorte nas costas) + `The Gossip Lean`.
+- Calçados / Tênis Plataforma (V5): Calçada portuguesa urbana ao sol, nota fiscal no chão, pedestres desfocados. Movimento: `Tilt Down` para os pés batendo a ponta do tênis duas vezes na pedra portuguesa e levantando levemente o calcanhar.
+- Casa & Utensílios (V3 Kit Petisqueiras / Coador Inox): Mesa de jantar ou bancada de cozinha com grãos de café derramados. Aos 0:02 ajusta as peças e bate com a unha/indicador no material para provar a resistência.
+- Módulos Camaleão (20 Ambientes) & 10 Ganchos de Retenção (Choque de Realidade, Fofoca Proibida, Dor Extrema, Erro de Sistema, Comparação de Salão, Segredo Revelado, Confissão, Resultado Imediato, Gatilho de Escassez, Achado de Ouro).
 ====================================================================
 """
 
 with st.expander("🧠 17.3. Abrir Banco de Memória & Treinamento Oficial (Conectado ao 17 e ao 17.2)", expanded=False):
-    st.caption("Todo o conhecimento do seu documento (5 Prompts de Ouro Master + V9.2, V9, V8, V7, V6, V5, V4 e V3) está gravado aqui e alimenta automaticamente os botões do Bloco 17 e do Bloco 17.2:")
+    st.caption("Todo o conhecimento do seu documento está gravado aqui e alimenta automaticamente os botões do Bloco 17 e do Bloco 17.2:")
     st.code(BANCO_DE_MEMORIA_17_3, language="markdown")
 
 # ==========================================================
-# MOTOR DE EXECUÇÃO DO BLOCO 17 (ESTRUTURA ORIGINAL 360º SEM LOGO + MEMÓRIA 17.3)
+# MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Consultando Banco de Memória 17.3 e forjando prompts hiper-densos no Bloco 17 (Sem Logo)..."):
+    with st.spinner("🦅 Consultando Banco de Memória 17.3 e forjando prompts hiper-densos no Bloco 17..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-            scan_17 = escanear_produto_anti_bloqueio(img_b64_roteiro)
+            scan_17 = escanear_contagem_limpa_da_foto(img_b64_roteiro)
             
-            # ESTRUTURA ORIGINAL INTACTA DO BLOCO 17 (EXATAMENTE COMO NO SEU CÓDIGO ANTIGO, ALIMENTADA PELO 17.3)
             instrucao_ouro = f"""
-            Atue como um Diretor de Arte e Roteirista Publicitário de UGC para e-commerce.
-            Sua tarefa é ler os dados do produto escaneado ({scan_17.get('nome_pt')} — Quantidade de unidades na foto: {scan_17.get('qtd')} — Descrição em inglês: {scan_17.get('desc_ingles')}), consultar o BANCO DE MEMÓRIA 17.3 abaixo para pegar como molde o exemplo campeão da mesma categoria/tamanho, e redigir uma ficha técnica criativa em Markdown contendo 3 seções detalhadas: Prompt Fotográfico, Prompt Cinematográfico de Vídeo e Títulos de Busca.
+            Atue como o Motor Oficial da Máquina de Criação 360º (Bloco 17), conectado diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
 
             {BANCO_DE_MEMORIA_17_3}
 
-            DIRETRIZES CRIATIVAS E DE EXTENSÃO (SEM TETO MÁXIMO):
-            1. EXTENSÃO RICA:
-            - A seção '### 📸 PROMPT DE IMAGEM' deve ser longa e descritiva (mínimo de 1.200 caracteres, sem limite máximo), descrevendo sempre a apresentadora segurando/exibindo o produto em um cenário brasileiro inédito e rico em detalhes do Banco de Memória 17.3.
-            - A seção '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO' deve ser extensa e completa (mínimo de 2.000 caracteres, sem limite máximo).
-            
-            2. VARIAÇÃO AUTOMÁTICA DE CENÁRIO E ESTRATÉGIA:
-            - Escolha ou combine um cenário vivo do Banco de Memória 17.3 (com plantas, iluminação natural, baguncinha cotidiana e animal de estimação em ação ao fundo).
-            - Crie um gancho visual novo e uma fala persuasiva original em português focada nos benefícios reais do produto da foto, usando o gatilho de "lote secreto liberado na vitrine" e zero menção a preços ou valores numéricos.
+            🔍 [PRODUTO IDENTIFICADO PELO SCANNER]:
+            - Nome Comercial (para a fala em português e SEO): {scan_17.get('nome_pt')}
+            - Quantidade Exata de Unidades na Foto: {scan_17.get('qtd')} unidade(s)
+            - Tipo de Embalagem/Peça: {scan_17.get('tipo_embalagem')}
+            - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_17.get('regra_pos_img')}
+            - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_17.get('regra_pos_vid')}
 
-            3. PROPORÇÃO REALISTA 1:1 E VISIBILIDADE DE TODAS AS UNIDADES (IMAGEM E VÍDEO):
-            - Inclua a nota técnica de proporção `[CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale...]` ajustada ao tamanho real do produto (ex: 400g, 250ml, 300ml, 500g, 1kg, kit, vestuário) tanto no Prompt de Imagem quanto no Shot 1 e Shot 2 do Vídeo, garantindo que a embalagem tenha seu tamanho comercial exato e compacto na mão da apresentadora (sem aumentar e sem diminuir), e que TODAS as {scan_17.get('qtd')} unidade(s) ({scan_17.get('desc_ingles')}) apareçam claramente na cena!
+            🚨 [3 REGRAS CRÍTICAS PARA NÃO ERRAR NO VÍDEO]:
+            1. USE EXATAMENTE O MOLDE DO BANCO DE MEMÓRIA 17.3: Escolha o Molde do Banco de Memória 17.3 acima que bate com `{scan_17.get('qtd')} unidade(s)` e `{scan_17.get('tipo_embalagem')}` (ex: se forem 3 potes, use a exata estrutura do MOLDE 1 - O GANCHO DO CAOS; se forem 2 produtos, use o MOLDE 5; se for 1 frasco, use o MOLDE 2 ou 3; se for 1kg, use o MOLDE 4; se for roupa/calçado/casa, use o molde correspondente da Parte B). Sorteie ou crie um ambiente brasileiro rico em plantas, baguncinha e animal vivo do Banco de Memória!
+            2. PROIBIDO DESCREVER CORES DO RÓTULO OU USAR COLCHETES DE CÓDIGO: Nunca escreva listas de cores e nunca invente detalhes do rótulo! Diga sempre que é o produto exato da imagem de referência (`the EXACT reference product(s) — DO NOT alter, redraw, or describe colors/text`).
+            3. PROIBIDO SEGURAR 2 OU 3 POTES NAS MÃOS AO MESMO TEMPO NO VÍDEO: Se for um kit com {scan_17.get('qtd')} unidades, tanto no `Shot 1` quanto no `Shot 2` ela segura APENAS 1 unidade na mão enquanto as outras unidades ficam paradas em cima da bancada ao lado dela! E escreva 100% do `Shot 1`, `Shot 2`, `Interaction (3D CTA)` e `[PRISTINE CANVAS LOCK]` em INGLÊS PURO (sem misturar frases em português dentro dos colchetes visuais!).
 
-            MODELO DE ESTRUTURA EXATA A SEGUIR (NÃO MUDE ESTA ESTRUTURA DO BLOCO 17 — SEM LOGO NO FINAL):
+            ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES (MANTENDO OS TÍTULOS E OS BLOCOS `Shot 1`, `Shot 2`, `Interaction (3D CTA)` e `[PRISTINE CANVAS LOCK - ZERO WATERMARKS]`):
 
             ### 📸 PROMPT DE IMAGEM
-            RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in [DESCREVA AQUI EM INGLÊS UM CENÁRIO BRASILEIRO HIPER-DETALHADO DO BANCO DE MEMÓRIA 17.3 COM MAIS DE 450 CARACTERES, INCLUINDO ILUMINAÇÃO NATURAL, PLANTAS, TEXTURAS, OBJETOS COTIDIANOS E UM ANIMAL DE ESTIMAÇÃO AO FUNDO]. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars (adapt to the exact product size from the Memory Bank). The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand. Absolutely DO NOT oversize, and DO NOT shrink]. She is firmly holding the EXACT "{scan_17.get('desc_ingles')}" matching reference image, with her fingers naturally wrapping around its authentic retail circumference (if it is a kit with multiple units, she holds one unit in hand while the other unit(s) rest clearly visible on the surface next to her, making all {scan_17.get('qtd')} units clearly visible). Unfiltered UGC vlog style, 8k resolution.
+            [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3 e aplicando: {scan_17.get('regra_pos_img')}]
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            POV dynamic handheld mobile video, authentic UGC aesthetic. Dynamic spatial movement with natural handheld motion. The camera smoothly tilts up from a surface where the product rests. Starts with a fast Macro Zoom In exclusively on the EXACT reference product: {scan_17.get('desc_ingles')} matching reference image. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars (adapt to the exact product size from the Memory Bank). The jars held or shown must look compact, light, and perfectly proportioned to fit comfortably inside a human hand, maintaining the exact same 1:1 physical volume from the reference image. Absolutely DO NOT oversize, and strictly DO NOT shrink]. The item remains perfectly solid with micro-reflections bouncing off the surface as natural light hits it. SINGLE MOTION TRICK (The Trigger Tap): Her free index finger performs a deliberate micro-tap on the lid twice to emphasize it (or performs the specific motion trick from the Memory Bank if apparel/shoes). NO pixel melting, NO size morphing.]
-            Shot 2 (Whip Pan & Visceral Emotion): [0:03: Fast WHIP PAN and focus pull! The camera tilts up and snaps focus onto Aurora's face (microfone de lapela visível na gola da camisa, [DESCREVA OS DETALHES DO CENÁRIO SORTEADO E O MASCOTE AO FUNDO]). VISCERAL EMOTION ACTIVE: She leans in closer towards the lens (The Gossip Lean), speaking with enthusiastic urgency and expressive eyes while holding/displaying all {scan_17.get('qtd')} unit(s) of the product ({scan_17.get('desc_ingles')}) at its exact 1:1 real-world commercial size.]
-            Interaction (3D CTA): [She points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Shot 1 (Macro Hook & Physics): [Escreva em inglês ultra-denso seguindo o Molde do Banco de Memória 17.3: POV intensely erratic handheld mobile video, documentary chaos aesthetic... Macro Zoom In exclusively on the EXACT reference product(s), aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 compact hand-proportioned size + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
+            Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while {scan_17.get('regra_pos_vid')}. ENVIRONMENT REINFORCEMENT LOCK: Repita em inglês todos os detalhes do cenário da imagem, plantas vivas, baguncinha e o animal se mexendo sutilmente no fundo.]
+            Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
-            🎙️ Áudio e Fala da Aurora (Português — 100% Blindada Contra o Robô):
-            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret .
-            Fala da Aurora:
-            "[ESCREVA UMA FALA ORIGINAL E PERSUASIVA DE 40 A 48 PALAVRAS SOBRE '{scan_17.get('nome_pt')}', FOCADA NA DOR QUE ELE RESOLVE E FECHANDO COM O LOTE SECRETO NA SACOLINHA, SEM CITAR PREÇOS]"
+            🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
+            Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
+            Fala da {nome_inf_ativa}:
+            "[Escreva em português uma fala letal de 38 a 46 palavras usando um dos 10 Ganchos de Retenção do Banco de Memória 17.3 para vender '{scan_17.get('nome_pt')}', fechando com o lote secreto na sacolinha e ZERO menção a preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
-            ⚠️ [FRASE CURTA DE IMPACTO SOBRE O PROBLEMA]? 🛑
+            ⚠️ [FRASE CURTA DE IMPACTO SOBRE A DOR]? 🛑
             ✨ [BENEFÍCIO PRINCIPAL DO PRODUTO]
             🛒 LOTE SECRETO LIBERADO 👇
 
@@ -1989,33 +1964,21 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             **🏷️ Marca (Resenha):** [Marca e nome do produto resenha]
             """
             
-            complemento_dinamico_usuario = ""
             if eh_customizada:
-                complemento_dinamico_usuario += f"""
-                \nNOTA DE ELENCO: Substitua a descrição física da apresentadora Aurora no Prompt de Imagem e no Prompt de Vídeo por esta apresentadora:
-                - Nome: {nome_inf_ativa}
-                - Características físicas (traduza detalhadamente para o inglês): {desc_inf_ativa}
-                Mantenha o microfone de lapela na gola e use 'Fala da {nome_inf_ativa}:' na seção de áudio.
-                """
-            
+                instrucao_ouro += f"\nNOTA DE ELENCO: Use a apresentadora {nome_inf_ativa} ({desc_inf_ativa})."
             if explicacao_video_usuario and explicacao_video_usuario.strip():
-                complemento_dinamico_usuario += f"""
-                \nNOTA DE DIREÇÃO DO USUÁRIO: Inclua este detalhe solicitado pelo usuário na cena e na fala: "{explicacao_video_usuario.strip()}".
-                """
-                
-            instrucao_final_completa = instrucao_ouro + complemento_dinamico_usuario
+                instrucao_ouro += f"\nNOTA DE DIREÇÃO DO USUÁRIO: {explicacao_video_usuario.strip()}"
             
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Você é um assistente criativo de direção de arte e publicidade para e-commerce. Gere a ficha técnica completa em Markdown puro seguindo exatamente os 3 títulos solicitados (### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, ### 🔑 TÍTULOS SEO (Separados)), sem resumir."},
-                    {"role": "user", "content": instrucao_final_completa}
+                    {"role": "system", "content": "Você é o Diretor de Arte Master da ÉLÉVO. Siga 100% os Moldes do Banco de Memória 17.3. Nunca descreva cores de potes como listas técnicas e nunca mande a apresentadora segurar 3 potes nas mãos ao mesmo tempo (apenas 1 na mão e os outros parados na bancada). Escreva os blocos visuais Shot 1, Shot 2, Interaction e Pristine Canvas 100% em inglês."},
+                    {"role": "user", "content": instrucao_ouro}
                 ],
-                max_tokens=4096, temperature=0.78
+                max_tokens=4096, temperature=0.75
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
-
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -2023,7 +1986,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success("✅ Pacote Ultra-Denso (Bloco 17 Original + Banco de Memória 17.3) Forjado com Sucesso!")
+            st.success(f"✅ Pacote 360º Forjado com o Molde do Banco de Memória 17.3 ({scan_17.get('qtd')} unidade(s): 1 na mão + resto na bancada)!")
             time.sleep(1)
             st.rerun()
         except Exception as e:
@@ -2039,25 +2002,37 @@ if btn_gerar_v92 and pode_gerar_roteiro:
         with st.spinner(f"🧬 Consultando Banco de Memória 17.3 e forjando Criação V9.2 com Logo '{logo_ativa_usuario}'..."):
             try:
                 img_b64_v92 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                scan_v92 = escanear_produto_anti_bloqueio(img_b64_v92)
+                scan_v92 = escanear_contagem_limpa_da_foto(img_b64_v92)
 
                 instrucao_v92 = f"""
-                Atue como a ENTIDADE V9.2 (Protocolo O.U.R.O.).
-                Consulte o BANCO DE MEMÓRIA 17.3 abaixo para escolher o gabarito campeão que corresponde ao produto escaneado ({scan_v92.get('nome_pt')} — Quantidade de unidades na foto: {scan_v92.get('qtd')} — Descrição em inglês: {scan_v92.get('desc_ingles')}), mantendo toda a física, tamanho realista 1:1 na mão e estrutura da V9.2 (COM A LOGO '{logo_ativa_usuario}' NO GLITCH DIGITAL VERMELHO FINAL):
+                Atue como a ENTIDADE V9.2 (Protocolo O.U.R.O.), conectada diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
 
                 {BANCO_DE_MEMORIA_17_3}
 
-                GERE A SAÍDA EXATAMENTE NESTE FORMATO EM 3 SEÇÕES (MÍNIMO DE 1.400 A 2.200+ CARACTERES POR PROMPT):
+                🔍 [PRODUTO IDENTIFICADO PELO SCANNER]:
+                - Nome Comercial: {scan_v92.get('nome_pt')}
+                - Quantidade Exata de Unidades na Foto: {scan_v92.get('qtd')} unidade(s)
+                - Tipo de Embalagem/Peça: {scan_v92.get('tipo_embalagem')}
+                - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_v92.get('regra_pos_img')}
+                - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_v92.get('regra_pos_vid')}
+
+                🚨 [REGRAS INQUEBRÁVEIS V9.2]:
+                1. Siga os Gabaritos V9.2 da Parte B do Banco de Memória 17.3 (Varanda Tropical, Cachoeira com Borboletas, Cozinha de Batalha, Tempestade, etc.).
+                2. NÃO descreva as cores do rótulo: exija apenas `the EXACT product(s) from the reference image — copy 100% intact`.
+                3. Se houverem {scan_v92.get('qtd')} unidades na foto, ela segura APENAS 1 unidade na mão e as outras ficam apoiadas na bancada ao lado dela do segundo 0:00 até o fim!
+                4. Inclua a Finalização P1 Blindada aos `0:09-0:10` com o Glitch Digital Vermelho da logo `'{logo_ativa_usuario}'` e corte seco para `SOLID BLACK FRAME`.
+
+                ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta)]. Her hair/skin is the ultimate proof of the product: ultra-smooth, heavy with moisture, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS UM CENÁRIO COMPLETO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, compact enough to fit comfortably in hand, exact match to reference, do not oversize]. She is firmly and naturally HOLDING the EXACT {scan_v92.get('desc_ingles')} from the provided reference image in one hand, pressing it close to the lens (if multiple units in the kit, she holds one unit while the other unit(s) rest clearly on the counter right beside her so all {scan_v92.get('qtd')} units are 100% visible). Copy the source reference image 100% intact with absolute realistic solid plastic textures and extreme micro-reflections bouncing off the surfaces. Zero packaging variations. [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Descreva em inglês as plantas vivas, samambaias, monsteras, borboletas ou cachoeira do cenário]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Descreva em inglês a baguncinha reativa do cenário]. [ANIMAL FACTOR (STORYTELLING V9)]: [Descreva em inglês o vira-lata caramelo ou gato em ação no fundo]. High-contrast, cinematic atmospheric shadows, heavy sensor noise, 8k resolution.
+                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) and a small black wireless lapel microphone clipped to her collar]. Her hair/skin is the ultimate proof of the product: ultra-hydrated, glowing, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, heavy sensor noise, 8k resolution.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch bright natural light flares from the environment. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference products ({scan_v92.get('desc_ingles')}) held firmly in her hand against the background. [CRITICAL: 1:1 real-world scale, strictly realistic product size, exact match to reference, do not oversize]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The items remain perfectly solid with micro-reflections bouncing off the plastic as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid lid/pump trigger twice to emphasize its mechanism (or performs the specific motion trick from the Memory Bank if apparel/shoes). NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (straight bangs, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaves with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, intensely serious expression of pure warning, making soul-piercing eye contact. [ENVIRONMENT REINFORCEMENT LOCK V9]: [CLONE EM INGLÊS TODOS OS DETALHES DO CENÁRIO DA IMAGEM, PLANTAS, BAGUNCINHA E O ANIMAL SE MEXENDO NO FUNDO]. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo '{logo_ativa_usuario}' appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME. Clean screen, 8k resolution.]
+                [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch natural light flares/mist from the environment. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product(s) against the background: {scan_v92.get('regra_pos_vid')}. [CRITICAL: 1:1 real-world scale, strictly realistic compact product size fitting comfortably in hand, exact match to reference, do not oversize]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The item(s) remain perfectly solid with micro-reflections bouncing off the surface as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid lid/pump trigger of the unit held twice to emphasize its mechanism (or performs A Andadinha + Puxadinha if apparel). NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (straight bangs, wireless lapel mic on collar, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, intensely serious expression of pure warning, making soul-piercing eye contact while {scan_v92.get('regra_pos_vid')}. [ENVIRONMENT REINFORCEMENT LOCK V9]: [CLONE EM INGLÊS TODOS OS DETALHES DO CENÁRIO DA IMAGEM, PLANTAS, BAGUNCINHA E O ANIMAL SE MEXENDO NO FUNDO]. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo '{logo_ativa_usuario}' appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME. Clean screen, 8k resolution.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS SOBRE '{scan_v92.get('nome_pt')}', FOCANDO NA DOR E FECHANDO COM O LOTE SECRETO NA SACOLINHA, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS USANDO UM DOS 10 GANCHOS DO BANCO DE MEMÓRIA 17.3 SOBRE '{scan_v92.get('nome_pt')}', FECHANDO COM O LOTE SECRETO NA SACOLINHA E ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA DE IMPACTO SOBRE A DOR]? 🛑"
@@ -2079,7 +2054,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 resp_v92 = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "Você é a Entidade V9.2 de Direção de Arte e Copywriting Cinético. Consulte o Banco de Memória 17.3 e gere a ficha técnica completa em Markdown seguindo exatamente os 3 títulos solicitados (### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, ### 🔑 TÍTULOS SEO (Separados)), sem resumir."},
+                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Siga 100% o Banco de Memória 17.3. Nunca descreva cores de rótulos com colchetes técnicos e nunca mande segurar 3 potes nas mãos ao mesmo tempo (apenas 1 na mão e os outros parados na bancada). Escreva toda a descrição visual em inglês puro."},
                         {"role": "user", "content": instrucao_v92}
                     ],
                     max_tokens=4096,
@@ -2094,7 +2069,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     try: aba_limites.append_row([email_sessao, "Sim_V92"])
                     except Exception: pass
 
-                st.success(f"🔥 Pacote Criação V9.2 (Bloco 17.2 + Banco de Memória 17.3 + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
+                st.success(f"🔥 Pacote Criação V9.2 (Molde 17.3 + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
