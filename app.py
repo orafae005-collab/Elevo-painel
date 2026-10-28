@@ -3,6 +3,14 @@ import requests
 import time
 import random
 import streamlit as st
+
+# COMPATIBILIDADE ÉLÉVO V8.1 — Streamlit >= 1.62 (outubro/2026)
+# A biblioteca streamlit-cookies-manager 0.2.0 utiliza @st.cache internamente.
+# O Streamlit moderno removeu st.cache; esta função faz cache só dos dados
+# de derivação de chave da biblioteca, sem alterar as demais funções do app.
+if not hasattr(st, "cache"):
+    st.cache = st.cache_data
+
 import streamlit.components.v1 as components
 import pandas as pd
 from datetime import datetime, timedelta
