@@ -11,6 +11,9 @@ import re
 import plotly.express as px
 from openai import OpenAI
 import hashlib
+import hmac
+import secrets
+from streamlit_cookies_manager import EncryptedCookieManager
 import io
 import json
 from gtts import gTTS
@@ -64,46 +67,96 @@ except KeyError:
 
 LINK_BANCO_MESTRE = "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit"
 
+# Cookie persistente cifrado e autenticado; nunca usar e-mail em query string como credencial.
+# Configure AUTH_COOKIE_PASSWORD em .streamlit/secrets.toml com >=32 caracteres aleatórios.
+AUTH_COOKIE_PASSWORD = str(st.secrets.get("AUTH_COOKIE_PASSWORD", ""))
+if len(AUTH_COOKIE_PASSWORD) < 32:
+    st.error("Configure AUTH_COOKIE_PASSWORD (mínimo de 32 caracteres) nos Secrets para habilitar login seguro.")
+    st.stop()
+cookies = EncryptedCookieManager(prefix="elevo_v80_", password=AUTH_COOKIE_PASSWORD)
+if not cookies.ready():
+    st.stop()
+
 if "usuario_logado" not in st.session_state:
-    st.session_state["usuario_logado"] = False
-    st.session_state["email_usuario"] = ""
-    st.session_state["nome_usuario"] = ""
+    st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="")
+
+def senha_hash(senha, salt=None):
+    salt = salt or secrets.token_bytes(16)
+    digest = hashlib.pbkdf2_hmac("sha256", senha.encode("utf-8"), salt, 310000)
+    return "pbkdf2_sha256$310000$" + salt.hex() + "$" + digest.hex()
+
+def senha_confere(senha, armazenada):
+    armazenada = str(armazenada or "")
+    if armazenada.startswith("pbkdf2_sha256$"):
+        try:
+            _, it, salt, digest = armazenada.split("$", 3)
+            calculado = hashlib.pbkdf2_hmac("sha256", senha.encode(), bytes.fromhex(salt), int(it))
+            return hmac.compare_digest(calculado, bytes.fromhex(digest))
+        except (ValueError, TypeError):
+            return False
+    # Compatibilidade temporária com cadastros antigos: migrar na primeira autenticação.
+    return hmac.compare_digest(armazenada.encode(), senha.encode())
 
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
     try:
         match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        sheet_id = match.group(1) if match else None
-        planilha = robo_sheets.open_by_key(sheet_id)
+        planilha = robo_sheets.open_by_key(match.group(1))
         try:
             aba = planilha.worksheet("Banco_Usuarios")
         except gspread.exceptions.WorksheetNotFound:
             aba = planilha.add_worksheet(title="Banco_Usuarios", rows="1000", cols="3")
             aba.append_row(["Email", "Nome", "Senha"])
-        
         if acao == "ler": return aba.get_all_records()
-        elif acao == "salvar":
-            aba.append_row([email, nome, senha])
+        if acao == "salvar":
+            aba.append_row([email, nome, senha_hash(senha)])
             return True
-    except Exception: return None
+        if acao == "migrar":
+            rows = aba.get_all_records()
+            for i, row in enumerate(rows, start=2):
+                if str(row.get("Email", "")).strip().lower() == email.lower():
+                    aba.update_cell(i, 3, senha_hash(senha))
+                    return True
+    except Exception:
+        return None
 
-if not st.session_state["usuario_logado"] and "sessao" in st.query_params:
+def criar_token(email):
+    payload = json.dumps({"email": email.strip().lower(), "versao": 1}, separators=(",", ":")).encode()
+    dado = base64.urlsafe_b64encode(payload).decode().rstrip("=")
+    assinatura = hmac.new(AUTH_COOKIE_PASSWORD.encode(), dado.encode(), hashlib.sha256).hexdigest()
+    return dado + "." + assinatura
+
+def ler_token(token):
     try:
-        codigo_sessao = st.query_params["sessao"]
-        email_decodificado = base64.b64decode(codigo_sessao).decode('utf-8')
-        if email_decodificado == EMAIL_MESTRE:
-            st.session_state["usuario_logado"] = True
-            st.session_state["email_usuario"] = EMAIL_MESTRE
-            st.session_state["nome_usuario"] = "Sócio"
-        else:
-            usuarios = conectar_banco_usuarios("ler")
-            if usuarios is not None:
-                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_decodificado), None)
-                if usuario_encontrado:
-                    st.session_state["usuario_logado"] = True
-                    st.session_state["email_usuario"] = email_decodificado
-                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
-    except Exception: pass
+        dado, assinatura = token.split(".", 1)
+        esperado = hmac.new(AUTH_COOKIE_PASSWORD.encode(), dado.encode(), hashlib.sha256).hexdigest()
+        if not hmac.compare_digest(assinatura, esperado): return ""
+        payload = json.loads(base64.urlsafe_b64decode(dado + "=" * (-len(dado) % 4)))
+        return str(payload.get("email", "")).strip().lower() if payload.get("versao") == 1 else ""
+    except Exception:
+        return ""
+
+def entrar_usuario(email, nome):
+    st.session_state.update(usuario_logado=True, email_usuario=email, nome_usuario=nome)
+    cookies["login"] = criar_token(email)
+    cookies.save()
+
+# Códigos antigos ?sessao=... eram falsificáveis: eliminar e nunca aceitá-los.
+if "sessao" in st.query_params:
+    del st.query_params["sessao"]
+if not st.session_state["usuario_logado"] and cookies.get("login"):
+    email_cookie = ler_token(cookies.get("login", ""))
+    if email_cookie == EMAIL_MESTRE.strip().lower():
+        st.session_state.update(usuario_logado=True, email_usuario=EMAIL_MESTRE, nome_usuario="Sócio")
+    elif email_cookie:
+        registros = conectar_banco_usuarios("ler")
+        if registros is not None:
+            usuario = next((u for u in registros if str(u.get("Email", "")).strip().lower() == email_cookie), None)
+            if usuario:
+                st.session_state.update(usuario_logado=True, email_usuario=email_cookie, nome_usuario=str(usuario.get("Nome", "Usuário")))
+    if not st.session_state["usuario_logado"]:
+        cookies.pop("login", None)
+        cookies.save()
 
 if not st.session_state["usuario_logado"]:
     st.markdown("""
@@ -130,25 +183,25 @@ if not st.session_state["usuario_logado"]:
                 with st.form("form_login"):
                     email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
                     senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
-                    lembrar_dados = st.checkbox("Mantenha-me Logado (Gerar Link de Acesso Rápido)")
+                    lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
                     submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
                 
                 if submit_login:
                     email_clean = email_input.strip().lower()
                     if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
-                        st.session_state["usuario_logado"], st.session_state["email_usuario"], st.session_state["nome_usuario"] = True, EMAIL_MESTRE, "Sócio"
-                        if lembrar_dados: st.query_params["sessao"] = base64.b64encode(EMAIL_MESTRE.encode('utf-8')).decode('utf-8')
+                        entrar_usuario(EMAIL_MESTRE, "Sócio")
+                        if not lembrar_dados: cookies.pop("login", None); cookies.save()
                         st.rerun()
                     elif email_clean and senha_input:
                         with st.spinner("A verificar credenciais no servidor..."):
                             usuarios = conectar_banco_usuarios("ler")
                             if usuarios is not None:
-                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and str(u.get("Senha","")) == senha_input), None)
+                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
                                 if usuario_encontrado:
-                                    st.session_state["usuario_logado"] = True
-                                    st.session_state["email_usuario"] = email_clean
-                                    st.session_state["nome_usuario"] = str(usuario_encontrado.get("Nome", "Usuário"))
-                                    if lembrar_dados: st.query_params["sessao"] = base64.b64encode(email_clean.encode('utf-8')).decode('utf-8')
+                                    entrar_usuario(email_clean, str(usuario_encontrado.get("Nome", "Usuário")))
+                                    if not lembrar_dados: cookies.pop("login", None); cookies.save()
+                                    if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
+                                        conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
                                     st.rerun()
                                 else: st.error("🚨 Conta não encontrada ou senha incorreta!")
                             else: st.error("🚨 Erro de conexão com o banco de dados.")
@@ -365,6 +418,21 @@ st.markdown(f"""
     [data-testid="stFileUploadDropzone"] div, [data-testid="stFileUploadDropzone"] span, [data-testid="stFileUploadDropzone"] small {{ color: {text_color} !important; background-color: transparent !important; }}
     [data-testid="stFileUploadDropzone"] button {{ background-color: {btn_bg} !important; color: {text_color} !important; border: 1px solid {border_color} !important; border-radius: 8px !important; font-weight: 600 !important; }}
     
+    /* Refinamento de textura, sem modificar paleta nem cenários */
+    .block-container {{ max-width: 1380px; padding-top: 1.4rem; padding-bottom: 3rem; }}
+    [data-testid="stVerticalBlockBorderWrapper"] {{ overflow-wrap: anywhere; }}
+    [data-testid="stForm"], [data-testid="stExpander"], [data-testid="stMetric"] {{
+        background-image: linear-gradient(155deg, rgba(255,255,255,0.025), rgba(255,255,255,0)) !important;
+    }}
+    .stButton > button:focus-visible {{ outline: 2px solid {accent_gold} !important; outline-offset: 2px; }}
+    @media (max-width: 700px) {{
+        .block-container {{ padding: 1rem .85rem 2.5rem; }}
+        .titulo-elevo {{ font-size: 2.8rem; letter-spacing: 2px; }}
+        .subtitulo {{ font-size: .8rem; letter-spacing: 1px; margin-bottom: 18px; }}
+    }}
+    @media (prefers-reduced-motion: reduce) {{
+        .titulo-elevo, .stButton > button {{ animation: none !important; transition: none !important; }}
+    }}
     {ajuste_modo_claro_css}
 </style>
 """, unsafe_allow_html=True)
@@ -581,7 +649,8 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     st.session_state["email_bv_verificado"] = ""
     st.session_state["mostrar_player_bv"] = False
     st.session_state["audio_boas_vindas_b64"] = None
-    if "sessao" in st.query_params: del st.query_params["sessao"]
+    cookies.pop("login", None)
+    cookies.save()
     st.rerun()
 
 # ==========================================================
@@ -1763,15 +1832,16 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         qtd = int(dados_scan.get("qtd", 1))
         tipo_emb = str(dados_scan.get("tipo_embalagem", "product container"))
         nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
-        dor_pt = str(dados_scan.get("dor_visceral_pt", "cabelo ressecado, sem vida e quebrando"))
-        solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "tratamento de salão em casa que devolve o brilho espelhado na primeira passada"))
+        dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade verificável no rótulo"))
+        solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício documentado na embalagem"))
     except Exception:
         qtd = 1
         tipo_emb = "product container"
         nome_pt = "Produto Principal"
-        dor_pt = "cabelo ressecado, sem vida e quebrando"
-        solucao_pt = "tratamento de salão em casa que devolve o brilho espelhado na primeira passada"
+        dor_pt = "necessidade apresentada pelo usuário ou indicada claramente no rótulo"
+        solucao_pt = "característica verificável na embalagem, sem inventar efeitos"
 
+    qtd = max(1, min(qtd, 30))
     if qtd <= 1:
         regra_pos_img = (
             f"She is firmly holding ONE product, the EXACT {tipo_emb} from the provided reference image, in one hand. "
@@ -1954,19 +2024,19 @@ btn_gerar_v92 = False
 if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
-        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina de Criação V9.2 (Protocolo O.U.R.O. + Logo Glitch P1)</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina de Criação V9.2 (Protocolo O.U.R.O. + Final Realista)</h3>", unsafe_allow_html=True)
         st.caption("Conectado à foto, às diretrizes e à Influencer do Bloco 17, e alimentado pelo Banco de Memória 17.3.")
         
         if E_O_CEO:
             logo_v92_input = st.text_input(
-                "🏷️ Logo do Glitch Final (Padrão CEO 'O Achado Secreto' já ativo — altere apenas se quiser outra):",
+                "🏷️ Nome da Marca (apenas para SEO) (Padrão CEO 'O Achado Secreto' já ativo — altere apenas se quiser outra):",
                 value=logo_ativa_usuario,
                 placeholder="O Achado Secreto",
                 key="input_logo_v92_ceo"
             )
         else:
             logo_v92_input = st.text_input(
-                "🏷️ Digite o Nome da sua Logo / Empresa (Para o Glitch Digital Final da V9.2):",
+                "🏷️ Digite o Nome da sua Logo / Empresa (para títulos e descrições, sem sobreposição no vídeo):",
                 value=logo_salva_banco,
                 placeholder="Ex: Minha Marca VIP / Achadinhos da Bia...",
                 key="input_logo_v92_user"
@@ -1980,12 +2050,14 @@ if st.session_state.get("modo_entidade_v9"):
             st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
             btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
         else:
-            txt_btn_v92 = f"🔥 LER RÓTULO E GERAR NA V9.2 COM LOGO '{logo_ativa_usuario}' (Ilimitado)" if E_O_CEO else f"🔥 LER RÓTULO E GERAR NA V9.2 ({3 - usos_feitos} Restantes)"
+            txt_btn_v92 = f"🔥 LER RÓTULO E GERAR NA V9.2 COM IDENTIDADE '{logo_ativa_usuario}' (Ilimitado)" if E_O_CEO else f"🔥 LER RÓTULO E GERAR NA V9.2 ({3 - usos_feitos} Restantes)"
             btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, key="btn_v92_ativo")
 
 # ==========================================================
 # 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (100% DO DOCUMENTO ENVIADO PELO SÓCIO + LEMA DOR & SOLUÇÃO)
 # ==========================================================
+PROTOCOLO_FISICO_17 = "[PROTOCOLO FÍSICO REALISTA V10 — PRIORIDADE MÁXIMA; PREVALECE SOBRE MOLDES ANTIGOS]\n- CONSERVAÇÃO: mesmo número de produtos, identidade, altura, largura, volume, tampa, marca e rótulo em TODOS os quadros; não duplicar, fundir, deformar, trocar textura nem desaparecer. O objeto não teletransporta entre mão e bancada.\n- REFERÊNCIA FIXA: a imagem fornecida determina cor, embalagem, acabamento e cenário. Manter materiais existentes e a direção da luz; melhorar somente microtextura, detalhe de superfície, rugosidade, reflexos e definição naturais, sem trocar a paleta, nem cenário nem objetos.\n- CONTATO E GRAVIDADE: produto apoiado na bancada tem base em contato contínuo, sombra de contato consistente, gravidade, inércia e oclusão reais; produto na mão mantém posição estável, dedos anatomicamente corretos, pressão e oclusão coerentes, nenhuma interpenetração ou flutuação.\n- CÂMERA: celular realista, câmera principalmente estável, deslocamentos curtos e suaves; proibir zoom violento, whip-pan, tremor excessivo, troca brusca de foco, glare artificial. Profundidade de campo coerente sem ocultar itens essenciais.\n- PELE E MATERIAIS: poros finos, fios de cabelo individuais, rugosidade realista, leve assimetria; materiais com BRDF plausível, reflexos dependentes da iluminação real, sem brilho plástico ou nitidez falsa. Evitar hiperbolização da pele, do olhar ou da respiração.\n- AMBIENTE: plantas e tecidos se movem apenas se houver vento plausível; vapor e água só onde efetivamente existem na referência; sombras, reflexos, perspectiva, luz e exposição temporalmente contínuos. Não adicionar animais, bagunça, objetos ou cenários que não estejam na referência enviada.\n- FINAL: a partir de 0:08, a apresentadora mantém o produto perfeitamente visível em quadro; no último segundo, segurar imagem estável com produto e ambiente intactos até o último frame. PROIBIDO quadro preto, fade para preto, glitch, logo sobreposto, marca d'água, sacola 3D flutuante ou elementos duplicados. Logo original impressa na embalagem permanece; não acrescentar logo da empresa na imagem.\n- ÁUDIO/COPY: fala factível em 9 segundos (aprox. 18–25 palavras, ajustar à locução), sem afirmar benefícios não demonstrados no rótulo, escassez, preço ou estoque não confirmados. Texto de CTA pode ficar para edição fora do gerador; não gerar UI nativa.\n- Se um molde histórico conflitar com estas regras, este protocolo é soberano."
+
 LISTA_SORTEIO_GANCHOS_CAMPEOES = [
     "GANCHO 01 (O Dedo na Ferida + UTI no Chuveiro): Comece atacando o desespero de ver o cabelo quebrando na escova, elástico de química ou esturricado de chapinha, mostre que o produto reconstrói e desmaia o fio na primeira aplicação no próprio chuveiro e feche com o lote secreto vazando na sacolinha.",
     "GANCHO 02 (O Segredo que as Donas de Salão Escondem): 'Amiga, o que as donas de salão não te contam é que você não precisa gastar duzentos reais para ter cabelo espelhado...' Mostre a transformação sensorial imediata e a urgência do estoque acabando.",
@@ -2011,6 +2083,18 @@ BANCO_DE_MEMORIA_17_3 = """
 🚨 REGRAS VISUAIS INQUEBRÁVEIS DO BANCO DE MEMÓRIA:
 1. ZERO DESCRIÇÃO DE CORES OU DICIONÁRIOS DO PRODUTO: NUNCA escreva listas técnicas tipo `[{'color': ...}]`! Diga apenas: `the EXACT product(s) from the reference image — DO NOT alter, redraw, or describe the product colors, logo, or text; copy the reference image 100% intact`.
 2. REGRA DO KIT (1 NA MÃO + O RESTO NA BANCADA): Quando houverem 2, 3, 5 ou mais produtos na imagem, ELA NUNCA SEGURA TODOS NA MÃO AO MESMO TEMPO! Ela segura APENAS 1 unidade na mão (`firmly holding ONE of the units in her hand`), enquanto as outras unidades ficam apoiadas na bancada bem ao lado dela (`while the other unit(s) rest neatly on the counter beside her, making all units clearly visible in the scene`), tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo!
+
+
+[PROTOCOLO FÍSICO REALISTA V10 — PRIORIDADE MÁXIMA; PREVALECE SOBRE MOLDES ANTIGOS]
+- CONSERVAÇÃO: mesmo número de produtos, identidade, altura, largura, volume, tampa, marca e rótulo em TODOS os quadros; não duplicar, fundir, deformar, trocar textura nem desaparecer. O objeto não teletransporta entre mão e bancada.
+- REFERÊNCIA FIXA: a imagem fornecida determina cor, embalagem, acabamento e cenário. Manter materiais existentes e a direção da luz; melhorar somente microtextura, detalhe de superfície, rugosidade, reflexos e definição naturais, sem trocar a paleta, nem cenário nem objetos.
+- CONTATO E GRAVIDADE: produto apoiado na bancada tem base em contato contínuo, sombra de contato consistente, gravidade, inércia e oclusão reais; produto na mão mantém posição estável, dedos anatomicamente corretos, pressão e oclusão coerentes, nenhuma interpenetração ou flutuação.
+- CÂMERA: celular realista, câmera principalmente estável, deslocamentos curtos e suaves; proibir zoom violento, whip-pan, tremor excessivo, troca brusca de foco, glare artificial. Profundidade de campo coerente sem ocultar itens essenciais.
+- PELE E MATERIAIS: poros finos, fios de cabelo individuais, rugosidade realista, leve assimetria; materiais com BRDF plausível, reflexos dependentes da iluminação real, sem brilho plástico ou nitidez falsa. Evitar hiperbolização da pele, do olhar ou da respiração.
+- AMBIENTE: plantas e tecidos se movem apenas se houver vento plausível; vapor e água só onde efetivamente existem na referência; sombras, reflexos, perspectiva, luz e exposição temporalmente contínuos. Não adicionar animais, bagunça, objetos ou cenários que não estejam na referência enviada.
+- FINAL: a partir de 0:08, a apresentadora mantém o produto perfeitamente visível em quadro; no último segundo, segurar imagem estável com produto e ambiente intactos até o último frame. PROIBIDO quadro preto, fade para preto, glitch, logo sobreposto, marca d'água, sacola 3D flutuante ou elementos duplicados. Logo original impressa na embalagem permanece; não acrescentar logo da empresa na imagem.
+- ÁUDIO/COPY: fala factível em 9 segundos (aprox. 18–25 palavras, ajustar à locução), sem afirmar benefícios não demonstrados no rótulo, escassez, preço ou estoque não confirmados. Texto de CTA pode ficar para edição fora do gerador; não gerar UI nativa.
+- Se um molde histórico conflitar com estas regras, este protocolo é soberano.
 
 --- PARTE A: OS 5 PROMPTS DE OURO MASTER DO DOCUMENTO (MOLDE OFICIAL DO BLOCO 17 - 360º SEM LOGO) ---
 
@@ -2058,6 +2142,18 @@ Use a estrutura psicológica destas falas campeãs (NUNCA copie o nome de outro 
 
 --- PARTE C: MÓDULO CAMALEÃO (OS 20 AMBIENTES OFICIAIS) ---
 1. Banheiro Caótico (vapor denso, espelho embaçado, secador na pia) | 2. Varanda Tropical (samambaias, costela-de-adão, luz de sol, caramelo) | 3. Penteadeira Golden Hour | 4. Área de Serviço Raiz | 5. Jardim Rústico | 6. Cachoeira Secreta (pedras úmidas, borboletas, água corrente) | 7. Cozinha Afetiva / Cozinha de Batalha | 8. Quarto Desarrumado (TV ligada piscando luz) | 9. Quintal de Terra | 10. Deck de Piscina | 11. Estufa Caseira | 12. Varanda com Tempestade (coqueiro envergando na chuva, passarinho nas vigas) | 13. Sala de Estar Noturna | 14. Banheira Vintage | 15. Varanda de Praia | 16. Home Office Moderno (estante de livros, luminária, gato na poltrona) | 17. Deck de Barco no Rio Amazonas | 18. Canto da Leitura | 19. Lavabo Luxo | 20. Calçada Portuguesa Urbana.
+
+[PROTOCOLO FÍSICO REALISTA V10 — PRIORIDADE MÁXIMA; PREVALECE SOBRE MOLDES ANTIGOS]
+- CONSERVAÇÃO: mesmo número de produtos, identidade, altura, largura, volume, tampa, marca e rótulo em TODOS os quadros; não duplicar, fundir, deformar, trocar textura nem desaparecer. O objeto não teletransporta entre mão e bancada.
+- REFERÊNCIA FIXA: a imagem fornecida determina cor, embalagem, acabamento e cenário. Manter materiais existentes e a direção da luz; melhorar somente microtextura, detalhe de superfície, rugosidade, reflexos e definição naturais, sem trocar a paleta, nem cenário nem objetos.
+- CONTATO E GRAVIDADE: produto apoiado na bancada tem base em contato contínuo, sombra de contato consistente, gravidade, inércia e oclusão reais; produto na mão mantém posição estável, dedos anatomicamente corretos, pressão e oclusão coerentes, nenhuma interpenetração ou flutuação.
+- CÂMERA: celular realista, câmera principalmente estável, deslocamentos curtos e suaves; proibir zoom violento, whip-pan, tremor excessivo, troca brusca de foco, glare artificial. Profundidade de campo coerente sem ocultar itens essenciais.
+- PELE E MATERIAIS: poros finos, fios de cabelo individuais, rugosidade realista, leve assimetria; materiais com BRDF plausível, reflexos dependentes da iluminação real, sem brilho plástico ou nitidez falsa. Evitar hiperbolização da pele, do olhar ou da respiração.
+- AMBIENTE: plantas e tecidos se movem apenas se houver vento plausível; vapor e água só onde efetivamente existem na referência; sombras, reflexos, perspectiva, luz e exposição temporalmente contínuos. Não adicionar animais, bagunça, objetos ou cenários que não estejam na referência enviada.
+- FINAL: a partir de 0:08, a apresentadora mantém o produto perfeitamente visível em quadro; no último segundo, segurar imagem estável com produto e ambiente intactos até o último frame. PROIBIDO quadro preto, fade para preto, glitch, logo sobreposto, marca d'água, sacola 3D flutuante ou elementos duplicados. Logo original impressa na embalagem permanece; não acrescentar logo da empresa na imagem.
+- ÁUDIO/COPY: fala factível em 9 segundos (aprox. 18–25 palavras, ajustar à locução), sem afirmar benefícios não demonstrados no rótulo, escassez, preço ou estoque não confirmados. Texto de CTA pode ficar para edição fora do gerador; não gerar UI nativa.
+- Se um molde histórico conflitar com estas regras, este protocolo é soberano.
+
 ====================================================================
 """
 
@@ -2101,7 +2197,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3, sorteando um ambiente vivo do Módulo Camaleão e aplicando: {scan_17.get('regra_pos_img')}]
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            Shot 1 (Macro Hook & Physics): [Escreva em inglês ultra-denso seguindo o Molde do Banco de Memória 17.3: POV intensely erratic handheld mobile video, documentary chaos aesthetic... Macro Zoom In exclusively on the EXACT reference product(s), aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 compact hand-proportioned size + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
+            Shot 1 (Natural Hook & Physics): [Escreva em inglês seguindo prioritariamente o PROTOCOLO FÍSICO REALISTA V10: smartphone estável, sem zoom agressivo, produto inteiro e contínuo do início ao fim, aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 compact hand-proportioned size + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
             Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while {scan_17.get('regra_pos_vid')}. ENVIRONMENT REINFORCEMENT LOCK: Repita em inglês todos os detalhes do cenário da imagem, plantas vivas, baguncinha e o animal se mexendo sutilmente no fundo.]
             Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
@@ -2125,6 +2221,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             if explicacao_video_usuario and explicacao_video_usuario.strip():
                 instrucao_ouro += f"\nNOTA DE DIREÇÃO DO USUÁRIO: {explicacao_video_usuario.strip()}"
             
+            instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -2178,21 +2275,21 @@ if btn_gerar_v92 and pode_gerar_roteiro:
 
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
                 1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com o lote secreto vazado na sacolinha!
-                2. Sorteie um cenário rico em natureza/plantas, baguncinha reativa e animal vivo do Banco de Memória 17.3 (sem repetir sempre o mesmo).
-                3. Se houverem {scan_v92.get('qtd')} unidades na foto, ela segura APENAS 1 unidade na mão e as outras ficam apoiadas na bancada ao lado dela do segundo 0:00 até o fim!
-                4. Inclua a Finalização P1 Blindada aos `0:09-0:10` com o Glitch Digital Vermelho da logo `'{logo_ativa_usuario}'` e corte seco para `SOLID BLACK FRAME`.
+                2. Preserve exatamente o ambiente da imagem de referência. Não sorteie novos cenários, animais ou objetos; aplique apenas o refinamento natural de textura.
+                3. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha sempre a quantidade e a identidade de cada unidade (1 na mão, demais na bancada); nenhuma pode desaparecer ao mudar enquadramento.
+                4. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. NÃO inserir logo extra, glitch ou quadro preto. A marca original da embalagem deve permanecer intacta.
 
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) and a small black wireless lapel microphone clipped to her collar]. Her hair/skin is the ultimate proof of the product: ultra-hydrated, glowing, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, heavy sensor noise, 8k resolution.
+                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) and a small black wireless lapel microphone clipped to her collar]. Her hair/skin is the ultimate proof of the product: ultra-hydrated, glowing, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry; no new objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch natural light flares/mist from the environment. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product(s) against the background: {scan_v92.get('regra_pos_vid')}. [CRITICAL: 1:1 real-world scale, strictly realistic compact product size fitting comfortably in hand, exact match to reference, do not oversize]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The item(s) remain perfectly solid with micro-reflections bouncing off the surface as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid lid/pump trigger of the unit held twice to emphasize its mechanism (or performs A Andadinha + Puxadinha if apparel). NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (straight bangs, wireless lapel mic on collar, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaves with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, intensely serious expression of pure warning, making soul-piercing eye contact while {scan_v92.get('regra_pos_vid')}. [ENVIRONMENT REINFORCEMENT LOCK V9]: [CLONE EM INGLÊS TODOS OS DETALHES DO CENÁRIO DA IMAGEM, PLANTAS, BAGUNCINHA E O ANIMAL SE MEXENDO NO FUNDO]. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo '{logo_ativa_usuario}' appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME. Clean screen, 8k resolution.]
+                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:10: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no digital glitch, no additional logos, no 3D shopping bag, no overlays. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible, especially the very last frame. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS (35 A 45 PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM O LOTE SECRETO VAZADO NA SACOLINHA, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS (18 A 25 PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM O LOTE SECRETO VAZADO NA SACOLINHA, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
@@ -2200,7 +2297,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 "CORRE NA SACOLINHA 🛒👇"
 
                 Finalização P1 Blindada:
-                Glitch digital vermelho violento com a logo '{logo_ativa_usuario}' no milésimo final, seguido de corte seco imediato para o quadro preto absoluto.
+                Último quadro natural com produto, mãos e cenário preservados. Sem glitch, sem tela preta, sem logotipo adicional.
 
                 ### 🔑 TÍTULOS SEO (Separados)
                 **🔍 Geral (Dor):** [Título SEO Geral em português focado na dor '{scan_v92.get('dor_pt')}']
@@ -2211,6 +2308,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 if explicacao_video_usuario and explicacao_video_usuario.strip():
                     instrucao_v92 += f"\n\nDIRETRIZ EXTRA DO USUÁRIO: {explicacao_video_usuario.strip()}"
 
+                instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
                 resp_v92 = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
