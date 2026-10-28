@@ -1424,10 +1424,10 @@ if E_O_CEO:
                             else: st.warning("Não encontrado.")
                         except Exception: pass
 # ==========================================================
-# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / CONECTADA AO BANCO DE MEMÓRIA 17.3)
+# 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / LEMA DOR & SOLUÇÃO + BANCO DE MEMÓRIA 17.3)
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V31.1 + Banco de Memória 17.3)</h3>", unsafe_allow_html=True)
+st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V35.0 — Dor & Solução Visceral + Memória 17.3)</h3>", unsafe_allow_html=True)
 
 if "roteiro_temporario" not in st.session_state: 
     st.session_state["roteiro_temporario"] = None
@@ -1573,10 +1573,6 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     components.html(html_btn, height=45)
 
 def render_microfone_diretrizes_youtube():
-    """
-    Microfone estilo YouTube/Google (Web Speech API):
-    Ao clicar e falar, transcreve em tempo real e injeta diretamente na caixa de texto 'Diretrizes / O que você quer no vídeo?'.
-    """
     html_mic = """
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -6px; margin-bottom: 6px;">
         <button id="btn_mic_yt" onclick="toggleDictation()" style="
@@ -1637,7 +1633,7 @@ def render_microfone_diretrizes_youtube():
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
         if (!SpeechRecognition) {
-            status.innerHTML = "⚠️ Use o microfone abaixo ou navegador Chrome/Edge.";
+            status.innerHTML = "⚠️ Use o navegador Chrome/Edge para voz ao vivo.";
             status.style.color = "#FFD700";
             return;
         }
@@ -1735,40 +1731,46 @@ def extrair_blocos_roteiro(md_texto):
 
     return dados
 
-def escanear_contagem_limpa_da_foto(img_b64):
+def escanear_dor_e_contagem_da_foto(img_b64):
     """
-    NÃO descreve cores nem devolve dicionários [{'color':...}] para não bugar o gerador de vídeo!
-    Extrai APENAS:
-    1) O nome comercial em português (para a fala e SEO).
-    2) A quantidade numérica exata (1, 2, 3, 5...).
-    3) A regra limpa de posicionamento em inglês (1 na mão + o resto parado na bancada do início ao fim).
+    Lê a foto para extrair:
+    1) O nome comercial exato em português.
+    2) A quantidade exata de itens (1, 2, 3, 5...).
+    3) A DOR REAL que o produto resolve + o DESEJO/SENSAÇÃO escrita no rótulo (ex: 'cabelo elástico de química, pontas espigadas, falta de massa' -> 'efeito ampola, reconstrução de salão no chuveiro, desmaia o fio').
+    4) A regra limpa de posicionamento (1 na mão + o resto parado na bancada, SEM descrever cores para não bugar o vídeo).
     """
     try:
         resp_s = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
             messages=[
-                {"role": "system", "content": "You are a simple product counter. Output valid JSON with flat strings and integers only. NEVER output lists or nested dicts."},
+                {"role": "system", "content": "You are a Neuromarketing & Product Scanner. Output flat JSON only (never output lists or nested dicts)."},
                 {"role": "user", "content": [
                     {"type": "text", "text": (
-                        "Inspect this image and return a JSON with ONLY 3 keys:\n"
-                        "1. 'nome_pt': string with the commercial name of the product/kit in Portuguese (e.g., 'Kit 3 Máscaras SOS Hidratação Salon Line').\n"
-                        "2. 'qtd': integer count of how many product units/pieces appear in the image (e.g., 1, 2, 3, 5).\n"
-                        "3. 'tipo_embalagem': short English word for the container type ONLY, without colors or dicts (e.g., '400g cosmetic tub', '300ml pump bottle', '250ml bottle', 'crochet shorts', 'wide-leg pants', 'platform sneakers')."
+                        "Analyze the product packaging/label in this image and return a JSON with ONLY 5 flat keys:\n"
+                        "1. 'nome_pt': commercial name of the product/kit in Portuguese.\n"
+                        "2. 'qtd': integer count of product units in the image (1, 2, 3, 5, etc.).\n"
+                        "3. 'tipo_embalagem': short English container type without colors (e.g., '400g cosmetic tub', '300ml pump bottle', 'crochet shorts').\n"
+                        "4. 'dor_visceral_pt': what painful everyday problem does this product solve according to its label? (e.g., 'cabelo esturricado de chapinha, elástico de química, ralo e quebrando só de pentear' or 'vergonha de servir visita em pote velho').\n"
+                        "5. 'sensacao_solucao_pt': what tangible sensation/transformation does it deliver? (e.g., 'cauterização de salão no próprio chuveiro, preenche a fibra e deixa o fio pesado de brilho espelhado')."
                     )},
                     {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
                 ]}
             ],
-            temperature=0.1
+            temperature=0.2
         )
         dados_scan = json.loads(resp_s.choices[0].message.content)
         qtd = int(dados_scan.get("qtd", 1))
         tipo_emb = str(dados_scan.get("tipo_embalagem", "product container"))
         nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
+        dor_pt = str(dados_scan.get("dor_visceral_pt", "cabelo ressecado, sem vida e quebrando"))
+        solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "tratamento de salão em casa que devolve o brilho espelhado na primeira passada"))
     except Exception:
         qtd = 1
         tipo_emb = "product container"
         nome_pt = "Produto Principal"
+        dor_pt = "cabelo ressecado, sem vida e quebrando"
+        solucao_pt = "tratamento de salão em casa que devolve o brilho espelhado na primeira passada"
 
     if qtd <= 1:
         regra_pos_img = (
@@ -1795,6 +1797,8 @@ def escanear_contagem_limpa_da_foto(img_b64):
         "nome_pt": nome_pt,
         "qtd": qtd,
         "tipo_embalagem": tipo_emb,
+        "dor_pt": dor_pt,
+        "solucao_pt": solucao_pt,
         "regra_pos_img": regra_pos_img,
         "regra_pos_vid": regra_pos_vid
     }
@@ -1849,8 +1853,6 @@ if not E_O_CEO and robo_sheets:
 
 if "txt_diretrizes_360" not in st.session_state:
     st.session_state["txt_diretrizes_360"] = ""
-if "ultimo_hash_mic_360" not in st.session_state:
-    st.session_state["ultimo_hash_mic_360"] = None
 
 with st.container(border=True):
     col_sel1, col_sel2 = st.columns(2)
@@ -1881,7 +1883,6 @@ with st.container(border=True):
         with col_img: 
             img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
         with col_dados:
-            # Microfone ao vivo estilo YouTube/Google que escreve direto na caixa abaixo
             render_microfone_diretrizes_youtube()
             
             explicacao_video_usuario = st.text_area(
@@ -1983,43 +1984,50 @@ if st.session_state.get("modo_entidade_v9"):
             btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, key="btn_v92_ativo")
 
 # ==========================================================
-# 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (100% DO DOCUMENTO ENVIADO PELO SÓCIO — USADO PELO 17 E PELO 17.2)
+# 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (100% DO DOCUMENTO ENVIADO PELO SÓCIO + LEMA DOR & SOLUÇÃO)
 # ==========================================================
+LISTA_SORTEIO_GANCHOS_CAMPEOES = [
+    "GANCHO 01 (O Dedo na Ferida + UTI no Chuveiro): Comece atacando o desespero de ver o cabelo quebrando na escova, elástico de química ou esturricado de chapinha, mostre que o produto reconstrói e desmaia o fio na primeira aplicação no próprio chuveiro e feche com o lote secreto vazando na sacolinha.",
+    "GANCHO 02 (O Segredo que as Donas de Salão Escondem): 'Amiga, o que as donas de salão não te contam é que você não precisa gastar duzentos reais para ter cabelo espelhado...' Mostre a transformação sensorial imediata e a urgência do estoque acabando.",
+    "GANCHO 03 (O Alerta da Amiga Preocupada): 'Amiga, para tudo... você tem noção do que o calor do secador e a química estão fazendo com o seu fio todo dia?' Entregue o alívio imediato que sela as pontas e blinda o cabelo.",
+    "GANCHO 04 (O Erro no Sistema / Lote Promocional Vazado): 'Gente, o pessoal do estoque enlouqueceu e liberou o lote secreto desse tratamento completo por um valor que é piada!' Foque na dor resolvida na hora e mande correr na sacolinha.",
+    "GANCHO 05 (A Confissão / Cabelo Fino, Ralo e Sem Vida): 'Se o seu cabelo tá fino, ralo, poroso e sem balanço nenhum, para de jogar dinheiro fora com creme ralo!' Mostre como ele preenche a fibra e encorpa o fio na hora.",
+    "GANCHO 06 (O Confronto Direto de Amiga): 'Ainda passando raiva com cacho armado, ressecado ou passando vergonha? Acorda, amiga!' Entregue a sensação de luxo, maciez e solução definitiva."
+]
+
 BANCO_DE_MEMORIA_17_3 = """
 ====================================================================
-[ 🧠 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (OS 5 PROMPTS DE OURO MASTER + ACERVO V3 A V9.2) ]
+[ 🧠 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (OS 5 PROMPTS DE OURO MASTER + ACERVO COMPLETO V3 A V9.2 DO DOCUMENTO) ]
 
-🚨 REGRAS INQUEBRÁVEIS DO BANCO DE MEMÓRIA (PARA IMAGEM E VÍDEO SAÍREM PERFEITOS):
-1. ZERO DESCRIÇÃO DE CORES OU DICIONÁRIOS DO PRODUTO: NUNCA tente descrever as cores ou o texto do rótulo e NUNCA escreva listas técnicas tipo `[{'color': ...}]`! Diga apenas: `the EXACT product(s) from the reference image — DO NOT alter, redraw, or describe the product colors, logo, or text; copy the reference image 100% intact`.
+🔥 NOSSO LEMA SUPREMO DE VENDAS (PROIBIDO VIOLAR):
+"NÓS NÃO VENDEMOS PRODUTOS. NÓS VENDEMOS DECISÕES, SENSAÇÕES E A SOLUÇÃO DE UMA DOR!"
+- É PROIBIDO fazer fala com cara de comercial chato ("Você sabia que o produto X chegou? Ele é a solução que você precisa"). Isso NÃO vende!
+- A fala dos 9 segundos TEM que conversar olho no olho com proximidade de amiga confidente:
+  1. Rasgar a DOR REAL logo nos primeiros 2 segundos ("Amiga, seu cabelo tá elástico e quebrando só de encostar a escova?", "O secador tá cozinhando seu cabelo?", "Passando vergonha servindo visita em pote velho?").
+  2. Entregar a SENSAÇÃO FÍSICA e o DESEJO ("faz uma cauterização de salão no seu chuveiro", "deixa o fio desmaiado, pesado de brilho espelhado", "encorpa a fibra na primeira lavagem").
+  3. Fechar com o GATILHO DO LOTE SECRETO ("O pessoal do estoque surtou e liberou o lote promocional quase de graça, corre na sacolinha antes que zere!").
+- PROIBIDO repetir "segredo das coreanas" se o produto da foto NÃO for da linha Coreana! Adapte 100% da fala para a DOR e a SOLUÇÃO reais do produto da foto!
+
+🚨 REGRAS VISUAIS INQUEBRÁVEIS DO BANCO DE MEMÓRIA:
+1. ZERO DESCRIÇÃO DE CORES OU DICIONÁRIOS DO PRODUTO: NUNCA escreva listas técnicas tipo `[{'color': ...}]`! Diga apenas: `the EXACT product(s) from the reference image — DO NOT alter, redraw, or describe the product colors, logo, or text; copy the reference image 100% intact`.
 2. REGRA DO KIT (1 NA MÃO + O RESTO NA BANCADA): Quando houverem 2, 3, 5 ou mais produtos na imagem, ELA NUNCA SEGURA TODOS NA MÃO AO MESMO TEMPO! Ela segura APENAS 1 unidade na mão (`firmly holding ONE of the units in her hand`), enquanto as outras unidades ficam apoiadas na bancada bem ao lado dela (`while the other unit(s) rest neatly on the counter beside her, making all units clearly visible in the scene`), tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo!
-3. ESPELHAMENTO IMAGEM = VÍDEO: O vídeo deve seguir o MESMO ambiente e o MESMO posicionamento dos produtos da imagem!
 
---- PARTE A: OS 5 PROMPTS DE OURO MASTER (MOLDE OFICIAL DO BLOCO 17 - 360º SEM LOGO) ---
+--- PARTE A: OS 5 PROMPTS DE OURO MASTER DO DOCUMENTO (MOLDE OFICIAL DO BLOCO 17 - 360º SEM LOGO) ---
 
 📦 MOLDE 1: O GANCHO DO CAOS (Para Kits de 3 Potes / Múltiplas Unidades)
 📸 GABARITO DE IMAGEM BASE:
 RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle moisture on skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a relatable, vibrant, sunlit Brazilian kitchen connected directly to a dense, lush green balcony filled with cascading ferns, monsteras, and warm tropical sunlight filtering through the leaves, with a small caramel dog resting on a colorful rug in the background. Natural everyday clutter: a ceramic coffee mug and a dish towel casually resting on the wooden counter. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the tubs from the reference kit in her hand, while the other two tubs rest neatly on the wooden counter right beside her, making all three clearly visible in the scene. DO NOT alter, redraw, or describe the product colors or text; copy the reference image 100% intact. Unfiltered UGC vlog style, 8k resolution.
-
 🎬 COMANDO DE VÍDEO COMPLETO:
 Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference kit products (one tub held firmly in her hand while the other two tubs rest neatly beside her on the wooden counter against the green varanda background, making all three clearly visible). [CRITICAL PHYSICS & SCALING]: 1:1 real-world scale, strictly realistic size, perfectly proportioned to her hand, do not oversize. DO NOT alter or redraw the reference packaging. SINGLE MOTION TRICK (The Trigger Tap): Her clean free index finger performs a deliberate micro-tap on the lid of the main tub twice to emphasize it. NO hand overlapping, absolute physics stability, NO pixel melting.]
 Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while holding ONLY ONE tub in her hand and keeping the other two tubs resting stationary on the counter right beside her. ENVIRONMENT REINFORCEMENT LOCK: Bright Brazilian kitchen connected to a sunlit tropical varanda with dense green ferns. In the deep background, the caramel dog shifts position slightly.]
 Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
 [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
-🎙️ Áudio e Fala da Aurora:
-(Micro-ASMR intro: som de batida seca na tampa plástica). "Amiga, você viu isso? O segredo das coreanas para deixar o cabelo com efeito espelhado e zero frizz acabou de chegar na vitrine! O estoque desse kit completo tá derretendo em minutos. Eu já garanti o meu, corre na sacolinha antes que esgote!"
-📝 Texto na Tela:
-⚠️ CABELO OPACO E SEM VIDA? 🛑
-✨ EFEITO GLASS HAIR & HIDRATAÇÃO
-🛒 LOTE SECRETO LIBERADO 👇
 
 📦 MOLDE 2: O GANCHO DA TEMPESTADE (Para Frascos Compactos 200ml-250ml - Banheiro Rústico com Vapor e Chuva)
 📸 GABARITO DE IMAGEM BASE:
 RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, microscopic droplets of warm steam condensation clinging delicately to her skin, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial expression, incredibly healthy hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her cotton shirt. She is standing in an intimate, steam-filled rustic bathroom. Heavy rainstorm visibly and dynamically pounding against the frosted glass window in the background, creating blurry streaks of water. A bundle of hanging eucalyptus leaves sways slightly from an indoor draft. Natural everyday clutter on the stone shelf: a small ceramic dish and a rolled linen hand towel. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale. The EXACT 250ml bottle from the reference image is held firmly in her hand, remaining a perfectly compact, lightweight size, perfectly proportioned to fit inside a human palm. Absolutely DO NOT oversize. Unfiltered UGC vlog style, 8k resolution.
 🎬 COMANDO DE VÍDEO COMPLETO:
-Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. Quick cell phone auto-focus hunting effect at 0:01 tracking the exact reference bottle in her hand. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale, remaining a perfectly compact size in her palm. SINGLE MOTION TRICK (Tactile Test V9): Her clean free index finger performs a deliberate, hard double-tap on the top cap of the bottle. NO hand overlapping, absolute physics stability, NO pixel melting.]
-Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! Camera snaps to Aurora's face (wireless lapel mic on shirt). SPATIAL MOTION TRICK (The Andadinha): Aurora takes a purposeful, natural step forward towards the camera, leaning in aggressively towards the lens (The Gossip Lean), her chest heaving with visceral breathing and urgent eye contact while holding the single compact bottle. ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: Steam-filled rustic bathroom, heavy rainstorm pounding against the frosted window, hanging eucalyptus swaying slightly.]
-Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards to the right corner, where a realistic 3D floating orange shopping bag materializes casting realistic shadows.]
-[PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Absolutely no platform UI, handles, corner watermarks, or embedded social media logos from start to finish. Pure clean video feed only.]
+[POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. Quick cell phone auto-focus hunting effect at 0:01 tracking the bottle, then violently snapping to her face. ENVIRONMENT REINFORCEMENT LOCK V9 DENSE: Steam-filled rustic bathroom, heavy rainstorm visibly and dynamically pounding against the frosted window in the background. A bundle of hanging eucalyptus sways slightly from a draft. [CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: STRICT 1:1 real-world scale. The EXACT 250ml bottle is held firmly in her hand, remaining a perfectly small 250ml size. SPATIAL MOTION TRICK (The Andadinha): Aurora takes a purposeful, natural step forward towards the camera, shifting her weight organically. 0:02-0:04 (TACTILE TEST V9): Her clean free index finger performs a deliberate, hard double-tap on the top cap of the bottle. NO hand overlapping, absolute physics stability, NO pixel melting. 0:05-0:08: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with visceral breathing. She makes intense, urgent eye contact. 0:09: She aggressively points her free index finger downwards to the right corner, where a realistic 3D floating orange shopping bag materializes. [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: Absolutely no platform UI, handles, corner watermarks, or embedded social media logos from start to finish. Pure clean video feed only.]
 
 📦 MOLDE 3: O GANCHO DO BORRIFADOR (Para Frascos 300ml-500ml - Varanda Ensolarada com Samambaias e Caramelo)
 📸 GABARITO DE IMAGEM BASE:
@@ -2027,19 +2035,29 @@ RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism:
 
 📦 MOLDE 4: O GANCHO DO PESO / IMPACTO (Para Pote Único de 1kg - Quarto com TV Piscando ou Varanda com Cachoeira)
 📸 GABARITO DE IMAGEM BASE:
-RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle cinematic contrast lighting, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense and focused look). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. ENVIRONMENT REINFORCEMENT: Ordinary Brazilian bedroom at night, active television screen emitting flickering ambient light across the room, natural clutter including an open notebook, loose clothes on a chair, and a half-full glass of water on the nightstand (or lush Varanda with Waterfall, butterflies and sleeping caramel dog). [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 scale, strictly realistic standard 1kg tub size fitting normal hand proportions, DO NOT oversize]. She firmly holds the single 1kg tub from the reference image. Unfiltered UGC vlog style, 8k resolution.
+RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, subtle cinematic contrast lighting, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, highly expressive mobile eyebrows, intense and focused look). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. ENVIRONMENT REINFORCEMENT: Ordinary Brazilian bedroom at night, active television screen emitting flickering ambient light across the room, natural clutter including an open notebook, loose clothes on a chair, and a half-full glass of water on the nightstand (or lush Varanda with Waterfall, butterflies and sleeping caramel dog). [CRITICAL PHYSICS & SIZE LOCK: STRICT 1:1 scale, strictly realistic standard 1kg tub size fitting normal hand proportions, DO NOT oversize]. She firmly holds the single 1kg tub from the reference image. Unfiltered UGC vlog style, 8k resolution.
 
 📦 MOLDE 5: O GANCHO DO ACONCHEGO (Para Kit com 2 Potes/Produtos - Home Office com Gato ou Cozinha de Batalha)
 📸 GABARITO DE IMAGEM BASE:
 RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism: detailed natural skin pores, peach fuzz, soft warm illumination from a desk lamp, NO artificial flash. Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, breathless conspiratorial facial expression, healthy shiny hair). A small, discrete black wireless lapel microphone is visibly clipped to the neckline of her shirt. She is standing in a cozy, lived-in modern home office space with a warm reading lamp casting soft shadows, a tall wooden bookshelf filled with books in the background, and a sleepy cat curled up on a soft armchair. Natural everyday clutter on the wooden desk: an open planner, a ceramic coffee mug with steam rising, and a pair of wire-rimmed glasses. [CRITICAL ABSOLUTE PHYSICS & SIZE LOCK: STRICT 1:1 real-world scale. These are standard 400g cosmetic jars. The two tubs shown must look compact, light, and perfectly proportioned to fit comfortably. Absolutely DO NOT oversize]. She is firmly holding ONE of the units from the reference kit in her hand, while the second unit rests neatly on the wooden desk right next to her, making both products clearly visible. Unfiltered UGC vlog style, 8k resolution.
 
---- PARTE B: MOLDES ESPECÍFICOS DE MODA, CALÇADOS, CASA E V9.2 DO DOCUMENTO ---
-- Moda Peças Curtas / Crochê / Conjuntos / Alfaiataria (V5/V6/V8): Varanda de Praia na Chuva ou Varanda de Verão com chá gelado suando ou Barco no Rio Amazonas. ZERO voltinhas! Movimento: `A Andadinha` (passo firme para frente) + `A Puxadinha` (`The Crochet Pull` na lateral da renda ou puxadinha no cós/cinto forrado mostrando a estrutura que volta ao lugar sem derreter pixels) + `The Gossip Lean`.
-- Moda Calça Pantalona Lanzinha (V7 com Gato Titi): Quarto com TV ligada piscando luz e gato Titi pulando da cadeira. Movimento: `Andada 2.0` (3 passos, leve tropeço natural, olha para trás falando '...shhh, Titi, deixa a mamãe!', puxa o elástico da cintura e coloca as mãos nos bolsos laterais).
-- Moda Cropped Balada Detalhe nas Costas (V6): Quarto à noite com vestidos na cama. Movimento: `A Voltinha` (giro 180º mostrando o recorte nas costas) + `The Gossip Lean`.
-- Calçados / Tênis Plataforma (V5): Calçada portuguesa urbana ao sol, nota fiscal no chão, pedestres desfocados. Movimento: `Tilt Down` para os pés batendo a ponta do tênis duas vezes na pedra portuguesa e levantando levemente o calcanhar.
-- Casa & Utensílios (V3 Kit Petisqueiras / Coador Inox): Mesa de jantar ou bancada de cozinha com grãos de café derramados. Aos 0:02 ajusta as peças e bate com a unha/indicador no material para provar a resistência.
-- Módulos Camaleão (20 Ambientes) & 10 Ganchos de Retenção (Choque de Realidade, Fofoca Proibida, Dor Extrema, Erro de Sistema, Comparação de Salão, Segredo Revelado, Confissão, Resultado Imediato, Gatilho de Escassez, Achado de Ouro).
+--- PARTE B: BANCO DE FALAS E GANCHOS CAMPEÕES REAIS DO DOCUMENTO (EXEMPLOS DE COMO ATACAR A DOR E ENTREGAR A SOLUÇÃO) ---
+Use a estrutura psicológica destas falas campeãs (NUNCA copie o nome de outro produto, adapte para a dor e o produto da foto):
+- Exemplo de Fala Campeã 1 (Dano Térmico / Secador e Chapinha):
+  "[Borrifador + Suspiro] Amiga, para tudo... você tem noção de que o secador tá cozinhando seu cabelo todo dia? Esse tratamento blinda os fios do calor, sela as pontas na hora e dá um brilho espelhado surreal! O lote promocional vazou, corre na sacolinha!"
+- Exemplo de Fala Campeã 2 (Cabelo Elástico, Fino e Quebrando na Escova):
+  "(Dois toques secos na tampa) Amiga, se o seu cabelo tá fino, ralo e quebrando inteiro quando você escova, para tudo! Esse tratamento de reposição de massa preenche a fibra, encorpa os fios e devolve a vida na primeira aplicação. O estoque desse lote secreto tá derretendo, corre na sacolinha!"
+- Exemplo de Fala Campeã 3 (Segredo que as Donas de Salão Escondem):
+  "[Som de Água + Suspiro] Amiga, o que as donas de salão não te contam é que esse tratamento deixa o fio solto, sem pesar e com balanço de cinema no seu próprio chuveiro... e o lote promocional liberou quase de graça! Corre na sacolinha antes que acabe!"
+- Exemplo de Fala Campeã 4 (Pele Rachada / Ressecamento Extremo):
+  "[Som de Água + Suspiro] Amiga, o sistema do estoque surtou e liberou esse potão quase de graça! Ele acaba com o ressecamento extremo na primeira passada e deixa um toque de seda surreal. Corre na sacolinha antes que o lote zere!"
+- Exemplo de Fala Campeã 5 (Moda / Caimento que Modela sem Marcar):
+  "Amiga, achei o segredo pro seu look! Ele modela o corpo, tem um caimento impecável que não marca nada e veste como uma luva. O pessoal do estoque enlouqueceu no desconto, corre na sacolinha antes que esgote!"
+- Exemplo de Fala Campeã 6 (Casa / Mesa Posta / Utilidades):
+  "Passando vergonha servindo visita em pote velho ou jogando dinheiro no lixo todo mês? Acorda! Esse achado entrega luxo e praticidade na hora e a loja surtou liberando um lote secreto. Pega logo antes que acabe!"
+
+--- PARTE C: MÓDULO CAMALEÃO (OS 20 AMBIENTES OFICIAIS) ---
+1. Banheiro Caótico (vapor denso, espelho embaçado, secador na pia) | 2. Varanda Tropical (samambaias, costela-de-adão, luz de sol, caramelo) | 3. Penteadeira Golden Hour | 4. Área de Serviço Raiz | 5. Jardim Rústico | 6. Cachoeira Secreta (pedras úmidas, borboletas, água corrente) | 7. Cozinha Afetiva / Cozinha de Batalha | 8. Quarto Desarrumado (TV ligada piscando luz) | 9. Quintal de Terra | 10. Deck de Piscina | 11. Estufa Caseira | 12. Varanda com Tempestade (coqueiro envergando na chuva, passarinho nas vigas) | 13. Sala de Estar Noturna | 14. Banheira Vintage | 15. Varanda de Praia | 16. Home Office Moderno (estante de livros, luminária, gato na poltrona) | 17. Deck de Barco no Rio Amazonas | 18. Canto da Leitura | 19. Lavabo Luxo | 20. Calçada Portuguesa Urbana.
 ====================================================================
 """
 
@@ -2051,32 +2069,36 @@ with st.expander("🧠 17.3. Abrir Banco de Memória & Treinamento Oficial (Cone
 # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-    with st.spinner("🦅 Consultando Banco de Memória 17.3 e forjando prompts hiper-densos no Bloco 17..."):
+    with st.spinner("🦅 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-            scan_17 = escanear_contagem_limpa_da_foto(img_b64_roteiro)
+            scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro)
+            gancho_sorteado_17 = random.choice(LISTA_SORTEIO_GANCHOS_CAMPEOES)
             
             instrucao_ouro = f"""
             Atue como o Motor Oficial da Máquina de Criação 360º (Bloco 17), conectado diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
 
             {BANCO_DE_MEMORIA_17_3}
 
-            🔍 [PRODUTO IDENTIFICADO PELO SCANNER]:
-            - Nome Comercial (para a fala em português e SEO): {scan_17.get('nome_pt')}
+            🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
+            - Produto/Kit: {scan_17.get('nome_pt')}
             - Quantidade Exata de Unidades na Foto: {scan_17.get('qtd')} unidade(s)
             - Tipo de Embalagem/Peça: {scan_17.get('tipo_embalagem')}
+            - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NA FALA!): {scan_17.get('dor_pt')}
+            - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_17.get('solucao_pt')}
+            - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_17}
             - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_17.get('regra_pos_img')}
             - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_17.get('regra_pos_vid')}
 
-            🚨 [3 REGRAS CRÍTICAS PARA NÃO ERRAR NO VÍDEO]:
-            1. USE EXATAMENTE O MOLDE DO BANCO DE MEMÓRIA 17.3: Escolha o Molde do Banco de Memória 17.3 acima que bate com `{scan_17.get('qtd')} unidade(s)` e `{scan_17.get('tipo_embalagem')}` (ex: se forem 3 potes, use a exata estrutura do MOLDE 1 - O GANCHO DO CAOS; se forem 2 produtos, use o MOLDE 5; se for 1 frasco, use o MOLDE 2 ou 3; se for 1kg, use o MOLDE 4; se for roupa/calçado/casa, use o molde correspondente da Parte B). Sorteie ou crie um ambiente brasileiro rico em plantas, baguncinha e animal vivo do Banco de Memória!
-            2. PROIBIDO DESCREVER CORES DO RÓTULO OU USAR COLCHETES DE CÓDIGO: Nunca escreva listas de cores e nunca invente detalhes do rótulo! Diga sempre que é o produto exato da imagem de referência (`the EXACT reference product(s) — DO NOT alter, redraw, or describe colors/text`).
-            3. PROIBIDO SEGURAR 2 OU 3 POTES NAS MÃOS AO MESMO TEMPO NO VÍDEO: Se for um kit com {scan_17.get('qtd')} unidades, tanto no `Shot 1` quanto no `Shot 2` ela segura APENAS 1 unidade na mão enquanto as outras unidades ficam paradas em cima da bancada ao lado dela! E escreva 100% do `Shot 1`, `Shot 2`, `Interaction (3D CTA)` e `[PRISTINE CANVAS LOCK]` em INGLÊS PURO (sem misturar frases em português dentro dos colchetes visuais!).
+            🚨 [REGRAS INQUEBRÁVEIS DE EXECUÇÃO]:
+            1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com a urgência do lote secreto na sacolinha! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
+            2. POSICIONAMENTO DOS PRODUTOS (1 NA MÃO + RESTO NA BANCADA): Se houverem {scan_17.get('qtd')} unidades, ela segura APENAS 1 unidade na mão e as outras ficam paradas na bancada ao lado dela tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo! Não descreva cores com colchetes técnicos.
+            3. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
 
-            ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES (MANTENDO OS TÍTULOS E OS BLOCOS `Shot 1`, `Shot 2`, `Interaction (3D CTA)` e `[PRISTINE CANVAS LOCK - ZERO WATERMARKS]`):
+            ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES:
 
             ### 📸 PROMPT DE IMAGEM
-            [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3 e aplicando: {scan_17.get('regra_pos_img')}]
+            [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3, sorteando um ambiente vivo do Módulo Camaleão e aplicando: {scan_17.get('regra_pos_img')}]
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
             Shot 1 (Macro Hook & Physics): [Escreva em inglês ultra-denso seguindo o Molde do Banco de Memória 17.3: POV intensely erratic handheld mobile video, documentary chaos aesthetic... Macro Zoom In exclusively on the EXACT reference product(s), aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 compact hand-proportioned size + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
@@ -2086,16 +2108,16 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
             Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da {nome_inf_ativa}:
-            "[Escreva em português uma fala letal de 38 a 46 palavras usando um dos 10 Ganchos de Retenção do Banco de Memória 17.3 para vender '{scan_17.get('nome_pt')}', fechando com o lote secreto na sacolinha e ZERO menção a preço numérico]"
+            "[Escreva em português uma fala visceral e magnética de 38 a 46 palavras aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com o lote secreto na sacolinha, sem preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
-            ⚠️ [FRASE CURTA DE IMPACTO SOBRE A DOR]? 🛑
-            ✨ [BENEFÍCIO PRINCIPAL DO PRODUTO]
+            ⚠️ [PERGUNTA CURTA E FORTE SOBRE A DOR]? 🛑
+            ✨ [SENSAÇÃO / SOLUÇÃO IMEDIATA]
             🛒 LOTE SECRETO LIBERADO 👇
 
             ### 🔑 TÍTULOS SEO (Separados)
-            **🔍 Geral (Dor):** [Título focado na solução do problema]
-            **💡 Solução (Produto):** [Nome completo do produto e volume]
-            **🏷️ Marca (Resenha):** [Marca e nome do produto resenha]
+            **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_17.get('dor_pt')}']
+            **💡 Solução (Produto):** [Nome completo do produto/kit e volume]
+            **🏷️ Marca (Resenha):** [Marca e nome do produto/kit resenha]
             """
             
             if eh_customizada:
@@ -2106,10 +2128,10 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Você é o Diretor de Arte Master da ÉLÉVO. Siga 100% os Moldes do Banco de Memória 17.3. Nunca descreva cores de potes como listas técnicas e nunca mande a apresentadora segurar 3 potes nas mãos ao mesmo tempo (apenas 1 na mão e os outros parados na bancada). Escreva os blocos visuais Shot 1, Shot 2, Interaction e Pristine Canvas 100% em inglês."},
+                    {"role": "system", "content": "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Siga 100% os Moldes do Banco de Memória 17.3. Escreva toda a parte visual em inglês puro."},
                     {"role": "user", "content": instrucao_ouro}
                 ],
-                max_tokens=4096, temperature=0.75
+                max_tokens=4096, temperature=0.8
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
@@ -2120,39 +2142,43 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 try: aba_limites.append_row([email_sessao, "Sim"])
                 except Exception: pass
                 
-            st.success(f"✅ Pacote 360º Forjado com o Molde do Banco de Memória 17.3 ({scan_17.get('qtd')} unidade(s): 1 na mão + resto na bancada)!")
+            st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
             time.sleep(1)
             st.rerun()
         except Exception as e:
             st.error(f"Erro ao gerar: {e}")
 
 # ==========================================================
-# MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3)
+# MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
 # ==========================================================
 if btn_gerar_v92 and pode_gerar_roteiro:
     if not img_produto:
         st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro!")
     else:
-        with st.spinner(f"🧬 Consultando Banco de Memória 17.3 e forjando Criação V9.2 com Logo '{logo_ativa_usuario}'..."):
+        with st.spinner(f"🧬 Escaneando Dor & Solução e forjando Criação V9.2 com Logo '{logo_ativa_usuario}'..."):
             try:
                 img_b64_v92 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                scan_v92 = escanear_contagem_limpa_da_foto(img_b64_v92)
+                scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92)
+                gancho_sorteado_v92 = random.choice(LISTA_SORTEIO_GANCHOS_CAMPEOES)
 
                 instrucao_v92 = f"""
                 Atue como a ENTIDADE V9.2 (Protocolo O.U.R.O.), conectada diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
 
                 {BANCO_DE_MEMORIA_17_3}
 
-                🔍 [PRODUTO IDENTIFICADO PELO SCANNER]:
-                - Nome Comercial: {scan_v92.get('nome_pt')}
+                🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
+                - Produto/Kit: {scan_v92.get('nome_pt')}
                 - Quantidade Exata de Unidades na Foto: {scan_v92.get('qtd')} unidade(s)
                 - Tipo de Embalagem/Peça: {scan_v92.get('tipo_embalagem')}
+                - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NOS PRIMEIROS 2 SEGUNDOS!): {scan_v92.get('dor_pt')}
+                - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_v92.get('solucao_pt')}
+                - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_v92}
                 - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_v92.get('regra_pos_img')}
                 - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_v92.get('regra_pos_vid')}
 
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
-                1. Siga os Gabaritos V9.2 da Parte B do Banco de Memória 17.3 (Varanda Tropical, Cachoeira com Borboletas, Cozinha de Batalha, Tempestade, etc.).
-                2. NÃO descreva as cores do rótulo: exija apenas `the EXACT product(s) from the reference image — copy 100% intact`.
+                1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com o lote secreto vazado na sacolinha!
+                2. Sorteie um cenário rico em natureza/plantas, baguncinha reativa e animal vivo do Banco de Memória 17.3 (sem repetir sempre o mesmo).
                 3. Se houverem {scan_v92.get('qtd')} unidades na foto, ela segura APENAS 1 unidade na mão e as outras ficam apoiadas na bancada ao lado dela do segundo 0:00 até o fim!
                 4. Inclua a Finalização P1 Blindada aos `0:09-0:10` com o Glitch Digital Vermelho da logo `'{logo_ativa_usuario}'` e corte seco para `SOLID BLACK FRAME`.
 
@@ -2166,18 +2192,18 @@ if btn_gerar_v92 and pode_gerar_roteiro:
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS USANDO UM DOS 10 GANCHOS DO BANCO DE MEMÓRIA 17.3 SOBRE '{scan_v92.get('nome_pt')}', FECHANDO COM O LOTE SECRETO NA SACOLINHA E ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS (35 A 45 PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM O LOTE SECRETO VAZADO NA SACOLINHA, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
-                "⚠️ [PERGUNTA CURTA DE IMPACTO SOBRE A DOR]? 🛑"
-                "[BENEFÍCIO PRINCIPAL DO PRODUTO] ✨"
+                "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
+                "[SENSAÇÃO / RESULTADO IMEDIATO] ✨"
                 "CORRE NA SACOLINHA 🛒👇"
 
                 Finalização P1 Blindada:
                 Glitch digital vermelho violento com a logo '{logo_ativa_usuario}' no milésimo final, seguido de corte seco imediato para o quadro preto absoluto.
 
                 ### 🔑 TÍTULOS SEO (Separados)
-                **🔍 Geral (Dor):** [Título SEO Geral em português focado na dor/solução]
+                **🔍 Geral (Dor):** [Título SEO Geral em português focado na dor '{scan_v92.get('dor_pt')}']
                 **💡 Solução (Produto):** [Título SEO Solução em português descrevendo o produto/kit completo]
                 **🏷️ Marca (Resenha):** [Título SEO De Marca em português com nome exato do produto/kit e marca]
                 """
@@ -2188,11 +2214,11 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 resp_v92 = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Siga 100% o Banco de Memória 17.3. Nunca descreva cores de rótulos com colchetes técnicos e nunca mande segurar 3 potes nas mãos ao mesmo tempo (apenas 1 na mão e os outros parados na bancada). Escreva toda a descrição visual em inglês puro."},
+                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Siga 100% o Banco de Memória 17.3."},
                         {"role": "user", "content": instrucao_v92}
                     ],
                     max_tokens=4096,
-                    temperature=0.78
+                    temperature=0.82
                 )
 
                 conteudo_v92 = resp_v92.choices[0].message.content.strip()
@@ -2203,7 +2229,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     try: aba_limites.append_row([email_sessao, "Sim_V92"])
                     except Exception: pass
 
-                st.success(f"🔥 Pacote Criação V9.2 (Molde 17.3 + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
+                st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
