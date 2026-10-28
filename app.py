@@ -1572,6 +1572,132 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     """
     components.html(html_btn, height=45)
 
+def render_microfone_diretrizes_youtube():
+    """
+    Microfone estilo YouTube/Google (Web Speech API):
+    Ao clicar e falar, transcreve em tempo real e injeta diretamente na caixa de texto 'Diretrizes / O que você quer no vídeo?'.
+    """
+    html_mic = """
+    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -6px; margin-bottom: 6px;">
+        <button id="btn_mic_yt" onclick="toggleDictation()" style="
+            background: linear-gradient(135deg, #161B24 0%, #0F131A 100%);
+            color: #00E5FF;
+            border: 1.5px solid #00E5FF;
+            border-radius: 50px;
+            padding: 6px 14px;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
+            transition: all 0.25s ease;
+        ">
+            <span id="mic_icon" style="font-size: 15px;">🎙️</span>
+            <span id="mic_text">Falar Diretrizes (Voz Automática)</span>
+        </button>
+        <span id="mic_status" style="font-family: 'Montserrat', sans-serif; font-size: 11px; color: #94A3B8;"></span>
+    </div>
+
+    <script>
+    let recognition = null;
+    let isListening = false;
+
+    function encontrarTextareaDiretrizes() {
+        const parentDoc = window.parent.document;
+        const textareas = parentDoc.querySelectorAll('textarea');
+        for (let ta of textareas) {
+            if (ta.placeholder && ta.placeholder.includes("Quero que ela mostre a textura")) {
+                return ta;
+            }
+            if (ta.getAttribute('aria-label') && ta.getAttribute('aria-label').includes("Diretrizes")) {
+                return ta;
+            }
+        }
+        return textareas.length > 0 ? textareas[0] : null;
+    }
+
+    function injetarTextoNoStreamlit(ta, novoTexto) {
+        if (!ta) return;
+        const textoAtual = ta.value ? ta.value.trim() + " " : "";
+        const textoFinal = textoAtual + novoTexto.trim();
+        const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
+        nativeTextAreaValueSetter.call(ta, textoFinal);
+        ta.dispatchEvent(new Event('input', { bubbles: true }));
+        ta.dispatchEvent(new Event('change', { bubbles: true }));
+        ta.focus();
+    }
+
+    function toggleDictation() {
+        const btn = document.getElementById('btn_mic_yt');
+        const txt = document.getElementById('mic_text');
+        const status = document.getElementById('mic_status');
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+        if (!SpeechRecognition) {
+            status.innerHTML = "⚠️ Use o microfone abaixo ou navegador Chrome/Edge.";
+            status.style.color = "#FFD700";
+            return;
+        }
+
+        if (isListening && recognition) {
+            recognition.stop();
+            return;
+        }
+
+        recognition = new SpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.continuous = false;
+
+        recognition.onstart = function() {
+            isListening = true;
+            btn.style.background = "linear-gradient(135deg, #FF0040 0%, #990026 100%)";
+            btn.style.borderColor = "#FF0040";
+            btn.style.color = "#FFFFFF";
+            btn.style.boxShadow = "0 0 18px rgba(255, 0, 64, 0.6)";
+            txt.innerHTML = "🔴 Ouvindo... (Clique para parar)";
+            status.innerHTML = "Pode falar agora...";
+            status.style.color = "#00FF9D";
+        };
+
+        recognition.onresult = function(event) {
+            let transcript = "";
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    transcript += event.results[i][0].transcript;
+                }
+            }
+            if (transcript) {
+                const ta = encontrarTextareaDiretrizes();
+                injetarTextoNoStreamlit(ta, transcript);
+                status.innerHTML = "✅ Texto inserido! (Aperte Enter ou clique fora da caixa)";
+                status.style.color = "#00FF9D";
+            }
+        };
+
+        recognition.onerror = function(event) {
+            status.innerHTML = "⚠️ Permita o microfone no navegador.";
+            status.style.color = "#FF2E54";
+        };
+
+        recognition.onend = function() {
+            isListening = false;
+            btn.style.background = "linear-gradient(135deg, #161B24 0%, #0F131A 100%)";
+            btn.style.borderColor = "#00E5FF";
+            btn.style.color = "#00E5FF";
+            btn.style.boxShadow = "0 0 12px rgba(0, 229, 255, 0.25)";
+            txt.innerHTML = "Falar Diretrizes (Voz Automática)";
+        };
+
+        recognition.start();
+    }
+    </script>
+    """
+    components.html(html_mic, height=44)
+
 def extrair_blocos_roteiro(md_texto):
     dados = {
         "prompt_imagem": "",
@@ -1721,6 +1847,11 @@ if not E_O_CEO and robo_sheets:
             if usos_feitos >= 3: pode_gerar_roteiro = False
     except Exception: pass
 
+if "txt_diretrizes_360" not in st.session_state:
+    st.session_state["txt_diretrizes_360"] = ""
+if "ultimo_hash_mic_360" not in st.session_state:
+    st.session_state["ultimo_hash_mic_360"] = None
+
 with st.container(border=True):
     col_sel1, col_sel2 = st.columns(2)
     with col_sel1:
@@ -1750,11 +1881,14 @@ with st.container(border=True):
         with col_img: 
             img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
         with col_dados:
+            # Microfone ao vivo estilo YouTube/Google que escreve direto na caixa abaixo
+            render_microfone_diretrizes_youtube()
+            
             explicacao_video_usuario = st.text_area(
                 "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
                 placeholder="Ex: Quero que ela mostre a textura do produto, foque nos detalhes ou fale com tom de segredo...",
                 height=115,
-                help="Se você deixar em branco, a máquina puxará automaticamente um exemplo do Banco de Memória 17.3!",
+                help="Clique no botão '🎙️ Falar Diretrizes' acima para ditar por voz igual no YouTube/Google, ou digite manualmente!",
                 key="txt_diretrizes_360"
             )
             btn_gerar_roteiro = False
@@ -2028,7 +2162,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) and a small black wireless lapel microphone clipped to her collar]. Her hair/skin is the ultimate proof of the product: ultra-hydrated, glowing, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, heavy sensor noise, 8k resolution.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch natural light flares/mist from the environment. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product(s) against the background: {scan_v92.get('regra_pos_vid')}. [CRITICAL: 1:1 real-world scale, strictly realistic compact product size fitting comfortably in hand, exact match to reference, do not oversize]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The item(s) remain perfectly solid with micro-reflections bouncing off the surface as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid lid/pump trigger of the unit held twice to emphasize its mechanism (or performs A Andadinha + Puxadinha if apparel). NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (straight bangs, wireless lapel mic on collar, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, intensely serious expression of pure warning, making soul-piercing eye contact while {scan_v92.get('regra_pos_vid')}. [ENVIRONMENT REINFORCEMENT LOCK V9]: [CLONE EM INGLÊS TODOS OS DETALHES DO CENÁRIO DA IMAGEM, PLANTAS, BAGUNCINHA E O ANIMAL SE MEXENDO NO FUNDO]. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo '{logo_ativa_usuario}' appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME. Clean screen, 8k resolution.]
+                [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style, 100% real-life visceral texture. The extreme edges of the camera lens catch natural light flares/mist from the environment. [ABSOLUTE PLATFORM UI BAN]: ZERO TikTok or social media interface overlays, ZERO watermarks, ZERO usernames at any second of the video. FOCO REVERSO (0-4s): Video starts with a violent Macro Zoom In exclusively on the EXACT reference product(s) against the background: {scan_v92.get('regra_pos_vid')}. [CRITICAL: 1:1 real-world scale, strictly realistic compact product size fitting comfortably in hand, exact match to reference, do not oversize]. [ABSOLUTE PIXEL-PERFECT CLONE LOCK & PHYSICS]: The item(s) remain perfectly solid with micro-reflections bouncing off the surface as sunlight hits them. SINGLE MOTION TRICK (The Trigger Tap V9): Her clean free index finger performs a deliberate micro-tap on the solid lid/pump trigger of the unit held twice to emphasize its mechanism (or performs A Andadinha + Puxadinha if apparel). NO hand overlapping, absolute physics stability, NO pixel melting. 0:05: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (straight bangs, wireless lapel mic on collar, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaves with heavy, urgent breathing, her pupils are visibly dilated, and she flashes a breathless, intensely serious expression of pure warning, making soul-piercing eye contact while {scan_v92.get('regra_pos_vid')}. [ENVIRONMENT REINFORCEMENT LOCK V9]: [CLONE EM INGLÊS TODOS OS DETALHES DO CENÁRIO DA IMAGEM, PLANTAS, BAGUNCINHA E O ANIMAL SE MEXENDO NO FUNDO]. 0:08: [CRITICAL PHYSICS & CTA LOCK]: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location. 0:09-0:10: [FINALIZAÇÃO P1 BLINDADA]: A violent red digital glitch effect flashes across the screen with the custom logo '{logo_ativa_usuario}' appearing in the center. AT THE EXACT MILLISECOND 0:10, the video cuts instantly to absolute SOLID BLACK FRAME. Clean screen, 8k resolution.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
