@@ -1,3 +1,4 @@
+# ÉLÉVO V16 — interface premium, autenticação Google opcional, isolamento de sessão e limites de IA.
 import base64
 import requests
 import time
@@ -25,12 +26,14 @@ import secrets
 from streamlit_cookies_manager import EncryptedCookieManager
 import io
 import json
+import html as html_std
+from zoneinfo import ZoneInfo
 from gtts import gTTS
 
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V6.0 - SaaS VIP)
 # ==========================================================
-st.set_page_config(page_title="ÉLÉVO | Painel de Vendas", page_icon="🦅", layout="wide")
+st.set_page_config(page_title="ÉLÉVO | Intelligence Studio", page_icon="🦅", layout="wide", initial_sidebar_state="collapsed")
 
 try:
     CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
@@ -41,6 +44,7 @@ except KeyError:
 
 def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
     try:
+        validar_cota_ia()
         response = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -50,8 +54,8 @@ def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégi
             temperature=0.7
         )
         return response.choices[0].message.content.replace("*", "").strip()
-    except Exception as e:
-        return f"ERRO_API: {str(e)}"
+    except Exception:
+        return "ERRO_API: Não foi possível concluir a solicitação de IA. Verifique sua cota e a conexão."
 
 @st.cache_resource
 def conectar_robo():
@@ -87,7 +91,34 @@ if not cookies.ready():
     st.stop()
 
 if "usuario_logado" not in st.session_state:
-    st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="")
+    st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
+
+# Remover dados pessoais/transitórios SEM alterar o banco persistente por Gmail.
+# Não usar apenas usuario_logado=False: o Streamlit conserva session_state.
+SESSAO_DADOS_PRIVADOS = {
+    "historico_viva_voz", "ultimo_audio_b64", "ultimo_hash_audio",
+    "historico_v11_cenas", "historico_v11_ganchos", "roteiro_temporario",
+    "influencer_atual", "email_inf_carregado", "dados_prontos",
+    "ultimo_feedback_analisado", "ultima_taxa_conversao", "txt_diretrizes_360",
+    "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
+    "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
+    "bv_recarregamento_login", "google_pendente", "google_erro",
+}
+
+def limpar_sessao_privada():
+    for chave in list(st.session_state.keys()):
+        if chave in SESSAO_DADOS_PRIVADOS or chave.startswith(("missao_", "input_", "audio_input_", "bv_login_")):
+            st.session_state.pop(chave, None)
+
+def ativar_identidade(email, nome, metodo):
+    identidade_anterior = str(st.session_state.get("email_usuario", "")).strip().lower()
+    if identidade_anterior and identidade_anterior != email.strip().lower():
+        limpar_sessao_privada()
+    st.session_state.update(
+        usuario_logado=True, email_usuario=email.strip().lower(),
+        nome_usuario=nome.strip() or "Usuário", auth_metodo=metodo,
+    )
+
 
 def senha_hash(senha, salt=None):
     salt = salt or secrets.token_bytes(16)
@@ -130,7 +161,10 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
         return None
 
 def criar_token(email):
-    payload = json.dumps({"email": email.strip().lower(), "versao": 1}, separators=(",", ":")).encode()
+    # Expiração de 30 dias para impedir sessões de senha indefinidas.
+    payload = json.dumps({"email": email.strip().lower(), "versao": 2,
+                          "exp": int(time.time()) + (30 * 24 * 3600)},
+                         separators=(",", ":")).encode()
     dado = base64.urlsafe_b64encode(payload).decode().rstrip("=")
     assinatura = hmac.new(AUTH_COOKIE_PASSWORD.encode(), dado.encode(), hashlib.sha256).hexdigest()
     return dado + "." + assinatura
@@ -141,13 +175,17 @@ def ler_token(token):
         esperado = hmac.new(AUTH_COOKIE_PASSWORD.encode(), dado.encode(), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(assinatura, esperado): return ""
         payload = json.loads(base64.urlsafe_b64decode(dado + "=" * (-len(dado) % 4)))
-        return str(payload.get("email", "")).strip().lower() if payload.get("versao") == 1 else ""
+        # Tokens v1 não tinham validade: solicitar um novo login com senha.
+        if payload.get("versao") != 2 or not int(time.time()) < int(payload.get("exp", 0)):
+            return ""
+        return str(payload.get("email", "")).strip().lower()
     except Exception:
         return ""
 
 def entrar_usuario(email, nome):
+    limpar_sessao_privada()
     st.session_state.update(
-        usuario_logado=True, email_usuario=email, nome_usuario=nome,
+        usuario_logado=True, email_usuario=email, nome_usuario=nome, auth_metodo="senha",
         # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
         # sem exigir F5 nem reaproveitar o estado de outro utilizador.
         email_bv_verificado="", mostrar_player_bv=False,
@@ -158,19 +196,130 @@ def entrar_usuario(email, nome):
     cookies["login"] = criar_token(email)
     cookies.save()
 
+# ==========================================================
+# AUTENTICAÇÃO OPCIONAL GOOGLE (OIDC, sem acessar o Google Flow)
+# Configurar [auth] e [auth.google] nos Secrets (ver guia do pacote).
+# st.login valida ID token; autorização vem do cadastro e vínculo salvo.
+# ==========================================================
+def google_habilitado():
+    try:
+        configuracao = st.secrets.get("auth", {})
+        provedor = configuracao.get("google", {})
+        return bool(configuracao.get("cookie_secret") and configuracao.get("redirect_uri")
+                    and provedor.get("client_id") and provedor.get("client_secret")
+                    and provedor.get("server_metadata_url"))
+    except (AttributeError, KeyError, TypeError):
+        return False
+
+GOOGLE_ATIVO = google_habilitado()
+
+def google_identidade_atual():
+    """Somente Google autenticado/validado e com e-mail verificado."""
+    if not GOOGLE_ATIVO or not st.user.is_logged_in:
+        return None
+    ident = st.user
+    email = str(ident.get("email", "")).strip().lower()
+    sub = str(ident.get("sub", "")).strip()
+    email_confirmado = ident.get("email_verified", False) in (True, "true", "True", "1", 1)
+    if not sub or not email_confirmado or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        return None
+    return {"email": email, "sub": sub, "nome": str(ident.get("name", "")).strip() or email.split("@")[0]}
+
+
+def _aba_google_vinculos():
+    if not robo_sheets:
+        raise RuntimeError("Banco de dados indisponível")
+    planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
+    try:
+        return planilha.worksheet("Google_Vinculos")
+    except gspread.exceptions.WorksheetNotFound:
+        aba = planilha.add_worksheet(title="Google_Vinculos", rows="1000", cols="4")
+        aba.append_row(["Google_Sub", "Email_Google", "Email_Conta", "Criado_Em"])
+        return aba
+
+
+def buscar_vinculo_google(ident):
+    """Não confundir e-mail Google com autorização; o vínculo usa sub."""
+    registros = _aba_google_vinculos().get_all_records()
+    correspondencias = [r for r in registros if str(r.get("Google_Sub", "")) == ident["sub"]]
+    if len(correspondencias) != 1:
+        return None
+    registro = correspondencias[0]
+    if str(registro.get("Email_Google", "")).strip().lower() != ident["email"]:
+        return None
+    return str(registro.get("Email_Conta", "")).strip().lower()
+
+
+def gravar_vinculo_google(ident, email_conta):
+    email_conta = email_conta.strip().lower()
+    if ident["email"] != email_conta:
+        raise ValueError("Por segurança, a conta Google precisa usar o mesmo e-mail do cadastro.")
+    aba = _aba_google_vinculos()
+    registros = aba.get_all_records()
+    for r in registros:
+        if str(r.get("Google_Sub", "")) == ident["sub"]:
+            return str(r.get("Email_Conta", "")).strip().lower() == email_conta
+        if str(r.get("Email_Conta", "")).strip().lower() == email_conta:
+            raise ValueError("Esta conta já está vinculada a outro Google.")
+    aba.append_row([ident["sub"], ident["email"], email_conta,
+                    datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")])
+    return True
+
+
+def usuario_cadastrado_por_email(email):
+    if email == EMAIL_MESTRE.strip().lower():
+        return {"Email": EMAIL_MESTRE, "Nome": "Sócio", "Senha": ""}
+    usuarios = conectar_banco_usuarios("ler")
+    if usuarios is None:
+        raise RuntimeError("Não foi possível consultar os cadastros. Tente novamente.")
+    return next((u for u in usuarios if str(u.get("Email", "")).strip().lower() == email), None)
+
+
+def entrar_com_google_vinculado(ident):
+    email_vinculado = buscar_vinculo_google(ident)
+    if not email_vinculado:
+        return False
+    conta = usuario_cadastrado_por_email(email_vinculado)
+    if not conta:
+        return False  # Cadastro removido / revogado.
+    ativar_identidade(email_vinculado, str(conta.get("Nome", "Usuário")), "google")
+    return True
+
+ident_google = google_identidade_atual() if GOOGLE_ATIVO else None
+if GOOGLE_ATIVO and st.user.is_logged_in:
+    # Identidade Google assume precedência, NUNCA herda a sessão de outro Gmail.
+    if not ident_google:
+        st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
+        st.session_state["google_erro"] = "Conta Google sem identidade ou e-mail verificado."
+    else:
+        try:
+            if not entrar_com_google_vinculado(ident_google):
+                if st.session_state.get("email_usuario") != ident_google["email"]:
+                    limpar_sessao_privada()
+                st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
+                st.session_state["google_pendente"] = True
+                st.session_state.pop("google_erro", None)
+            else:
+                st.session_state.pop("google_pendente", None)
+                st.session_state.pop("google_erro", None)
+        except Exception:
+            st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
+            st.session_state["google_erro"] = "Não foi possível validar o vínculo Google no banco. Acesso não liberado."
+
 # Códigos antigos ?sessao=... eram falsificáveis: eliminar e nunca aceitá-los.
 if "sessao" in st.query_params:
     del st.query_params["sessao"]
-if not st.session_state["usuario_logado"] and cookies.get("login"):
+if (not st.session_state["usuario_logado"] and cookies.get("login")
+        and not (GOOGLE_ATIVO and st.user.is_logged_in)):
     email_cookie = ler_token(cookies.get("login", ""))
     if email_cookie == EMAIL_MESTRE.strip().lower():
-        st.session_state.update(usuario_logado=True, email_usuario=EMAIL_MESTRE, nome_usuario="Sócio")
+        ativar_identidade(EMAIL_MESTRE, "Sócio", "senha")
     elif email_cookie:
         registros = conectar_banco_usuarios("ler")
         if registros is not None:
             usuario = next((u for u in registros if str(u.get("Email", "")).strip().lower() == email_cookie), None)
             if usuario:
-                st.session_state.update(usuario_logado=True, email_usuario=email_cookie, nome_usuario=str(usuario.get("Nome", "Usuário")))
+                ativar_identidade(email_cookie, str(usuario.get("Nome", "Usuário")), "senha")
     if not st.session_state["usuario_logado"]:
         cookies.pop("login", None)
         cookies.save()
@@ -258,6 +407,55 @@ if not st.session_state["usuario_logado"]:
     with col2:
         with st.container(border=True):
             st.markdown('<div class="elevo-login-card-mark">IDENTIFICAÇÃO SEGURA • ÉLÉVO</div>', unsafe_allow_html=True)
+            if GOOGLE_ATIVO and ident_google and st.session_state.get("google_pendente"):
+                st.markdown("### 🔗 Finalizar acesso com Google")
+                st.info(f"Google autenticado: **{ident_google['email']}**. Confirme o vínculo ou crie seu primeiro acesso.")
+                try:
+                    conta_google_atual = usuario_cadastrado_por_email(ident_google["email"])
+                    if conta_google_atual:
+                        st.caption("Este e-mail já possui conta ÉLÉVO. Confirme a senha atual para vincular com segurança.")
+                        with st.form("vinculo_google_seguro"):
+                            senha_de_vinculo = st.text_input("Senha atual da sua conta ÉLÉVO", type="password")
+                            confirmar_vinculo = st.form_submit_button("🔗 Vincular minha conta Google", use_container_width=True)
+                        if confirmar_vinculo:
+                            senha_ok = (hmac.compare_digest(senha_de_vinculo, SENHA_MESTRA)
+                                        if ident_google["email"] == EMAIL_MESTRE.strip().lower()
+                                        else senha_confere(senha_de_vinculo, conta_google_atual.get("Senha", "")))
+                            if senha_ok and senha_de_vinculo:
+                                try:
+                                    if gravar_vinculo_google(ident_google, ident_google["email"]):
+                                        ativar_identidade(ident_google["email"], str(conta_google_atual.get("Nome", "Usuário")), "google")
+                                        st.rerun()
+                                except Exception:
+                                    st.error("Não foi possível gravar o vínculo. Tente novamente.")
+                            else:
+                                st.error("Senha atual inválida. Vínculo não autorizado.")
+                    else:
+                        st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
+                        if st.button("✨ Criar meu acesso com Google", use_container_width=True):
+                            try:
+                                # Senha aleatória não entregue ao usuário; login por OIDC.
+                                # Primeiro registra o vínculo. Se o cadastro de usuário
+                                # falhar, a mesma identidade Google poderá concluir depois.
+                                if not gravar_vinculo_google(ident_google, ident_google["email"]):
+                                    raise RuntimeError("Falha ao vincular")
+                                cadastrado = conectar_banco_usuarios("salvar", ident_google["email"], ident_google["nome"], secrets.token_urlsafe(48))
+                                if not cadastrado:
+                                    raise RuntimeError("Falha ao criar conta")
+                                ativar_identidade(ident_google["email"], ident_google["nome"], "google")
+                                st.rerun()
+                            except Exception:
+                                st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
+                except Exception:
+                    st.error("O banco de usuários está indisponível. Acesso Google não foi liberado.")
+                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente"):
+                    st.logout()
+                st.stop()
+            if st.session_state.get("google_erro"):
+                st.error(st.session_state["google_erro"])
+                if st.button("Sair da conta Google atual"):
+                    st.logout()
+                st.stop()
             aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
             with aba_login:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
@@ -269,7 +467,7 @@ if not st.session_state["usuario_logado"]:
                 
                 if submit_login:
                     email_clean = email_input.strip().lower()
-                    if email_clean == EMAIL_MESTRE and senha_input == SENHA_MESTRA:
+                    if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
                         entrar_usuario(EMAIL_MESTRE, "Sócio")
                         if not lembrar_dados: cookies.pop("login", None); cookies.save()
                         st.rerun()
@@ -287,6 +485,12 @@ if not st.session_state["usuario_logado"]:
                                 else: st.error("🚨 Conta não encontrada ou senha incorreta!")
                             else: st.error("🚨 Erro de conexão com o banco de dados.")
                     else: st.warning("⚠️ Preencha o e-mail e a senha.")
+                if GOOGLE_ATIVO:
+                    st.caption("────────── ou ──────────")
+                    if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
+                        st.login("google")
+                else:
+                    st.caption("🔒 Acesso Google disponível após configurar OAuth nos Secrets.")
 
             with aba_cadastro:
                 st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
@@ -296,7 +500,9 @@ if not st.session_state["usuario_logado"]:
                 if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
                     email_clean = novo_email.strip().lower()
                     if not novo_nome or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
-                    elif email_clean == EMAIL_MESTRE: st.error("🚨 Este e-mail é reservado ao CEO.")
+                    elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
+                    elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
+                    elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
                     else:
                         with st.spinner("A forjar a sua conta..."):
                             usuarios = conectar_banco_usuarios("ler")
@@ -337,6 +543,40 @@ if bv_nonce_refresh:
     if st.button("▶ Continuar para o painel", key="bv_login_continuar_fallback"):
         st.rerun()
     st.stop()
+
+# ==========================================================
+# LIMITE GERAL DE CONSUMO DE IA — custos previsíveis por conta / dia.
+# As 3 criações gratuitas são um limite SEPARADO, mantido como antes.
+# Sheets não oferece transação atômica: para SaaS em escala usar banco com
+# transações e rate limit no servidor/provedor de API.
+# ==========================================================
+def validar_cota_ia():
+    email = str(st.session_state.get("email_usuario", "")).strip().lower()
+    if not email or not st.session_state.get("usuario_logado"):
+        raise RuntimeError("Faça login para usar a inteligência artificial.")
+    if email == EMAIL_MESTRE.strip().lower():
+        return
+    if not robo_sheets:
+        raise RuntimeError("Controle de consumo indisponível; tente novamente.")
+    try:
+        max_dia = max(1, int(st.secrets.get("LIMITE_IA_DIARIO", 30)))
+        planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
+        try:
+            aba = planilha.worksheet("Consumo_IA_Diario")
+        except gspread.exceptions.WorksheetNotFound:
+            aba = planilha.add_worksheet(title="Consumo_IA_Diario", rows="2000", cols="3")
+            aba.append_row(["Email", "Data", "Tipo"])
+        hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
+        usados = sum(1 for r in aba.get_all_records()
+                     if str(r.get("Email", "")).strip().lower() == email and str(r.get("Data", "")) == hoje)
+        if usados >= max_dia:
+            raise RuntimeError(f"Limite de {max_dia} operações de IA atingido hoje. Volte amanhã.")
+        # Reserva antes da requisição para evitar consumo livre em caso de falha.
+        aba.append_row([email, hoje, "IA"])
+    except RuntimeError:
+        raise
+    except Exception:
+        raise RuntimeError("Não foi possível validar a cota de IA. Tente novamente.")
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
@@ -601,6 +841,104 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# ==========================================================
+# ÉLÉVO STUDIO V16 | DIREÇÃO DE ARTE: DASHBOARD ESCURO PREMIUM
+# Sidebar desktop / navegação horizontal responsiva no mobile.
+# Não altera a execução dos módulos existentes.
+# ==========================================================
+cor_fundo_studio = "#F4F7FC" if modo_claro else "#0A1020"
+cor_cartao_studio = "#FFFFFF" if modo_claro else "#101B30"
+cor_texto_studio = "#15213B" if modo_claro else "#E7EDF8"
+cor_secundaria_studio = "#64748B" if modo_claro else "#94A6C5"
+cor_borda_studio = "rgba(23,45,82,.13)" if modo_claro else "rgba(118,160,232,.15)"
+st.markdown(f"""
+<style>
+  :root {{color-scheme:{'light' if modo_claro else 'dark'};}}
+  [data-testid="stAppViewContainer"] {{background:{cor_fundo_studio}!important;}}
+  .block-container {{max-width:1480px!important; padding:1.15rem 2rem 4rem!important;}}
+  h1,h2,h3,h4,h5,h6,p,label,li {{color:{cor_texto_studio}!important;}}
+  [data-testid="stCaptionContainer"] p {{color:{cor_secundaria_studio}!important;}}
+  [data-testid="stVerticalBlockBorderWrapper"],[data-testid="stMetric"],
+  [data-testid="stForm"],[data-testid="stExpander"] {{
+    background:{cor_cartao_studio}!important;
+    background-image:none!important; border:1px solid {cor_borda_studio}!important;
+    border-radius:18px!important; box-shadow:0 8px 24px rgba(3,12,28,.11)!important;
+    backdrop-filter:none!important;}}
+  [data-testid="stMetricValue"] div {{color:{'#1363D6' if modo_claro else '#E7F0FF'}!important;}}
+  [data-testid="stMetricLabel"] p {{font-weight:650!important;}}
+  [data-testid="stFormSubmitButton"] button[kind="primary"],.stButton>button[kind="primary"] {{
+    border-color:#367DFF!important; background:linear-gradient(115deg,#1A66E9,#3187FB)!important;
+    box-shadow:0 6px 20px rgba(34,107,242,.20)!important;}}
+  [data-baseweb="tab-list"] {{background:{'rgba(31,76,135,.06)' if modo_claro else '#15233B'}!important;}}
+  [data-baseweb="tab"] {{border-radius:10px!important;}}
+  .elevo-sidebar {{position:fixed;left:0;top:0;bottom:0;width:224px;z-index:99991;
+    background:{'#EAF0F8' if modo_claro else '#0C1628'};border-right:1px solid {cor_borda_studio};
+    padding:25px 15px;overflow-y:auto; box-shadow:5px 0 24px rgba(0,0,0,.04);}}
+  .elevo-sidebar .marca {{font:900 1.38rem Montserrat,sans-serif;letter-spacing:.08em;color:{cor_texto_studio};padding:0 12px 18px;}}
+  .elevo-sidebar .marca small {{font:600 .56rem Montserrat,sans-serif;letter-spacing:.17em;color:{cor_secundaria_studio};display:block;margin-top:4px;}}
+  .elevo-sidebar .secao {{font:700 .62rem Montserrat,sans-serif;letter-spacing:.13em;color:{cor_secundaria_studio};margin:25px 10px 8px;}}
+  .elevo-sidebar a {{display:flex;align-items:center;gap:10px;padding:12px;border-radius:11px;
+    color:{cor_secundaria_studio};text-decoration:none;font:600 .81rem Montserrat,sans-serif;transition:background .16s;}}
+  .elevo-sidebar a:hover,.elevo-sidebar a:focus {{background:rgba(48,132,255,.16);color:{cor_texto_studio};}}
+  .elevo-sidebar a.principal {{background:linear-gradient(110deg,#154FAE,#226CE1);color:white;}}
+  .elevo-dash-header {{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap;
+    background:linear-gradient(120deg,{'#EEF4FF,#FFFFFF' if modo_claro else '#111F39,#112B46'});
+    border:1px solid {cor_borda_studio};border-radius:19px;padding:24px 29px;margin:0 0 24px;}}
+  .elevo-kpi-grid {{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px;margin-bottom:21px;}}
+  .elevo-kpi {{border:1px solid rgba(111,164,230,.15);border-radius:15px;
+    padding:17px 18px;background:linear-gradient(135deg,{('#FFFFFF,#F8FAFF' if modo_claro else '#111F35,#0D192D')});}}
+  .elevo-kpi .kpi-label {{display:block;color:{cor_secundaria_studio};font-size:.72rem;font-weight:650;margin:0 0 12px;}}
+  .elevo-kpi .kpi-value {{font-size:clamp(1.1rem,2vw,1.65rem);letter-spacing:-.035em;
+    font-weight:850;color:{cor_texto_studio};margin-bottom:5px;overflow-wrap:anywhere;}}
+  .elevo-kpi .kpi-caption {{font-size:.68rem;color:{cor_secundaria_studio};}}
+  .elevo-shortcut-grid {{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:9px 0 28px;}}
+  .elevo-shortcut-grid a {{text-decoration:none;color:{cor_texto_studio};background:{cor_cartao_studio};
+    border:1px solid {cor_borda_studio};border-radius:15px;padding:18px 15px;display:block;font-weight:750;
+    transition:transform .16s, border-color .16s;}}
+  .elevo-shortcut-grid a:hover {{transform:translateY(-2px);border-color:#388AFF;}}
+  .elevo-shortcut-grid span {{display:block;color:{cor_secundaria_studio};font-weight:400;font-size:.72rem;margin-top:5px;}}
+  .elevo-dash-header h1 {{font-size:clamp(1.45rem,3.5vw,2.25rem);letter-spacing:-.02em;margin:3px 0 8px!important;
+    line-height:1.12;color:{cor_texto_studio}!important;}}
+  .elevo-dash-header p {{font-size:.88rem;color:{cor_secundaria_studio}!important;margin:0;}}
+  .elevo-kicker {{font-weight:800;font-size:.67rem;letter-spacing:.13em;color:#5AA8FF;}}
+  .elevo-status-chip {{display:inline-flex;align-items:center;gap:7px;border:1px solid rgba(71,220,169,.26);
+    padding:9px 13px;border-radius:100px;color:{'#16744B' if modo_claro else '#70E2BD'};
+    background:rgba(33,180,133,.07);font:700 .69rem Montserrat,sans-serif;}}
+  .elevo-v13-panel-title {{color:{'#1262BC' if modo_claro else '#8CBFFF'}!important;}}
+  .elevo-v13-led {{background:#4DB4FF;box-shadow:0 0 10px rgba(63,156,255,.34);}}
+  div[data-testid="stPlotlyChart"] {{border-radius:14px;overflow:hidden;}}
+  #elevo-dashboard-top,#painel,#missoes,#radar,#aurora,#criacao,#academia {{scroll-margin-top:75px;}}
+  @media(min-width:1000px) {{
+    [data-testid="stMainBlockContainer"],.block-container {{margin-left:224px!important;
+      width:calc(100% - 224px)!important;max-width:calc(1480px - 224px)!important;}}
+  }}
+  @media(max-width:700px) {{.elevo-kpi-grid,.elevo-shortcut-grid {{grid-template-columns:1fr;}}}}
+  @media(max-width:999px) {{
+    .elevo-sidebar {{position:fixed;top:0;left:0;right:0;width:100%;height:54px;padding:8px 12px;
+      display:flex;gap:7px;align-items:center;overflow-x:auto;overflow-y:hidden;white-space:nowrap;
+      border-right:0;border-bottom:1px solid {cor_borda_studio};box-shadow:0 3px 18px rgba(0,0,0,.11);}}
+    .elevo-sidebar .marca {{font-size:.88rem;padding:0 10px 0 0;flex:0 0 auto;}}
+    .elevo-sidebar .marca small,.elevo-sidebar .secao {{display:none;}}
+    .elevo-sidebar a {{font-size:.72rem;flex:0 0 auto;padding:9px 12px;}}
+    [data-testid="stMainBlockContainer"],.block-container {{margin-left:0!important;
+      width:100%!important;padding:4.4rem .85rem 3rem!important;}}
+    .elevo-dash-header {{padding:19px 17px!important;margin-top:8px;}}
+  }}
+  @media(prefers-reduced-motion:reduce) {{*,*::before,*::after {{animation-duration:.01ms!important;transition-duration:.01ms!important;}}}}
+</style>
+<aside class="elevo-sidebar" aria-label="Navegação do ÉLÉVO">
+  <div class="marca">◈ ÉLÉVO<small>INTELLIGENCE STUDIO</small></div>
+  <div class="secao">WORKSPACE</div>
+  <a class="principal" href="#painel">▦ Visão geral</a>
+  <a href="#missoes">◷ Missões</a>
+  <a href="#radar">◈ Insights e tendências</a>
+  <a href="#aurora">✧ Aurora IA</a>
+  <div class="secao">CRIATIVIDADE</div>
+  <a href="#criacao">▣ Criação de prompts</a>
+  <a href="#academia">◉ Academia</a>
+</aside>
+""", unsafe_allow_html=True)
+# ==========================================================
 js_moeda = """
 <script>
     const parent = window.parent.document;
@@ -625,9 +963,15 @@ js_moeda = """
 </script>
 """
 components.html(js_moeda, height=0, width=0)
-st.markdown('<div id="ancora-topo"></div>', unsafe_allow_html=True)
-st.markdown('<div class="titulo-elevo">ÉLÉVO</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS</div>', unsafe_allow_html=True)
+st.markdown('<div id="ancora-topo"></div><div id="painel"></div>', unsafe_allow_html=True)
+nome_cabecalho = html_std.escape(str(st.session_state.get("nome_usuario", "Sócio")))
+st.markdown(f"""
+<section class="elevo-dash-header" aria-label="Boas-vindas ao ÉLÉVO">
+ <div><div class="elevo-kicker">PAINEL ESTRATÉGICO • ÉLÉVO V16</div>
+ <h1>Visão geral, {nome_cabecalho}</h1>
+ <p>Inteligência, criação e suas operações em um só lugar.</p></div>
+ <span class="elevo-status-chip">● PAINEL ATIVO</span>
+</section>""", unsafe_allow_html=True)
 
 # ==========================================================
 # 2.5. BOAS-VINDAS CINEMÁTICA (100% VINCULADA AO GMAIL ÚNICO)
@@ -944,16 +1288,32 @@ if E_O_CEO:
         with col_filtro: filtro_periodo = st.selectbox("📅 Filtrar Período de Vendas", ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"])
 else:
     st.info(f"Bem-vindo(a) à ÉLÉVO, {st.session_state['nome_usuario']}! A sua máquina de vendas está pronta.")
+    st.markdown("""
+    <nav class="elevo-shortcut-grid" aria-label="Acesso rápido às ferramentas">
+      <a href="#criacao">▣ Criação 360º<span>Imagem e vídeo: gerar e copiar prompts</span></a>
+      <a href="#aurora">✧ Aurora IA<span>Orientações e comandos por voz</span></a>
+      <a href="#missoes">◷ Missões<span>Hábitos e progresso</span></a>
+    </nav>""", unsafe_allow_html=True)
+
+with st.expander("🔐 Minha Conta e Google", expanded=False):
+    st.caption("Identidade atual: " + str(st.session_state.get("email_usuario", "")))
+    st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
+    if GOOGLE_ATIVO and not (st.user.is_logged_in):
+        st.info("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
+        if st.button("🌐 Vincular minha conta Google", key="btn_vincular_google_logado"):
+            st.login("google")
+    elif GOOGLE_ATIVO:
+        st.success("Conta Google autenticada. Vínculo protegido pelo identificador Google.")
+    else:
+        st.caption("O administrador ainda precisa configurar Google OAuth para liberar esta opção.")
 
 if st.button("Sair da Conta (Logout)", key="btn_logout"):
-    st.session_state["usuario_logado"] = False
-    st.session_state["email_usuario"] = ""
-    st.session_state["nome_usuario"] = ""
-    st.session_state["email_bv_verificado"] = ""
-    st.session_state["mostrar_player_bv"] = False
-    st.session_state["audio_boas_vindas_b64"] = None
     cookies.pop("login", None)
     cookies.save()
+    limpar_sessao_privada()
+    st.session_state.clear()  # inclui widgets, uploads e textos da conta anterior
+    if GOOGLE_ATIVO and st.user.is_logged_in:
+        st.logout()
     st.rerun()
 
 # ==========================================================
@@ -962,6 +1322,24 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
 def extrair_id_planilha(url):
     match = re.search(r'/d/([a-zA-Z0-9-_]+)', url)
     return match.group(1) if match else None
+
+def parse_valor_brasileiro(valor):
+    """Valores do Sheets: 1.234,56 / 1234.56 / R$ 1.234,56."""
+    if isinstance(valor, (int, float)) and not isinstance(valor, bool):
+        return float(valor)
+    texto = re.sub(r"[^0-9,.\-]", "", str(valor or ""))
+    if not texto or texto == "-":
+        return 0.0
+    if "," in texto and "." in texto:
+        # O último separador é o decimal; o outro é o de milhar.
+        decimal, milhares = (",", ".") if texto.rfind(",") > texto.rfind(".") else (".", ",")
+        texto = texto.replace(milhares, "").replace(decimal, ".")
+    elif "," in texto:
+        texto = texto.replace(",", ".")
+    try:
+        return float(texto)
+    except ValueError:
+        return 0.0
 
 @st.cache_data(ttl=300)
 def carregar_dados_dinamicos(url):
@@ -985,9 +1363,12 @@ if E_O_CEO and link_planilha_ativa:
     df = carregar_dados_dinamicos(link_planilha_ativa)
     if df.empty: df = pd.DataFrame(columns=["Data", "Produto", "Canal", "Status", "Quantidade", "Comissao_R$"])
     df.columns = df.columns.astype(str).str.strip()
-    df["Quantidade"] = pd.to_numeric(df.get("Quantidade", 0), errors="coerce").fillna(0)
-    if "Comissao_R$" in df.columns: df["Comissao_R$"] = pd.to_numeric(df["Comissao_R$"].astype(str).str.replace("R$", "", regex=False).str.replace(",", ".", regex=False).str.strip(), errors="coerce").fillna(0.0)
-    else: df["Comissao_R$"] = 0.0
+    for obrigatoria, padrao in (("Data", ""), ("Produto", "Sem nome"),
+                                ("Status", ""), ("Quantidade", 0), ("Comissao_R$", 0)):
+        if obrigatoria not in df.columns:
+            df[obrigatoria] = padrao
+    df["Quantidade"] = pd.to_numeric(df["Quantidade"], errors="coerce").fillna(0)
+    df["Comissao_R$"] = df["Comissao_R$"].apply(parse_valor_brasileiro)
     if "Data" in df.columns:
         df["Data_Limpa"] = df["Data"].astype(str).apply(lambda x: x.split(" a ")[-1].strip() if " a " in x else x.strip())
         df["Data_Parsed"] = pd.to_datetime(df["Data_Limpa"], format="%d/%m/%Y", errors="coerce").fillna(pd.to_datetime(df["Data_Limpa"], dayfirst=True, errors="coerce"))
@@ -1016,19 +1397,22 @@ if E_O_CEO and link_planilha_ativa:
             df_timeline = df_validos.groupby("Data_Parsed")["Comissao_R$"].sum().reset_index().sort_values("Data_Parsed")
             df_timeline["Data_Formatada"] = df_timeline["Data_Parsed"].dt.strftime("%d/%m")
 
-    st.markdown(f"### 📊 Faturamento: {nome_canal_ativo}")
+    st.markdown(f"### 📊 Comissões e vendas: {nome_canal_ativo}")
     aprovado_str = f"R$ {aprovado:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     pendente_str = f"R$ {pendente:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-    campeao_str = str(produto_campeao)[:12] + "..." if len(str(produto_campeao)) > 12 else str(produto_campeao)
+    campeao_str = html_std.escape(str(produto_campeao)[:12] + "..." if len(str(produto_campeao)) > 12 else str(produto_campeao))
 
     c_txt_v = "#D4AF37" if not modo_claro else "#B8860B"
     c_txt_t = "#A0A0A0" if not modo_claro else "#555555"
     st.markdown(f"""
-        <div style="display: flex; justify-content: space-between; text-align: center; margin-bottom: 20px;">
-            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">💰 Lucro</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">{aprovado_str}</p></div>
-            <div style="flex: 1; border-left: 1px solid rgba(212,175,55,0.2); border-right: 1px solid rgba(212,175,55,0.2);"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">⏳ Pendente</p><p style="margin: 0; font-size: 1.2rem; font-weight: 900; color: {c_txt_v};">{pendente_str}</p></div>
-            <div style="flex: 1;"><p style="margin: 0; font-size: 0.7rem; font-weight: 600; color: {c_txt_t}; text-transform: uppercase;">🏆 Campeão</p><p style="margin: 0; font-size: 0.9rem; font-weight: 900; color: #00E5FF; padding-top: 5px;">{campeao_str}</p></div>
-        </div>
+    <div class="elevo-kpi-grid" role="group" aria-label="Resumo das vendas e comissões">
+        <article class="elevo-kpi"><span class="kpi-label">💰 Comissões registradas</span>
+          <div class="kpi-value">{aprovado_str}</div><span class="kpi-caption">Período selecionado</span></article>
+        <article class="elevo-kpi"><span class="kpi-label">◷ Comissões pendentes</span>
+          <div class="kpi-value">{pendente_str}</div><span class="kpi-caption">Aguardando confirmação</span></article>
+        <article class="elevo-kpi"><span class="kpi-label">★ Produto campeão</span>
+          <div class="kpi-value">{campeao_str}</div><span class="kpi-caption">Maior comissão do período</span></article>
+    </div>
     """, unsafe_allow_html=True)
 
     if not df_timeline.empty and not df_campeao.empty:
@@ -1040,7 +1424,7 @@ if E_O_CEO and link_planilha_ativa:
             texto_sutil = "#475569" if modo_claro else "#94A3B8"
 
             with col_g1:
-                st.markdown('<div class="elevo-v13-panel-title"><span class="elevo-v13-led"></span> 📡 Pulso de Faturamento</div>', unsafe_allow_html=True)
+                st.markdown('<div class="elevo-v13-panel-title"><span class="elevo-v13-led"></span> 📡 Pulso de Comissões</div>', unsafe_allow_html=True)
                 st.caption("Evolução do período, sem barras: sinal contínuo e interativo.")
                 serie = df_timeline.sort_values("Data_Parsed")
                 fig_pulso = go.Figure()
@@ -1052,7 +1436,7 @@ if E_O_CEO and link_planilha_ativa:
                 ))
                 fig_pulso.add_trace(go.Scatter(
                     x=serie["Data_Parsed"], y=serie["Comissao_R$"],
-                    mode="lines+markers", name="Faturamento",
+                    mode="lines+markers", name="Comissões",
                     line=dict(color=pulso_tom, width=3.5, shape="spline", smoothing=0.45),
                     marker=dict(size=7, color=pulso_ponto, line=dict(color=fundo_tema, width=1.5)),
                     fill="tozeroy",
@@ -1177,7 +1561,7 @@ if E_O_CEO and link_planilha_ativa:
             </div>
             <h1 style="color: {cor_anim} !important; font-family: 'Montserrat', sans-serif; font-size: 3rem; font-weight: 900; margin: 4px 0; text-shadow: 0px 2px 12px {sombra_anim};">NOTA {nota_empresa}</h1>
             <h3 style="color: {txt_meio} !important; font-family: 'Montserrat', sans-serif; font-weight: 700; margin: 6px 0; font-size: 1.05rem;">{simbolo} &bull; {crescimento:+.1f}%</h3>
-            <p style="color: {txt_sub} !important; font-family: 'Montserrat', sans-serif; font-size: 0.78rem; margin-bottom: 0; font-weight: 500;">Comparativo de lucro (7 dias vs. semana anterior)</p>
+            <p style="color: {txt_sub} !important; font-family: 'Montserrat', sans-serif; font-size: 0.78rem; margin-bottom: 0; font-weight: 500;">Comparativo de comissões (7 dias vs. semana anterior)</p>
         </div>
         <style>
             @keyframes pulse-cor {{ 
@@ -1188,13 +1572,43 @@ if E_O_CEO and link_planilha_ativa:
         </style>
         """, unsafe_allow_html=True)
 
+st.markdown('<div id="missoes"></div>', unsafe_allow_html=True)
+
 # ==========================================================
 # 10. MOTOR DE ELITE (DISCIPLINA + OPORTUNIDADES EMPRESARIAIS OCULTAS 24H)
 # ==========================================================
+# Missões por usuário (não-CEO) preservadas no Sheets por Gmail.
+# Isoladas do histórico da conta master e dos dados de vendas.
+def aba_missoes_usuario():
+    if not robo_sheets:
+        raise RuntimeError("Banco indisponível")
+    planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
+    try:
+        return planilha.worksheet("Historico_Missoes_Usuarios")
+    except gspread.exceptions.WorksheetNotFound:
+        aba = planilha.add_worksheet(title="Historico_Missoes_Usuarios", rows="1000", cols="3")
+        aba.append_row(["Email", "Data", "Status"])
+        return aba
+
+
+def listar_missoes_usuario(email):
+    registros = aba_missoes_usuario().get_all_records()
+    return [r for r in registros if str(r.get("Email", "")).strip().lower() == email.strip().lower()]
+
+
+def salvar_missao_usuario(email, data):
+    aba = aba_missoes_usuario()
+    registros = aba.get_all_records()
+    if any(str(r.get("Email", "")).strip().lower() == email.strip().lower()
+           and str(r.get("Data", "")) == data for r in registros):
+        return True
+    aba.append_row([email.strip().lower(), data, "Concluída"])
+    return True
+
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🧠 Motor de Elite: Disciplina & Expansão</h3>", unsafe_allow_html=True)
 
-agora_brasil = datetime.utcnow() - timedelta(hours=3)
+agora_brasil = datetime.now(ZoneInfo("America/Sao_Paulo"))
 dia_do_ano = agora_brasil.timetuple().tm_yday
 
 frases = [
@@ -1255,6 +1669,7 @@ def buscar_oportunidade_do_dia(dt_cache, indice_tema):
             "passos": "1. **Mapeamento & Validação:** [Ação prática e cirúrgica]\\n2. **Estruturação do Ativo/Fornecedor:** [Como montar a operação sem custo alto]\\n3. **Engenharia de Tráfego & Aquisição:** [Como atrair os primeiros clientes/vendas]\\n4. **Automação & Margem:** [Como delegar ou automatizar com IA]\\n5. **Escala & Visão de Império:** [Como transformar isso em receita recorrente ou ativo vendável]"
         }}
         """
+        validar_cota_ia()
         resp = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
@@ -1278,12 +1693,20 @@ with col_m1:
     
     with st.container(border=True):
         st.markdown(f"**🚀 Oportunidade Empresarial Oculta (24h): {op_hoje.get('titulo', 'Nova Oportunidade')}**")
-        st.markdown(f"<p style='font-size: 0.92em; color: #A0A0A0; line-height: 1.5;'>{op_hoje.get('pitch', '')}</p>", unsafe_allow_html=True)
+        st.markdown(str(op_hoje.get('pitch', '')))
         with st.expander("🛠️ Ver Plano Executivo de Implementação (5 Passos)", expanded=False):
             st.markdown(f"**Mapa de Execução Estratégica:**\n\n{op_hoje.get('passos', '')}")
 
 if f"missao_{agora_brasil.strftime('%Y-%m-%d')}" not in st.session_state:
-    st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
+    missao_previamente_concluida = False
+    if not E_O_CEO:
+        try:
+            hoje_str = agora_brasil.strftime("%d/%m/%Y")
+            missao_previamente_concluida = any(str(r.get("Data", "")) == hoje_str
+                for r in listar_missoes_usuario(st.session_state["email_usuario"]))
+        except Exception:
+            st.warning("Histórico de missões indisponível. A conclusão poderá não ser registrada.")
+    st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = missao_previamente_concluida
 
 with col_m2:
     st.markdown(f"🎯 **Sua Missão de Hoje:** {missao_hoje}")
@@ -1303,23 +1726,32 @@ with col_m2:
                     hoje_str = agora_brasil.strftime("%d/%m/%Y")
                     if hoje_str not in aba_historico.col_values(1):
                         aba_historico.append_row([hoje_str, "Concluída"])
-                except Exception: pass
-            time.sleep(2)
+                except Exception:
+                    st.warning("A missão foi concluída, mas não foi possível registrar o histórico do CEO.")
+            elif not E_O_CEO:
+                try:
+                    salvar_missao_usuario(st.session_state["email_usuario"], agora_brasil.strftime("%d/%m/%Y"))
+                except Exception:
+                    st.session_state[f"missao_{agora_brasil.strftime('%Y-%m-%d')}"] = False
+                    st.error("Falha ao salvar a missão no banco. Tente novamente.")
+                    st.stop()
             st.rerun()
     else:
         st.success("Missão de Hoje Cumprida! 🦅")
 
-if E_O_CEO and link_planilha_ativa and robo_sheets:
+if robo_sheets and (not E_O_CEO or link_planilha_ativa):
     st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
     try:
-        sheet_id = extrair_id_planilha(link_planilha_ativa)
-        planilha = robo_sheets.open_by_key(sheet_id)
-        try:
-            aba_historico = planilha.worksheet("Historico_Missoes")
-            dados_hist = aba_historico.get_all_records()
-            df_hist = pd.DataFrame(dados_hist)
-        except gspread.exceptions.WorksheetNotFound:
-            df_hist = pd.DataFrame(columns=["Data", "Status"])
+        if E_O_CEO:
+            sheet_id = extrair_id_planilha(link_planilha_ativa)
+            planilha = robo_sheets.open_by_key(sheet_id)
+            try:
+                aba_historico = planilha.worksheet("Historico_Missoes")
+                df_hist = pd.DataFrame(aba_historico.get_all_records())
+            except gspread.exceptions.WorksheetNotFound:
+                df_hist = pd.DataFrame(columns=["Data", "Status"])
+        else:
+            df_hist = pd.DataFrame(listar_missoes_usuario(st.session_state["email_usuario"]))
     except Exception:
         df_hist = pd.DataFrame(columns=["Data", "Status"])
         
@@ -1425,6 +1857,8 @@ if E_O_CEO and link_planilha_ativa and robo_sheets:
         st.caption("🟢 Concluída   ·   ◼ Pendente   ·   🟨 Contorno dourado: hoje")
     else:
         st.info("Nenhum histórico de missões ainda.")
+
+st.markdown('<div id="radar"></div>', unsafe_allow_html=True)
 
 # ==========================================================
 # 11 a 13. RADAR, ENGENHARIA DE FUNIL (RAIO-X CEO), LABORATÓRIO E ROTEIROS
@@ -1534,6 +1968,8 @@ if E_O_CEO:
                                     "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}
                                 })
                         
+                        validar_cota_ia()
+                        
                         response = cliente_openai.chat.completions.create(
                             model="gpt-4o-mini",
                             messages=[
@@ -1631,6 +2067,8 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9s (Estratégia)", type="primary", use_con
         """
         st.markdown(chamar_ia_global(prompt_rot_9s, "Copywriter de Elite TikTok Shop"))
 
+st.markdown('<div id="aurora"></div>', unsafe_allow_html=True)
+
 # ==========================================================
 # 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
 # ==========================================================
@@ -1640,11 +2078,8 @@ st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada
 
 ID_VOZ_LAURA = "MLAEAegxkMReslK34j8T"
 
-try:
-    CHAVE_ELEVENLABS_VIP = st.secrets["ELEVENLABS_API_KEY"]
-except KeyError:
-    st.error("🚨 ALERTA: Falta a chave ELEVENLABS_API_KEY no cadeado.")
-    st.stop()
+# Sem ElevenLabs, a voz utiliza gTTS como alternativa; não bloquear o app inteiro.
+CHAVE_ELEVENLABS_VIP = str(st.secrets.get("ELEVENLABS_API_KEY", ""))
 
 aba_memoria_voz = None
 historico_banco_dados = []
@@ -1741,6 +2176,7 @@ if audio_gravado is not None:
 
             with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões, Funil, Conversão e Banco de Dados)..."):
                 try:
+                    validar_cota_ia()
                     texto_falado = cliente_openai.audio.transcriptions.create(
                         model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
                     ).text
@@ -1809,12 +2245,12 @@ if audio_gravado is not None:
                         - O CEO, criador de tudo isto, é o Rafael.
                         
                         [SEU ACESSO ONISCIENTE À PLATAFORMA VIP (ÉLÉVO SAAS)]:
-                        - Você tem total acesso e vigilância sobre o Banco de Dados secreto no Google Sheets, que guarda cada login e criação de contas de forma encriptada. Atualmente há {total_usuarios} usuários cadastrados na base de dados.
+                        - Você tem total acesso e vigilância sobre o Banco de Dados secreto no Google Sheets, que registra e-mails e hashes de senha (não contém senhas em texto puro). Atualmente há {total_usuarios} usuários cadastrados na base de dados.
                         - Você sabe que a plataforma usa "Cofres Secretos" para isolar os dados de cada afiliado/cliente (como a conta: {canal_ativo}).
                         - O STATUS DO CORAÇÃO DA EMPRESA agora é: NOTA {nota_atual} com {estado_atual} (crescimento de {crescimento_pct:+.1f}% vs semana anterior).
                         
                         [STATUS EM TEMPO REAL DE '{nome_usuario_atual}']:
-                        💰 FINANCEIRO: Lucro Total R$ {fat_total_global:,.2f} | Nos últimos 7 Dias: R$ {fat_7d:,.2f} (Evolução de {crescimento_pct:+.1f}%). 
+                        💰 FINANCEIRO: Comissões registradas R$ {fat_total_global:,.2f} | Nos últimos 7 Dias: R$ {fat_7d:,.2f} (Evolução de {crescimento_pct:+.1f}%). 
                         🏆 Top 3 Produtos que mais venderam: {top_produtos_str}.
                         🎯 Missão de Hoje do usuário: {missao_hoje_str} | Disciplina nos últimos 30 dias: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%).
                         🧠 Tendência do Mercado captada pelo Radar: {tendencia_atual}.
@@ -1826,6 +2262,8 @@ if audio_gravado is not None:
 
                         mensagens_api = [{"role": "system", "content": sistema_mentor}]
                         mensagens_api.extend(st.session_state["historico_viva_voz"])
+
+                        validar_cota_ia()
 
                         resposta_mentor = cliente_openai.chat.completions.create(
                             model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
@@ -1854,7 +2292,7 @@ if audio_gravado is not None:
 
                         st.rerun()
                 except Exception as e:
-                    st.error(f"Erro na Sala de Conselhos: {e}")
+                    st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
 
 # ==========================================================
 # 🎛️ ONDAS SONORAS CYAN (SEM O TEXTO DO CHAT)
@@ -1906,7 +2344,9 @@ if E_O_CEO:
     with st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS", expanded=False):
         usuarios_bd = conectar_banco_usuarios("ler")
         if usuarios_bd:
-            st.dataframe(pd.DataFrame(usuarios_bd), use_container_width=True)
+            df_usuarios_admin = pd.DataFrame(usuarios_bd)
+            st.dataframe(df_usuarios_admin[[c for c in ["Email", "Nome"] if c in df_usuarios_admin.columns]],
+                         use_container_width=True, hide_index=True)
             c_d1, c_d2 = st.columns([3, 1])
             with c_d1: email_excluir = st.text_input("E-mail exato para banir:")
             with c_d2:
@@ -1922,6 +2362,8 @@ if E_O_CEO:
                                 st.success("Banido!"); time.sleep(1); st.rerun()
                             else: st.warning("Não encontrado.")
                         except Exception: pass
+st.markdown('<div id="criacao"></div>', unsafe_allow_html=True)
+
 # ==========================================================
 # 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / LEMA DOR & SOLUÇÃO + BANCO DE MEMÓRIA 17.3)
 # ==========================================================
@@ -2239,6 +2681,7 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     4) A regra limpa de posicionamento (1 na mão + o resto parado na bancada, SEM descrever cores para não bugar o vídeo).
     """
     try:
+        validar_cota_ia()
         resp_s = cliente_openai.chat.completions.create(
             model="gpt-4o-mini",
             response_format={"type": "json_object"},
@@ -2333,7 +2776,7 @@ elif E_O_CEO:
 else:
     logo_ativa_usuario = "Minha Marca VIP"
 
-pode_gerar_roteiro = True
+pode_gerar_roteiro = bool(E_O_CEO)
 usos_feitos = 0
 aba_limites = None
 
@@ -2348,8 +2791,9 @@ if not E_O_CEO and robo_sheets:
                 aba_limites.append_row(["Email", "Gerou"])
             lista_usos = aba_limites.col_values(1)
             usos_feitos = lista_usos.count(email_sessao)
-            if usos_feitos >= 3: pode_gerar_roteiro = False
-    except Exception: pass
+            pode_gerar_roteiro = usos_feitos < 3
+    except Exception:
+        pode_gerar_roteiro = False
 
 if "txt_diretrizes_360" not in st.session_state:
     st.session_state["txt_diretrizes_360"] = ""
@@ -2477,7 +2921,7 @@ if st.session_state.get("modo_entidade_v9"):
                 gerenciar_influencer_usuario("salvar", email_sessao, nome_inf_ativa, desc_inf_ativa, logo_ativa_usuario)
 
         if not pode_gerar_roteiro:
-            st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
+            st.error("Limite de roteiros atingido ou controle de cotas indisponível. Tente novamente mais tarde se houver erro de conexão.")
             btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
         else:
             txt_btn_v92 = f"🔥 LER RÓTULO E GERAR NA V9.2 COM IDENTIDADE '{logo_ativa_usuario}' (Ilimitado)" if E_O_CEO else f"🔥 LER RÓTULO E GERAR NA V9.2 ({3 - usos_feitos} Restantes)"
@@ -2841,6 +3285,7 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
     )
     novo_video=None
     try:
+        validar_cota_ia()
         resposta=cliente_openai.chat.completions.create(
             model='gpt-4o-mini',
             messages=[
@@ -3044,6 +3489,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                               "Preserve a conexão visual com a natureza, o cenário rico e a baguncinha característica. "
                               f"Referência opcional de diversidade desta rodada: {direcao_v11_17['animal']}.")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
+            validar_cota_ia()
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
@@ -3066,7 +3512,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             time.sleep(1)
             st.rerun()
         except Exception as e:
-            st.error(f"Erro ao gerar: {e}")
+            st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
 
 # ==========================================================
 # MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
@@ -3139,6 +3585,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                   "também são aceitas cenas sem animal. Preserve natureza, ambiente orgânico e textura viscerais. "
                                   f"Referência opcional desta rodada: {direcao_v11_92['animal']}.")
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
+                validar_cota_ia()
                 resp_v92 = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
@@ -3162,7 +3609,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
-                st.error(f"Erro ao gerar na Criação V9.2: {e}")
+                st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
 
 # ==========================================================
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
@@ -3179,7 +3626,7 @@ if st.session_state["roteiro_temporario"]:
             with col_btn_img:
                 render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
-            st.markdown(partes_roteiro["prompt_imagem"], unsafe_allow_html=True)
+            st.markdown(partes_roteiro["prompt_imagem"])
             st.divider()
             
             # 2. SEÇÃO PROMPT DE VÍDEO (ATÉ TEXTO NA TELA) + BOTÃO À DIREITA
@@ -3197,7 +3644,7 @@ if st.session_state["roteiro_temporario"]:
             
             # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
             st.markdown("### 🔑 TÍTULOS SEO (Separados)")
-            st.markdown(partes_roteiro["secao_seo_texto"], unsafe_allow_html=True)
+            st.markdown(partes_roteiro["secao_seo_texto"])
             
             st.markdown("<p style='font-size: 0.85rem; color: #00E5FF; font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>📲 Cópia Rápida de Títulos (Celular/PC):</p>", unsafe_allow_html=True)
             col_t1, col_t2, col_t3 = st.columns(3)
@@ -3208,12 +3655,14 @@ if st.session_state["roteiro_temporario"]:
             with col_t3:
                 render_botao_copiar_vip(partes_roteiro["titulo_3"], "📋 Botão 3 (Título 3)", "copy_t3")
         else:
-            st.markdown(st.session_state["roteiro_temporario"], unsafe_allow_html=True)
+            st.markdown(st.session_state["roteiro_temporario"])
         
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"): 
             st.session_state["roteiro_temporario"] = None
             st.rerun()
+
+st.markdown('<div id="academia"></div>', unsafe_allow_html=True)
 
 # ==========================================================
 # 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
