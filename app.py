@@ -1,4 +1,4 @@
-# ÉLÉVO V16.4.1 — restauração da identidade exclusiva do CEO, sem alterações no restante.
+# ÉLÉVO V16.4.3 — ficha visual da influência + escolha livre, preservando a identidade do CEO.
 import base64
 import requests
 import time
@@ -2063,6 +2063,66 @@ st.divider()
 st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
 st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
 st.caption("Cinco personagens fictícias adultas, com aparência, voz, emoção e modo de apresentar definidos. Selecione uma para aplicar automaticamente aos Blocos 17 e 17.2. A descrição adicional é opcional.")
+
+# Painel-resumo no topo: mostra a ficha da influência ativa ou uma orientação clara quando nada foi escolhido.
+perfil_preview_topo = None
+chave_preview_topo = str(st.session_state.get("elevo_inf_preset_id", "")).strip()
+dados_preview_topo = st.session_state.get("influencer_atual") or {}
+
+if chave_preview_topo == "ceo_original" and E_O_CEO:
+    perfil_preview_topo = {
+        "titulo": str(dados_preview_topo.get("Nome_Influencer") or "Aurora"),
+        "subtitulo": "Influência principal do CEO",
+        "personalidade": "Presença magnética, olhar intenso, energia de autoridade e conexão premium.",
+        "emocao": "Confiança, sofisticação e proximidade estratégica.",
+        "voz": "Tom firme, elegante e natural em português brasileiro.",
+        "referencia": "Usa a identidade original do CEO e respeita a descrição já aplicada nos Blocos 17 e 17.2.",
+        "observacao": "Se quiser, você ainda pode escolher uma das outras influenciadoras ou criar a sua própria na aba Minha Influenciadora."
+    }
+elif chave_preview_topo in INFLUENCIADORAS_ELEVO_V164:
+    pf = INFLUENCIADORAS_ELEVO_V164[chave_preview_topo]
+    perfil_preview_topo = {
+        "titulo": pf["nome"],
+        "subtitulo": f"{pf['idade']} anos · {pf['nicho']}",
+        "personalidade": pf["resumo"],
+        "emocao": pf["emocao"],
+        "voz": pf["voz"],
+        "referencia": pf["aparencia"],
+        "observacao": "A descrição extra continua opcional e pode ser ajustada abaixo, sem perder a base da personagem."
+    }
+elif dados_preview_topo.get("Nome_Influencer"):
+    perfil_preview_topo = {
+        "titulo": str(dados_preview_topo.get("Nome_Influencer")),
+        "subtitulo": "Influência personalizada salva no login",
+        "personalidade": "Perfil autoral definido pelo usuário.",
+        "emocao": "Será lida diretamente da descrição salva.",
+        "voz": "Mantém a identidade cadastrada para imagem, vídeo e fala.",
+        "referencia": str(dados_preview_topo.get("Descricao_Visual", ""))[:420],
+        "observacao": "Os cartões prontos continuam disponíveis; selecionar um deles troca apenas a influência ativa."
+    }
+
+col_head_elenco, col_box_elenco = st.columns([2.3, 1], gap="medium")
+with col_head_elenco:
+    st.markdown("#### 🎛️ Como funciona a escolha")
+    st.caption("Você pode selecionar uma influenciadora pronta, usar a influência do CEO ou criar a sua própria. O que estiver ativo segue automaticamente para os prompts do Bloco 17 e do Bloco 17.2.")
+with col_box_elenco:
+    with st.container(border=True):
+        if perfil_preview_topo:
+            st.markdown(f"**🧾 Ficha ativa: {perfil_preview_topo['titulo']}**")
+            st.caption(perfil_preview_topo["subtitulo"])
+            st.markdown(f"**Personalidade:** {perfil_preview_topo['personalidade']}")
+            st.markdown(f"**Voz:** {perfil_preview_topo['voz']}")
+            st.markdown(f"**Emoção:** {perfil_preview_topo['emocao']}")
+            with st.expander("Ver referência / descrição-base", expanded=False):
+                st.write(perfil_preview_topo["referencia"])
+            st.caption(perfil_preview_topo["observacao"])
+        else:
+            st.markdown("**🧾 Ficha da influência**")
+            st.caption("Nenhuma influência foi marcada ainda.")
+            st.markdown("**Personalidade:** livre escolha")
+            st.markdown("**Voz:** definida conforme a selecionada")
+            st.markdown("**Emoção:** definida conforme a selecionada")
+            st.caption("Escolha um card da galeria ou crie a sua própria influência na aba Minha Influenciadora.")
 
 INFLUENCIADORAS_ELEVO_V164 = {
     'ana': {
