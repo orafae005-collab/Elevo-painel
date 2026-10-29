@@ -3894,6 +3894,49 @@ def fixar_trava_produto_ambos_prompts_v1682(conteudo):
             raise ValueError('Formato inesperado: produto não pode ser protegido nos dois prompts.')
     return conteudo
 
+
+def sanitizar_descricao_produto_visual_v1684(conteudo):
+    """Remove descrições físicas indevidas do produto APENAS nos prompts visuais, preservando fala e SEO."""
+    if not conteudo:
+        return conteudo
+
+    def _limpar_bloco(bloco):
+        substituicoes = [
+            (r"(?is)the\s+EXACT\s+[^.\n]{0,240}?(?:reference image|provided reference image|source reference image)",
+             "the EXACT product from the separately supplied reference image"),
+            (r"(?is)Copy the source reference image 100% intact[^.\n]*",
+             "Copy the separately supplied product reference image 100% intact without verbally describing it"),
+            (r"(?is)Copy the reference image 100% intact[^.\n]*",
+             "Copy the separately supplied product reference image 100% intact without verbally describing it"),
+            (r"(?is)DO NOT alter, redraw, or describe the product colors, logo, or text\.?",
+             "DO NOT verbally describe the product appearance; rely on the separately supplied reference image only."),
+            (r"(?is)zero packaging variations\.?",
+             "Preserve the reference product exactly as supplied externally."),
+            (r"(?is)\[(?:CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING|BRANDING INTEGRITY LOCK)\][^.\n]*\.?",
+             ""),
+        ]
+        for pat, rep in substituicoes:
+            bloco = re.sub(pat, rep, bloco)
+
+        bloco = re.sub(
+            r"(?im)^\s*(?:-\s*)?(?:Produto/Kit|Tipo de Embalagem/Peça):.*$",
+            "",
+            bloco,
+        )
+        bloco = re.sub(r"(?im)\b(?:yellow|white|blue|red|green|purple|pink|golden|silver|black|orange)\s+(?:bottle|jar|pot|tube|container|spray|pump bottle|screw cap|lid)\b",
+                       "reference product", bloco)
+        bloco = re.sub(r"\n{3,}", "\n\n", bloco)
+        return bloco.strip()
+
+    pattern = r'(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)(.*?)(?=###\s*🎬)|(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)(.*?)(?=###\s*🔑|\Z)'
+
+    def repl(match):
+        if match.group(1) is not None:
+            return match.group(1) + _limpar_bloco(match.group(2))
+        return match.group(3) + _limpar_bloco(match.group(4))
+
+    return re.sub(pattern, repl, conteudo, flags=re.DOTALL | re.IGNORECASE)
+
 DIRETRIZES_VIDA_REAL_V1682 = (
     '[21 ENVIRONMENTS / NATURAL UGC PHYSICS — NEVER REPLACE THE CURRENT OUTPUT FORMAT] '
     'The selected ÉLÉVO environment, not the product-only reference photo, defines the new setting. '
@@ -3932,8 +3975,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
             - Produto/Kit: {scan_17.get('nome_pt')}
             - Quantidade Exata de Unidades na Foto: {scan_17.get('qtd')} unidade(s)
-            - Tipo de Embalagem/Peça: {scan_17.get('tipo_embalagem')}
-            - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NA FALA!): {scan_17.get('dor_pt')}
+                        - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NA FALA!): {scan_17.get('dor_pt')}
             - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_17.get('solucao_pt')}
             - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_17}
             - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_17.get('regra_pos_img')}
@@ -3942,7 +3984,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             🚨 [REGRAS INQUEBRÁVEIS DE EXECUÇÃO]:
             1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com um convite natural para conferir o produto na sacolinha, sem alegar oferta ou lote não confirmado! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
             2. POSICIONAMENTO FÍSICO UNIVERSAL: Se houver {scan_17.get('qtd')} unidades, use {scan_17.get('regra_pos_img')}. Mantenha as unidades nas mesmas posições em imagem/vídeo. NUNCA descreva aparência, cor, tamanho nominal ou rótulo do produto por texto.
-            3. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
+            3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: nos blocos visuais, refira-se ao item apenas como 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
+            4. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
 
             ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES:
 
@@ -4005,6 +4048,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
             conteudo_texto = fixar_trava_produto_ambos_prompts_v1682(conteudo_texto)
+            conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -4040,8 +4084,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
                 - Produto/Kit: {scan_v92.get('nome_pt')}
                 - Quantidade Exata de Unidades na Foto: {scan_v92.get('qtd')} unidade(s)
-                - Tipo de Embalagem/Peça: {scan_v92.get('tipo_embalagem')}
-                - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NOS PRIMEIROS 2 SEGUNDOS!): {scan_v92.get('dor_pt')}
+                                - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NOS PRIMEIROS 2 SEGUNDOS!): {scan_v92.get('dor_pt')}
                 - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_v92.get('solucao_pt')}
                 - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_v92}
                 - REGRA OBRIGATÓRIA DE POSICIONAMENTO NA IMAGEM: {scan_v92.get('regra_pos_img')}
@@ -4050,9 +4093,10 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
                 1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com convite natural à sacolinha, sem alegar lote ou oferta inexistente!
                 2. Preserve exatamente o AMBIENTE ELEVO escolhido (ou sorteado), com planta, baguncinha e um animal ao fundo; a FOTO anexada é referência exclusiva para o PRODUTO, nunca para o cenário. NÃO descreva fisicamente o produto em texto.
-                3. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha quantidade e identidade; apoio manual apenas se o tamanho real permitir, demais na bancada; nenhuma pode desaparecer ao mudar enquadramento.
-                4. EXCEÇÃO EXCLUSIVA DA V9.2: a marca personalizada '{logo_ativa_usuario}' DEVE aparecer somente na FINALIZAÇÃO P1 do vídeo, de forma curta e objetiva. Não faça uma descrição longa da logo. Use apenas um logo textual limpo com o nome exato '{logo_ativa_usuario}', centralizado, com glitch digital vermelho rápido no final. Nunca inserir a logo durante o vídeo inteiro, apenas no fechamento.
-                5. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. A marca original da embalagem deve permanecer intacta e não pode ser substituída pela logo da marca personalizada.
+                3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: no PROMPT DE IMAGEM e no PROMPT DE VÍDEO, mencione apenas 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
+                4. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha quantidade e identidade; apoio manual apenas se o tamanho real permitir, demais na bancada; nenhuma pode desaparecer ao mudar enquadramento.
+                5. EXCEÇÃO EXCLUSIVA DA V9.2: a marca personalizada '{logo_ativa_usuario}' DEVE aparecer somente na FINALIZAÇÃO P1 do vídeo, de forma curta e objetiva. Não faça uma descrição longa da logo. Use apenas um logo textual limpo com o nome exato '{logo_ativa_usuario}', centralizado, com glitch digital vermelho rápido no final. Nunca inserir a logo durante o vídeo inteiro, apenas no fechamento.
+                6. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. A marca original da embalagem deve permanecer intacta e não pode ser substituída pela logo da marca personalizada.
 
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
@@ -4117,6 +4161,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
                 conteudo_v92 = fixar_trava_produto_ambos_prompts_v1682(conteudo_v92)
+                conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
