@@ -1,4 +1,4 @@
-# ÉLÉVO V16.9.1 — correção de auditoria e diagnóstico; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
+# ÉLÉVO V16.9.2 — leitura tolerante dos títulos e aviso de roteiro anterior; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
 import base64
 import requests
 import time
@@ -2209,7 +2209,7 @@ with col_box_elenco:
 
 
 # ==========================================================
-# ÉLÉVO V16.9.1 — correção de auditoria e diagnóstico; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
+# ÉLÉVO V16.9.2 — leitura tolerante dos títulos e aviso de roteiro anterior; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
 # Mantém seletores Streamlit: nada de botões HTML simulados.
 # ==========================================================
 st.markdown("""
@@ -2863,6 +2863,54 @@ def render_microfone_diretrizes_youtube():
     """
     components.html(html_mic, height=44)
 
+def normalizar_secoes_roteiro_v1692(texto):
+    """Canonicalize actual standalone section titles; never infer missing content."""
+    texto = str(texto or '').strip()
+    # A single outer code fence is formatting, not part of the three sections.
+    linhas = texto.splitlines(keepends=True)
+    if linhas and linhas[0].strip().startswith('```') and linhas[-1].strip() == '```':
+        linhas = linhas[1:-1]
+    encontrados = []
+    for i, linha in enumerate(linhas):
+        titulo = linha.strip().strip('`').strip()
+        titulo = re.sub(r'^#{1,6}[ \t]*', '', titulo)
+        titulo = titulo.strip('*_ ').strip()
+        titulo = re.sub(r'^(?:[1-3][.)][ \t]*|[1-3]\ufe0f?\u20e3[ \t]*)', '', titulo)
+        titulo = re.sub(r'^[📸🎬🔑📷🎥📝]+[ \t]*', '', titulo).rstrip(': ').strip('*_ ').strip()
+        baixo = titulo.lower().rstrip(':').strip()
+        # Anchored to the WHOLE title: quoted instructions or body prose cannot
+        # accidentally terminate a section. Optional known subtitles are allowed.
+        if re.fullmatch(r'(?:prompt(?: de| para)? (?:imagem|image)|image prompt)(?:[ \t]*(?:base|completo))?(?:[ \t]*\([^\n]*\))?', baixo):
+            papel = 'imagem'
+        elif re.fullmatch(r'(?:prompt(?: de| para)? (?:vídeo|video)|video prompt)(?:[ \t]*(?:completo(?: e unificado)?|unificado))?(?:[ \t]*\([^\n]*\))?', baixo):
+            papel = 'video'
+        elif re.fullmatch(r'(?:títulos? seo|titulos? seo|seo titles)(?:[ \t]*\([^\n]*\))?', baixo):
+            papel = 'seo'
+        else:
+            continue
+        encontrados.append((papel, i))
+    if [x[0] for x in encontrados] != ['imagem', 'video', 'seo']:
+        raise ValueError('A resposta não contém as três seções completas na ordem esperada: imagem, vídeo e SEO.')
+    canonicos = {'imagem':'### 📸 PROMPT DE IMAGEM', 'video':'### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO', 'seo':'### 🔑 TÍTULOS SEO (Separados)'}
+    for n, (papel, i) in enumerate(encontrados):
+        fim = encontrados[n+1][1] if n+1 < len(encontrados) else len(linhas)
+        if not ''.join(linhas[i+1:fim]).strip():
+            raise ValueError('A IA retornou uma seção vazia: ' + papel + '. Gere novamente.')
+        linhas[i] = canonicos[papel] + '\n'
+    # Drop only preamble before the first recognized title.
+    return ''.join(linhas[encontrados[0][1]:])
+
+
+def preparar_secoes_roteiro_v1692(resposta):
+    escolha = resposta.choices[0]
+    if getattr(escolha, 'finish_reason', 'stop') != 'stop':
+        raise ValueError('A IA interrompeu a resposta antes de concluir as seções de imagem, vídeo e SEO. Gere novamente.')
+    conteudo = escolha.message.content
+    if not isinstance(conteudo, str) or not conteudo.strip():
+        raise ValueError('A IA não retornou texto para as seções de imagem e vídeo. Gere novamente.')
+    return normalizar_secoes_roteiro_v1692(conteudo)
+
+
 def extrair_blocos_roteiro(md_texto):
     dados = {
         "prompt_imagem": "",
@@ -3221,7 +3269,7 @@ def mensagem_erro_geracao_v1691(erro, etapa):
     elif isinstance(erro, ValueError):
         texto = str(erro)
         # Only known application validation messages can be displayed verbatim.
-        if texto.startswith(('Não foi possível', 'A análise', 'O inventário', 'Inventário', 'A direção', 'O nome comercial', 'A auditoria', 'A estrutura', 'Áudio,', 'A IA')):
+        if texto.startswith(('Não foi possível', 'A análise', 'O inventário', 'Inventário', 'A direção', 'O nome comercial', 'A auditoria', 'A estrutura', 'A resposta', 'Áudio,', 'A IA')):
             motivo = texto[:500]
         else:
             motivo = 'A IA retornou uma resposta que não pôde ser interpretada no formato esperado. Tente novamente.'
@@ -3230,7 +3278,8 @@ def mensagem_erro_geracao_v1691(erro, etapa):
     else:
         motivo = 'O processamento encontrou uma falha interna. Informe a etapa e o código abaixo para diagnóstico.'
     detalhe = tipo + (' / HTTP ' + str(status) if isinstance(status, int) else '') + (' / ' + codigo if codigo else '')
-    return 'Falha na etapa: ' + etapa + '. ' + motivo + ' [' + detalhe + ']'
+    return ('Falha na etapa: ' + etapa + '. ' + motivo + ' [' + detalhe + '] '
+            'Esta tentativa não foi salva. Se houver prompts abaixo, eles pertencem ao último roteiro já armazenado.')
 
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
@@ -4118,7 +4167,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 max_tokens=6500, temperature=0.75
             )
             
-            conteudo_texto = resp.choices[0].message.content.strip()
+            etapa_geracao_17 = "organização das seções de imagem, vídeo e SEO"
+            conteudo_texto = preparar_secoes_roteiro_v1692(resp)
             etapa_geracao_17 = "reforço da física do vídeo"
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
             etapa_geracao_17 = "continuidade do ambiente"
@@ -4233,7 +4283,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     temperature=0.75
                 )
 
-                conteudo_v92 = resp_v92.choices[0].message.content.strip()
+                etapa_geracao_92 = "organização das seções de imagem, vídeo e SEO"
+                conteudo_v92 = preparar_secoes_roteiro_v1692(resp_v92)
                 etapa_geracao_92 = "reforço da física do vídeo"
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
                 etapa_geracao_92 = "continuidade do ambiente"
