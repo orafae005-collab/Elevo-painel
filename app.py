@@ -1,4 +1,4 @@
-# ÉLÉVO V16.6 — correção da ordem de inicialização da ficha, preservando a identidade do CEO.
+# ÉLÉVO V16.8 — carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
 import base64
 import requests
 import time
@@ -2063,7 +2063,7 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
 st.divider()
 st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
 st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
-st.caption("Cinco personagens fictícias adultas, com aparência, voz, emoção e modo de apresentar definidos. Selecione uma para aplicar automaticamente aos Blocos 17 e 17.2. A descrição adicional é opcional.")
+st.caption("Cinco influenciadoras fictícias adultas com identidade, aparência, personalidade, voz e emoção já definidas. Basta selecionar: a ficha completa será aplicada automaticamente aos Blocos 17 e 17.2.")
 
 INFLUENCIADORAS_ELEVO_V164 = {
     'ana': {
@@ -2099,8 +2099,8 @@ INFLUENCIADORAS_ELEVO_V164 = {
 }
 
 
-def montar_descricao_influencer_v164(perfil, observacao=""):
-    """Identidade física + comportamento aplicada a IMAGEM, VÍDEO e FALA."""
+def montar_descricao_influencer_v164(perfil):
+    """Perfil pronto e imutável; todos os dados seguem para imagem, vídeo e fala."""
     texto = (
         f"[DIGITAL INFLUENCER PERSONA — FICTIONAL ADULT, CONSISTENT IDENTITY] "
         f"NAME: {perfil['nome']}; AGE: {perfil['idade']} years; NICHE: {perfil['nicho']}. "
@@ -2114,8 +2114,6 @@ def montar_descricao_influencer_v164(perfil, observacao=""):
         "or another influencer's facial features. Make emotions product-contextual, human and plausible. "
         "Never assert the fictional influencer is a real customer or fabricated testimonial."
     )
-    if observacao and observacao.strip():
-        texto += "\n[AJUSTE OPCIONAL DO USUÁRIO]: " + observacao.strip()[:850]
     return texto
 
 
@@ -2175,7 +2173,7 @@ elif chave_preview_topo in INFLUENCIADORAS_ELEVO_V164:
         "emocao": pf["emocao"],
         "voz": pf["voz"],
         "referencia": pf["aparencia"],
-        "observacao": "A descrição extra continua opcional e pode ser ajustada abaixo, sem perder a base da personagem."
+        "observacao": "Ficha completa pronta para uso. Sem campos adicionais ou necessidade de personalização."
     }
 elif dados_preview_topo.get("Nome_Influencer"):
     perfil_preview_topo = {
@@ -2212,19 +2210,92 @@ with col_box_elenco:
             st.caption("Escolha um card da galeria ou crie a sua própria influência na aba Minha Influenciadora.")
 
 
+# ==========================================================
+# ÉLÉVO V16.8 — GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
+# Mantém seletores Streamlit: nada de botões HTML simulados.
+# ==========================================================
+st.markdown("""
+<style>
+/* Scroll nativo de toque/trackpad e cartões com efeito de entrada discreto. */
+.st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"],
+.st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"],
+.st-key-elevo_carrossel_influenciadoras[data-testid="stHorizontalBlock"],
+.st-key-elevo_carrossel_ambientes[data-testid="stHorizontalBlock"] {
+    display:flex !important;
+    flex-wrap:nowrap !important;
+    overflow-x:auto !important;
+    overflow-y:hidden !important;
+    overscroll-behavior-inline:contain;
+    -webkit-overflow-scrolling:touch;
+    scroll-behavior:smooth;
+    scroll-snap-type:x proximity;
+    scrollbar-width:thin;
+    scrollbar-color:#3b80c5 transparent;
+    padding:5px 4px 14px !important;
+}
+.st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"]::-webkit-scrollbar,
+.st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"]::-webkit-scrollbar {height:7px}
+.st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"]::-webkit-scrollbar-thumb,
+.st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"]::-webkit-scrollbar-thumb {
+    background:#3b80c5;border-radius:20px;
+}
+/* Resgata linha única no mobile, mesmo diante das regras globais antigas. */
+.st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"] > *,
+.st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"] > * {
+    flex:0 0 auto !important;
+    scroll-snap-align:start;
+    min-width:0;
+}
+.elevo-carrossel-instrucao {
+    display:flex;align-items:center;justify-content:space-between;gap:12px;
+    padding:7px 11px;margin:8px 0 10px;border-radius:12px;
+    background:linear-gradient(110deg,rgba(37,105,198,.12),rgba(34,180,220,.04));
+    border:1px solid rgba(72,151,234,.18);
+    color:#acd8ff;font-size:.73rem;font-weight:700;letter-spacing:.012em;
+}
+.elevo-carrossel-instrucao .pista {opacity:.75;font-weight:500;white-space:nowrap}
+.elevo-elenco-card,.elevo-ambiente-card {
+    animation:elevo-card-chegada .36s ease-out both;
+    transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;
+}
+.elevo-elenco-card:hover,.elevo-ambiente-card:hover {
+    transform:translateY(-3px);border-color:rgba(78,175,245,.6);
+}
+@keyframes elevo-card-chegada {
+    from {opacity:.3;transform:translateY(8px)}
+    to {opacity:1;transform:translateY(0)}
+}
+@media(max-width:767px) {
+    .st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"],
+    .st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"] {
+        flex-wrap:nowrap !important;
+        overflow-x:auto !important;
+        align-items:stretch !important;
+    }
+    .elevo-carrossel-instrucao {font-size:.69rem}
+}
+@media(prefers-reduced-motion:reduce) {
+    .elevo-elenco-card,.elevo-ambiente-card {animation:none;transition:none}
+    .st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"],
+    .st-key-elevo_carrossel_ambientes [data-testid="stHorizontalBlock"] {scroll-behavior:auto}
+}
+</style>
+""", unsafe_allow_html=True)
+
 # Galeria unificada: o CEO também vê as outras influenciadoras.
 st.markdown("""
 <style>
-.elevo-elenco-foto { width:100%; aspect-ratio:1.22; object-fit:cover; border-radius:11px; display:block; }
+.elevo-elenco-foto { width:100%; height:150px; object-fit:cover; object-position:center 20%; border-radius:11px; display:block; }
 .elevo-elenco-card { padding:9px; border-radius:15px; border:1px solid rgba(91,148,218,.27);
-  background:linear-gradient(145deg,#102139,#0c1629); min-height:265px; margin-bottom:9px; }
+  background:linear-gradient(145deg,#102139,#0c1629); height:322px; margin-bottom:9px; overflow:hidden; }
 .elevo-elenco-card.ativo { border-color:#00DFFF; box-shadow:0 0 0 1px rgba(0,223,255,.26),0 0 16px rgba(0,223,255,.13); }
 .elevo-elenco-nome {color:#EBF4FF;font-weight:850;font-size:.85rem;margin:9px 0 3px;}
 .elevo-elenco-idade {color:#A5B8D6;font-size:.72rem;}
 .elevo-elenco-nicho {color:#62D6F4;font-size:.70rem;font-weight:650;margin:8px 0;min-height:30px;}
-.elevo-elenco-desc {color:#B6C4D9;font-size:.71rem;line-height:1.45;}
+.elevo-elenco-desc {color:#B6C4D9;font-size:.71rem;line-height:1.45;display:-webkit-box;
+    -webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .elevo-elenco-status {font-size:.68rem;color:#75F2CF;font-weight:700;margin:0 0 5px;}
-@media (max-width:900px) {.elevo-elenco-card {min-height:0}}
+@media (max-width:900px) {.elevo-elenco-card {height:322px}}
 </style>
 """, unsafe_allow_html=True)
 
@@ -2279,7 +2350,7 @@ def aplicar_cartao_influencia_v164(card_id):
     else:
         perfil = INFLUENCIADORAS_ELEVO_V164[card_id]
         nome_aplicado = perfil["nome"]
-        descricao_aplicada = montar_descricao_influencer_v164(perfil, st.session_state.get("elevo_inf_obs", ""))
+        descricao_aplicada = montar_descricao_influencer_v164(perfil)
     st.session_state["elevo_inf_preset_id"] = card_id
     st.session_state["influencer_atual"] = {
         "Email": email_elenco_v164,
@@ -2293,29 +2364,33 @@ def aplicar_cartao_influencia_v164(card_id):
     else:
         st.session_state.pop("elevo_inf_erro_gravacao", None)
 
-num_cols = 3 if E_O_CEO else 5
-colunas_elenco = st.columns(num_cols, gap="small")
-for indice, card in enumerate(cards_galeria_v164):
-    with colunas_elenco[indice % num_cols]:
-        ativo = st.session_state.get("elevo_inf_preset_id", "") == card["id"]
-        classe_ativo = " ativo" if ativo else ""
-        selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
-        idade_txt = f"{card['idade']}" + (" anos" if str(card['idade']).isdigit() else "")
-        st.markdown(
-            f'<div class="elevo-elenco-card{classe_ativo}">'
-            f'<img class="elevo-elenco-foto" src="data:image/webp;base64,{card["foto"]}" alt="Retrato de {card["nome"]}" />'
-            f'<div class="elevo-elenco-nome">{card["nome"]}</div>'
-            f'<div class="elevo-elenco-idade">{idade_txt}</div>'
-            f'<div class="elevo-elenco-nicho">{card["nicho"]}</div>'
-            f'<div class="elevo-elenco-desc">{card["resumo"]}</div>'
-            f'{selo_ativo}</div>',
-            unsafe_allow_html=True
-        )
-        if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{card['id']}",
-                     type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
-            st.session_state["elevo_inf_obs"] = ""
-            aplicar_cartao_influencia_v164(card["id"])
-            st.rerun()
+st.markdown(
+    '<div class="elevo-carrossel-instrucao">'
+    '<span>👆 Deslize para explorar as influenciadoras</span>'
+    f'<span class="pista">{len(cards_galeria_v164)} perfis · ⇆</span>'
+    '</div>', unsafe_allow_html=True
+)
+with st.container(horizontal=True, wrap=False, gap="small", key="elevo_carrossel_influenciadoras"):
+    for card in cards_galeria_v164:
+        with st.container(width=226):
+            ativo = st.session_state.get("elevo_inf_preset_id", "") == card["id"]
+            classe_ativo = " ativo" if ativo else ""
+            selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
+            idade_txt = f"{card['idade']}" + (" anos" if str(card['idade']).isdigit() else "")
+            st.markdown(
+                f'<div class="elevo-elenco-card{classe_ativo}">'
+                f'<img class="elevo-elenco-foto" src="data:image/webp;base64,{card["foto"]}" alt="Retrato de {card["nome"]}" />'
+                f'<div class="elevo-elenco-nome">{card["nome"]}</div>'
+                f'<div class="elevo-elenco-idade">{idade_txt}</div>'
+                f'<div class="elevo-elenco-nicho">{card["nicho"]}</div>'
+                f'<div class="elevo-elenco-desc">{card["resumo"]}</div>'
+                f'{selo_ativo}</div>',
+                unsafe_allow_html=True
+            )
+            if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{card['id']}",
+                         type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
+                aplicar_cartao_influencia_v164(card["id"])
+                st.rerun()
 
 col_acao1, col_acao2 = st.columns([1, 1])
 with col_acao1:
@@ -2350,30 +2425,18 @@ if chave_ativa:
         st.caption("✅ A influência do CEO está ativa automaticamente nos prompts de imagem, vídeo e fala dos Blocos 17 e 17.2.")
     elif chave_ativa in INFLUENCIADORAS_ELEVO_V164:
         perfil_ativo = INFLUENCIADORAS_ELEVO_V164[chave_ativa]
-        col_detalhe, col_personal = st.columns([1.15, 1])
-        with col_detalhe:
-            with st.container(border=True):
-                st.markdown(f"#### {perfil_ativo['nome']} · {perfil_ativo['idade']} anos")
-                st.caption(f"Nicho: {perfil_ativo['nicho']} · {perfil_ativo['tags']}")
-                st.markdown(f"**Perfil:** {perfil_ativo['resumo']}")
-                st.markdown(f"**Voz:** {perfil_ativo['voz']}")
-                st.markdown(f"**Emoção:** {perfil_ativo['emocao']}")
-                st.markdown(f"**Gestos:** {perfil_ativo['gestos']}")
-        with col_personal:
-            with st.container(border=True):
-                st.markdown("#### ✍️ Descrição extra (opcional)")
-                st.caption("Acrescente roupas, tom de fala, emoção ou ambiente. Se deixar em branco, a ficha já está completa.")
-                st.text_area("Ajustes de personagem (opcional)", key="elevo_inf_obs",
-                             max_chars=850, height=124,
-                             placeholder="Ex.: usar blusa bege, falar de maneira calma e mostrar alegria discreta...")
-                if st.button("💾 Salvar minha personalização", key="elenco_salvar_obs", use_container_width=True):
-                    aplicar_cartao_influencia_v164(chave_ativa)
-                    if st.session_state.pop("elevo_inf_erro_gravacao", False):
-                        st.warning("Aplicada nesta sessão, mas não foi possível salvar no Google Sheets.")
-                    else:
-                        st.success("Perfil atualizado e salvo no seu login.")
-        # o campo opcional entra nos motores mesmo sem clique extra
-        descricao_aplicada = montar_descricao_influencer_v164(perfil_ativo, st.session_state.get("elevo_inf_obs", ""))
+        # Ficha única, pronta e somente para consulta. Sem campo de edição.
+        with st.container(border=True):
+            st.markdown(f"#### {perfil_ativo['nome']} · {perfil_ativo['idade']} anos")
+            st.caption(f"Nicho: {perfil_ativo['nicho']} · {perfil_ativo['tags']}")
+            st.markdown(f"**Personalidade:** {perfil_ativo['resumo']}")
+            st.markdown(f"**Tom de apresentação:** {perfil_ativo['tom']}")
+            st.markdown(f"**Voz:** {perfil_ativo['voz']}")
+            st.markdown(f"**Emoção:** {perfil_ativo['emocao']}")
+            st.markdown(f"**Gestos:** {perfil_ativo['gestos']}")
+            st.caption("Ficha predefinida. Nada para preencher: a identidade já acompanha os prompts.")
+        # Não acrescentar observações antigas ao perfil pronto selecionado.
+        descricao_aplicada = montar_descricao_influencer_v164(perfil_ativo)
         perfil_em_sessao = st.session_state.get("influencer_atual") or {}
         st.session_state["influencer_atual"] = {
             "Email": email_elenco_v164,
@@ -2461,22 +2524,28 @@ if st.session_state.get('elevo_ambiente_carregado_email') != email_ambiente_v165
     st.session_state['elevo_ambiente_carregado_email'] = email_ambiente_v165
 
 st.markdown("""<style>
-.elevo-ambiente-card {min-height:166px;margin:4px 0 7px;padding:14px 13px 12px;border-radius:16px;
+.elevo-ambiente-card {height:192px;margin:4px 0 7px;padding:14px 13px 12px;border-radius:16px;overflow:hidden;
  border:1px solid rgba(104,154,230,.22);background:linear-gradient(145deg,#14253f,#101a2c);}
 .elevo-ambiente-card.ativo {border-color:#42d6ff;box-shadow:0 0 0 1px rgba(66,214,255,.20),0 8px 22px rgba(24,135,210,.12);}
 .elevo-ambiente-card .icone {font-size:24px;margin-bottom:6px;}
 .elevo-ambiente-card .nome {font-size:.85rem;color:#f2f7ff;font-weight:800;line-height:1.35;}
 .elevo-ambiente-card .tag {font-size:.62rem;color:#71bafb;letter-spacing:.08em;margin:5px 0 6px;}
-.elevo-ambiente-card .descricao {font-size:.71rem;color:#b4c6dd;line-height:1.48;}
+.elevo-ambiente-card .descricao {font-size:.71rem;color:#b4c6dd;line-height:1.48;
+    display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .elevo-ambiente-card .flag {color:#73e8ce;font-size:.68rem;font-weight:800;margin-top:8px;}
-@media (max-width:760px){.elevo-ambiente-card {min-height:0}}
+@media (max-width:760px){.elevo-ambiente-card {height:192px}}
  </style>""", unsafe_allow_html=True)
 
 items_ambiente = list(AMBIENTES_ELEVO_V165.items())
-for inicio_amb in range(0, len(items_ambiente), 4):
-    cols_amb = st.columns(4, gap='small')
-    for coluna, (chave, cena) in zip(cols_amb, items_ambiente[inicio_amb:inicio_amb+4]):
-        with coluna:
+st.markdown(
+    '<div class="elevo-carrossel-instrucao">'
+    '<span>🌍 Deslize para escolher seu ambiente</span>'
+    f'<span class="pista">{len(items_ambiente)} cenários · ⇆</span>'
+    '</div>', unsafe_allow_html=True
+)
+with st.container(horizontal=True, wrap=False, gap="small", key="elevo_carrossel_ambientes"):
+    for chave, cena in items_ambiente:
+        with st.container(width=236):
             ativo = st.session_state.get('elevo_ambiente_id', '') == chave
             selo_amb = '<div class="flag">● SELECIONADO</div>' if ativo else ''
             st.markdown(
@@ -3018,7 +3087,7 @@ with st.container(border=True):
     
 with aba_config_influencer:
     st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influenciadora</h4>", unsafe_allow_html=True)
-    st.caption("Você pode escolher uma influenciadora pronta na galeria ou criar a sua própria aqui. Nada vem marcado automaticamente.")
+    st.caption("As influenciadoras da galeria já estão completas: é só escolher. Use esta aba apenas se quiser criar uma personagem totalmente sua. Nenhum cartão vem marcado automaticamente.")
 
     dados_ativos_tab = st.session_state.get("influencer_atual") or {}
     nome_ativo_tab = str(dados_ativos_tab.get("Nome_Influencer") or ("Aurora" if E_O_CEO else "Nenhuma salva"))
