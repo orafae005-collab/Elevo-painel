@@ -1324,10 +1324,20 @@ def extrair_id_planilha(url):
     return match.group(1) if match else None
 
 def parse_valor_brasileiro(valor):
-    """Valores do Sheets: 1.234,56 / 1234.56 / R$ 1.234,56."""
+    """Valores do Sheets: 1.234,56 / 1234.56 / R$ 1.234,56.
+
+    Trata pd.NA, None, NaN e NaT antes de converter para texto:
+    pd.NA não aceita avaliação booleana (valor or "").
+    """
+    try:
+        if pd.isna(valor):
+            return 0.0
+    except (TypeError, ValueError):
+        # Valores inesperados não escalares serão tratados como texto.
+        pass
     if isinstance(valor, (int, float)) and not isinstance(valor, bool):
         return float(valor)
-    texto = re.sub(r"[^0-9,.\-]", "", str(valor or ""))
+    texto = re.sub(r"[^0-9,.\-]", "", str(valor))
     if not texto or texto == "-":
         return 0.0
     if "," in texto and "." in texto:
