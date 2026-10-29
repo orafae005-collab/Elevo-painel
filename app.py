@@ -1,4 +1,4 @@
-# ÉLÉVO V16.4.3.1 — correção da ordem de inicialização da ficha, preservando a identidade do CEO.
+# ÉLÉVO V16.6 — correção da ordem de inicialização da ficha, preservando a identidade do CEO.
 import base64
 import requests
 import time
@@ -105,6 +105,7 @@ SESSAO_DADOS_PRIVADOS = {
     "bv_recarregamento_login", "google_pendente", "google_erro",
     "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao",
     "elevo_ceo_identity_v1641_loaded",
+    "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
 }
 
 def limpar_sessao_privada():
@@ -934,7 +935,7 @@ st.markdown(f"""
   <a class="principal" href="#painel">▦ Visão geral</a>
   <a href="#missoes">◷ Missões</a>
   <a href="#radar">◈ Insights e tendências</a>
-  <a href="#aurora">✧ Aurora IA</a>
+  <a href="#ambientes">🌍 Ambientes</a>
   <div class="secao">CRIATIVIDADE</div>
   <a href="#elenco-elevo">◈ Elenco de influenciadoras</a>
   <a href="#criacao">▣ Criação de prompts</a>
@@ -2392,445 +2393,152 @@ else:
 if st.session_state.pop("elevo_inf_erro_gravacao", False):
     st.warning("Personagem aplicada nesta sessão, mas o Google Sheets não confirmou o salvamento. Tente selecionar novamente para persistir.")
 
-st.markdown('<div id="aurora"></div>', unsafe_allow_html=True)
-
 # ==========================================================
-# 15. AURORA VOICE CONSOLE V16.2 — REFINAMENTO VISUAL ISOLADO
-# Mantém st.audio_input, Whisper, contexto da Aurora e TTS existentes.
+# 15. MATRIZ DE AMBIENTES ÉLÉVO V16.6 — 20 CENÁRIOS + 21º INFINITO
+# Substitui APENAS a conversa de voz. Boas-vindas por áudio seguem intactas.
 # ==========================================================
+st.markdown('<div id="ambientes"></div>', unsafe_allow_html=True)
 st.divider()
-st.markdown("<div class='aurora-section-marker'>CANAL DE VOZ · ÉLÉVO AI</div>", unsafe_allow_html=True)
+st.markdown('### 🌍 Estúdio de Ambientes · ÉLÉVO | 21 matrizes')
+st.caption('São 20 ambientes com baguncinha e física própria + o 21º, Infinito. A mesma cena é fixada no prompt de imagem e no vídeo, nos Blocos 17 e 17.2.')
 
-ID_VOZ_LAURA = "MLAEAegxkMReslK34j8T"
-
-# Sem ElevenLabs, a voz utiliza gTTS como alternativa; não bloquear o app inteiro.
-CHAVE_ELEVENLABS_VIP = str(st.secrets.get("ELEVENLABS_API_KEY", ""))
-
-aba_memoria_voz = None
-historico_banco_dados = []
-
-if link_planilha_ativa and robo_sheets:
+AMBIENTES_ELEVO_V165 = {'banheiro': {'nome': 'Banheiro Caótico', 'icone': '🚿', 'categoria': 'Interior', 'resumo': 'Espelho embaçado, toalha úmida e luz real de janela.', 'elementos': 'a lived-in Brazilian bathroom with a partly fogged mirror, a towel hanging off-center, a closed hair dryer on a DRY shelf away from water, subtle soap marks and a small porcelain sink', 'luz': 'soft daylight entering from a real side window, reflected with realistic falloff on wet and dry tiles', 'fisica': 'steam only where warm running water is explicitly present, condensation sliding slowly on the mirror, one damp towel corner moving only if a draft exists', 'som': 'distant ventilation hum and occasional water drip only if the tap is visible', 'animal': 'no animal'}, 'varanda': {'nome': 'Varanda Tropical', 'icone': '🌿', 'categoria': 'Natureza', 'resumo': 'Varanda tropical com vento, chuva eventual e folhas de bananeira em movimento.', 'elementos': 'a lived-in Brazilian covered tropical veranda with worn wood railings, a small ceramic mug and casually coiled phone cable on a rustic side table, hanging ferns and broad banana leaves outside under a roof edge; a cotton towel sits over the railing', 'luz': 'authentic overcast daylight with slightly warm reflected light from indoors; only rain if actively visible in this preset', 'fisica': 'outdoor banana leaves flutter with plausible inertia, hanging fern tips react asymmetrically to the same breeze; if rain is visible beyond the roof edge, droplets follow real gravity and the towel darkens only where wetted', 'som': 'light wind through leaves and rain on the roof only if raining', 'animal': 'a small bird sheltered in rafters only if introduced in the first still image'}, 'penteadeira': {'nome': 'Penteadeira Golden Hour', 'icone': '🪞', 'categoria': 'Interior', 'resumo': 'Maquiagem usada, espelho real e luz dourada de fim de tarde.', 'elementos': 'an everyday Brazilian vanity table with a softly smudged mirror, a few makeup brushes out of alignment, open compact powder, a hair clip and a slightly wrinkled cotton cloth', 'luz': 'low-angle golden hour sunlight crossing the tabletop with physically accurate mirror reflections', 'fisica': 'single floating dust motes near the window, faint cloth motion only under a real fan or draft, makeup tools staying in place', 'som': 'soft indoor room tone and distant street ambience', 'animal': 'no animal'}, 'servico': {'nome': 'Área de Serviço Raiz', 'icone': '🧺', 'categoria': 'Casa', 'resumo': 'Varal com roupas, tanque de cimento e piso com marcas de uso.', 'elementos': 'a humble Brazilian laundry area with a concrete utility sink, an upright blue bucket, a clothesline with two damp garments, a folded detergent box and authentic worn tile grout', 'luz': 'diffuse late-morning sun from an open patio side, consistent shadows under hanging laundry', 'fisica': 'wet sleeves dripping sparsely into the sink and fabric moving slowly only from an existing breeze; water keeps plausible gravity', 'som': 'distant domestic ambience, occasional isolated drip and cloth rustle', 'animal': 'no animal'}, 'jardim': {'nome': 'Jardim Rústico', 'icone': '🪴', 'categoria': 'Natureza', 'resumo': 'Costela-de-adão, mangueira no chão e folhas com marcas naturais.', 'elementos': 'a small rustic Brazilian garden with lush Monstera, irregular stepping stones, a coiled garden hose, leaf litter and terracotta pots showing realistic soil and water marks', 'luz': 'overcast daylight with naturally mottled shadow from real nearby leaves', 'fisica': 'independent foliage sway, a hose tip releasing water only if its tap is open, a few droplets soaking real soil', 'som': 'subtle garden insects, distant birds and leaf movement', 'animal': 'no animal unless explicitly included in image'}, 'cachoeira': {'nome': 'Cachoeira Secreta', 'icone': '💧', 'categoria': 'Natureza', 'resumo': 'Pedras molhadas, musgo, névoa e correnteza real.', 'elementos': 'a reachable natural cascade with moss-covered wet stones, a safe flat standing platform above the spray, textured bark, sparse fallen leaves and one folded linen towel on dry ground', 'luz': 'natural canopy-filtered daylight reflecting realistically off flowing water and wet rock', 'fisica': 'unbroken water stream with turbulence and splash, soft spray drifting with direction of air, towel staying dry outside the splash zone', 'som': 'continuous nearby running water with varying intensity', 'animal': 'no animal'}, 'cozinha': {'nome': 'Cozinha Afetiva', 'icone': '☕', 'categoria': 'Casa', 'resumo': 'Café passando, pano de prato e bancada que parece usada.', 'elementos': 'a real Brazilian home kitchen with a wooden counter, fresh coffee dripping into a pot, a slightly wrinkled checkered tablecloth, a spoon, an open recipe notebook and a half-used sponge', 'luz': 'soft morning daylight from the kitchen window, warm reflected light on ceramic mugs and metal handles', 'fisica': 'visible coffee drips only while the coffee maker operates, faint vapor near the hot pot, cloth responding to touch rather than floating', 'som': 'coffee drip, kettle clicks if present and gentle household ambience', 'animal': 'no animal'}, 'quarto': {'nome': 'Quarto Desarrumado', 'icone': '🛏️', 'categoria': 'Interior', 'resumo': 'Edredom amassado, roupa na cadeira e luz suave.', 'elementos': 'an authentic lived-in bedroom with imperfectly made bed, a sweater on a chair, one open drawer, a phone charging cable and partly open cotton curtains', 'luz': 'soft window daylight mixed with a low-intensity practical lamp, consistent warm and cool lighting', 'fisica': 'curtain edge moving with a real breeze, quilt compressing where touched, loose strands of hair moving with natural body motion', 'som': 'quiet bedroom ambience and distant outdoor noise', 'animal': 'a sleeping cat only if already present in image'}, 'quintal': {'nome': 'Quintal de Terra', 'icone': '🐕', 'categoria': 'Natureza', 'resumo': 'Terra batida, poeira leve e cachorro descansando ao fundo.', 'elementos': 'a sunlit Brazilian backyard with dry packed earth, a worn garden bench, slightly displaced flip-flops, a water bowl and a shaded corner under a fruit tree', 'luz': 'strong but realistic midday sun casting grounded coherent tree shadows', 'fisica': 'tiny dust particles lifting only from real footfalls, branches moving with breeze, water bowl remaining stable', 'som': 'distant neighborhood ambience and light dry leaves rustling', 'animal': 'one calm caramel-colored dog lying far in the background only if shown in image'}, 'piscina': {'nome': 'Deck de Piscina', 'icone': '🏖️', 'categoria': 'Lazer', 'resumo': 'Água refletindo luz, toalha no banco e respingos discretos.', 'elementos': 'an ordinary swimming pool deck with weathered planks, a striped towel on a solid chair, sunglasses resting on a bench and a clear glass safely away from the pool edge', 'luz': 'bright daytime sun and moving water-caustic reflections linked to actual pool surface', 'fisica': 'real non-repeating water ripples from a gentle breeze, towel fringe moving slightly, no floating props', 'som': 'soft pool water movement and ambient birds', 'animal': 'no animal'}, 'estufa': {'nome': 'Estufa Caseira', 'icone': '🌱', 'categoria': 'Natureza', 'resumo': 'Vasos com terra, samambaias e umidade nas superfícies.', 'elementos': 'a practical backyard greenhouse with hanging ferns, potted herbs, garden labels on stakes, a handheld sprayer and damp soil in terracotta containers', 'luz': 'diffused daylight through translucent roof panels with correct soft shadows', 'fisica': 'fine droplets on cold glass only where humidity makes sense, subtle leaves moving only where air enters and a single sprayer drip', 'som': 'greenhouse room tone, faint ventilation and occasional water droplet', 'animal': 'no animal'}, 'garagem': {'nome': 'Garagem Aberta', 'icone': '🧰', 'categoria': 'Urbano', 'resumo': 'Caixas, ferramentas, marcas de uso e luz dura do dia.', 'elementos': 'a genuinely used Brazilian residential garage with half-open rolling shutter, cardboard boxes stacked safely to one side, small scattered but grounded hand tools on an old workbench, a bicycle leaning on a wall and fine concrete-floor dust', 'luz': 'hard midday sun entering through the open door and casting sharp physically consistent shadows into softer interior light', 'fisica': 'a small draft shifts a piece of loose paper only, sun-lit dust motes visible in the light beam, bicycle and tools remain stationary and grounded, shutter vibrates slightly only if wind acts on it', 'som': 'distant street noise and light garage reverberation', 'animal': 'no animal'}, 'sala': {'nome': 'Sala de Estar Noturna', 'icone': '📺', 'categoria': 'Interior', 'resumo': 'TV acesa, manta no sofá e reflexos azuis discretos.', 'elementos': 'a lived-in Brazilian living room at night, an operating television, a folded throw loosely on the couch arm, a low coffee table with a remote and a small practical side lamp', 'luz': 'the television casts soft changing cool light aligned with the on-screen content and fixed warm lamp fill', 'fisica': 'the throw settles naturally after touch, illumination fluctuates only with the television, objects remain physically supported', 'som': 'quiet room tone and low TV hum without copyrighted content', 'animal': 'no animal'}, 'banheira': {'nome': 'Banheira Vintage', 'icone': '🛁', 'categoria': 'Interior', 'resumo': 'Azulejos antigos, espuma discreta e torneira pingando.', 'elementos': 'a vintage tiled bathroom with an old porcelain tub, weathered brass faucet, folded cotton towel, worn grout and a little foam where bath water actually touches the tub', 'luz': 'warm practical light reflecting realistically in porcelain and brass', 'fisica': 'a single faucet droplet gathering and falling at irregular intervals, mild water surface ripples only where water exists', 'som': 'isolated faucet drip and softly reverberant bathroom room tone', 'animal': 'no animal'}, 'praia': {'nome': 'Praia Deserta (Final de Tarde)', 'icone': '🌊', 'categoria': 'Lazer', 'resumo': 'Areia com marcas reais, vento marítimo e ondas ao fundo.', 'elementos': 'a nearly deserted Brazilian beach in late afternoon, a woven tote and flip-flops supported on dry upper sand away from surf, sparse coastal plants on dunes, visible foamy ocean waves and a single faded cotton beach towel weighted down at its corners', 'luz': 'late-afternoon directional golden sunlight with a real sea-horizon haze and soft shadows matching sun angle', 'fisica': 'wind ruffles the towel edge realistically but not the weighted corners; distant foam advances and recedes following wave cycles; loose beach hair and dune grasses move with the same breeze; sand grains shift only in a plausible gust', 'som': 'natural waves and sea breeze, no soundtrack', 'animal': 'a distant gull only if already visible in the image'}, 'escritorio': {'nome': 'Mesa de Escritório', 'icone': '💻', 'categoria': 'Trabalho', 'resumo': 'Home office real com LED discreto, papéis, caneca e planta.', 'elementos': 'a Brazilian home-office desk with scuffed wood grain, a slightly crumpled stack of papers, an open notebook, black computer mouse, small Monstera pot, a cup with old coffee ring, a practical desk lamp and a soft cyan LED reflected on the wall', 'luz': 'natural window daylight blended with a restrained warm desk lamp and low cyan LED without impossible color changes', 'fisica': 'a page corner shifts only if a real draft enters, a plant leaf moves subtly in the airflow, glass condensation falls only if a cold drink is present, lamp and cable remain physically fixed', 'som': 'quiet room tone, low computer fan and soft street noise', 'animal': 'no animal'}, 'carro_chuva': {'nome': 'Janela do Carro (Chuva)', 'icone': '🚗', 'categoria': 'Urbano', 'resumo': 'Gotas no vidro, carros passando e luzes da cidade.', 'elementos': 'a securely parked Brazilian car interior on a rainy evening, side window covered with distinct rolling water droplets, realistic street lamps and distant neon reflections on wet glass, a folded cotton jacket on passenger seat and a simple dashboard', 'luz': 'muted evening light with real reflections from street lamps and signage outside, no invented cinematic strobe', 'fisica': 'water droplets merge and move down the glass by gravity, background cars create coherent perspective motion, reflections slide with camera angle and window curvature, interior objects stay still', 'som': 'soft rain tapping car roof, passing traffic at distance and interior room tone', 'animal': 'no animal'}, 'leitura': {'nome': 'Canto da Leitura', 'icone': '📚', 'categoria': 'Interior', 'resumo': 'Poltrona de tecido, páginas abertas e feixe de luz.', 'elementos': 'an intimate reading corner with a textured armchair, a paperback open on the side table, a knitted throw, a ceramic tea cup and books with imperfectly aligned spines', 'luz': 'angled window light catching faint atmospheric dust, soft falloff into the room', 'fisica': 'pages shift only with touch or a real breeze, throw compresses under a hand, cup stays still on the table', 'som': 'soft room ambience and distant passing wind', 'animal': 'no animal'}, 'lavabo': {'nome': 'Lavabo Luxo Decadente', 'icone': '🧼', 'categoria': 'Interior', 'resumo': 'Mármore usado, manchas discretas de água e luz dourada.', 'elementos': 'an elegant but lived-in Brazilian lavabo with slightly worn marble countertop, tiny dried water stains near brushed brass tap, subtly imperfect mirror, rolled cotton hand towel, used soap dish and warm pendant lighting', 'luz': 'warm intimate pendant light with coherent light falloff across marble and mirror', 'fisica': 'micro-reflections follow camera motion, towel fibers settle after actual contact, real water droplets only when water source is active, reflections stay spatially consistent', 'som': 'low indoor room tone and faucet water only if running', 'animal': 'no animal'}, 'calcada': {'nome': 'Calçada Chuvosa', 'icone': '🏙️', 'categoria': 'Urbano', 'resumo': 'Piso molhado, poste aceso e reflexos de rua à noite.', 'elementos': 'a Brazilian urban sidewalk at dusk after rain, patterned concrete pavers with wet seams, a metal bench with weathered paint, reflective shallow puddles near curb, a lit street lamp and rain-darkened storefront shutters in the distance', 'luz': 'believable cool dusk and warm street lamp reflections that follow actual puddle geometry', 'fisica': 'individual raindrops only if rain is still falling; water ripples radiate from actual drops, one breeze lifts loose hair and clothing gently, distant pedestrian parallax remains consistent', 'som': 'distant wet-traffic hiss, realistic footsteps and rain if ongoing', 'animal': 'no animal'}, 'infinito': {'nome': 'Ambiente 21 — Infinito', 'icone': '♾️', 'categoria': 'Aleatório', 'resumo': 'Escolhe entre 20 matrizes, com variações sutis e sem repetir a cena recente.', 'elementos': 'sorteio de ambiente real com objetos, iluminação e clima contextualizados', 'luz': 'a definida pela matriz sorteada', 'fisica': 'a definida pela matriz sorteada', 'som': 'o da matriz sorteada', 'animal': 'somente se a cena sorteada permitir'}}
+# Sincroniza por Gmail quando possível, sem bloquear se Sheets estiver fora.
+def _planilha_ambiente_v165():
+    if not robo_sheets:
+        return None
     try:
-        sheet_id = extrair_id_planilha(link_planilha_ativa)
-        planilha_voz = robo_sheets.open_by_key(sheet_id)
+        match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if not match:
+            return None
+        aba_documento = robo_sheets.open_by_key(match.group(1))
         try:
-            aba_memoria_voz = planilha_voz.worksheet("Memoria_Voz")
+            return aba_documento.worksheet('Ambientes_Elevo')
         except gspread.exceptions.WorksheetNotFound:
-            aba_memoria_voz = planilha_voz.add_worksheet(title="Memoria_Voz", rows="1000", cols="3")
-            aba_memoria_voz.append_row(["DataHora", "Role", "Conteudo"])
+            aba = aba_documento.add_worksheet(title='Ambientes_Elevo', rows='1000', cols='4')
+            aba.append_row(['Email', 'Ambiente_ID', 'Detalhes', 'Atualizado_Em'])
+            return aba
+    except Exception:
+        return None
 
-        historico_banco_dados = aba_memoria_voz.get_all_records()
+def _salvar_ambiente_v165(email, selecionado, detalhes):
+    aba = _planilha_ambiente_v165()
+    if aba is None:
+        return False
+    try:
+        emails = aba.col_values(1)
+        ids = [i for i, valor in enumerate(emails, start=1)
+               if i > 1 and str(valor).strip().lower() == email]
+        valores = [selecionado, detalhes, datetime.now(ZoneInfo('America/Sao_Paulo')).strftime('%d/%m/%Y %H:%M')]
+        if ids:
+            aba.update(f'B{ids[-1]}:D{ids[-1]}', [valores])
+        else:
+            aba.append_row([email] + valores)
+        return True
+    except Exception:
+        return False
+
+def _ler_ambiente_v165(email):
+    aba = _planilha_ambiente_v165()
+    if aba is None:
+        return None
+    try:
+        dados = [r for r in aba.get_all_records() if str(r.get('Email', '')).strip().lower() == email]
+        if dados:
+            atual = dados[-1]
+            identidade = str(atual.get('Ambiente_ID', '')).strip()
+            if identidade in AMBIENTES_ELEVO_V165 or not identidade:
+                return identidade, str(atual.get('Detalhes', ''))[:650]
     except Exception:
         pass
+    return None
 
-nome_usuario_atual = st.session_state.get("nome_usuario", "Sócio")
+email_ambiente_v165 = str(st.session_state.get('email_usuario', '')).strip().lower()
+if st.session_state.get('elevo_ambiente_carregado_email') != email_ambiente_v165:
+    registro = _ler_ambiente_v165(email_ambiente_v165)
+    st.session_state['elevo_ambiente_id'] = registro[0] if registro else ''
+    st.session_state['elevo_ambiente_obs'] = registro[1] if registro else ''
+    st.session_state['elevo_ambiente_carregado_email'] = email_ambiente_v165
 
-if "historico_viva_voz" not in st.session_state:
-    if historico_banco_dados:
-        st.session_state["historico_viva_voz"] = [{"role": linha["Role"], "content": linha["Conteudo"]} for linha in historico_banco_dados[-10:]]
-    else:
-        st.session_state["historico_viva_voz"] = [
-            {"role": "assistant", "content": f"E aí, {nome_usuario_atual}! Sou a dona da plataforma. Tenho acesso a cada centavo e cada dado. Manda o áudio!"}
-        ]
+st.markdown("""<style>
+.elevo-ambiente-card {min-height:166px;margin:4px 0 7px;padding:14px 13px 12px;border-radius:16px;
+ border:1px solid rgba(104,154,230,.22);background:linear-gradient(145deg,#14253f,#101a2c);}
+.elevo-ambiente-card.ativo {border-color:#42d6ff;box-shadow:0 0 0 1px rgba(66,214,255,.20),0 8px 22px rgba(24,135,210,.12);}
+.elevo-ambiente-card .icone {font-size:24px;margin-bottom:6px;}
+.elevo-ambiente-card .nome {font-size:.85rem;color:#f2f7ff;font-weight:800;line-height:1.35;}
+.elevo-ambiente-card .tag {font-size:.62rem;color:#71bafb;letter-spacing:.08em;margin:5px 0 6px;}
+.elevo-ambiente-card .descricao {font-size:.71rem;color:#b4c6dd;line-height:1.48;}
+.elevo-ambiente-card .flag {color:#73e8ce;font-size:.68rem;font-weight:800;margin-top:8px;}
+@media (max-width:760px){.elevo-ambiente-card {min-height:0}}
+ </style>""", unsafe_allow_html=True)
 
-if "ultimo_audio_b64" not in st.session_state:
-    st.session_state["ultimo_audio_b64"] = None
-if "ultimo_hash_audio" not in st.session_state:
-    st.session_state["ultimo_hash_audio"] = None
+items_ambiente = list(AMBIENTES_ELEVO_V165.items())
+for inicio_amb in range(0, len(items_ambiente), 4):
+    cols_amb = st.columns(4, gap='small')
+    for coluna, (chave, cena) in zip(cols_amb, items_ambiente[inicio_amb:inicio_amb+4]):
+        with coluna:
+            ativo = st.session_state.get('elevo_ambiente_id', '') == chave
+            selo_amb = '<div class="flag">● SELECIONADO</div>' if ativo else ''
+            st.markdown(
+                f'<article class="elevo-ambiente-card{" ativo" if ativo else ""}">'
+                f'<div class="icone">{cena["icone"]}</div>'
+                f'<div class="nome">{html_std.escape(cena["nome"])}</div>'
+                f'<div class="tag">{html_std.escape(cena["categoria"].upper())}</div>'
+                f'<div class="descricao">{html_std.escape(cena["resumo"])}</div>'
+                f'{"<div class=\"flag\">● SELECIONADO</div>" if ativo else ""}'
+                '</article>', unsafe_allow_html=True)
+            if st.button('✓ Escolhido' if ativo else 'Escolher cenário',
+                         key=f'elevo_ambiente_card_{chave}',
+                         type='primary' if ativo else 'secondary',
+                         disabled=ativo, use_container_width=True):
+                st.session_state['elevo_ambiente_id'] = chave
+                st.session_state['elevo_ambiente_obs'] = ''
+                salvo = _salvar_ambiente_v165(email_ambiente_v165, chave, '')
+                st.session_state['elevo_ambiente_aviso'] = '' if salvo else 'Cena aplicada nesta sessão; não foi possível salvar no Google Sheets.'
+                st.rerun()
 
-# Estilos limitados ao contêiner com chave: não atingem os demais microfones,
-# players ou cartões do aplicativo.
-st.markdown("""
-<style>
-.aurora-section-marker {
-  max-width: 780px; margin: 20px auto 11px;
-  font-size: .68rem; letter-spacing: .24em; font-weight: 800;
-  text-align: center; color: #789bb8 !important;
-}
-.st-key-aurora_voice_console {
-  --av-cyan: #32e5ff; --av-blue: #3d89ff; --av-ink: #e6f3ff;
-  --av-muted: #8ba5bb; --av-stroke: rgba(73,169,233,.26);
-  width: 100%; max-width: 780px; margin: 0 auto 28px !important;
-  border: 1px solid var(--av-stroke) !important;
-  border-radius: 24px !important;
-  padding: clamp(17px, 3vw, 27px) !important;
-  background:
-    radial-gradient(ellipse at 75% -15%,rgba(28,120,215,.13),transparent 58%),
-    linear-gradient(155deg,#101c2c 0%,#0b1524 62%,#09121e 100%) !important;
-  box-shadow: 0 15px 45px rgba(0,0,0,.18), inset 0 1px rgba(191,230,255,.055) !important;
-  overflow: hidden;
-}
-.st-key-aurora_voice_console [data-testid="stVerticalBlockBorderWrapper"] {
-  background: transparent !important; box-shadow: none !important;
-  border: none !important;
-}
-.st-key-aurora_voice_console [data-testid="stMarkdownContainer"] p {
-  margin: 0 !important;
-}
-.aurora-voice-top {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; margin-bottom: 17px;
-}
-.aurora-voice-identity {display:flex;align-items:center;gap:12px;min-width:0}
-.aurora-voice-monogram {
-  width: 45px;height:45px; flex:none; border-radius:15px;display:grid;place-items:center;
-  background:linear-gradient(145deg,rgba(55,148,252,.20),rgba(13,32,53,.80));
-  border:1px solid rgba(73,178,250,.32);
-  box-shadow:inset 0 1px rgba(255,255,255,.065);
-}
-.aurora-voice-monogram svg {height:27px;width:27px;stroke:#6ceaff;fill:none;stroke-width:1.5}
-.aurora-voice-name {color:#ecf8ff;font-size:1.15rem;font-weight:850;letter-spacing:.02em;line-height:1.25}
-.aurora-voice-sub {color:#8daac2;font-size:.7rem;letter-spacing:.12em;margin-top:2px}
-.aurora-voice-online {
-  display:flex;align-items:center;gap:7px;color:#9ddcc9;flex:none;
-  font-size:.69rem;font-weight:700;letter-spacing:.06em;
-  background:rgba(39,189,144,.065);border:1px solid rgba(56,213,163,.18);
-  padding:8px 11px;border-radius:99px;
-}
-.aurora-voice-led {width:7px;height:7px;border-radius:50%;background:#3ce7a5;box-shadow:0 0 10px rgba(60,231,165,.6)}
-.aurora-voice-stage {
-  background:radial-gradient(ellipse at 50% 110%,rgba(20,103,185,.10),transparent 75%),rgba(2,12,25,.42);
-  border:1px solid rgba(62,151,225,.13);border-radius:16px;
-  min-height:113px;padding:16px 14px 12px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:10px;margin-bottom:12px;
-}
-.aurora-voice-wave {
-  display:flex;align-items:center;justify-content:center;gap:4px;
-  min-height:42px; width:100%;max-width:450px;
-}
-.aurora-voice-wave::before,.aurora-voice-wave::after {
-  content:"";height:1px;flex:1;max-width:55px;
-  background:linear-gradient(90deg,transparent,rgba(48,172,239,.40));
-}
-.aurora-voice-wave::after{transform:rotate(180deg)}
-.aurora-voice-wave i {
-  display:block;width:3px;flex:0 0 3px;border-radius:10px;
-  height:var(--av-h);background:linear-gradient(180deg,#74eeff,#1389d9);
-  box-shadow:0 0 9px rgba(30,189,248,.29);
-  animation:aurora-wave-breathe 1.85s ease-in-out infinite alternate;
-  animation-delay:var(--av-d);transform-origin:center;
-}
-@keyframes aurora-wave-breathe {from{transform:scaleY(.6);opacity:.5}to{transform:scaleY(1.28);opacity:1}}
-.aurora-voice-stage-caption{color:#c4d9ec;font-size:.79rem;font-weight:650;letter-spacing:.025em;text-align:center}
-.aurora-voice-stage-helper{color:#7f9bb2;font-size:.69rem;text-align:center;margin-top:-6px}
-.st-key-aurora_voice_console [data-testid="stAudioInput"] {
-  max-width:540px;margin:0 auto !important;
-  padding:11px 13px 10px !important;
-  border:1px solid rgba(70,157,233,.25) !important;
-  background:linear-gradient(120deg,rgba(17,41,68,.77),rgba(12,29,49,.8)) !important;
-  border-radius:15px !important;
-  box-shadow:none !important;
-}
-.st-key-aurora_voice_console [data-testid="stAudioInput"]:focus-within {
-  border-color:#48caff !important; box-shadow:0 0 0 2px rgba(52,186,249,.12) !important;
-}
-.st-key-aurora_voice_console [data-testid="stAudioInput"] button {
-  min-height:43px !important;border-radius:13px !important;
-  background:linear-gradient(125deg,#075caa,#138edb) !important;
-  border:1px solid #58c6ff !important;color:#fff !important;
-  box-shadow:0 4px 18px rgba(9,120,222,.21) !important;
-  font-weight:800 !important;
-}
-.st-key-aurora_voice_console [data-testid="stAudioInput"] button:hover {
-  filter:brightness(1.16);transform:none !important;
-}
-.st-key-aurora_voice_console [data-testid="stAudioInput"] audio {
-  display:block !important; width:100%;max-width:100%; color-scheme:dark;
-}
-.st-key-aurora_voice_console [data-testid="stAudioInput"] audio::-webkit-media-controls-panel {
-  background-color:#233d54;
-}
-.aurora-voice-foot {
-  text-align:center;color:#7898b4 !important;font-size:.71rem;
-  margin:10px auto 0;max-width:560px;line-height:1.6;
-}
-@media(max-width:650px){
- .st-key-aurora_voice_console{border-radius:19px !important;padding:15px !important}
- .aurora-voice-top{align-items:flex-start;gap:7px}
- .aurora-voice-monogram{width:41px;height:41px}
- .aurora-voice-name{font-size:1rem}
- .aurora-voice-sub{font-size:.58rem}
- .aurora-voice-online{font-size:.62rem;padding:7px 8px}
- .aurora-voice-wave{gap:3px}
- .aurora-voice-wave i{width:2px;flex-basis:2px}
- .aurora-voice-stage{min-height:106px}
-}
-@media(prefers-reduced-motion:reduce){.aurora-voice-wave i{animation:none !important}}
-</style>
-""", unsafe_allow_html=True)
+selecao_v165 = st.session_state.get('elevo_ambiente_id', '')
+if selecao_v165 in AMBIENTES_ELEVO_V165:
+    cena = AMBIENTES_ELEVO_V165[selecao_v165]
+    if selecao_v165 == 'infinito':
+        st.info('♾️ Modo Infinito ativo: cada nova geração escolhe uma das 20 matrizes e a mantém fixa na imagem e no vídeo. O sorteio evita os cenários usados mais recentemente nesta sessão.')
+        ultimo = st.session_state.get('elevo_ambiente_ultimo_infinito', '')
+        if ultimo in AMBIENTES_ELEVO_V165 and ultimo != 'infinito':
+            st.caption(f'Último cenário escolhido: {AMBIENTES_ELEVO_V165[ultimo]["nome"]}')
 
-# O Streamlit permanece responsável pela gravação (sem gravador paralelo).
-aurora_console = st.container(border=True, key="aurora_voice_console")
-with aurora_console:
-    st.markdown("""
-    <div class="aurora-voice-top">
-      <div class="aurora-voice-identity">
-        <div class="aurora-voice-monogram" aria-hidden="true">
-          <svg viewBox="0 0 28 28" aria-hidden="true">
-            <path d="M4 16 L8 12 L11 19 L15 6 L18 22 L21 12 L24 16"/>
-            <path d="M3 24H25" opacity=".3"/>
-          </svg>
-        </div>
-        <div><div class="aurora-voice-name">Aurora <span style="color:#49b6ed;font-weight:500">/ Voice</span></div>
-        <div class="aurora-voice-sub">INTELIGÊNCIA OPERACIONAL</div></div>
-      </div>
-      <div class="aurora-voice-online"><span class="aurora-voice-led"></span> CANAL ATIVO</div>
-    </div>
-    <div class="aurora-voice-stage">
-      <div class="aurora-voice-wave" aria-hidden="true">
-      """ + "".join(
-          f'<i style="--av-h:{h}px;--av-d:{(i % 11) * -0.16:.2f}s"></i>'
-          for i, h in enumerate([4,7,10,7,12,18,11,24,13,20,28,14,23,37,21,30,43,23,35,17,26,40,18,29,14,24,16,12,20,11,16,8,12,7,4])
-      ) + """
-      </div>
-      <div class="aurora-voice-stage-caption">Pronta para ouvir sua próxima ideia</div>
-      <div class="aurora-voice-stage-helper">Toque no microfone para gravar. Toque novamente para concluir.</div>
-    </div>
-    """, unsafe_allow_html=True)
-    audio_gravado = st.audio_input(
-        "Gravar mensagem de voz para a Aurora", label_visibility="collapsed",
-        key="audio_input_aurora_unico"
-    )
-    st.markdown('<div class="aurora-voice-foot">Sua mensagem será transcrita e respondida pela Aurora. O envio continua automático ao terminar a gravação.</div>', unsafe_allow_html=True)
+    col_cena, col_detalhes = st.columns([1.15,1], gap='medium')
+    with col_cena:
+        with st.container(border=True):
+            st.markdown(f'#### {cena["icone"]} {cena["nome"]}')
+            st.caption('Ficha cinematográfica do ambiente selecionado')
+            st.markdown(f'**🌤 Luz:** {cena["luz"]}')
+            st.markdown(f'**🎭 Baguncinha:** {cena["elementos"]}')
+            st.markdown(f'**💨 Física e movimento:** {cena["fisica"]}')
+            st.markdown(f'**🔊 Som ambiente:** {cena["som"]}')
+    with col_detalhes:
+        with st.container(border=True):
+            st.markdown('#### ✍️ Personalização (opcional)')
+            st.caption('Acrescente um detalhe já compatível com a cena. Não é necessário descrever tudo.')
+            st.text_area('Detalhe adicional do ambiente', key='elevo_ambiente_obs', max_chars=650, height=135,
+                         placeholder='Ex.: caneca de cerâmica ao lado, toalha levemente úmida, luz suave pela janela...')
+            if st.button('💾 Salvar detalhes do ambiente', key='elevo_ambiente_salvar', use_container_width=True):
+                if _salvar_ambiente_v165(email_ambiente_v165, selecao_v165, str(st.session_state.get('elevo_ambiente_obs',''))[:650]):
+                    st.success('Cenário e detalhes salvos neste Gmail.')
+                else:
+                    st.warning('Os detalhes valerão nesta sessão. O Google Sheets não confirmou o salvamento.')
+    st.caption('✅ A direção do ambiente alimenta os Blocos 17 e 17.2. O resultado visual depende do gerador externo: o ÉLÉVO não garante fidelidade de 100%.')
+else:
+    st.info('Nenhum ambiente escolhido. Se gerar um prompt agora, permanece o sorteio de cenários original. Para fixar um, clique em “Escolher cenário”.')
 
-if audio_gravado is not None:
-    audio_bytes = audio_gravado.read()
-    if audio_bytes:
-        audio_hash = hashlib.md5(audio_bytes).hexdigest()
+if st.button('↺ Voltar ao sorteio original (sem cena fixa)', key='elevo_ambiente_liberar', use_container_width=False):
+    st.session_state['elevo_ambiente_id'] = ''
+    st.session_state['elevo_ambiente_obs'] = ''
+    salvo = _salvar_ambiente_v165(email_ambiente_v165, '', '')
+    st.session_state['elevo_ambiente_aviso'] = '' if salvo else 'Sorteio automático ativo nesta sessão; não foi possível sincronizar com Google Sheets.'
+    st.rerun()
+if st.session_state.pop('elevo_ambiente_aviso', ''):
+    st.warning('O cenário escolhido funciona nesta sessão, mas a preferência pode não persistir após encerrar a sessão.')
 
-        if audio_hash != st.session_state["ultimo_hash_audio"]:
-            st.session_state["ultimo_hash_audio"] = audio_hash 
-
-            with st.spinner("🦅 A Aurora está a analisar 100% da plataforma (Finanças, Missões, Funil, Conversão e Banco de Dados)..."):
-                try:
-                    validar_cota_ia()
-                    texto_falado = cliente_openai.audio.transcriptions.create(
-                        model="whisper-1", file=("audio.wav", audio_bytes, "audio/wav")
-                    ).text
-
-                    if texto_falado.strip():
-                        agora = datetime.utcnow() - timedelta(hours=3)
-                        agora_str = agora.strftime("%d/%m/%Y %H:%M")
-
-                        st.session_state["historico_viva_voz"].append({"role": "user", "content": texto_falado})
-                        if aba_memoria_voz is not None:
-                            aba_memoria_voz.append_row([agora_str, "user", texto_falado])
-
-                        canal_ativo = nome_canal_ativo if 'nome_canal_ativo' in globals() else "Conta Geral"
-
-                        total_usuarios = 0
-                        bd_users = conectar_banco_usuarios("ler")
-                        if bd_users is not None:
-                            total_usuarios = len(bd_users)
-
-                        fat_total_global = 0.0
-                        fat_pendente_global = 0.0
-                        fat_30d = 0.0
-                        fat_7d = 0.0
-                        top_produtos_str = "Nenhum"
-
-                        if not df.empty and "Status" in df.columns and "Data_Parsed" in df.columns:
-                            df_validos_global = df[df["Status"].astype(str).str.lower().str.contains("aprovado|estimado", na=False)]
-                            df_pendentes_global = df[df["Status"].astype(str).str.lower().str.contains("pendente", na=False)]
-
-                            fat_total_global = df_validos_global["Comissao_R$"].sum()
-                            fat_pendente_global = df_pendentes_global["Comissao_R$"].sum()
-
-                            limite_30d_global = agora - timedelta(days=30)
-                            limite_7d_global = agora - timedelta(days=7)
-
-                            fat_30d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_30d_global.date())]["Comissao_R$"].sum()
-                            fat_7d = df_validos_global[df_validos_global["Data_Parsed"] >= pd.Timestamp(limite_7d_global.date())]["Comissao_R$"].sum()
-
-                            if not df_validos_global.empty:
-                                top_3 = df_validos_global.groupby("Produto")["Comissao_R$"].sum().sort_values(ascending=False).head(3)
-                                top_produtos_str = ", ".join([f"{p} (R$ {v:,.2f})" for p, v in top_3.items()])
-
-                        crescimento_pct = crescimento if 'crescimento' in globals() else 0.0
-                        estado_atual = simbolo if 'simbolo' in globals() else "Desconhecido"
-                        nota_atual = nota_empresa if 'nota_empresa' in globals() else "N/A"
-
-                        missao_hoje_str = missao_hoje if 'missao_hoje' in globals() else "Nenhuma."
-                        dias_concluidos_str = dias_cumpridos if 'dias_cumpridos' in globals() else 0
-                        taxa_acerto_str = taxa_acerto if 'taxa_acerto' in globals() else 0.0
-
-                        tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
-                        funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
-
-
-                        sistema_mentor = f"""
-                        Você é a Aurora, uma Inteligência Artificial de elite construída pelo CEO Rafael e pela empresa ÉLÉVO. Você é a diretora de operações (COO) desta plataforma.
-                        Responda de forma fluida, incisiva e inteligente ao áudio do usuário, em até 4 frases curtas. 
-                        Sua personalidade: uma "amiga fofoqueira do bem" e estrategista implacável para vendas.
-                        
-                        [IDENTIDADE E REGRAS DE TRATAMENTO OBRIGATÓRIAS]:
-                        - O usuário logado neste momento chama-se: {nome_usuario_atual}. 
-                        - 🔥 REGRA DE GÊNERO: Se '{nome_usuario_atual}' for um nome/apelido masculino (como Rafael), NUNCA o chame de "amiga", "linda" ou use o feminino. Trate-o por "sócio", "chefe", "comandante" ou pelo nome dele. 
-                        - Se for um nome feminino, trate por "amiga" ou "lindeza". Na dúvida, seja neutra.
-                        - O CEO, criador de tudo isto, é o Rafael.
-                        
-                        [SEU ACESSO ONISCIENTE À PLATAFORMA VIP (ÉLÉVO SAAS)]:
-                        - Você tem total acesso e vigilância sobre o Banco de Dados secreto no Google Sheets, que registra e-mails e hashes de senha (não contém senhas em texto puro). Atualmente há {total_usuarios} usuários cadastrados na base de dados.
-                        - Você sabe que a plataforma usa "Cofres Secretos" para isolar os dados de cada afiliado/cliente (como a conta: {canal_ativo}).
-                        - O STATUS DO CORAÇÃO DA EMPRESA agora é: NOTA {nota_atual} com {estado_atual} (crescimento de {crescimento_pct:+.1f}% vs semana anterior).
-                        
-                        [STATUS EM TEMPO REAL DE '{nome_usuario_atual}']:
-                        💰 FINANCEIRO: Comissões registradas R$ {fat_total_global:,.2f} | Nos últimos 7 Dias: R$ {fat_7d:,.2f} (Evolução de {crescimento_pct:+.1f}%). 
-                        🏆 Top 3 Produtos que mais venderam: {top_produtos_str}.
-                        🎯 Missão de Hoje do usuário: {missao_hoje_str} | Disciplina nos últimos 30 dias: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%).
-                        🧠 Tendência do Mercado captada pelo Radar: {tendencia_atual}.
-                        🧬 A Estratégia de Funil ativa: {funil_atual}.
-                        🔬 Indicadores de funil e sentimentos: cite somente dados efetivamente disponíveis no painel, sem inventar métricas ausentes.
-                        
-                        REGRA DE OURO: Não repita os números feito um papagaio. Use as métricas acima para parecer uma deusa omnisciente. Analise friamente se o usuário está com os números bons ou péssimos e dê-lhe conselhos táticos. Se perguntar sobre banco de dados, responda o número de usuários cadastrados com orgulho.
-                        """
-
-                        mensagens_api = [{"role": "system", "content": sistema_mentor}]
-                        mensagens_api.extend(st.session_state["historico_viva_voz"])
-
-                        validar_cota_ia()
-
-                        resposta_mentor = cliente_openai.chat.completions.create(
-                            model="gpt-4o-mini", messages=mensagens_api, max_tokens=250, temperature=0.7
-                        ).choices[0].message.content.replace("*", "").strip()
-
-                        st.session_state["historico_viva_voz"].append({"role": "assistant", "content": resposta_mentor})
-                        if aba_memoria_voz is not None:
-                            aba_memoria_voz.append_row([agora_str, "assistant", resposta_mentor])
-
-                        url_voz = f"https://api.elevenlabs.io/v1/text-to-speech/{ID_VOZ_LAURA}"
-                        headers = {"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVENLABS_VIP}
-                        payload = {"text": resposta_mentor, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.45, "similarity_boost": 0.85, "style": 0.35, "use_speaker_boost": True}}
-
-                        try:
-                            resp_voz = requests.post(url_voz, json=payload, headers=headers, timeout=8)
-                            if resp_voz.status_code == 200:
-                                st.session_state["ultimo_audio_b64"] = base64.b64encode(resp_voz.content).decode('utf-8')
-                            else:
-                                raise Exception("ElevenLabs falhou")
-                        except Exception:
-                            tts = gTTS(text=resposta_mentor, lang='pt', tld='com.br')
-                            fp = io.BytesIO()
-                            tts.write_to_fp(fp)
-                            fp.seek(0)
-                            st.session_state["ultimo_audio_b64"] = base64.b64encode(fp.read()).decode('utf-8')
-
-                        st.rerun()
-                except Exception as e:
-                    st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
-
-# ==========================================================
-# AURORA / RESPOSTA V16.2 — WAVEFORM AZUL + CONTROLES PRÓPRIOS
-# Mesmos bytes de áudio ElevenLabs/gTTS; somente a apresentação foi alterada.
-# ==========================================================
-if st.session_state["ultimo_audio_b64"]:
-    audio_tocar = st.session_state["ultimo_audio_b64"]
-    hash_atual = str(st.session_state.get("ultimo_hash_audio") or "")
-    # Nunca misturar a chave de uma conta com outra no browser.
-    identificador_audio = hashlib.sha256(
-        (str(st.session_state.get("email_usuario", "")) + ":" + hash_atual).encode("utf-8")
-    ).hexdigest()[:30]
-
-    html_resposta = r"""
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<style>
-*{box-sizing:border-box}html,body{margin:0;padding:0;background:transparent;font-family:Montserrat,system-ui,Arial,sans-serif;color:#e8f7ff}
-.player{margin:5px auto 0;max-width:710px;padding:17px 18px;background:linear-gradient(130deg,rgba(10,41,68,.96),rgba(9,26,45,.95));border:1px solid rgba(69,189,251,.29);border-radius:15px}
-.heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
-.name{font-size:.71rem;font-weight:850;letter-spacing:.13em;color:#67d9ff;text-transform:uppercase}
-.pill{font-size:.63rem;font-weight:750;color:#96b9d2;border:1px solid rgba(69,189,251,.18);border-radius:40px;padding:5px 9px}
-.row{display:flex;align-items:center;gap:13px;width:100%}
-.toggle{width:45px;height:45px;flex:none;cursor:pointer;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#085fa8,#178de0);border:1px solid rgba(116,228,255,.64);box-shadow:0 5px 17px rgba(14,126,214,.23);color:#fff;font-weight:800;font-size:1.1rem}
-.toggle:hover{filter:brightness(1.15)}.toggle:focus-visible{outline:2px solid white;outline-offset:2px}
-.visual{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;gap:9px}
-.bars{height:40px;display:flex;align-items:center;justify-content:space-between;gap:2px;overflow:hidden}
-.bar{flex:1 1 2px;max-width:6px;min-width:2px;height:3px;min-height:3px;border-radius:6px;background:linear-gradient(180deg,#7fefff,#168ce1);opacity:.66;transform-origin:center;transition:height .10s ease,opacity .14s ease;box-shadow:0 0 6px rgba(36,198,255,.12)}
-.player.playing .bar{opacity:.9}
-.status{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.7rem;color:#94b4cd}
-.clock{font-variant-numeric:tabular-nums;color:#c2e5ff}
-.progress{height:3px;background:rgba(79,160,217,.13);border-radius:4px;overflow:hidden;margin-top:7px}
-.progress>div{height:100%;width:0;background:linear-gradient(90deg,#2189e4,#60edff);transition:width .16s linear}
-audio{display:none!important}
-@media(max-width:540px){.player{padding:14px 12px}.pill{font-size:.56rem}.heading{gap:6px}.name{letter-spacing:.08em}.row{gap:9px}}
-@media(prefers-reduced-motion:reduce){.bar{transition:none}}
-</style></head><body>
-<section class="player" id="player" aria-label="Resposta em áudio da Aurora">
-  <div class="heading"><div class="name">AURORA / RESPOSTA EM VOZ</div><div class="pill" id="badge">PRONTA</div></div>
-  <div class="row">
-    <button class="toggle" type="button" id="toggle" aria-label="Reproduzir a resposta">▶</button>
-    <div class="visual">
-      <div class="bars" id="bars" aria-hidden="true"></div>
-      <div class="status"><span id="status" role="status" aria-live="polite">Resposta pronta para ouvir</span><span class="clock" id="clock">00:00</span></div>
-      <div class="progress"><div id="progress"></div></div>
-    </div>
-  </div>
-  <audio id="voice" preload="auto" playsinline src="data:audio/mpeg;base64,__AUDIO_B64__"></audio>
-</section>
-<script>
-(()=>{
- 'use strict';
- const player=document.getElementById('player');
- const audio=document.getElementById('voice');
- const toggle=document.getElementById('toggle');
- const bars=document.getElementById('bars');
- const badge=document.getElementById('badge');
- const status=document.getElementById('status');
- const clock=document.getElementById('clock');
- const progress=document.getElementById('progress');
- const key='elevo_aurora_voice_v162___AUDIO_ID__';
- const heights=[4,7,12,8,22,13,32,21,15,35,11,26,37,18,12,29,39,24,16,31,10,20,33,14,7,26,17,9,21,12,5,18,9,4];
- const elements=heights.map(h=>{const span=document.createElement('i');span.className='bar';span.style.height=h+'px';bars.appendChild(span);return span;});
- let ctx=null, analyser=null, frequency=null, frame=0;
- const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
- const fmt=n=>{if(!Number.isFinite(n))return '00:00';const v=Math.floor(n);return String(Math.floor(v/60)).padStart(2,'0')+':'+String(v%60).padStart(2,'0');};
- function initAnalyser(){
-   if(reduced||ctx||!window.AudioContext && !window.webkitAudioContext)return;
-   try{const AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();analyser=ctx.createAnalyser();analyser.fftSize=128;const src=ctx.createMediaElementSource(audio);src.connect(analyser);analyser.connect(ctx.destination);frequency=new Uint8Array(analyser.frequencyBinCount);}catch(e){analyser=null;}
- }
- function draw(){
-   cancelAnimationFrame(frame);
-   if(audio.paused || audio.ended){elements.forEach((el,i)=>el.style.height=(4+heights[i]*.45)+'px');return;}
-   if(analyser && frequency && !reduced){
-     analyser.getByteFrequencyData(frequency);
-     elements.forEach((el,i)=>{
-       const idx=Math.floor(i/elements.length * Math.min(frequency.length,40));
-       const level=frequency[idx]/255;
-       el.style.height=(4+Math.max(level,0.04)*35)+'px';
-     });
-   }else if(!reduced){
-     const t=performance.now()/220;
-     elements.forEach((el,i)=>el.style.height=(5+Math.abs(Math.sin(t+i*.65))*heights[i]*.85)+'px');
-   }
-   frame=requestAnimationFrame(draw);
- }
- function showPlay(){player.classList.remove('playing');toggle.textContent='▶';toggle.setAttribute('aria-label','Reproduzir a resposta');}
- function showPause(){player.classList.add('playing');toggle.textContent='Ⅱ';toggle.setAttribute('aria-label','Pausar a resposta');}
- function start(userInitiated=false){
-   // Criar o AudioContext apenas com gesto do usuário: autoplay em Chrome mobile pode silenciar contextos suspensos.
-   if(userInitiated){initAnalyser();if(ctx && ctx.state==='suspended')ctx.resume().catch(()=>{});}
-   const result=audio.play();
-   if(result&&typeof result.catch==='function')result.catch(()=>{showPlay();badge.textContent='TOQUE PARA OUVIR';status.textContent='Toque em reproduzir para ouvir a Aurora';});
- }
- toggle.addEventListener('click',()=>{if(audio.paused||audio.ended){if(audio.ended)audio.currentTime=0;start(true);}else audio.pause();});
- audio.addEventListener('play',()=>{showPause();badge.textContent='TRANSMITINDO';status.textContent='Aurora está falando';try{sessionStorage.setItem(key,'iniciado')}catch(e){}draw();});
- audio.addEventListener('pause',()=>{showPlay();if(!audio.ended){badge.textContent='PAUSADA';status.textContent='Resposta pausada';}draw();});
- audio.addEventListener('ended',()=>{showPlay();badge.textContent='CONCLUÍDA';status.textContent='Mensagem concluída · toque para ouvir novamente';try{sessionStorage.setItem(key,'concluido')}catch(e){}draw();});
- audio.addEventListener('timeupdate',()=>{clock.textContent=fmt(audio.currentTime)+' / '+fmt(audio.duration);progress.style.width=(audio.duration?Math.min(100,audio.currentTime/audio.duration*100):0)+'%';});
- audio.addEventListener('loadedmetadata',()=>{clock.textContent='00:00 / '+fmt(audio.duration);});
- audio.addEventListener('error',()=>{showPlay();badge.textContent='INDISPONÍVEL';status.textContent='Falha ao carregar áudio · tente novamente';});
- // Tenta uma vez para cada nova resposta; ao reexecutar o app não repete um áudio já iniciado.
- let already=false;try{already=!!sessionStorage.getItem(key)}catch(e){}
- if(!already)start();else{badge.textContent='DISPONÍVEL';status.textContent='Toque em reproduzir para ouvir novamente';}
- window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);if(ctx)ctx.close().catch(()=>{});},{once:true});
-})();
-</script>
-</body></html>
-""".replace("__AUDIO_B64__", audio_tocar).replace("__AUDIO_ID__", identificador_audio)
-
-    with aurora_console:
-        components.html(html_resposta, height=169, scrolling=False)
 
 # ==========================================================
 # 16. PAINEL DE CONTROLE DO CEO
@@ -3467,8 +3175,87 @@ GESTOS_V11 = [
 ]
 
 
+def montar_lock_ambiente_v165(chave, observacao=''):
+    """Fixed environment template in English; images and video inherit the same objects."""
+    cena = AMBIENTES_ELEVO_V165.get(str(chave))
+    if not cena or str(chave) == 'infinito':
+        return ''
+    ajuste = str(observacao or '').strip()[:650]
+    base_cena = (
+        f"ENVIRONMENT ID [{chave}]: {cena['nome']}. "
+        f"EXACT SET / OBJECTS: {cena['elementos']}. "
+        f"SOURCE LIGHT: {cena['luz']}. "
+        f"PHYSICAL DYNAMICS: {cena['fisica']}. "
+        f"LOCATION SOUND: {cena['som']}. "
+        f"ANIMAL POLICY: {cena['animal']}. "
+    )
+    if ajuste:
+        base_cena += f"USER-REQUESTED ADDITIONAL SET DETAIL: {ajuste}. "
+    return base_cena + (
+        'ENVIRONMENT LOCK: keep exactly this location, geometry, surfaces, object inventory, '
+        'weather, directional light, background continuity and natural sound from the reference still '
+        'through every video frame. Include each detail in the IMAGE and copy it verbatim into '
+        'the VIDEO before describing dynamics. Do not add waterfalls, dogs, plants, rain, animals '
+        'or other props unless they belong to this selected setting. Microphysics must obey gravity, '
+        'contact, friction, airflow and realistic smartphone optics. Avoid impossible particle or motion effects.'
+    )
+
+
+def fixar_ambiente_ambos_prompts_v165(conteudo, chave, observacao=''):
+    """Deterministic environment header in both outputs after V12 video refinement."""
+    lock = montar_lock_ambiente_v165(chave, observacao)
+    if not lock:
+        return conteudo
+    marcador = f'[ÉLÉVO ENVIRONMENT LOCK — {chave.upper()}]'
+    cabecalho = f'{marcador} {lock}\n'
+    regex_imagem = r'(?im)^(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)'
+    regex_video = r'(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)'
+    out, n_img = re.subn(regex_imagem, lambda m: m.group(1) + cabecalho, conteudo, count=1)
+    out, n_vid = re.subn(regex_video, lambda m: m.group(1) + cabecalho, out, count=1)
+    if n_img != 1 or n_vid != 1:
+        raise ValueError('Formato inesperado dos prompts; cenário não foi confirmado nos dois blocos.')
+    return out
+
+
 def selecionar_direcao_fisica_v11(email_usuario, modo):
     """Evita repetições imediatas de cenário, gancho e animal dentro da sessão."""
+    escolhido = str(st.session_state.get('elevo_ambiente_id', '')).strip()
+    if escolhido == 'infinito':
+        # Um sorteio real por geração. O MESMO ID será usado para imagem e vídeo.
+        ids_cenas = [k for k in AMBIENTES_ELEVO_V165 if k != 'infinito']
+        historico = st.session_state.setdefault('elevo_ambiente_historico_infinito', [])
+        disponiveis = [k for k in ids_cenas if k not in historico[-7:]]
+        sorteado = random.choice(disponiveis or ids_cenas)
+        st.session_state['elevo_ambiente_ultimo_infinito'] = sorteado
+        historico.append(sorteado)
+        st.session_state['elevo_ambiente_historico_infinito'] = historico[-20:]
+        cena = AMBIENTES_ELEVO_V165[sorteado]
+        variacoes = [
+            'Use gentle handheld framing and subtle human timing imperfections.',
+            'Maintain realistic light falloff and micro-texture on surfaces without decorative digital filters.',
+            'Capture small natural ambient movements, preserving the exact prop positions.',
+            'Prioritize grounded material response, subtle contact shadows and natural camera focus settling.',
+        ]
+        modificador = random.choice(variacoes)
+        trava = montar_lock_ambiente_v165(sorteado, st.session_state.get('elevo_ambiente_obs',''))
+        return {
+            'cenario': cena['nome'], 'fisica_ambiente': cena['fisica'],
+            'animal': cena['animal'], 'luz': cena['luz'],
+            'gesto': random.choice(GESTOS_V11), 'modo': modo,
+            'escolhido': sorteado, 'trava_ambiente': trava + ' VARIATION: ' + modificador,
+        }
+    if escolhido in AMBIENTES_ELEVO_V165:
+        cena = AMBIENTES_ELEVO_V165[escolhido]
+        return {
+            'cenario': cena['nome'],
+            'fisica_ambiente': cena['fisica'],
+            'animal': cena['animal'],
+            'luz': cena['luz'],
+            'gesto': random.choice(GESTOS_V11),
+            'modo': modo,
+            'escolhido': escolhido,
+            'trava_ambiente': montar_lock_ambiente_v165(escolhido, st.session_state.get('elevo_ambiente_obs','')),
+        }
     historico = st.session_state.setdefault("historico_v11_cenas", [])
     disponiveis = [i for i in range(len(CENARIOS_V11)) if i not in historico[-8:]]
     indice = random.choice(disponiveis or list(range(len(CENARIOS_V11))))
@@ -3970,6 +3757,12 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                               "porte e ação conforme o ambiente; não repita a escolha recente. "
                               "Preserve a conexão visual com a natureza, o cenário rico e a baguncinha característica. "
                               f"Referência opcional de diversidade desta rodada: {direcao_v11_17['animal']}.")
+            if direcao_v11_17.get('escolhido'):
+                instrucao_ouro += ("\n\n[AMBIENTE ESCOLHIDO PELO USUÁRIO — TRAVA INEGOCIÁVEL]\n"
+                                  + direcao_v11_17['trava_ambiente']
+                                  + "\nOverride all random environment suggestions in the historical examples. "
+                                    "Use this EXACT preset in the still image and repeat the identical object list "
+                                    "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
             validar_cota_ia()
             resp = cliente_openai.chat.completions.create(
@@ -3983,6 +3776,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             
             conteudo_texto = resp.choices[0].message.content.strip()
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
+            conteudo_texto = fixar_ambiente_ambos_prompts_v165(
+                conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -4070,6 +3865,12 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                   "Se existir animal, escolha espécie/ação compatível com o cenário e diferente das recentes; "
                                   "também são aceitas cenas sem animal. Preserve natureza, ambiente orgânico e textura viscerais. "
                                   f"Referência opcional desta rodada: {direcao_v11_92['animal']}.")
+                if direcao_v11_92.get('escolhido'):
+                    instrucao_v92 += ("\n\n[AMBIENTE ESCOLHIDO PELO USUÁRIO — TRAVA INEGOCIÁVEL]\n"
+                                      + direcao_v11_92['trava_ambiente']
+                                      + "\nOverride all random and tropical backdrops from the historical example. "
+                                        "Use exactly this set for the still image and video, never replace it with "
+                                        "generic ferns, a waterfall, a kitchen or an animal that was not selected.")
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
                 validar_cota_ia()
                 resp_v92 = cliente_openai.chat.completions.create(
@@ -4084,6 +3885,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
 
                 conteudo_v92 = resp_v92.choices[0].message.content.strip()
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
+                conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
+                    conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
