@@ -647,7 +647,7 @@ nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
 
 
 def registrar_boas_vindas_confirmada(email):
-    """Marca na planilha somente quando o utilizador confirma 'JÁ OUVI'."""
+    """Marca na planilha após o evento real de fim de reprodução do áudio."""
     if not robo_sheets or not email:
         return False
     try:
@@ -731,7 +731,7 @@ if (st.session_state.get("usuario_logado") and email_logado_agora
         if audio_bytes:
             st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
             st.session_state["mostrar_player_bv"] = True
-            # Não registrar o Gmail antes de o utilizador confirmar que ouviu.
+            # Registrar o Gmail apenas quando o áudio terminar (evento ended).
             # Streamlit precisa de uma execução nova para montar o componente
             # de voz depois da chamada de TTS/cookies. Na primeira tentativa
             # o painel abria, mas o iframe do áudio só aparecia após F5.
@@ -745,106 +745,174 @@ if st.session_state.get("erro_audio_bv"):
         st.session_state["email_bv_verificado"] = ""
         st.rerun()
 
+# A execução do MP3 ocorre no navegador, então a confirmação deve vir do
+# evento "ended" via componente Streamlit V2 (conexão JS -> Python). O iframe
+# anterior só escondia a caixa e não gravava a confirmação no Google Sheets.
+if "bv_conclusao_pendente" not in st.session_state:
+    st.session_state["bv_conclusao_pendente"] = ""
+
+
+def concluir_audio_aurora():
+    """Chamado SOMENTE pelo evento JS 'ended', após reprodução completa."""
+    email = str(st.session_state.get("email_usuario", "")).strip().lower()
+    if not email or not st.session_state.get("usuario_logado"):
+        return
+    if not st.session_state.get("mostrar_player_bv"):
+        return
+    # O áudio acabou: não reabrir/reexecutar durante os reruns da sessão.
+    st.session_state["email_bv_verificado"] = email
+    st.session_state["mostrar_player_bv"] = False
+    st.session_state["audio_boas_vindas_b64"] = None
+    # Se o Sheets ficar indisponível, manter a pendência para nova tentativa.
+    st.session_state["bv_conclusao_pendente"] = email
+    if registrar_boas_vindas_confirmada(email):
+        st.session_state["bv_conclusao_pendente"] = ""
+
+
+# Tenta sincronizar uma confirmação pendente, sem reproduzir a voz outra vez.
+if (st.session_state.get("bv_conclusao_pendente")
+        and st.session_state["bv_conclusao_pendente"] == email_logado_agora):
+    if registrar_boas_vindas_confirmada(email_logado_agora):
+        st.session_state["bv_conclusao_pendente"] = ""
+    else:
+        st.warning("A Aurora terminou a mensagem, mas a confirmação ainda não foi salva. "
+                   "O sistema tentará sincronizar novamente na próxima interação.")
+
 if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
-    audio_b64 = st.session_state["audio_boas_vindas_b64"]
-
-    html_play_intro = f"""
-    <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 10px auto; max-width: 600px; transition: opacity 1s ease;">
-        <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
-        <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 13px; margin-bottom: 5px;">
-            Conta autenticada: <b style="color: #00FFFF;">{email_logado_agora}</b>
-        </p>
-        <p id="status-intro" role="status" aria-live="polite" style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
-            A Aurora tentará iniciar a mensagem automaticamente.
-        </p>
-
-        <button id="btn-tocar" type="button" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
-            ▶ REPRODUZIR MENSAGEM
-        </button>
-
-        <div id="visualizer-intro" style="display: none; justify-content: center; align-items: center; gap: 4px; height: 60px; margin-top: 10px;">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+    # V2 permite receber um evento do navegador no Python sem recarregar a
+    # página ou simular cliques. Disponível no Streamlit 1.62+ do aplicativo.
+    aurora_player = st.components.v2.component(
+        name="elevo_aurora_player_termino_v15",
+        html="""
+        <div id="caixa-intro">
+            <h3>🦅 MENSAGEM DA DIRETORIA</h3>
+            <p id="identificacao-intro">Conta autenticada: <b id="email-intro"></b></p>
+            <p id="status-intro" role="status" aria-live="polite">
+                A Aurora tentará iniciar a mensagem automaticamente.
+            </p>
+            <button id="btn-tocar" type="button">▶ REPRODUZIR MENSAGEM</button>
+            <div id="visualizer-intro" aria-hidden="true">
+                <span class="bar"></span><span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span>
+                <span class="bar"></span><span class="bar"></span>
+            </div>
+            <audio id="audio-intro" preload="auto" playsinline></audio>
         </div>
+        """,
+        css="""
+        #caixa-intro {
+            box-sizing: border-box; width: 100%; max-width: 600px;
+            margin: 10px auto; padding: 30px; min-height: 262px;
+            background: linear-gradient(145deg, #0a0a0a, #141414);
+            border: 2px solid #D4AF37; border-radius: 16px;
+            box-shadow: 0 0 25px rgba(212,175,55,.2);
+            text-align: center; font-family: Montserrat, sans-serif;
+            transition: opacity 1s ease;
+        }
+        #caixa-intro h3 { color: #D4AF37; margin: 0 0 10px;
+            font-family: Montserrat,sans-serif; font-size: 1.25rem;
+            text-transform: uppercase; letter-spacing: 1px; }
+        #identificacao-intro { color: #A0A0A0; font-size: 13px; margin: 10px 0; }
+        #email-intro { color: #00FFFF; overflow-wrap: anywhere; }
+        #status-intro { color: #A0A0A0; font-size: 14px; margin: 18px 0 20px; }
+        #btn-tocar { background: linear-gradient(90deg,#D4AF37,#B8860B);
+            color:#111; border:none; padding:15px 32px; font-size:16px;
+            font-weight:900; border-radius:50px; cursor:pointer;
+            box-shadow:0 5px 15px rgba(212,175,55,.4);
+            text-transform:uppercase; font-family:Montserrat,sans-serif; }
+        #visualizer-intro { display:none; justify-content:center;
+            align-items:center; gap:4px; height:60px; margin-top:10px; }
+        .bar { width:8px; height:4px; background:#D4AF37;
+            border-radius:4px; display:inline-block; }
+        .bar.playing { background:#00FFFF;
+            animation: aurora-bounce .4s infinite alternate ease-in-out; }
+        .bar:nth-child(2) {animation-delay:.1s} .bar:nth-child(3) {animation-delay:.2s}
+        .bar:nth-child(4) {animation-delay:.3s} .bar:nth-child(5) {animation-delay:.1s}
+        .bar:nth-child(6) {animation-delay:.4s} .bar:nth-child(7) {animation-delay:.2s}
+        @keyframes aurora-bounce {from {height:4px;opacity:.5}
+            to {height:40px;opacity:1;box-shadow:0 0 10px #00FFFF}}
+        @media (max-width:480px) {#caixa-intro {padding:25px 14px;}
+            #btn-tocar {font-size:14px; padding:14px 20px;}}
+        """,
+        js="""
+        export default function (component) {
+            const {parentElement, data, setTriggerValue} = component;
+            const container = parentElement.querySelector('#caixa-intro');
+            const btn = parentElement.querySelector('#btn-tocar');
+            const aud = parentElement.querySelector('#audio-intro');
+            const vis = parentElement.querySelector('#visualizer-intro');
+            const status = parentElement.querySelector('#status-intro');
+            const email = parentElement.querySelector('#email-intro');
+            const bars = parentElement.querySelectorAll('#caixa-intro .bar');
+            if (!container || !btn || !aud || !data?.audio) return;
+            // A conta e os bytes são dados, nunca HTML executável.
+            email.textContent = data.email || '';
+            aud.src = 'data:audio/mpeg;base64,' + data.audio;
+            let concluido = false;
 
-        <audio id="audio-intro" src="data:audio/mpeg;base64,{audio_b64}" preload="auto" playsinline></audio>
-    </div>
-
-    <style>
-        .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
-        .playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
-        .playing:nth-child(1) {{ animation-delay: 0.0s; }} .playing:nth-child(2) {{ animation-delay: 0.1s; }}
-        .playing:nth-child(3) {{ animation-delay: 0.2s; }} .playing:nth-child(4) {{ animation-delay: 0.3s; }}
-        .playing:nth-child(5) {{ animation-delay: 0.1s; }} .playing:nth-child(6) {{ animation-delay: 0.4s; }}
-        .playing:nth-child(7) {{ animation-delay: 0.2s; }} .playing:nth-child(8) {{ animation-delay: 0.0s; }}
-        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
-    </style>
-
-    <script>
-        (function() {{
-            const btn = document.getElementById('btn-tocar');
-            const aud = document.getElementById('audio-intro');
-            const vis = document.getElementById('visualizer-intro');
-            const box = document.getElementById('caixa-intro');
-            const status = document.getElementById('status-intro');
-            const bars = document.querySelectorAll('#caixa-intro .bar');
-            if (!btn || !aud) return;
-
-            function reproduzir() {{
-                try {{
+            function reproduzir() {
+                if (concluido) return;
+                try {
                     const tentativa = aud.play();
-                    if (tentativa && typeof tentativa.catch === 'function') {{
-                        tentativa.catch(function() {{
-                            // Chrome, Safari e celulares podem bloquear autoplay com som.
-                            // Neste caso o botão já está visível e funciona com um toque.
+                    if (tentativa && typeof tentativa.catch === 'function') {
+                        tentativa.catch(() => {
                             btn.style.display = 'inline-block';
                             status.textContent = 'Toque em reproduzir para ouvir a Aurora.';
-                        }});
-                    }}
-                }} catch (e) {{
+                        });
+                    }
+                } catch (_) {
                     btn.style.display = 'inline-block';
                     status.textContent = 'Toque em reproduzir para ouvir a Aurora.';
-                }}
-            }}
-
-            btn.addEventListener('click', reproduzir);
-            aud.addEventListener('playing', function() {{
+                }
+            }
+            const onPlaying = () => {
                 btn.style.display = 'none';
                 vis.style.display = 'flex';
                 status.textContent = 'Mensagem da Aurora em reprodução.';
-                box.style.borderColor = '#00FFFF';
-                box.style.boxShadow = '0px 0px 25px rgba(0, 255, 255, 0.2)';
+                container.style.borderColor = '#00FFFF';
+                container.style.boxShadow = '0 0 25px rgba(0,255,255,.2)';
                 bars.forEach(bar => bar.classList.add('playing'));
-            }});
-            aud.addEventListener('pause', function() {{
+            };
+            const onPause = () => bars.forEach(bar => bar.classList.remove('playing'));
+            const onError = () => {
+                if (!concluido) {
+                    btn.style.display = 'inline-block';
+                    status.textContent = 'Não foi possível reproduzir. Toque para tentar novamente.';
+                }
+            };
+            const onEnded = () => {
+                if (concluido) return;
+                concluido = true; // Impede confirmação duplicada.
                 bars.forEach(bar => bar.classList.remove('playing'));
-            }});
-            aud.addEventListener('error', function() {{
-                btn.style.display = 'inline-block';
-                status.textContent = 'Não foi possível reproduzir. Toque novamente para tentar.';
-            }});
-            aud.addEventListener('ended', function() {{
-                bars.forEach(bar => bar.classList.remove('playing'));
-                status.textContent = 'Mensagem concluída.';
-                box.style.opacity = '0';
-                setTimeout(() => {{ box.style.display = 'none'; }}, 1000);
-            }});
-
-            // Tenta tocar no instante em que o componente é exibido após ENTRAR.
-            // Se o navegador bloquear áudio automático, o PLAY nunca desaparece.
+                btn.style.display = 'none';
+                vis.style.display = 'none';
+                status.textContent = 'Mensagem concluída. Registrando automaticamente...';
+                // Aciona o callback Python que salva o Gmail em Memoria_Audio_VIP.
+                // Não aciona a confirmação em "play", "pause" ou carregamento.
+                setTriggerValue('concluido', true);
+            };
+            btn.addEventListener('click', reproduzir);
+            aud.addEventListener('playing', onPlaying);
+            aud.addEventListener('pause', onPause);
+            aud.addEventListener('error', onError);
+            aud.addEventListener('ended', onEnded);
             reproduzir();
-        }})();
-    </script>
-    """
-    components.html(html_play_intro, height=280)
-
-    col_v1, col_btn_fechar, col_v2 = st.columns([1, 1, 1])
-    with col_btn_fechar:
-        if st.button("✅ JÁ OUVI / FECHAR MENSAGEM", use_container_width=True, key="btn_fechar_bv"):
-            registrar_boas_vindas_confirmada(email_logado_agora)
-            st.session_state["mostrar_player_bv"] = False
-            st.session_state["audio_boas_vindas_b64"] = None
-            st.rerun()
+            return () => {
+                btn.removeEventListener('click', reproduzir);
+                aud.removeEventListener('playing', onPlaying);
+                aud.removeEventListener('pause', onPause);
+                aud.removeEventListener('error', onError);
+                aud.removeEventListener('ended', onEnded);
+            };
+        }
+        """,
+    )
+    aurora_player(
+        key="elevo_aurora_audio_atual",
+        data={"email": email_logado_agora, "audio": st.session_state["audio_boas_vindas_b64"]},
+        on_concluido_change=concluir_audio_aurora,
+    )
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
