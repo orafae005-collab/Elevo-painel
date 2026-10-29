@@ -1,4 +1,4 @@
-# ÉLÉVO V16.9 — refinamentos localizados de fidelidade/física e vídeo; preserva estrutura V16.8.1.
+# ÉLÉVO V16.9.1 — correção localizada de erros de geração; estrutura validada preservada.
 import base64
 import requests
 import time
@@ -2900,7 +2900,7 @@ def extrair_blocos_roteiro(md_texto):
 
     return dados
 
-def escanear_dor_e_contagem_da_foto(img_b64):
+def escanear_dor_e_contagem_da_foto(img_b64, mime_imagem='image/jpeg'):
     """
     Lê a foto para extrair:
     1) O nome comercial exato em português.
@@ -2924,7 +2924,7 @@ def escanear_dor_e_contagem_da_foto(img_b64):
                         "4. 'dor_visceral_pt': what painful everyday problem does this product solve according to its label? (e.g., 'cabelo esturricado de chapinha, elástico de química, ralo e quebrando só de pentear' or 'vergonha de servir visita em pote velho').\n"
                         "5. 'sensacao_solucao_pt': what tangible sensation/transformation does it deliver? (e.g., 'cauterização de salão no próprio chuveiro, preenche a fibra e deixa o fio pesado de brilho espelhado')."
                     )},
-                    {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{img_b64}"}}
+                    {"type": "image_url", "image_url": {"url": f"data:{mime_imagem};base64,{img_b64}"}}
                 ]}
             ],
             temperature=0.2
@@ -2935,7 +2935,11 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
         dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade verificável no rótulo"))
         solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício documentado na embalagem"))
-    except Exception:
+    except Exception as erro_scan:
+        # Rejeições da API não devem ser confundidas com leitura incompleta do rótulo.
+        # Mantenha fallback apenas para JSON ilegível ou diagnóstico não disponível.
+        if isinstance(erro_scan, RuntimeError) or getattr(erro_scan, 'status_code', None) in (400, 401, 403, 413, 429) or type(erro_scan).__name__ in ('APIConnectionError', 'APITimeoutError'):
+            raise
         qtd = 1
         tipo_emb = "product container"
         nome_pt = "Produto Principal"
@@ -3598,6 +3602,56 @@ def _injetar_ecossistema_v14(video, imagem, scan, modo):
     resto=pedacos[1] if len(pedacos)>1 else ''
     return (visual+_reforco_ecossistema_v14(imagem,scan,modo)+'\n'+resto).rstrip()
 
+# ÉLÉVO V16.9.1 — robustez de formato de resposta e diagnóstico preciso, sem mexer na interface.
+def normalizar_secoes_roteiro_1691(texto):
+    """Tolerate model heading variants; do not touch the prompt body, visual content or SEO."""
+    texto = str(texto or '').strip()
+    if not texto:
+        raise ValueError('A IA retornou um roteiro vazio. Faça uma nova tentativa.')
+    if extrair_blocos_roteiro(texto)['prompt_imagem'] and extrair_blocos_roteiro(texto)['prompt_video'] and extrair_blocos_roteiro(texto)['secao_seo_texto']:
+        return texto
+    # Títulos alternativos aparecem nos próprios exemplos 360º/V9.2 e podem ser
+    # reproduzidos pelo modelo; padronizar somente essas linhas, sem tocar no conteúdo.
+    prefixo = r'(?im)^[ \t]*(?:#{1,6}[ \t]*)?(?:(?:📸|🎬|🎥|🔑|🏷️)[ \t]*)?(?:(?:[0-9]+(?:️⃣|[.)])?)[ \t]*)?'
+    equivalentes = (
+        (prefixo + r'(?:GABARITO DE IMAGEM BASE|PROMPT DE IMAGEM(?: BASE)?)[^\n]*$', '### 📸 PROMPT DE IMAGEM'),
+        (prefixo + r'(?:COMANDO (?:VISUAL )?DE VÍDEO(?: E ÁUDIO| COMPLETO)?|PROMPT DE VÍDEO(?: COMPLETO E UNIFICADO)?)[^\n]*$', '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO'),
+        (prefixo + r'(?:TÍTULOS (?:PARA )?SEO(?: E HASHTAGS)?|METADADOS SEO)[^\n]*$', '### 🔑 TÍTULOS SEO (Separados)'),
+    )
+    for padrao, titulo in equivalentes:
+        texto = re.sub(padrao, titulo, texto, count=1)
+    partes = extrair_blocos_roteiro(texto)
+    faltando = [nome for nome, chave in [('IMAGEM', 'prompt_imagem'), ('VÍDEO', 'prompt_video'), ('SEO', 'secao_seo_texto')] if not partes[chave]]
+    if faltando:
+        raise ValueError('A IA devolveu uma resposta incompleta ou com seções ausentes: ' + ', '.join(faltando) + '.')
+    return texto
+
+
+def mostrar_erro_geracao_1691(erro, motor):
+    """Show actionable failure reason; never expose secrets or prompt/photo in the UI."""
+    import logging
+    logging.getLogger('elevo.geracao').exception('Falha de geração %s (%s)', motor, type(erro).__name__, exc_info=erro)
+    codigo = getattr(erro, 'status_code', None)
+    nome = type(erro).__name__
+    if codigo == 429:
+        st.error('⚠️ A API retornou limite de requisições ou créditos (HTTP 429). Verifique o uso e o faturamento da sua chave OpenAI e tente novamente.')
+    elif codigo == 401:
+        st.error('🔑 A chave OPENAI_API_KEY foi recusada (HTTP 401). Confira o Secret no Streamlit Cloud.')
+    elif codigo == 403:
+        st.error('🔒 A API não autorizou a requisição (HTTP 403). Confira o acesso do projeto ao modelo configurado.')
+    elif codigo == 400:
+        st.error('📸 A API recusou os dados enviados (HTTP 400). Confirme que a foto é JPG/PNG válida e tente com imagem menor.')
+    elif nome in ('APIConnectionError', 'APITimeoutError', 'ConnectError', 'ReadTimeout'):
+        st.error('🌐 Não foi possível estabelecer ou concluir a conexão com a IA. Tente novamente.')
+    elif isinstance(erro, ValueError):
+        st.error('🧩 A IA respondeu, mas houve falha na organização do roteiro: ' + str(erro))
+    elif isinstance(erro, RuntimeError):
+        # RuntimeError is used by the quota/account gate; this text is app-authored.
+        st.error('⚠️ ' + str(erro))
+    else:
+        st.error(f'❌ A geração {motor} foi interrompida por um erro interno ({nome}). Consulte os logs do aplicativo no Streamlit Cloud; não significa necessariamente falta de créditos.')
+
+
 def reforcar_apenas_video_v12(conteudo, scan, modo):
     """Second IA pass rewrites ONLY the video and leaves image/SEO byte-identical."""
     partes=extrair_blocos_roteiro(conteudo)
@@ -3802,7 +3856,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
     with st.spinner("🦅 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
         try:
             img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-            scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro)
+            scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro, img_produto.type)
             gancho_sorteado_17 = selecionar_gancho_v11()
             direcao_v11_17 = selecionar_direcao_fisica_v11(email_sessao, "360")
             
@@ -3885,7 +3939,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 temperature=0.75
             )
             
-            conteudo_texto = resp.choices[0].message.content.strip()
+            conteudo_texto = normalizar_secoes_roteiro_1691(resp.choices[0].message.content)
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
             conteudo_texto = fixar_ambiente_ambos_prompts_v165(
                 conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
@@ -3900,7 +3954,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             time.sleep(1)
             st.rerun()
         except Exception as e:
-            st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
+            mostrar_erro_geracao_1691(e, "360º")
 
 # ==========================================================
 # MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
@@ -3912,7 +3966,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
         with st.spinner(f"🧬 Escaneando Dor & Solução e forjando Criação V9.2 com Logo '{logo_ativa_usuario}'..."):
             try:
                 img_b64_v92 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
-                scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92)
+                scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92, img_produto.type)
                 gancho_sorteado_v92 = selecionar_gancho_v11()
                 direcao_v11_92 = selecionar_direcao_fisica_v11(email_sessao, "v9.2")
 
@@ -3996,7 +4050,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     temperature=0.75
                 )
 
-                conteudo_v92 = resp_v92.choices[0].message.content.strip()
+                conteudo_v92 = normalizar_secoes_roteiro_1691(resp_v92.choices[0].message.content)
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
                 conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
                     conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
@@ -4011,7 +4065,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
-                st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
+                mostrar_erro_geracao_1691(e, "V9.2")
 
 # ==========================================================
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
