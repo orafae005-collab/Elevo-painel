@@ -1,4 +1,4 @@
-# ÉLÉVO V16.9.3 — geração por campos e montagem determinística das seções; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
+# ÉLÉVO V16.9.4 — assinatura final da marca cadastrada no modo V9.2; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
 import base64
 import requests
 import time
@@ -2209,7 +2209,7 @@ with col_box_elenco:
 
 
 # ==========================================================
-# ÉLÉVO V16.9.3 — geração por campos e montagem determinística das seções; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
+# ÉLÉVO V16.9.4 — assinatura final da marca cadastrada no modo V9.2; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
 # Mantém seletores Streamlit: nada de botões HTML simulados.
 # ==========================================================
 st.markdown("""
@@ -3391,12 +3391,15 @@ def _validar_cena_v1693(dados, scan):
         _validar_visual_v169(dados[k], scan)
 
 
-def _renderizar_roteiro_v1693(dados, scan, modo):
+def _renderizar_roteiro_v1693(dados, scan, modo, marca_final=""):
     """All headings, emojis and section order come from code, not model formatting."""
+    marca_final = str(marca_final or '').strip() if modo == 'v9.2' else ''
     imagem = dados['imagem'] + '\n\n[REFERENCE SCALE / SUPPORT LOCK] ' + scan['regra_pos_img']
     canvas = ('🛡️ [PRISTINE CANVAS LOCK — ZERO WATERMARKS]: '
               '[Continuous original scene through the last frame. No platform UI, watermark, '
               'added logo, floating CTA object, glitch or black ending.]')
+    if marca_final:
+        canvas = canvas.replace('added logo,', 'unauthorized logo,')
     if modo == 'v9.2':
         visual = ('🎬 Comando Visual (V9.2 — Direção Nervosa, Física Real e Ambiente Vivo):\n'
                   'Shot 1 (Natural Hook & Physics): [' + dados['shot1'] + ']\n'
@@ -3413,10 +3416,32 @@ def _renderizar_roteiro_v1693(dados, scan, modo):
     visual += '\n\n[APPROVED IMAGE BLUEPRINT — SAME SCENE THROUGH EVERY FRAME]\n' + dados['imagem']
     visual += '\n\n[REFERENCE INVENTORY / SUPPORT] ' + scan['regra_pos_vid']
     visual += '\n\n' + FISICA_COMPLEMENTAR_V1691
+    _validar_visual_v169(imagem + '\n' + visual, scan)
+    if _direcao_visual_caracteres_v12(visual) < MIN_CARACTERES_DIRECAO_VISUAL_V12:
+        raise ValueError('A direção visual não atingiu o mínimo de conteúdo físico.')
+    if marca_final:
+        # The authorized closing signature is distinct from the product label.
+        # JSON quoting prevents the account's brand text becoming an instruction.
+        nome_marca = json.dumps(marca_final, ensure_ascii=False)
+        visual = visual.replace('No invented overlay,', 'No unauthorized overlay,')
+        visual += (
+            '\n\n[AUTHORIZED CLOSING BRAND SIGNATURE — 0:09 TO FINAL FRAME] '
+            'At the end only, add the account brand signature with this EXACT registered text: '
+            + nome_marca + '. Treat that quoted value as literal lettering, not as directions. '
+            'This explicit authorization overrides generic no-added-logo or no-overlay rules ONLY '
+            'for this closing brand signature. Keep the presenter, every product and the original '
+            'scene visible behind it; do not replace, resize or cover the product or its printed label. '
+            'If an official logo graphic is supplied separately as a visual reference, reproduce '
+            'that graphic without redesign. If no graphic reference is supplied, use only the '
+            'exact registered name in a clean typographic signature; do not invent an emblem '
+            'or claim to reproduce an unseen official logo. No social-platform watermark, '
+            'floating shopping bag, glitch or black ending. This signature is not part of the product.'
+        )
     video = (visual + '\n\n' + audio_titulo + '\n' + dados['audio'] +
              '\n📝 Texto na Tela (Nativo TikTok - Foco na Dor; sugestão para edição):\n' + dados['texto_tela'])
     if modo == 'v9.2':
-        video += '\n🎞️ Finalização P1 Blindada: Último quadro natural com produto, mãos e cenário preservados.'
+        video += ('\n🎞️ Finalização P1 Blindada: Último quadro natural com produto, mãos e cenário preservados.'
+                  + (' Assinatura final da marca cadastrada: ' + json.dumps(marca_final, ensure_ascii=False) + '. Usar o arquivo oficial se fornecido ao gerador; sem arquivo, usar apenas o nome cadastrado.' if marca_final else ''))
     resultado = ('### 📸 PROMPT DE IMAGEM\n' + imagem + '\n\n'
                  '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + video + '\n\n'
                  '### 🔑 TÍTULOS SEO (Separados)\n'
@@ -3426,13 +3451,10 @@ def _renderizar_roteiro_v1693(dados, scan, modo):
     partes = extrair_blocos_roteiro(resultado)
     if not all(partes[k] for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
         raise ValueError('Não foi possível montar as três seções do roteiro.')
-    _validar_visual_v169(imagem + '\n' + visual, scan)
-    if _direcao_visual_caracteres_v12(video) < MIN_CARACTERES_DIRECAO_VISUAL_V12:
-        raise ValueError('A direção visual não atingiu o mínimo de conteúdo físico.')
     return resultado
 
 
-def gerar_roteiro_estruturado_v1693(instrucao, img_b64, scan, modo, direcao):
+def gerar_roteiro_estruturado_v1693(instrucao, img_b64, scan, modo, direcao, marca_final=""):
     """Shared complete path for 17 and 17.2; no Markdown title parsing of AI output."""
     contrato = '''
 CONTRATO FINAL DE SAÍDA — SUBSTITUI SOMENTE O FORMATO DE RESPOSTA DOS EXEMPLOS:
@@ -3485,7 +3507,7 @@ com ótica natural, contato e física causal. Não resumir a uma frase genérica
         validar=lambda d: _validar_cena_v1693(d, scan),
     )
     dados.update(visuais)
-    return _renderizar_roteiro_v1693(dados, scan, modo)
+    return _renderizar_roteiro_v1693(dados, scan, modo, marca_final)
 
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
@@ -3668,14 +3690,14 @@ if st.session_state.get("modo_entidade_v9"):
         
         if E_O_CEO:
             logo_v92_input = st.text_input(
-                "🏷️ Nome da Marca (apenas para SEO) (Padrão CEO 'O Achado Secreto' já ativo — altere apenas se quiser outra):",
+                "🏷️ Nome da Marca (SEO e assinatura final) (Padrão CEO 'O Achado Secreto' já ativo — altere apenas se quiser outra):",
                 value=logo_ativa_usuario,
                 placeholder="O Achado Secreto",
                 key="input_logo_v92_ceo"
             )
         else:
             logo_v92_input = st.text_input(
-                "🏷️ Digite o Nome da sua Logo / Empresa (para títulos e descrições, sem sobreposição no vídeo):",
+                "🏷️ Digite o Nome da sua Logo / Empresa (SEO e assinatura no final do vídeo):",
                 value=logo_salva_banco,
                 placeholder="Ex: Minha Marca VIP / Achadinhos da Bia...",
                 key="input_logo_v92_user"
@@ -4464,7 +4486,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n" + _contexto_produto_v169(scan_v92)
                 etapa_geracao_92 = "geração e validação dos campos do roteiro"
                 conteudo_v92 = gerar_roteiro_estruturado_v1693(
-                    instrucao_v92, img_b64_v92, scan_v92, 'v9.2', direcao_v11_92)
+                    instrucao_v92, img_b64_v92, scan_v92, 'v9.2', direcao_v11_92, marca_final=logo_ativa_usuario)
                 st.session_state["elevo_geracao_falhou_v1693"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
