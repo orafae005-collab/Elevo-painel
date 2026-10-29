@@ -1,4 +1,4 @@
-# ÉLÉVO V16.9.5 — estrutura original preservada; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
+# ÉLÉVO V16.9.6 — áudio separado internamente, sem leitura de título da IA; carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
 import base64
 import requests
 import time
@@ -2209,7 +2209,7 @@ with col_box_elenco:
 
 
 # ==========================================================
-# ÉLÉVO V16.9.5 — estrutura original preservada; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
+# ÉLÉVO V16.9.6 — áudio separado internamente, sem leitura de título da IA; GALERIAS HORIZONTAIS RESPONSIVAS (NATIVAS STREAMLIT)
 # Mantém seletores Streamlit: nada de botões HTML simulados.
 # ==========================================================
 st.markdown("""
@@ -3228,12 +3228,11 @@ def _estrutura_visual_v1695(texto):
 
 
 def _validar_pacote_v1695(dados):
-    visual, _ = _separar_visual_v169(dados['video'])
-    if len(dados['imagem']) < 400 or len(visual) < 1500:
+    # Content quality checks only. Audio boundaries are guaranteed by JSON fields,
+    # not inferred from a heading/emoji written by the model.
+    if len(dados['imagem']) < 400 or len(dados['video_visual']) < 1500:
         raise ValueError('A resposta está incompleta: faltam detalhes no prompt de imagem ou no vídeo.')
-    if not all(x in dados['video'] for x in ('🎬', '🫱', '🛡️', '📝')):
-        raise ValueError('A resposta não preservou os blocos originais do vídeo.')
-    if any('###' in dados[k] for k in ('imagem', 'video', 'seo')):
+    if any('###' in dados[k] for k in ('imagem', 'video_visual', 'audio', 'texto_tela', 'seo')):
         raise ValueError('A resposta incluiu divisões extras dentro de um bloco original.')
 
 
@@ -3262,7 +3261,7 @@ def _aplicar_edicoes_v1695(texto, edicoes):
 
 
 def _auditar_trechos_v1695(dados, scan):
-    visual, audio_cta = _separar_visual_v169(dados['video'])
+    visual = dados['video_visual']
     propriedades = {
         k: {'type': 'array', 'items': {'type': 'object', 'additionalProperties': False,
              'properties': {'original': {'type': 'string'}, 'novo': {'type': 'string'}},
@@ -3306,7 +3305,7 @@ def _auditar_trechos_v1695(dados, scan):
             imagem = _aplicar_edicoes_v1695(dados['imagem'], edicoes['imagem'])
             video = _aplicar_edicoes_v1695(visual, edicoes['video_visual'])
             _validar_visual_v169(imagem + '\n' + video, scan)
-            final = dict(dados, imagem=imagem, video=video + audio_cta)
+            final = dict(dados, imagem=imagem, video_visual=video)
             _validar_pacote_v1695(final)
             return final
         except ValueError as e:
@@ -3322,7 +3321,8 @@ def _assinatura_final_v1695(video, modo, marca):
     # Change only the content of the EXISTING finalization paragraph.
     m = re.search(r'(?im)^[ \t]*🎞️[ \t]*Finalização P1 Blindada[^\n:]*:', video)
     if not m:
-        raise ValueError('A resposta não preservou a Finalização P1 Blindada do modo V9.2.')
+        video = video.rstrip() + '\n\n🎞️ Finalização P1 Blindada:'
+        m = re.search(r'(?im)^[ \t]*🎞️[ \t]*Finalização P1 Blindada[^\n:]*:', video)
     encerramento = (
         ' During the final second, show the account brand signature with the EXACT text ' + nome +
         '. Use its official graphic only if supplied separately as a visual reference; otherwise '
@@ -3334,40 +3334,64 @@ def _assinatura_final_v1695(video, modo, marca):
     return video[:m.end()] + encerramento
 
 
+def _montar_video_original_v1696(dados, modo, marca=''):
+    # Keep the entire original visual command intact; do not split/rebuild shots.
+    visual = dados['video_visual'].strip()
+    if not visual.startswith('🎬'):
+        titulo = ('🎬 Comando Visual (V9.2 — Direção Nervosa, Física Real e Ambiente Vivo):'
+                  if modo == 'v9.2' else '🎬 Shot 1 (Natural Hook & Physics):')
+        visual = titulo + '\n' + visual
+    # Existing optional visual headings are restored if omitted, never used as
+    # a reason to reject otherwise complete visual content.
+    if '🫱' not in visual:
+        visual += '\n🫱 Interaction (Gesto Físico / CTA): Preserve continuous support during a natural CTA gesture.'
+    if '🛡️' not in visual:
+        visual += '\n🛡️ [PRISTINE CANVAS LOCK — ZERO WATERMARKS]: No platform UI, handles or unauthorized watermark.'
+    audio_titulo = ('🎙️ Áudio (Gancho V9.2 — Português):' if modo == 'v9.2'
+                    else '🎙️ Áudio e Fala (Português):')
+    video = (visual + '\n\n' + audio_titulo + '\n' + dados['audio'] +
+             '\n\n📝 Texto na Tela (Nativo TikTok - Foco na Dor):\n' + dados['texto_tela'])
+    return _assinatura_final_v1695(video, modo, marca)
+
+
 def gerar_estrutura_original_v1695(instrucao, foto, scan, modo, direcao, marca=''):
     esquema = FORMATO_V92_V1695 if modo == 'v9.2' else FORMATO_360_V1695
-    final = ('No bloco 🎞️ Finalização P1 Blindada preserve a cena e inclua apenas a assinatura final da marca da conta. '
-             'Não reescreva a embalagem do produto. Marca: ' + json.dumps(str(marca), ensure_ascii=False)
-             if modo == 'v9.2' else 'Modo 360: sem logo, assinatura adicional de conta ou marca final. Preserve a marca original impressa no produto.')
     contrato = (
-        '\n\n[TRANSPORTE DA RESPOSTA — A ESTRUTURA DOS PROMPTS NÃO MUDA]\n'
-        'Retorne JSON com três strings: imagem, video e seo. Cada string contém o bloco COMPLETO '
-        'no molde original, sem cercas de código e sem cabeçalhos ### internos. '
-        'imagem: prompt RAW completo em inglês no mesmo estilo e densidade do molde original. '
-        'video: prompt COMPLETO no formato original abaixo, com as mesmas etapas, títulos e emojis; '
-        'não criar uma nova estrutura de sub-blocos ou acrescentar relatórios, blueprints ou inventários em separado. '
-        'Direção visual em inglês antes de 🎙️; som/voz/fala e sugestões de texto em português. '
-        'Mínimo de 1500 caracteres de direção visual útil, sem colar a imagem inteira repetidamente. '
-        'Preserve ação, câmera, emoção e energia documental, sem transformar o vídeo em apresentação parada. '
-        'O cenário da imagem deve continuar no vídeo, com seus detalhes e causas físicas. '
-        'seo: os três títulos originais em português. '
-        'Não copiar produtos, capacidades, cores ou identidades dos exemplos para o produto atual.\n' + esquema +
-        '\n' + final + '\n' + _contexto_produto_v169(scan) + '\n' + EXEMPLOS_FISICOS_V1695
+        '\n\n[TRANSPORTE INTERNO — PRESERVAR OS BLOCOS VISÍVEIS ORIGINAIS]\n'
+        'Retorne JSON com cinco strings: imagem, video_visual, audio, texto_tela, seo. '
+        'Esses campos correspondem aos blocos já existentes no prompt, não a uma nova estrutura. '
+        'Não escrever cercas de código ou divisões ### nos campos. '
+        'imagem: prompt RAW completo em inglês, mantendo o molde original e sua densidade. '
+        'video_visual: o COMANDO VISUAL COMPLETO em inglês, incluindo suas cenas, tempos, '
+        'Interaction e PRISTINE CANVAS LOCK no formato original. Não fragmentar em campos de shots. '
+        'Não incluir áudio, fala, Texto na Tela nem Finalização P1 no campo video_visual. '
+        'audio: somente a direção sonora e a fala completa em português, sem título de seção. '
+        'texto_tela: as sugestões de texto em português com ⚠️ ✨ 🛒, sem título de seção. '
+        'seo: os três títulos SEO originais em português. '
+        'O programa insere os títulos de áudio, Texto na Tela e finalização originais automaticamente; '
+        'não escreva esses títulos dentro dos campos. '
+        'Preserve a energia, câmera, emoção e movimento do modelo validado; não transformar '
+        'o vídeo em apresentação parada nem acrescentar relatórios/blueprints em separado. '
+        'Mínimo de 1500 caracteres úteis em video_visual; não repetir a imagem inteira como enchimento. '
+        'Mesma cena, inventário e apresentadora em imagem e vídeo. '
+        'A marca final é tratada pelo código após o CTA: não introduza assinatura no visual principal. '
+        'A marca impressa no produto permanece intacta.\nESTRUTURA VISÍVEL DE REFERÊNCIA:\n' + esquema +
+        '\n' + _contexto_produto_v169(scan) + '\n' + EXEMPLOS_FISICOS_V1695
     )
     if direcao.get('escolhido'):
         contrato += '\nAMBIENTE SELECIONADO, IDÊNTICO EM IMAGEM E VÍDEO:\n' + direcao.get('trava_ambiente', '')
     dados = _solicitar_campos_v1693(
-        'Você é o diretor ÉLÉVO. Preserve a estrutura original dos prompts, o lema e a apresentadora escolhida. Responda com JSON de três blocos completos, não um roteiro com estrutura nova.',
+        'Você é o diretor ÉLÉVO. Preserve os prompts completos no formato original, o lema e a apresentadora escolhida. Use os campos JSON exigidos; a aplicação cuida dos títulos de áudio e finalização.',
         [{'type': 'text', 'text': instrucao + contrato},
          {'type': 'image_url', 'image_url': {'url': _url_referencia_v169(foto)}}],
-        ('imagem', 'video', 'seo'), 'prompts_originais_elevo', validar=_validar_pacote_v1695,
+        ('imagem', 'video_visual', 'audio', 'texto_tela', 'seo'), 'prompts_originais_elevo',
+        validar=_validar_pacote_v1695,
     )
     dados = _auditar_trechos_v1695(dados, scan)
-    video = _assinatura_final_v1695(dados['video'], modo, marca)
+    video = _montar_video_original_v1696(dados, modo, marca)
     return ('### 📸 PROMPT DE IMAGEM\n' + dados['imagem'] + '\n\n'
             '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + video + '\n\n'
             '### 🔑 TÍTULOS SEO (Separados)\n' + dados['seo'])
-
 
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
