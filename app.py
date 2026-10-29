@@ -2080,11 +2080,11 @@ if st.button("⚡ GERAR 3 ROTEIROS DE 9s (Estratégia)", type="primary", use_con
 st.markdown('<div id="aurora"></div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 15. MENTOR DE ELITE: SALA DE CONSELHOS (🔥 A "ROUPA" VIP COM ÁGUIA ANIMADA)
+# 15. AURORA VOICE CONSOLE V16.2 — REFINAMENTO VISUAL ISOLADO
+# Mantém st.audio_input, Whisper, contexto da Aurora e TTS existentes.
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00FFFF;'>🦅 Console da Aurora (Modo VIP)</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>Onisciência ativada: Aurora agora é a dona da plataforma e vê 100% das suas métricas em tempo real.</p>", unsafe_allow_html=True)
+st.markdown("<div class='aurora-section-marker'>CANAL DE VOZ · ÉLÉVO AI</div>", unsafe_allow_html=True)
 
 ID_VOZ_LAURA = "MLAEAegxkMReslK34j8T"
 
@@ -2123,58 +2123,161 @@ if "ultimo_audio_b64" not in st.session_state:
 if "ultimo_hash_audio" not in st.session_state:
     st.session_state["ultimo_hash_audio"] = None
 
+# Estilos limitados ao contêiner com chave: não atingem os demais microfones,
+# players ou cartões do aplicativo.
 st.markdown("""
 <style>
-    audio { display: none !important; }
-    [data-testid="stAudioInput"] label { display: none !important; }
-
-    [data-testid="stAudioInput"] {
-        position: relative;
-        background: linear-gradient(145deg, #15171a, #1b1e22) !important;
-        border: 2px solid #D4AF37 !important;
-        border-radius: 25px !important;
-        padding: 50px 20px 20px 20px !important; 
-        box-shadow: 
-            inset 5px 5px 15px rgba(0,0,0,0.8), 
-            inset -5px -5px 15px rgba(255,255,255,0.05),
-            10px 10px 30px rgba(0,0,0,0.9), 
-            -10px -10px 30px rgba(212, 175, 55, 0.1) !important;
-        margin: 40px auto 20px auto;
-        max-width: 400px;
-        overflow: visible !important;
-        transition: all 0.3s ease;
-    }
-
-    [data-testid="stAudioInput"]:focus-within {
-        border-color: #00FFFF !important;
-        box-shadow: 0px 0px 40px rgba(0, 255, 255, 0.3) !important;
-    }
-
-    [data-testid="stAudioInput"]::before {
-        content: "🦅";
-        font-size: 45px;
-        position: absolute;
-        top: -30px;
-        left: 50%;
-        transform: translateX(-50%);
-        z-index: 10;
-        filter: drop-shadow(0px 10px 10px rgba(0,0,0,0.9));
-        transition: all 0.3s ease-in-out;
-    }
-
-    [data-testid="stAudioInput"]:focus-within::before,
-    [data-testid="stAudioInput"]:active::before {
-        animation: voo-ataque 1.5s infinite alternate ease-in-out;
-    }
-
-    @keyframes voo-ataque {
-        0% { top: -50px; transform: translateX(-50%) scale(1.1) rotate(-5deg); filter: drop-shadow(0px 15px 15px rgba(0,255,255,0.4)); }
-        100% { top: -70px; transform: translateX(-50%) scale(1.4) rotate(5deg); filter: drop-shadow(0px 25px 25px rgba(0,255,255,0.8)); }
-    }
+.aurora-section-marker {
+  max-width: 780px; margin: 20px auto 11px;
+  font-size: .68rem; letter-spacing: .24em; font-weight: 800;
+  text-align: center; color: #789bb8 !important;
+}
+.st-key-aurora_voice_console {
+  --av-cyan: #32e5ff; --av-blue: #3d89ff; --av-ink: #e6f3ff;
+  --av-muted: #8ba5bb; --av-stroke: rgba(73,169,233,.26);
+  width: 100%; max-width: 780px; margin: 0 auto 28px !important;
+  border: 1px solid var(--av-stroke) !important;
+  border-radius: 24px !important;
+  padding: clamp(17px, 3vw, 27px) !important;
+  background:
+    radial-gradient(ellipse at 75% -15%,rgba(28,120,215,.13),transparent 58%),
+    linear-gradient(155deg,#101c2c 0%,#0b1524 62%,#09121e 100%) !important;
+  box-shadow: 0 15px 45px rgba(0,0,0,.18), inset 0 1px rgba(191,230,255,.055) !important;
+  overflow: hidden;
+}
+.st-key-aurora_voice_console [data-testid="stVerticalBlockBorderWrapper"] {
+  background: transparent !important; box-shadow: none !important;
+  border: none !important;
+}
+.st-key-aurora_voice_console [data-testid="stMarkdownContainer"] p {
+  margin: 0 !important;
+}
+.aurora-voice-top {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 17px;
+}
+.aurora-voice-identity {display:flex;align-items:center;gap:12px;min-width:0}
+.aurora-voice-monogram {
+  width: 45px;height:45px; flex:none; border-radius:15px;display:grid;place-items:center;
+  background:linear-gradient(145deg,rgba(55,148,252,.20),rgba(13,32,53,.80));
+  border:1px solid rgba(73,178,250,.32);
+  box-shadow:inset 0 1px rgba(255,255,255,.065);
+}
+.aurora-voice-monogram svg {height:27px;width:27px;stroke:#6ceaff;fill:none;stroke-width:1.5}
+.aurora-voice-name {color:#ecf8ff;font-size:1.15rem;font-weight:850;letter-spacing:.02em;line-height:1.25}
+.aurora-voice-sub {color:#8daac2;font-size:.7rem;letter-spacing:.12em;margin-top:2px}
+.aurora-voice-online {
+  display:flex;align-items:center;gap:7px;color:#9ddcc9;flex:none;
+  font-size:.69rem;font-weight:700;letter-spacing:.06em;
+  background:rgba(39,189,144,.065);border:1px solid rgba(56,213,163,.18);
+  padding:8px 11px;border-radius:99px;
+}
+.aurora-voice-led {width:7px;height:7px;border-radius:50%;background:#3ce7a5;box-shadow:0 0 10px rgba(60,231,165,.6)}
+.aurora-voice-stage {
+  background:radial-gradient(ellipse at 50% 110%,rgba(20,103,185,.10),transparent 75%),rgba(2,12,25,.42);
+  border:1px solid rgba(62,151,225,.13);border-radius:16px;
+  min-height:113px;padding:16px 14px 12px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;margin-bottom:12px;
+}
+.aurora-voice-wave {
+  display:flex;align-items:center;justify-content:center;gap:4px;
+  min-height:42px; width:100%;max-width:450px;
+}
+.aurora-voice-wave::before,.aurora-voice-wave::after {
+  content:"";height:1px;flex:1;max-width:55px;
+  background:linear-gradient(90deg,transparent,rgba(48,172,239,.40));
+}
+.aurora-voice-wave::after{transform:rotate(180deg)}
+.aurora-voice-wave i {
+  display:block;width:3px;flex:0 0 3px;border-radius:10px;
+  height:var(--av-h);background:linear-gradient(180deg,#74eeff,#1389d9);
+  box-shadow:0 0 9px rgba(30,189,248,.29);
+  animation:aurora-wave-breathe 1.85s ease-in-out infinite alternate;
+  animation-delay:var(--av-d);transform-origin:center;
+}
+@keyframes aurora-wave-breathe {from{transform:scaleY(.6);opacity:.5}to{transform:scaleY(1.28);opacity:1}}
+.aurora-voice-stage-caption{color:#c4d9ec;font-size:.79rem;font-weight:650;letter-spacing:.025em;text-align:center}
+.aurora-voice-stage-helper{color:#7f9bb2;font-size:.69rem;text-align:center;margin-top:-6px}
+.st-key-aurora_voice_console [data-testid="stAudioInput"] {
+  max-width:540px;margin:0 auto !important;
+  padding:11px 13px 10px !important;
+  border:1px solid rgba(70,157,233,.25) !important;
+  background:linear-gradient(120deg,rgba(17,41,68,.77),rgba(12,29,49,.8)) !important;
+  border-radius:15px !important;
+  box-shadow:none !important;
+}
+.st-key-aurora_voice_console [data-testid="stAudioInput"]:focus-within {
+  border-color:#48caff !important; box-shadow:0 0 0 2px rgba(52,186,249,.12) !important;
+}
+.st-key-aurora_voice_console [data-testid="stAudioInput"] button {
+  min-height:43px !important;border-radius:13px !important;
+  background:linear-gradient(125deg,#075caa,#138edb) !important;
+  border:1px solid #58c6ff !important;color:#fff !important;
+  box-shadow:0 4px 18px rgba(9,120,222,.21) !important;
+  font-weight:800 !important;
+}
+.st-key-aurora_voice_console [data-testid="stAudioInput"] button:hover {
+  filter:brightness(1.16);transform:none !important;
+}
+.st-key-aurora_voice_console [data-testid="stAudioInput"] audio {
+  display:block !important; width:100%;max-width:100%; color-scheme:dark;
+}
+.st-key-aurora_voice_console [data-testid="stAudioInput"] audio::-webkit-media-controls-panel {
+  background-color:#233d54;
+}
+.aurora-voice-foot {
+  text-align:center;color:#7898b4 !important;font-size:.71rem;
+  margin:10px auto 0;max-width:560px;line-height:1.6;
+}
+@media(max-width:650px){
+ .st-key-aurora_voice_console{border-radius:19px !important;padding:15px !important}
+ .aurora-voice-top{align-items:flex-start;gap:7px}
+ .aurora-voice-monogram{width:41px;height:41px}
+ .aurora-voice-name{font-size:1rem}
+ .aurora-voice-sub{font-size:.58rem}
+ .aurora-voice-online{font-size:.62rem;padding:7px 8px}
+ .aurora-voice-wave{gap:3px}
+ .aurora-voice-wave i{width:2px;flex-basis:2px}
+ .aurora-voice-stage{min-height:106px}
+}
+@media(prefers-reduced-motion:reduce){.aurora-voice-wave i{animation:none !important}}
 </style>
 """, unsafe_allow_html=True)
 
-audio_gravado = st.audio_input(" ", label_visibility="collapsed", key="audio_input_aurora_unico")
+# O Streamlit permanece responsável pela gravação (sem gravador paralelo).
+aurora_console = st.container(border=True, key="aurora_voice_console")
+with aurora_console:
+    st.markdown("""
+    <div class="aurora-voice-top">
+      <div class="aurora-voice-identity">
+        <div class="aurora-voice-monogram" aria-hidden="true">
+          <svg viewBox="0 0 28 28" aria-hidden="true">
+            <path d="M4 16 L8 12 L11 19 L15 6 L18 22 L21 12 L24 16"/>
+            <path d="M3 24H25" opacity=".3"/>
+          </svg>
+        </div>
+        <div><div class="aurora-voice-name">Aurora <span style="color:#49b6ed;font-weight:500">/ Voice</span></div>
+        <div class="aurora-voice-sub">INTELIGÊNCIA OPERACIONAL</div></div>
+      </div>
+      <div class="aurora-voice-online"><span class="aurora-voice-led"></span> CANAL ATIVO</div>
+    </div>
+    <div class="aurora-voice-stage">
+      <div class="aurora-voice-wave" aria-hidden="true">
+      """ + "".join(
+          f'<i style="--av-h:{h}px;--av-d:{(i % 11) * -0.16:.2f}s"></i>'
+          for i, h in enumerate([4,7,10,7,12,18,11,24,13,20,28,14,23,37,21,30,43,23,35,17,26,40,18,29,14,24,16,12,20,11,16,8,12,7,4])
+      ) + """
+      </div>
+      <div class="aurora-voice-stage-caption">Pronta para ouvir sua próxima ideia</div>
+      <div class="aurora-voice-stage-helper">Toque no microfone para gravar. Toque novamente para concluir.</div>
+    </div>
+    """, unsafe_allow_html=True)
+    audio_gravado = st.audio_input(
+        "Gravar mensagem de voz para a Aurora", label_visibility="collapsed",
+        key="audio_input_aurora_unico"
+    )
+    st.markdown('<div class="aurora-voice-foot">Sua mensagem será transcrita e respondida pela Aurora. O envio continua automático ao terminar a gravação.</div>', unsafe_allow_html=True)
 
 if audio_gravado is not None:
     audio_bytes = audio_gravado.read()
@@ -2305,45 +2408,116 @@ if audio_gravado is not None:
                     st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
 
 # ==========================================================
-# 🎛️ ONDAS SONORAS CYAN (SEM O TEXTO DO CHAT)
+# AURORA / RESPOSTA V16.2 — WAVEFORM AZUL + CONTROLES PRÓPRIOS
+# Mesmos bytes de áudio ElevenLabs/gTTS; somente a apresentação foi alterada.
 # ==========================================================
 if st.session_state["ultimo_audio_b64"]:
     audio_tocar = st.session_state["ultimo_audio_b64"]
-    hash_atual = st.session_state["ultimo_hash_audio"]
+    hash_atual = str(st.session_state.get("ultimo_hash_audio") or "")
+    # Nunca misturar a chave de uma conta com outra no browser.
+    identificador_audio = hashlib.sha256(
+        (str(st.session_state.get("email_usuario", "")) + ":" + hash_atual).encode("utf-8")
+    ).hexdigest()[:30]
 
-    html_ondas_inteligentes = f"""
-    <!-- CHAVE UNICA DO AUDIO: {hash_atual} -->
-    <div style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 25px; border-radius: 16px; text-align: center; border: 1px solid #00FFFF; box-shadow: 0px 0px 25px rgba(0, 255, 255, 0.15); margin-top: 20px;">
-        <h4 style="color: #00FFFF; margin: 0 0 20px 0; font-family: 'Montserrat', sans-serif;">🦅 TRANSMISSÃO DA AURORA</h4>
-        <div id="visualizer" style="display: flex; justify-content: center; align-items: center; gap: 4px; height: 60px;">
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
-        </div>
-        <audio id="aurora_audio" autoplay style="display: none;">
-            <source src="data:audio/mp3;base64,{audio_tocar}" type="audio/mpeg">
-        </audio>
+    html_resposta = r"""
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+*{box-sizing:border-box}html,body{margin:0;padding:0;background:transparent;font-family:Montserrat,system-ui,Arial,sans-serif;color:#e8f7ff}
+.player{margin:5px auto 0;max-width:710px;padding:17px 18px;background:linear-gradient(130deg,rgba(10,41,68,.96),rgba(9,26,45,.95));border:1px solid rgba(69,189,251,.29);border-radius:15px}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:13px}
+.name{font-size:.71rem;font-weight:850;letter-spacing:.13em;color:#67d9ff;text-transform:uppercase}
+.pill{font-size:.63rem;font-weight:750;color:#96b9d2;border:1px solid rgba(69,189,251,.18);border-radius:40px;padding:5px 9px}
+.row{display:flex;align-items:center;gap:13px;width:100%}
+.toggle{width:45px;height:45px;flex:none;cursor:pointer;display:grid;place-items:center;border-radius:14px;background:linear-gradient(135deg,#085fa8,#178de0);border:1px solid rgba(116,228,255,.64);box-shadow:0 5px 17px rgba(14,126,214,.23);color:#fff;font-weight:800;font-size:1.1rem}
+.toggle:hover{filter:brightness(1.15)}.toggle:focus-visible{outline:2px solid white;outline-offset:2px}
+.visual{min-width:0;flex:1;display:flex;flex-direction:column;justify-content:center;gap:9px}
+.bars{height:40px;display:flex;align-items:center;justify-content:space-between;gap:2px;overflow:hidden}
+.bar{flex:1 1 2px;max-width:6px;min-width:2px;height:3px;min-height:3px;border-radius:6px;background:linear-gradient(180deg,#7fefff,#168ce1);opacity:.66;transform-origin:center;transition:height .10s ease,opacity .14s ease;box-shadow:0 0 6px rgba(36,198,255,.12)}
+.player.playing .bar{opacity:.9}
+.status{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:.7rem;color:#94b4cd}
+.clock{font-variant-numeric:tabular-nums;color:#c2e5ff}
+.progress{height:3px;background:rgba(79,160,217,.13);border-radius:4px;overflow:hidden;margin-top:7px}
+.progress>div{height:100%;width:0;background:linear-gradient(90deg,#2189e4,#60edff);transition:width .16s linear}
+audio{display:none!important}
+@media(max-width:540px){.player{padding:14px 12px}.pill{font-size:.56rem}.heading{gap:6px}.name{letter-spacing:.08em}.row{gap:9px}}
+@media(prefers-reduced-motion:reduce){.bar{transition:none}}
+</style></head><body>
+<section class="player" id="player" aria-label="Resposta em áudio da Aurora">
+  <div class="heading"><div class="name">AURORA / RESPOSTA EM VOZ</div><div class="pill" id="badge">PRONTA</div></div>
+  <div class="row">
+    <button class="toggle" type="button" id="toggle" aria-label="Reproduzir a resposta">▶</button>
+    <div class="visual">
+      <div class="bars" id="bars" aria-hidden="true"></div>
+      <div class="status"><span id="status" role="status" aria-live="polite">Resposta pronta para ouvir</span><span class="clock" id="clock">00:00</span></div>
+      <div class="progress"><div id="progress"></div></div>
     </div>
-    <style>
-        .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
-        .bar.playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
-        .bar.playing:nth-child(1) {{ animation-delay: 0.0s; }} .bar.playing:nth-child(2) {{ animation-delay: 0.1s; }}
-        .bar.playing:nth-child(3) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(4) {{ animation-delay: 0.3s; }}
-        .bar.playing:nth-child(5) {{ animation-delay: 0.1s; }} .bar.playing:nth-child(6) {{ animation-delay: 0.4s; }}
-        .bar.playing:nth-child(7) {{ animation-delay: 0.2s; }} .bar.playing:nth-child(8) {{ animation-delay: 0.0s; }}
-        @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
-    </style>
-    <script>
-        const audio = document.getElementById('aurora_audio');
-        const bars = document.querySelectorAll('.bar');
-        if(audio) {{
-            audio.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-            audio.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-            audio.addEventListener('ended', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-        }}
-    </script>
-    """
-    
-    components.html(html_ondas_inteligentes, height=200)
+  </div>
+  <audio id="voice" preload="auto" playsinline src="data:audio/mpeg;base64,__AUDIO_B64__"></audio>
+</section>
+<script>
+(()=>{
+ 'use strict';
+ const player=document.getElementById('player');
+ const audio=document.getElementById('voice');
+ const toggle=document.getElementById('toggle');
+ const bars=document.getElementById('bars');
+ const badge=document.getElementById('badge');
+ const status=document.getElementById('status');
+ const clock=document.getElementById('clock');
+ const progress=document.getElementById('progress');
+ const key='elevo_aurora_voice_v162___AUDIO_ID__';
+ const heights=[4,7,12,8,22,13,32,21,15,35,11,26,37,18,12,29,39,24,16,31,10,20,33,14,7,26,17,9,21,12,5,18,9,4];
+ const elements=heights.map(h=>{const span=document.createElement('i');span.className='bar';span.style.height=h+'px';bars.appendChild(span);return span;});
+ let ctx=null, analyser=null, frequency=null, frame=0;
+ const reduced=window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+ const fmt=n=>{if(!Number.isFinite(n))return '00:00';const v=Math.floor(n);return String(Math.floor(v/60)).padStart(2,'0')+':'+String(v%60).padStart(2,'0');};
+ function initAnalyser(){
+   if(reduced||ctx||!window.AudioContext && !window.webkitAudioContext)return;
+   try{const AC=window.AudioContext||window.webkitAudioContext;ctx=new AC();analyser=ctx.createAnalyser();analyser.fftSize=128;const src=ctx.createMediaElementSource(audio);src.connect(analyser);analyser.connect(ctx.destination);frequency=new Uint8Array(analyser.frequencyBinCount);}catch(e){analyser=null;}
+ }
+ function draw(){
+   cancelAnimationFrame(frame);
+   if(audio.paused || audio.ended){elements.forEach((el,i)=>el.style.height=(4+heights[i]*.45)+'px');return;}
+   if(analyser && frequency && !reduced){
+     analyser.getByteFrequencyData(frequency);
+     elements.forEach((el,i)=>{
+       const idx=Math.floor(i/elements.length * Math.min(frequency.length,40));
+       const level=frequency[idx]/255;
+       el.style.height=(4+Math.max(level,0.04)*35)+'px';
+     });
+   }else if(!reduced){
+     const t=performance.now()/220;
+     elements.forEach((el,i)=>el.style.height=(5+Math.abs(Math.sin(t+i*.65))*heights[i]*.85)+'px');
+   }
+   frame=requestAnimationFrame(draw);
+ }
+ function showPlay(){player.classList.remove('playing');toggle.textContent='▶';toggle.setAttribute('aria-label','Reproduzir a resposta');}
+ function showPause(){player.classList.add('playing');toggle.textContent='Ⅱ';toggle.setAttribute('aria-label','Pausar a resposta');}
+ function start(userInitiated=false){
+   // Criar o AudioContext apenas com gesto do usuário: autoplay em Chrome mobile pode silenciar contextos suspensos.
+   if(userInitiated){initAnalyser();if(ctx && ctx.state==='suspended')ctx.resume().catch(()=>{});}
+   const result=audio.play();
+   if(result&&typeof result.catch==='function')result.catch(()=>{showPlay();badge.textContent='TOQUE PARA OUVIR';status.textContent='Toque em reproduzir para ouvir a Aurora';});
+ }
+ toggle.addEventListener('click',()=>{if(audio.paused||audio.ended){if(audio.ended)audio.currentTime=0;start(true);}else audio.pause();});
+ audio.addEventListener('play',()=>{showPause();badge.textContent='TRANSMITINDO';status.textContent='Aurora está falando';try{sessionStorage.setItem(key,'iniciado')}catch(e){}draw();});
+ audio.addEventListener('pause',()=>{showPlay();if(!audio.ended){badge.textContent='PAUSADA';status.textContent='Resposta pausada';}draw();});
+ audio.addEventListener('ended',()=>{showPlay();badge.textContent='CONCLUÍDA';status.textContent='Mensagem concluída · toque para ouvir novamente';try{sessionStorage.setItem(key,'concluido')}catch(e){}draw();});
+ audio.addEventListener('timeupdate',()=>{clock.textContent=fmt(audio.currentTime)+' / '+fmt(audio.duration);progress.style.width=(audio.duration?Math.min(100,audio.currentTime/audio.duration*100):0)+'%';});
+ audio.addEventListener('loadedmetadata',()=>{clock.textContent='00:00 / '+fmt(audio.duration);});
+ audio.addEventListener('error',()=>{showPlay();badge.textContent='INDISPONÍVEL';status.textContent='Falha ao carregar áudio · tente novamente';});
+ // Tenta uma vez para cada nova resposta; ao reexecutar o app não repete um áudio já iniciado.
+ let already=false;try{already=!!sessionStorage.getItem(key)}catch(e){}
+ if(!already)start();else{badge.textContent='DISPONÍVEL';status.textContent='Toque em reproduzir para ouvir novamente';}
+ window.addEventListener('pagehide',()=>{cancelAnimationFrame(frame);if(ctx)ctx.close().catch(()=>{});},{once:true});
+})();
+</script>
+</body></html>
+""".replace("__AUDIO_B64__", audio_tocar).replace("__AUDIO_ID__", identificador_audio)
+
+    with aurora_console:
+        components.html(html_resposta, height=169, scrolling=False)
 
 # ==========================================================
 # 16. PAINEL DE CONTROLE DO CEO
