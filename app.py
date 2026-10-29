@@ -1,4 +1,4 @@
-# ÉLÉVO V16 — interface premium, autenticação Google opcional, isolamento de sessão e limites de IA.
+# ÉLÉVO V16.4 — cinco influenciadoras visuais, elenco integrado aos Blocos 17/17.2; demais módulos preservados.
 import base64
 import requests
 import time
@@ -103,6 +103,7 @@ SESSAO_DADOS_PRIVADOS = {
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
     "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
     "bv_recarregamento_login", "google_pendente", "google_erro",
+    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao",
 }
 
 def limpar_sessao_privada():
@@ -934,6 +935,7 @@ st.markdown(f"""
   <a href="#radar">◈ Insights e tendências</a>
   <a href="#aurora">✧ Aurora IA</a>
   <div class="secao">CRIATIVIDADE</div>
+  <a href="#elenco-elevo">◈ Elenco de influenciadoras</a>
   <a href="#criacao">▣ Criação de prompts</a>
   <a href="#academia">◉ Academia</a>
 </aside>
@@ -1871,7 +1873,7 @@ if robo_sheets and (not E_O_CEO or link_planilha_ativa):
 st.markdown('<div id="radar"></div>', unsafe_allow_html=True)
 
 # ==========================================================
-# 11 a 13. RADAR, ENGENHARIA DE FUNIL (RAIO-X CEO), LABORATÓRIO E ROTEIROS
+# 11 e 12. RADAR E ENGENHARIA DE FUNIL (RAIO-X CEO)
 # ==========================================================
 st.divider()
 st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
@@ -1961,11 +1963,8 @@ if E_O_CEO:
                     try:
                         sistema_raiox = "Atue como um estrategista mestre em TikTok Shop e Neuromarketing. Sua regra fundamental: 'Eu não vendo produtos. Eu vendo decisões.'"
                         
-                        conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
-                        feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
-                        
                         texto_instrucao = f"Contexto do usuário: {texto_contexto}\n\n"
-                        texto_instrucao += f"DADOS DO LABORATÓRIO (CRUZE ISTO COM AS IMAGENS):\n- Taxa de Conversão: {conversao_atual:.2f}%\n- Mente do Cliente: {feedback_atual}\n\n"
+                        texto_instrucao += "Analise apenas informações realmente presentes nas imagens e no contexto fornecido. Não invente CTR ou conversões.\n\n"
                         texto_instrucao += "Sua missão: Descubra o padrão de sucesso analisando os dados, a conversão, o feedback e as imagens. Monte um MAPA MENTAL ESTRATÉGICO e um FUNIL DE VENDAS REPETÍVEL.\n1. O Padrão de Ouro\n2. O Funil Escalável (Ataque as objeções listadas)\n3. 3 Ganchos Prontos\n4. Estratégia de Dominação\nSeja frio, analítico e direto."
                         
                         conteudo_prompt = [{"type": "text", "text": texto_instrucao}]
@@ -2006,76 +2005,232 @@ if E_O_CEO:
                 st.info("👈 A memória está vazia. Envie seus prints do Analytics para criar o funil de vendas.")
 
 # ==========================================================
-# 12.5. LABORATÓRIO DE INSIGHTS E CONVERSÃO (CEO E NOVATOS)
-# ==========================================================
-st.divider()
-st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🔬 Laboratório de Insights e Conversão</h3>", unsafe_allow_html=True)
-c_conv, c_feed = st.columns(2)
-with c_conv:
-    with st.container(border=True):
-        st.markdown("<h4 style='color: #00FFFF;'>📈 Simulador de CTR & Escala</h4>", unsafe_allow_html=True)
-        vw = st.number_input("👁️ Views", min_value=0, step=100)
-        cq = st.number_input("🖱️ Cliques", min_value=0, step=10)
+def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo_marca=""):
+    if not robo_sheets: return None
+    try:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if not match_id: return None
+        planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+        try:
+            aba_inf = planilha_mestre.worksheet("Banco_Influencers")
+            cabecalho = aba_inf.row_values(1)
+            if len(cabecalho) < 5:
+                aba_inf.update_cell(1, 5, "Logo_Marca")
+        except gspread.exceptions.WorksheetNotFound:
+            aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="5")
+            aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca"])
         
-        if E_O_CEO and not df_campeao.empty:
-            vd_padrao = int(df_campeao.iloc[0]["Quantidade"])
-            st.caption(f"🏆 Vendas automáticas do Campeão na Planilha: **{vd_padrao}**")
-        else:
-            vd_padrao = 0
+        email_clean = str(email_usr).strip().lower()
+        
+        if acao == "ler":
+            registros = aba_inf.get_all_records()
+            user_inf = [r for r in registros if str(r.get("Email", "")).strip().lower() == email_clean]
+            if user_inf:
+                return user_inf[-1]
+            return None
             
-        vd = st.number_input("🛍️ Vendas", min_value=0, value=vd_padrao, step=1)
-        if vw > 0 and cq > 0:
-            taxa_clique = (cq / vw) * 100
-            taxa_conversao = (vd / cq) * 100
-            st.session_state["ultima_taxa_conversao"] = taxa_conversao
-            col_met1, col_met2 = st.columns(2)
-            col_met1.metric("CTR", f"{taxa_clique:.2f}%")
-            col_met2.metric("Conversão", f"{taxa_conversao:.2f}%")
-            if taxa_conversao >= 2.0:
-                st.success("🔥 Conversão Nível Elite! O teu funil está perfeito. Impulsiona isso urgente!")
-            elif taxa_conversao >= 0.5:
-                st.warning("⚖️ Conversão Média. O produto atrai, mas há atrito no preço ou na página.")
+        elif acao == "salvar":
+            col_emails = aba_inf.col_values(1)
+            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+            # Update without deleting the previous profile before the write completes.
+            indices = [i for i in range(2, len(col_emails) + 1)
+                       if str(col_emails[i - 1]).strip().lower() == email_clean]
+            if indices:
+                aba_inf.update(f"B{indices[-1]}:E{indices[-1]}",
+                               [[nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()]])
             else:
-                st.error("🚨 Conversão Baixa. Muito clique e pouca venda. A promessa do vídeo não bate com o produto.")
+                aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()])
+            return True
+            
+        elif acao == "excluir":
+            col_emails = aba_inf.col_values(1)
+            apagou = False
+            for i in range(len(col_emails), 1, -1):
+                if str(col_emails[i-1]).strip().lower() == email_clean:
+                    aba_inf.delete_rows(i)
+                    apagou = True
+            return apagou
+    except Exception:
+        return None
 
-with c_feed:
-    with st.container(border=True):
-        st.markdown("<h4 style='color: #00FFFF;'>🗣️ Mente do Cliente</h4>", unsafe_allow_html=True)
-        pd_alvo = st.text_input("📦 Nome do Produto em Análise:", placeholder="Máscara Novex")
-        txt_cmt = st.text_area("Cole comentários:", height=100)
-        if st.button("🧠 Hackear Sentimento", use_container_width=True, key="btn_hackear_sentimento"):
-            if txt_cmt:
-                with st.spinner("Analisando dor..."):
-                    res_fd = chamar_ia_global(f"Prod: {pd_alvo}. Coment: {txt_cmt}. Analise e retorne EXATAMENTE neste formato:\n🔥 MAIOR DESEJO: [1 frase]\n🚧 PRINCIPAL OBJEÇÃO: [1 frase]\n💡 GANCHO MATADOR: [1 frase]", "Analista Comportamental TikTok")
-                    st.session_state["ultimo_feedback_analisado"] = res_fd
-                    st.success("Hackeado!")
-            else: st.warning("Cole os comentários.")
-        if "ultimo_feedback_analisado" in st.session_state: st.markdown(st.session_state["ultimo_feedback_analisado"])
 
 # ==========================================================
-# 13. MÁQUINA DE ROTEIROS 9s (TRÍADE DE ESCALA 360º)
+# ÉLÉVO V16.4 — ELENCO DIGITAL (substitui SOMENTE Laboratório + 9s)
+# Retratos originais embarcados no app.py; não necessita upload de imagens.
 # ==========================================================
 st.divider()
-st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🎬 Máquina de Roteiros 9s (Tríade de Escala 360º)</h3>", unsafe_allow_html=True)
-if st.button("⚡ GERAR 3 ROTEIROS DE 9s (Estratégia)", type="primary", use_container_width=True, key="btn_roteiros_9s"):
-    with st.spinner("Forjando roteiros de elite cruzando Funil, Tendências e Objeções..."):
-        alvo_campeao = produto_campeao if produto_campeao != "Nenhum" else "Produto principal"
-        vendas_atuais = f"R$ {aprovado:,.2f}"
-        tendencia_aurora = historico_radar[-1]["Conteudo"] if historico_radar else "Nenhuma tendência."
-        ultimo_funil_texto = historico_raiox[-1]["Funil"] if historico_raiox else "Foco na curiosidade."
-        fd = st.session_state.get("ultimo_feedback_analisado", "Dores capilares.")
-        
-        prompt_rot_9s = f"""
-        Crie 3 roteiros TikTok de EXATOS 9 SEGUNDOS para vender [{alvo_campeao}]. Público: Feminino Buscadora de Atalhos.
-        Dados da Operação: Faturamento {vendas_atuais} | Tendência: {tendencia_aurora} | Funil Validado: {ultimo_funil_texto} | Missão: {missao_hoje}.
-        Objeção Real dos Clientes para quebrar no Roteiro 3: {fd}.
-        PROIBIDO falar de cura, elimina, milagre. Tom: Amiga fofoqueira do bem (Aurora).
-        ROTEIRO 1: O Choque / Escassez
-        ROTEIRO 2: O Segredo Revelado
-        ROTEIRO 3: A Quebra de Objeção (Baseado na Mente do Cliente)
-        Separe [AÇÃO NA TELA] de [VOZ DA AURORA].
-        """
-        st.markdown(chamar_ia_global(prompt_rot_9s, "Copywriter de Elite TikTok Shop"))
+st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
+st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
+st.caption("Cinco personagens fictícias adultas, com aparência, voz, emoção e modo de apresentar definidos. Selecione uma para aplicar automaticamente aos Blocos 17 e 17.2. A descrição adicional é opcional.")
+
+INFLUENCIADORAS_ELEVO_V164 = {
+    'ana': {
+        "nome": 'Ana Clara', "idade": 22, "nicho": 'Beleza & skincare', "tags": 'Beleza · Autocuidado',
+        "resumo": 'Jovem, carismática e espontânea. Conecta com o público em resenhas leves e autênticas.', "aparencia": 'Brazilian adult woman, 22 years old, warm medium complexion, deep brown almond eyes, long dark brown wavy hair with a side part, softly rounded face, natural delicate makeup, hoop earrings, casual earth-toned blouse; preserve the reference portrait identity, hair part and face proportions in every scene.', "voz": 'Voz jovem, calorosa, risonha e próxima, em português brasileiro.',
+        "emocao": 'Alegria acolhedora, curiosidade genuína e surpresa comedida.', "gestos": 'Expressões naturais, sorriso fácil, contato visual amigável, gestos leves com as mãos.', "tom": 'Conselho de amiga em resenha sincera, sem exageros e sem promessas não comprovadas.',
+        "foto": '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',
+    },
+    'bruna': {
+        "nome": 'Bruna Lima', "idade": 28, "nicho": 'Casa & organização', "tags": 'Casa · Utilidades',
+        "resumo": 'Prática e segura. Explica utilidades de forma clara, com foco no antes e depois realista.', "aparencia": 'Brazilian adult woman, 28 years old, light warm skin, medium-long honey-blonde wavy hair with darker roots, brown eyes, softly defined facial contours, natural makeup, black short-sleeve casual shirt; preserve the same distinct portrait identity and hairstyle.', "voz": 'Voz firme, clara e confortável, com entonação didática.',
+        "emocao": 'Confiança tranquila, satisfação discreta e humor observacional.', "gestos": 'Gestos organizados demonstrando tamanho, uso e manuseio, sem movimentos apressados.', "tom": 'Demonstração objetiva de usos cotidianos, com linguagem simples e sem resultados inventados.',
+        "foto": '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',
+    },
+    'camila': {
+        "nome": 'Camila Rocha', "idade": 26, "nicho": 'Fitness & bem-estar', "tags": 'Fitness · Rotina',
+        "resumo": 'Energética e motivadora sem ser exagerada. Mostra uma rotina ativa e acessível.', "aparencia": 'Brazilian adult woman, 26 years old, golden tan skin, expressive dark eyes, dark brown hair in a high messy bun with a few loose strands framing the face, athletic-casual charcoal top; preserve exact hair bun, facial appearance and athletic wardrobe cues from the reference portrait.', "voz": 'Voz dinâmica, clara e natural, com pausas e boa articulação.',
+        "emocao": 'Energia positiva, disciplina serena e empatia.', "gestos": 'Postura ativa, movimentos naturais de demonstração e respiração realista.', "tom": 'Bem-estar cotidiano, uso responsável de produtos, sem alegações médicas ou mudanças instantâneas.',
+        "foto": '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',
+    },
+    'juliana': {
+        "nome": 'Juliana Mendes', "idade": 30, "nicho": 'Moda & lifestyle', "tags": 'Moda · Tendências',
+        "resumo": 'Sofisticada e acessível. Tem olhar de curadoria e sugere combinações de forma elegante.', "aparencia": 'Brazilian adult woman, 30 years old, fair skin with natural freckles, long voluminous copper-red wavy hair parted to the side, hazel eyes, softly angular face, white casual top, minimal jewelry; preserve copper hairstyle and face identity from the portrait.', "voz": 'Voz calma, expressiva, segura, com ritmo refinado e conversacional.',
+        "emocao": 'Encantamento sutil, elegância e curiosidade estética.', "gestos": 'Gestos delicados, mãos em posição natural e contato visual confiante.', "tom": 'Moda prática, estilo pessoal e descobertas autênticas, sem pressão de compra falsa.',
+        "foto": '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',
+    },
+    'mariana': {
+        "nome": 'Mariana Costa', "idade": 32, "nicho": 'Cozinha & utilidades', "tags": 'Cozinha · Receitas',
+        "resumo": 'Simpática e objetiva. Aproxima o público com testes reais de utensílios e dicas de cozinha.', "aparencia": 'Brazilian adult woman, 32 years old, medium olive skin, long straight black hair with subtle waves at the ends, dark brown eyes, oval face, bright natural smile, neutral dark casual blouse; preserve her reference portrait face and hairstyle.', "voz": 'Voz acolhedora, comunicativa e descontraída, com boa dicção.',
+        "emocao": 'Simpatia, satisfação real e humor leve.', "gestos": 'Aponta e demonstra utensílios com movimentos precisos e naturais, sem poses artificiais.', "tom": 'Experiência prática de cozinha e utilidades, demonstrando o que for fisicamente possível.',
+        "foto": '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',
+    }
+}
+
+
+def montar_descricao_influencer_v164(perfil, observacao=""):
+    """Identidade física + comportamento aplicada a IMAGEM, VÍDEO e FALA."""
+    texto = (
+        f"[DIGITAL INFLUENCER PERSONA — FICTIONAL ADULT, CONSISTENT IDENTITY] "
+        f"NAME: {perfil['nome']}; AGE: {perfil['idade']} years; NICHE: {perfil['nicho']}. "
+        f"LOCKED PHYSICAL APPEARANCE AND PHOTO REFERENCE: {perfil['aparencia']} "
+        f"PERSONALITY AND COMMERCIAL APPROACH (Portuguese BR): {perfil['resumo']} {perfil['tom']} "
+        f"VOICE AND PROSODY: {perfil['voz']} "
+        f"EMOTIONAL DIRECTION: {perfil['emocao']} "
+        f"BODY LANGUAGE / ACTIONS: {perfil['gestos']} "
+        "Keep the same person's face, age, hair color, hairstyle and natural skin texture across "
+        "the image prompt, every video frame, voice and storyboard. Do not impose straight bangs "
+        "or another influencer's facial features. Make emotions product-contextual, human and plausible. "
+        "Never assert the fictional influencer is a real customer or fabricated testimonial."
+    )
+    if observacao and observacao.strip():
+        texto += "\n[AJUSTE OPCIONAL DO USUÁRIO]: " + observacao.strip()[:850]
+    return texto
+
+
+def obter_observacao_salva_v164(descricao):
+    marcador = "[AJUSTE OPCIONAL DO USUÁRIO]: "
+    return str(descricao).split(marcador, 1)[1].strip() if marcador in str(descricao) else ""
+
+
+# Abre uma única vez o histórico do Gmail, sem misturar personagens entre contas.
+email_elenco_v164 = str(st.session_state.get("email_usuario", "")).strip().lower()
+if st.session_state.get("email_inf_carregado") != email_elenco_v164:
+    st.session_state["influencer_atual"] = gerenciar_influencer_usuario("ler", email_elenco_v164)
+    st.session_state["email_inf_carregado"] = email_elenco_v164
+    st.session_state.pop("elevo_inf_preset_id", None)
+    st.session_state.pop("elevo_inf_obs", None)
+
+if "elevo_inf_preset_id" not in st.session_state:
+    inf_anterior = st.session_state.get("influencer_atual") or {}
+    perfil_igual = next((id_p for id_p, p in INFLUENCIADORAS_ELEVO_V164.items()
+                         if p["nome"] == inf_anterior.get("Nome_Influencer")), None)
+    st.session_state["elevo_inf_preset_id"] = perfil_igual or ("personalizada" if inf_anterior.get("Nome_Influencer") else "ana")
+    st.session_state["elevo_inf_obs"] = obter_observacao_salva_v164(inf_anterior.get("Descricao_Visual", ""))
+
+st.markdown("""
+<style>
+.elevo-elenco-foto { width:100%; aspect-ratio:1.52; object-fit:cover; border-radius:11px; display:block; }
+.elevo-elenco-card { padding:9px; border-radius:15px; border:1px solid rgba(91,148,218,.27);
+  background:linear-gradient(145deg,#102139,#0c1629); min-height:258px; margin-bottom:9px; }
+.elevo-elenco-card.ativo { border-color:#00DFFF; box-shadow:0 0 0 1px rgba(0,223,255,.26),0 0 16px rgba(0,223,255,.13); }
+.elevo-elenco-nome {color:#EBF4FF;font-weight:850;font-size:.85rem;margin:9px 0 3px;}
+.elevo-elenco-idade {color:#A5B8D6;font-size:.72rem;}
+.elevo-elenco-nicho {color:#62D6F4;font-size:.70rem;font-weight:650;margin:8px 0;min-height:30px;}
+.elevo-elenco-desc {color:#B6C4D9;font-size:.71rem;line-height:1.45;}
+.elevo-elenco-status {font-size:.68rem;color:#75F2CF;font-weight:700;margin:0 0 5px;}
+@media (max-width:900px) {.elevo-elenco-card {min-height:0}}
+</style>
+""", unsafe_allow_html=True)
+
+colunas_elenco = st.columns(5, gap="small")
+for indice, (chave_perfil, perfil) in enumerate(INFLUENCIADORAS_ELEVO_V164.items()):
+    with colunas_elenco[indice]:
+        ativo = st.session_state["elevo_inf_preset_id"] == chave_perfil
+        classe_ativo = " ativo" if ativo else ""
+        selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
+        st.markdown(
+            f'<div class="elevo-elenco-card{classe_ativo}">'
+            f'<img class="elevo-elenco-foto" src="data:image/webp;base64,{perfil["foto"]}" alt="Retrato fictício de {perfil["nome"]}" />'
+            f'<div class="elevo-elenco-nome">{perfil["nome"]}</div>'
+            f'<div class="elevo-elenco-idade">{perfil["idade"]} anos</div>'
+            f'<div class="elevo-elenco-nicho">{perfil["nicho"]}</div>'
+            f'<div class="elevo-elenco-desc">{perfil["resumo"]}</div>'
+            f'{selo_ativo}</div>',
+            unsafe_allow_html=True
+        )
+        if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{chave_perfil}",
+                     type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
+            st.session_state["elevo_inf_preset_id"] = chave_perfil
+            st.session_state["elevo_inf_obs"] = ""
+            desc = montar_descricao_influencer_v164(perfil)
+            marca = str((st.session_state.get("influencer_atual") or {}).get("Logo_Marca", "")).strip()
+            st.session_state["influencer_atual"] = {
+                "Email": email_elenco_v164, "Nome_Influencer": perfil["nome"],
+                "Descricao_Visual": desc, "Logo_Marca": marca
+            }
+            gravado = gerenciar_influencer_usuario("salvar", email_elenco_v164, perfil["nome"], desc, marca)
+            if not gravado:
+                st.session_state["elevo_inf_erro_gravacao"] = True
+            else:
+                st.session_state.pop("elevo_inf_erro_gravacao", None)
+            st.rerun()
+
+chave_ativa = st.session_state["elevo_inf_preset_id"]
+if chave_ativa in INFLUENCIADORAS_ELEVO_V164:
+    perfil_ativo = INFLUENCIADORAS_ELEVO_V164[chave_ativa]
+    col_detalhe, col_personal = st.columns([1.15, 1])
+    with col_detalhe:
+        with st.container(border=True):
+            st.markdown(f"#### {perfil_ativo['nome']} · {perfil_ativo['idade']} anos")
+            st.caption(f"Nicho: {perfil_ativo['nicho']} · {perfil_ativo['tags']}")
+            st.markdown(f"**Perfil:** {perfil_ativo['resumo']}")
+            st.markdown(f"**Voz:** {perfil_ativo['voz']}")
+            st.markdown(f"**Emoção:** {perfil_ativo['emocao']}")
+            st.markdown(f"**Gestos:** {perfil_ativo['gestos']}")
+    with col_personal:
+        with st.container(border=True):
+            st.markdown("#### ✍️ Descrição extra (opcional)")
+            st.caption("Acrescente roupas, tom de fala, emoção ou ambiente. Se deixar em branco, a ficha já está completa.")
+            st.text_area("Ajustes de personagem (opcional)", key="elevo_inf_obs",
+                         max_chars=850, height=124,
+                         placeholder="Ex.: usar blusa bege, falar de maneira calma e mostrar alegria discreta...")
+            if st.button("💾 Salvar minha personalização", key="elenco_salvar_obs", use_container_width=True):
+                descricao = montar_descricao_influencer_v164(perfil_ativo, st.session_state.get("elevo_inf_obs", ""))
+                marca = str((st.session_state.get("influencer_atual") or {}).get("Logo_Marca", "")).strip()
+                st.session_state["influencer_atual"] = {
+                    "Email": email_elenco_v164, "Nome_Influencer": perfil_ativo["nome"],
+                    "Descricao_Visual": descricao, "Logo_Marca": marca
+                }
+                if gerenciar_influencer_usuario("salvar", email_elenco_v164, perfil_ativo["nome"], descricao, marca):
+                    st.success("Perfil atualizado e salvo no seu login.")
+                    st.session_state.pop("elevo_inf_erro_gravacao", None)
+                else:
+                    st.warning("Aplicada nesta sessão, mas não foi possível salvar no Google Sheets.")
+    # O campo opcional entra nos dois motores MESMO SEM clicar em salvar.
+    descricao_aplicada = montar_descricao_influencer_v164(perfil_ativo, st.session_state.get("elevo_inf_obs", ""))
+    perfil_em_sessao = st.session_state.get("influencer_atual") or {}
+    st.session_state["influencer_atual"] = {
+        "Email": email_elenco_v164, "Nome_Influencer": perfil_ativo["nome"],
+        "Descricao_Visual": descricao_aplicada,
+        "Logo_Marca": str(perfil_em_sessao.get("Logo_Marca", ""))
+    }
+    st.caption(f"✅ {perfil_ativo['nome']} está ativa automaticamente nos prompts de imagem, vídeo e fala dos Blocos 17 e 17.2.")
+else:
+    st.info("Sua personagem personalizada anterior continua ativa. Se preferir uma das cinco novas, clique em Selecionar acima.")
+
+if st.session_state.pop("elevo_inf_erro_gravacao", False):
+    st.warning("Personagem aplicada nesta sessão, mas o Google Sheets não confirmou o salvamento. Tente selecionar novamente para persistir.")
+
 
 st.markdown('<div id="aurora"></div>', unsafe_allow_html=True)
 
@@ -2343,8 +2498,6 @@ if audio_gravado is not None:
                         tendencia_atual = historico_radar[-1]['Conteudo'] if 'historico_radar' in globals() and historico_radar else "Nenhuma tendência."
                         funil_atual = historico_raiox[-1]["Funil"] if 'historico_raiox' in globals() and historico_raiox else "Nenhum funil mapeado."
 
-                        conversao_atual = st.session_state.get("ultima_taxa_conversao", 0.0)
-                        feedback_atual = st.session_state.get("ultimo_feedback_analisado", "Nenhum feedback mapeado.")
 
                         sistema_mentor = f"""
                         Você é a Aurora, uma Inteligência Artificial de elite construída pelo CEO Rafael e pela empresa ÉLÉVO. Você é a diretora de operações (COO) desta plataforma.
@@ -2368,7 +2521,7 @@ if audio_gravado is not None:
                         🎯 Missão de Hoje do usuário: {missao_hoje_str} | Disciplina nos últimos 30 dias: {dias_concluidos_str}/30 ({taxa_acerto_str:.1f}%).
                         🧠 Tendência do Mercado captada pelo Radar: {tendencia_atual}.
                         🧬 A Estratégia de Funil ativa: {funil_atual}.
-                        🔬 Insights Laboratoriais: A Taxa de Conversão está em {conversao_atual:.2f}%. O público quer/tem medo de: {feedback_atual}.
+                        🔬 Indicadores de funil e sentimentos: cite somente dados efetivamente disponíveis no painel, sem inventar métricas ausentes.
                         
                         REGRA DE OURO: Não repita os números feito um papagaio. Use as métricas acima para parecer uma deusa omnisciente. Analise friamente se o usuário está com os números bons ou péssimos e dê-lhe conselhos táticos. Se perguntar sobre banco de dados, responda o número de usuários cadastrados com orgulho.
                         """
@@ -2586,50 +2739,6 @@ def salvar_roteiro_no_drive(email_usr, texto_str):
             agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
             aba_hist.append_row([email_usr, agora_str, texto_str])
     except Exception: pass
-
-def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo_marca=""):
-    if not robo_sheets: return None
-    try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if not match_id: return None
-        planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-        try:
-            aba_inf = planilha_mestre.worksheet("Banco_Influencers")
-            cabecalho = aba_inf.row_values(1)
-            if len(cabecalho) < 5:
-                aba_inf.update_cell(1, 5, "Logo_Marca")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="5")
-            aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca"])
-        
-        email_clean = str(email_usr).strip().lower()
-        
-        if acao == "ler":
-            registros = aba_inf.get_all_records()
-            user_inf = [r for r in registros if str(r.get("Email", "")).strip().lower() == email_clean]
-            if user_inf:
-                return user_inf[-1]
-            return None
-            
-        elif acao == "salvar":
-            col_emails = aba_inf.col_values(1)
-            for i in range(len(col_emails), 1, -1):
-                if str(col_emails[i-1]).strip().lower() == email_clean:
-                    aba_inf.delete_rows(i)
-            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()])
-            return True
-            
-        elif acao == "excluir":
-            col_emails = aba_inf.col_values(1)
-            apagou = False
-            for i in range(len(col_emails), 1, -1):
-                if str(col_emails[i-1]).strip().lower() == email_clean:
-                    aba_inf.delete_rows(i)
-                    apagou = True
-            return apagou
-    except Exception:
-        return None
 
 def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     if not texto_para_copiar:
@@ -2947,9 +3056,10 @@ if inf_salva and inf_salva.get("Descricao_Visual"):
     desc_inf_ativa = inf_salva.get("Descricao_Visual")
     eh_customizada = True
 else:
-    nome_inf_ativa = "Aurora"
-    desc_inf_ativa = "Photorealistic young Brazilian woman (Aurora: dark hair, subtle bangs, intense conspiratorial expression, incredibly shiny and healthy-looking hair)"
-    eh_customizada = False
+    perfil_default_v164 = INFLUENCIADORAS_ELEVO_V164["ana"]
+    nome_inf_ativa = perfil_default_v164["nome"]
+    desc_inf_ativa = montar_descricao_influencer_v164(perfil_default_v164)
+    eh_customizada = True
 
 logo_padrao_ceo = "O Achado Secreto"
 logo_salva_banco = str(inf_salva.get("Logo_Marca", "")).strip() if inf_salva else ""
@@ -2995,7 +3105,7 @@ with st.container(border=True):
 
     aba_gerador_360, aba_config_influencer = st.tabs([
         "📸 Gerar Roteiro & Diretrizes", 
-        "👤 Configurar Minha Influencer"
+        "👤 Minha Influenciadora"
     ])
     
     with aba_gerador_360:
@@ -3033,7 +3143,7 @@ with st.container(border=True):
 
     with aba_config_influencer:
         st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influencer</h4>", unsafe_allow_html=True)
-        st.caption("Configure as características físicas da sua personagem. Ela ficará gravada exclusivamente no seu login para todos os seus próximos vídeos.")
+        st.caption("As cinco personagens prontas ficam na galeria acima. Aqui você pode consultar a personagem ativa ou cadastrar outra de forma personalizada.")
         
         if eh_customizada:
             st.success(f"✅ **Influencer Salva na Memória:** {nome_inf_ativa}")
@@ -3052,21 +3162,23 @@ with st.container(border=True):
             
             novo_nome_inf = st.text_input("👤 Nome da sua Influencer:", placeholder="Ex: Maya, Valentina, Bia...", key="input_nome_inf")
             nova_desc_inf = st.text_area(
-                "🎨 Descrição Visual Completa (Cabelo, Pele, Idade, Estilo, Expressão):",
+                "🎨 Descrição visual da personagem (opcional):",
                 placeholder="Ex: Mulher brasileira jovem de 24 anos, pele morena iluminada, cabelos cacheados volumosos e brilhantes na altura dos ombros, olhos castanhos expressivos, usando uma camiseta básica branca, expressão de amiga fofoqueira...",
                 height=130,
                 key="input_desc_inf"
             )
             if st.button("💾 APLICAR E SALVAR INFLUENCER NO MEU LOGIN", type="primary", use_container_width=True, key="btn_salvar_inf"):
-                if not novo_nome_inf.strip() or not nova_desc_inf.strip():
-                    st.warning("⚠️ Preencha o nome e a descrição visual completa da sua influencer para aplicar no sistema!")
+                if not novo_nome_inf.strip():
+                    st.warning("⚠️ Informe um nome. A descrição visual é opcional.")
                 else:
                     with st.spinner("Gravando a sua Influencer no banco de memória exclusivo do seu login..."):
-                        if gerenciar_influencer_usuario("salvar", email_sessao, novo_nome_inf, nova_desc_inf, logo_ativa_usuario):
+                        desc_personalizada_v164 = (nova_desc_inf.strip() or
+                            "Fictional adult Brazilian virtual presenter, natural appearance, realistic skin texture, conversational Brazilian Portuguese voice, expressions and body language adapted to the product without exaggerated acting; maintain consistent identity throughout image and video.")
+                        if gerenciar_influencer_usuario("salvar", email_sessao, novo_nome_inf, desc_personalizada_v164, logo_ativa_usuario):
                             st.session_state["influencer_atual"] = {
                                 "Email": email_sessao,
                                 "Nome_Influencer": novo_nome_inf.strip(),
-                                "Descricao_Visual": nova_desc_inf.strip(),
+                                "Descricao_Visual": desc_personalizada_v164,
                                 "Logo_Marca": logo_ativa_usuario
                             }
                             st.success(f"🔥 {novo_nome_inf} foi aplicada ao sistema e vinculada ao seu login!")
@@ -3661,8 +3773,11 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             **🏷️ Marca (Resenha):** [Marca e nome do produto/kit resenha]
             """
             
-            if eh_customizada:
-                instrucao_ouro += f"\nNOTA DE ELENCO: Use a apresentadora {nome_inf_ativa} ({desc_inf_ativa})."
+            instrucao_ouro += (f"\n\n[PERSONA LOCK — OBRIGATÓRIO EM IMAGEM E VÍDEO] "
+                               f"Apresentadora escolhida: {nome_inf_ativa}. {desc_inf_ativa} "
+                               "Aplicar idade, aparência, cabelo, rosto, jeito de falar, emoção, "
+                               "linguagem corporal e personalidade da mesma mulher nos dois prompts. "
+                               "Não substituir por Aurora ou outra personagem genérica.")
             if explicacao_video_usuario and explicacao_video_usuario.strip():
                 instrucao_ouro += f"\nNOTA DE DIREÇÃO DO USUÁRIO: {explicacao_video_usuario.strip()}"
             
@@ -3736,7 +3851,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic young Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a deeply shocked, conspiratorial gossip micro-expression, acting as if she is sharing an urgent warning. [AVATAR LOCK: She MUST have perfectly cut straight bangs (franja reta) and a small black wireless lapel microphone clipped to her collar]. Her hair/skin is the ultimate proof of the product: ultra-hydrated, glowing, displaying an intense mirror-like shine and absolute zero frizz. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry; no new objects, realistic contact shadow.
+                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry; no new objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
                 [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:10: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no digital glitch, no additional logos, no 3D shopping bag, no overlays. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible, especially the very last frame. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
@@ -3759,6 +3874,10 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 **🏷️ Marca (Resenha):** [Título SEO De Marca em português com nome exato do produto/kit e marca]
                 """
 
+                instrucao_v92 += (f"\n\n[SELECTED PERSONA LOCK — IMAGEM, VÍDEO E VOZ] "
+                                  f"{nome_inf_ativa}: {desc_inf_ativa}. "
+                                  "Reproduza a MESMA identidade adulta no prompt de imagem, "
+                                  "vídeo, emoção, expressão, voz e gestos. Nunca trocar de apresentadora.")
                 if explicacao_video_usuario and explicacao_video_usuario.strip():
                     instrucao_v92 += f"\n\nDIRETRIZ EXTRA DO USUÁRIO: {explicacao_video_usuario.strip()}"
 
