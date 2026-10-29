@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8 — carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
+# ÉLÉVO V16.9 — refinamentos localizados de fidelidade/física e vídeo; preserva estrutura V16.8.1.
 import base64
 import requests
 import time
@@ -2920,7 +2920,7 @@ def escanear_dor_e_contagem_da_foto(img_b64):
                         "Analyze the product packaging/label in this image and return a JSON with ONLY 5 flat keys:\n"
                         "1. 'nome_pt': commercial name of the product/kit in Portuguese.\n"
                         "2. 'qtd': integer count of product units in the image (1, 2, 3, 5, etc.).\n"
-                        "3. 'tipo_embalagem': for internal audit only; NEVER transfer this field to visual prompts.\n"
+                        "3. 'tipo_embalagem': short English container type without colors (e.g., '400g cosmetic tub', '300ml pump bottle', 'crochet shorts').\n"
                         "4. 'dor_visceral_pt': what painful everyday problem does this product solve according to its label? (e.g., 'cabelo esturricado de chapinha, elástico de química, ralo e quebrando só de pentear' or 'vergonha de servir visita em pote velho').\n"
                         "5. 'sensacao_solucao_pt': what tangible sensation/transformation does it deliver? (e.g., 'cauterização de salão no próprio chuveiro, preenche a fibra e deixa o fio pesado de brilho espelhado')."
                     )},
@@ -2943,22 +2943,31 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         solucao_pt = "característica verificável na embalagem, sem inventar efeitos"
 
     qtd = max(1, min(qtd, 30))
-    # Não reutilizar "tipo_embalagem", cor, tamanho presumido ou nome nos prompts visuais.
-    # A fotografia, e não a análise textual, é a única fonte da forma do produto.
-    regra_pos_img = (
-        f"[SOURCE-IMAGE PRODUCT LOCK — {qtd} ORIGINAL UNITS] Transfer only the exact "
-        "product(s) already visible in the attached reference photo. Never describe or "
-        "redesign their appearance. Preserve shape, dimensions, relative hand scale, "
-        "surface graphics and unit count as pictured; no artificial hero enlargement. "
-        "If the item is clearly small in the source image, keep its realistic small scale; "
-        "do not shrink any already correctly sized item. A held item has a stable grip, "
-        "gravity and contact; any additional source units stay supported and visible."
-    )
-    regra_pos_vid = (
-        f"[SOURCE-IMAGE PRODUCT LOCK — {qtd} ORIGINAL UNITS] Keep the same "
-        "reference-photo product(s), unchanged at every timestamp. No appearance "
-        "description, resizing, invented parts, duplicate units or disappearing objects."
-    )
+    if qtd <= 1:
+        regra_pos_img = (
+            "She is naturally supporting the SAME single original product from the supplied reference image, "
+            "with a grip and body-to-item size ratio consistent with its real physical dimensions. "
+            "PRODUCT REFERENCE ONLY: never describe, guess or redesign its physical appearance, type, color, "
+            "materials, shape, labels, packaging or written details. Keep every visible detail exactly as provided."
+        )
+        regra_pos_vid = (
+            "keeping the very same single reference product naturally supported in the hand, at the same "
+            "real-world proportions and weight throughout; never describe or reinterpret its appearance."
+        )
+    else:
+        resto = qtd - 1
+        regra_pos_img = (
+            f"[MULTI-PRODUCT KIT LOCK — {qtd} UNITS TOTAL]: She is firmly holding ONLY ONE unit of the kit in her hand, "
+            f"while the other {resto} unit(s) from the reference image rest neatly side-by-side on the counter surface right next to her, "
+            f"making all {qtd} original products visible at their real-world size. Use the photo as the ONLY "
+            "source of product appearance: do not describe, invent, redesign or reinterpret any physical detail."
+        )
+        regra_pos_vid = (
+            f"[MULTI-PRODUCT KIT LOCK — {qtd} UNITS TOTAL]: All {qtd} units from the reference image are clearly visible from 0:00 to the end, "
+            f"with ONLY ONE unit held in her hand while the other {resto} unit(s) remain resting stationary on the counter surface right beside her "
+            f"(NEVER hold all {qtd} units at once; no altered size, new physical details or visual reconstruction). "
+            "Do not describe product appearance in text; use the supplied photo as the sole visual authority."
+        )
 
     return {
         "nome_pt": nome_pt,
@@ -3146,7 +3155,7 @@ if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina V9.2 (Imagem Original + Vídeo V12 Hiper-Realista)</h3>", unsafe_allow_html=True)
-        st.caption("Conectado à foto, à Influencer e ao Banco 17.3. V12: imagem preservada; vídeo expandido com a estrutura e os emojis originais, física viva e vídeo compacto de 1.600–1.900 caracteres totais.")
+        st.caption("Conectado à foto, à Influencer e ao Banco 17.3. V12: imagem preservada; vídeo expandido com a estrutura e os emojis originais, física viva e mínimo de 1.600 caracteres visuais.")
         
         if E_O_CEO:
             logo_v92_input = st.text_input(
@@ -3179,6 +3188,22 @@ if st.session_state.get("modo_entidade_v9"):
 # ==========================================================
 PROTOCOLO_FISICO_17 = "[PROTOCOLO FÍSICO REALISTA V10 — PRIORIDADE MÁXIMA; PREVALECE SOBRE MOLDES ANTIGOS]\n- CONSERVAÇÃO: mesmo número de produtos, identidade, altura, largura, volume, tampa, marca e rótulo em TODOS os quadros; não duplicar, fundir, deformar, trocar textura nem desaparecer. O objeto não teletransporta entre mão e bancada.\n- REFERÊNCIA FIXA: a imagem fornecida determina cor, embalagem, acabamento e cenário. Manter materiais existentes e a direção da luz; melhorar somente microtextura, detalhe de superfície, rugosidade, reflexos e definição naturais, sem trocar a paleta, nem cenário nem objetos.\n- CONTATO E GRAVIDADE: produto apoiado na bancada tem base em contato contínuo, sombra de contato consistente, gravidade, inércia e oclusão reais; produto na mão mantém posição estável, dedos anatomicamente corretos, pressão e oclusão coerentes, nenhuma interpenetração ou flutuação.\n- CÂMERA: celular realista, câmera principalmente estável, deslocamentos curtos e suaves; proibir zoom violento, whip-pan, tremor excessivo, troca brusca de foco, glare artificial. Profundidade de campo coerente sem ocultar itens essenciais.\n- PELE E MATERIAIS: poros finos, fios de cabelo individuais, rugosidade realista, leve assimetria; materiais com BRDF plausível, reflexos dependentes da iluminação real, sem brilho plástico ou nitidez falsa. Evitar hiperbolização da pele, do olhar ou da respiração.\n- AMBIENTE: plantas e tecidos se movem apenas se houver vento plausível; vapor e água só onde efetivamente existem na referência; sombras, reflexos, perspectiva, luz e exposição temporalmente contínuos. Não adicionar animais, bagunça, objetos ou cenários que não estejam na referência enviada.\n- FINAL: a partir de 0:08, a apresentadora mantém o produto perfeitamente visível em quadro; no último segundo, segurar imagem estável com produto e ambiente intactos até o último frame. PROIBIDO quadro preto, fade para preto, glitch, logo sobreposto, marca d'água, sacola 3D flutuante ou elementos duplicados. Logo original impressa na embalagem permanece; não acrescentar logo da empresa na imagem.\n- ÁUDIO/COPY: fala factível em 9 segundos (aprox. 18–25 palavras, ajustar à locução), sem afirmar benefícios não demonstrados no rótulo, escassez, preço ou estoque não confirmados. Texto de CTA pode ficar para edição fora do gerador; não gerar UI nativa.\n- Se um molde histórico conflitar com estas regras, este protocolo é soberano."
 
+
+# ÉLÉVO V16.9 — REGRA INVARIÁVEL, COMPATÍVEL COM OS MOLDES ORIGINAIS.
+# Texto adicional de direção, sem mudar interface, estrutura nem menus.
+PROTOCOLO_FISICO_17 += "\n" + """
+[ÉLÉVO V16.9 — BLINDAGEM ABSOLUTA DE PRODUTO / INDEPENDÊNCIA DE INFLUENCIADORA]
+- O arquivo de referência do produto é a ÚNICA autoridade para aparência DO PRODUTO, e nunca para identidade da pessoa ou cenário. A escolha da influenciadora altera SOMENTE pessoa, voz, interpretação e gestos, jamais o produto. Caso a FOTO do produto mostre outra pessoa ou ambiente, IGNORE essa pessoa e esse ambiente: use a influenciadora escolhida e o cenário selecionado nos 21 presets. Não derive embalagem, roupa, forma, cor, volume, peso, material, acabamento, estampa ou rótulo da descrição da influenciadora ou dos exemplos históricos.
+- PROIBIDO DESCREVER O PRODUTO nos dois PROMPTS VISUAIS: não escrever marca, nome, cor, formato, tampa, tamanho numérico, material, tipo de embalagem ou qualquer característica perceptível. Refira-se apenas a 'the exact product from the supplied reference image', 'the same original reference item' ou expressão equivalente SEM atributos. Nomes, dores e benefícios podem continuar em ÁUDIO e SEO, pois são campos comerciais distintos.
+- ESCALA DINÂMICA, NÃO UNIVERSAL: jamais aumentar nem diminuir genericamente o objeto. Item naturalmente pequeno permanece discretamente pequeno; item naturalmente grande mantém tamanho verdadeiro. Adotar relação anatômica mão/produto e objeto/mesa/corpo e distância focal plausíveis, inferidas da foto de referência, sem inventar dimensões.
+- MICROFÍSICA REAL: contato contínuo, centro de massa apoiado, oclusão correta, pressão leve dos dedos, inércia e fricção coerentes; só correções sutis em comparação com o motor já validado, sem espetáculo de movimentos.
+- ESPELHO TOTAL IMAGEM→VÍDEO: repetir no VÍDEO a descrição completa do ambiente, da influenciadora, do clima, da natureza, dos objetos, da luz, da baguncinha e dos animais REALMENTE definidos para a IMAGEM. A imagem não será reutilizada como texto depois: tudo precisa estar explícito no prompt de vídeo. Não truncar a cópia nem reimaginar a cena. Nunca acrescentar no vídeo o que não foi definido na imagem.
+- O prompt visual de VÍDEO tem MÍNIMO OBRIGATÓRIO de 1.600 caracteres; NÃO há teto máximo. Comprimento deve vir de continuidade real e detalhes úteis, sem repetição artificial de ordens; preservar shots, voz, emojis, CTA, SEO e finalização original.
+- EM TODOS OS AMBIENTES: incluir na IMAGEM pelo menos uma planta viva discreta ou vegetação verde natural no FUNDO, coerente com a locação (vaso em interiores, jardim, planta urbana ou margem verde em exteriores), sem descaracterizar nenhum dos 21 presets. Repetir sua posição e física no vídeo. Animal só se fizer sentido e já estiver definido na IMAGEM; nunca forçar animal em toda cena.
+- GANCHOS VARIADOS: problema verificável → sensação demonstrável → solução com proximidade humana; não inventar estoque, desconto, benefício nem urgência falsa.
+- MOLDES ANTIGOS SÃO REFERÊNCIAS DE DIREÇÃO, NÃO REFERÊNCIAS FÍSICAS DE PRODUTO. Se mencionam produto, cor, tipo, dimensão ou peças específicas, ignorar esses elementos. Esta regra tem prioridade sobre qualquer exemplo.
+""".strip()
+
 LISTA_SORTEIO_GANCHOS_CAMPEOES = [
     "GANCHO 01 (O Dedo na Ferida + UTI no Chuveiro): Comece atacando o desespero de ver o cabelo quebrando na escova, elástico de química ou esturricado de chapinha, mostre que o produto reconstrói e desmaia o fio na primeira aplicação no próprio chuveiro e feche com o lote secreto vazando na sacolinha.",
     "GANCHO 02 (O Segredo que as Donas de Salão Escondem): 'Amiga, o que as donas de salão não te contam é que você não precisa gastar duzentos reais para ter cabelo espelhado...' Mostre a transformação sensorial imediata e a urgência do estoque acabando.",
@@ -3192,10 +3217,9 @@ LISTA_SORTEIO_GANCHOS_CAMPEOES = [
 # ==========================================================
 # ÉLÉVO V11 — MOTOR DE FÍSICA TEMPORAL E CONTINUIDADE 360º + V9.2
 # Mantém o tema, login, scanner, banco de imagens e acesso Google Sheets.
-# Não há limite superior de caracteres imposto ao vídeo; 1.500 é o mínimo.
+# Não há limite superior de caracteres imposto ao vídeo; 1.600 é o mínimo.
 # ==========================================================
 MIN_CARACTERES_PROMPT_VIDEO = 1600
-MAX_CARACTERES_PROMPT_VIDEO = 1900
 
 # Cada criação escolhe uma locação nova entre 20 famílias e várias microvariações.
 # Nada é introduzido no vídeo se não tiver aparecido no PROMPT DE IMAGEM.
@@ -3256,8 +3280,8 @@ def montar_lock_ambiente_v165(chave, observacao=''):
         'ENVIRONMENT LOCK: keep exactly this location, geometry, surfaces, object inventory, '
         'weather, directional light, background continuity and natural sound from the reference still '
         'through every video frame. Include each detail in the IMAGE and copy it verbatim into '
-        'the VIDEO before describing dynamics. Do not add waterfalls, dogs, plants, rain, animals '
-        'or other props unless they belong to this selected setting. Microphysics must obey gravity, '
+        'the VIDEO before describing dynamics. Do not add waterfalls, dogs, rain, animals '
+        'or other props unless they belong to this selected setting. ONE modest living plant or naturally visible greenery in the BACKGROUND is the only allowed contextual addition to the still image when absent; it must suit this setting, keep the preset unchanged, and be repeated in the video. Microphysics must obey gravity, '
         'contact, friction, airflow and realistic smartphone optics. Avoid impossible particle or motion effects.'
     )
 
@@ -3364,19 +3388,19 @@ def selecionar_gancho_v11():
 # A primeira chamada preserva os moldes originais V8.1/V9.2.
 # A segunda chamada amplia SOMENTE a seção 🎬, preservando emojis e etapas.
 # ==========================================================
-MIN_CARACTERES_DIRECAO_VISUAL_V12 = 1100
+MIN_CARACTERES_DIRECAO_VISUAL_V12 = MIN_CARACTERES_PROMPT_VIDEO
 
 DIRETRIZ_VIDEO_V12 = """
 [ÉLÉVO V12 — IMMERSIVE PHYSICAL VIDEO DIRECTION / STRONG DOCUMENTARY UGC]
 Do not tame the original viral energy. The shot must feel alive, spontaneous and expressive: camera operated by a real person, a compelling hook, naturally motivated micro-hesitations, a vivid performance and environmental motion that reacts to a cause. Avoid robotic motion and showroom stillness. Use real-world mass, gravity, inertia, skin, material and optical behavior rather than impossible 3D motion graphics.
 
-ONE SCENE — ONE SOURCE OF TRUTH: The exact PROMPT DE IMAGEM is the binding scene specification. Repeat its precise location, layout, weather, plants, natural textures, table or counter, lighting direction, wardrobe, presenter, props, animals if any, and reference product identity. Never swap to an alternative V11 background or introduce animals, wetness, steam, objects or trees that are not in that image. Its packaging is authoritative; preserve label text and item count across time.
+ONE SCENE — ONE SOURCE OF TRUTH: The exact PROMPT DE IMAGEM is the binding scene specification. Repeat ALL of its precise location, layout, weather, plants, natural textures, existing surfaces, lighting direction, wardrobe, presenter, props and animals if any. Refer to the product only as the unchanged source-reference item; NEVER describe it in words. Never swap to an alternative V11 background or introduce animals, wetness, steam, objects or trees that are not in that image. Its packaging is authoritative; preserve label text and item count across time.
 
-0:00–0:03 / SHOT 1 — Intense but plausible product-first hook. A realistic smartphone, naturally held by someone alive, slightly searches for focus, adjusts exposure and changes framing only as far as the product and all kit units can remain visible. Capture parallax, mild rolling-shutter response during physically plausible movement, low-level phone sensor grain and authentic optical depth. Fingertip touches respect solid geometry, skin compression, friction and correct finger count. Realistic product weight and stable center of gravity; tiny palm counter-adjustments rather than floating packages. No label morphing or oversized jars.
+0:00–0:03 / SHOT 1 — Intense but plausible product-first hook. A realistic smartphone, naturally held by someone alive, slightly searches for focus, adjusts exposure and changes framing only as far as the product and all kit units can remain visible. Capture parallax, mild rolling-shutter response during physically plausible movement, low-level phone sensor grain and authentic optical depth. Fingertip touches respect solid geometry, skin compression, friction and correct finger count. Realistic product weight and stable center of gravity; tiny palm counter-adjustments rather than floating packages. No reference-detail morphing or enlargement of small items.
 
 0:03–0:06 / SHOT 2 — Energetic camera and facial storytelling. A fast-but-recoverable handheld reframing or tiny pan may emphasize the presenter's reaction WITHOUT hiding, replacing, shrinking or teleporting any item from a multi-unit kit. Expressive eyes, spontaneous smile, subtle blinking, jaw and mouth synced to the voice, small breath-driven shoulder movement, real hair inertia and slightly delayed strand settling. Skin contains pores, fine facial hairs, soft self-shadowing, believable sweat only if supported by the existing climate. Microphone, garment seams and fabric creases maintain geometry.
 
-0:06–0:08 / INTERACTION — One distinct physically causal interaction: fingertip tap, careful twist, grip adjustment or gesture toward the lower edge. When a finger strikes a cap, the product shows minimal inertia and recovers through the supporting hand or table friction. When fabric moves, it hangs and returns with its real weight. Keep the presenter and all reference units in the shot; the person's hands never pass through a jar or change the number of items. CTA icons and captions are EDITING NOTES, not invented 3D objects in the raw footage.
+0:06–0:08 / INTERACTION — One distinct physically causal interaction: fingertip tap, careful twist, grip adjustment or gesture toward the lower edge. When a fingertip touches a real surface of the referenced item, that item responds with subtle inertia and is stabilized by the supporting hand, original body contact or surface friction; if such a tap is inappropriate for this particular reference, select a natural gesture without inventing a part. When fabric moves, it hangs and returns with its real weight. Keep the presenter and all reference units in the shot; the person's hands never pass through a jar or change the number of items. CTA icons and captions are EDITING NOTES, not invented 3D objects in the raw footage.
 
 0:08–0:10 / FINAL — Stay in the same live scene, all original units present and recognizable, no product vanish, no black tail, no glitch card, no duplicate logo, no watermark or digital floating cart. The camera settles naturally without becoming frozen. Leaves, curtains, water, ambient shadows and small human motions continue to behave causally until the very last frame.
 
@@ -3438,12 +3462,12 @@ def _fallback_video_v12(video_original, scan, ambiente, modo):
         '\n\n🌪️ [PHYSICAL DIRECTION — REAL LIFE UGC / VISUAL ENGLISH]\n'
         f'[INVENTORY LOCK — {qtd} ITEMS, EVERY FRAME] {scan.get("regra_pos_vid", "")} '
         'Every item retains the same body, cap, label, physical size and identity at 0:00, 0:05 and the final frame. '
-        'If there are two or three original products, ONE remains supported in the hand and ALL other original units stay supported on their original table spots and visible. '
+        'For multi-unit reference kits, ONE remains supported in the hand and ALL other original units stay supported at their original locations and remain visible. '
         'No offscreen swap, no merging, no resizing, no vanishing package and no duplicated graphic.\n'
         '[CAMERA / LIGHT] Real moving phone operated by a person: lively but plausible reframe, short focus acquisition, low-level sensor grain, realistic focal behavior, natural exposure response, believable parallax and rolling-shutter response only when the phone actually moves. '
-        'The product never jumps between positions, light direction and shadow softness evolve continuously, and glass/plastic reflections move according to the existing light and camera viewpoint.\n'
+        'The product never jumps between positions, light direction and shadow softness evolve continuously, and the existing authentic surface reflections move according to the light and camera viewpoint, without guessing any material.\n'
         '[HAND / MASS / GEOMETRY] Human fingers grasp the existing rigid object with realistic opposition of thumb and other fingers, changing skin compression where contact pressure is applied; the center of mass remains supported. '
-        'A fingertip tap transfers a tiny impulse to the package, counteracted by table friction or the presenter’s stabilizing hand. No merged skin, impossible joints, floating containers, disappearing lids or melting label typography. '
+        'A fingertip tap transfers a tiny impulse to the package, counteracted by table friction or the presenter’s stabilizing hand. No merged skin, impossible joints, floating items, disappearing reference details or changing print typography. '
         'Static units have full base-to-counter contact, with cast and contact shadows consistent with their distance from the surface.\n'
         '[WORLD REACTIONS] '+ambiente.replace('\n',' ')+'\n'
         '[REAL HUMAN PERFORMANCE] Immediate hook with expressive but believable microexpressions, asymmetric blinking, small smile changes, throat and mouth motion aligned with Portuguese speech, breath-driven shoulder and chest movement, hairs lagging slightly behind the head turn, fabric maintaining gravity and crease continuity. '
@@ -3535,7 +3559,7 @@ def _reforco_ecossistema_v14(imagem, scan, modo):
     partes=_blocos_originais_da_cena_v14(imagem)
     qtd=max(1, int(scan.get('qtd',1)))
     lista='\n'.join(f'• [{rotulo}] {regra}' for rotulo,regra in mapa)
-    imagem_dense=(imagem[:7000] if imagem else 'Scene source unavailable — do not invent scenery.')
+    imagem_dense=(imagem if imagem else 'Scene source unavailable — do not invent scenery.')
     secoes='\n'.join(partes) if partes else '(The approved image blueprint below is binding; do not add unsupported props.)'
     return (
         '\n\n🌍 [ÉLÉVO V14 — ENVIRONMENT REINFORCEMENT LOCK DENSE / REACTIVE BAGUNCINHA]\n'
@@ -3558,7 +3582,7 @@ def _reforco_ecossistema_v14(imagem, scan, modo):
             f'Keep ONE firmly supported in the presenter’s hand and each of the other {qtd-1} supported at its exact image location for the whole 0:00–0:10; frame wide enough that ALL {qtd} remain recognizable in the opening, reaction and final shot. '
             if qtd>1 else 'Keep the SAME single original item supported by hand or the ORIGINAL pictured surface throughout, with no spontaneous second unit. '
         )+
-        'Accurate individual hard-body geometry, identical cap shape, legible unchanged label, gravity, table contact shadows, skin compression and consistent reflections at every timestamp. The closing frame still shows every unit fully intact.\n'
+        'Exactly the same ORIGINAL geometry and every visual detail from the supplied reference, with correct gravity, body/surface contact shadows, skin compression and consistent reflections at every timestamp. NEVER describe those attributes in words or reconstruct them. The closing frame still shows every unit fully intact.\n'
         '🎥 [REAL PHONE / NATURAL DOCUMENTARY PERCEPTION]\n'
         'Energy is allowed: purposeful tiny camera drift, responsive focus acquisition with occasional quick correction, subtle exposure adaptation and limited rolling-shutter skew during actual movement. No endless artificial shaking, focus jumps that erase products, waxy faces, exaggerated giant pupils, CGI glow, or fake repeating rain simulation. Keep the same approved lighting color, texture and clothing. '
         'Preserve the original 🎬 shots, 🎙️ speech, 📝 CTA suggestions, ⚠️ ✨ 🛒 emojis and SEO outside the video untouched.\n'
@@ -3575,7 +3599,6 @@ def _injetar_ecossistema_v14(video, imagem, scan, modo):
     return (visual+_reforco_ecossistema_v14(imagem,scan,modo)+'\n'+resto).rstrip()
 
 def reforcar_apenas_video_v12(conteudo, scan, modo):
-    # LEGADO V12: NÃO CHAMAR NA V16.9. Amplia vídeo para milhares de caracteres.
     """Second IA pass rewrites ONLY the video and leaves image/SEO byte-identical."""
     partes=extrair_blocos_roteiro(conteudo)
     if not partes['prompt_imagem'] or not partes['prompt_video']:
@@ -3599,9 +3622,11 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
     modelo_saida=esquema_v92 if modo=='v9.2' else esquema_360
     instrucao=(
         'TAREFA: Reescreva e amplie EXCLUSIVAMENTE o PROMPT DE VÍDEO. PRESERVE A INTENSIDADE COMERCIAL, os títulos, \u00e9mojis e as etapas do sistema anterior.\n'
-        'NÃO produza IMAGEM nova, NÃO devolva seção de IMAGEM, NÃO devolva TÍTULOS SEO, NÃO mude o cenário da IMAGEM. A entrada de IMAGEM abaixo é read-only.\n'
-        'A DIREÇÃO VISUAL EM INGLÊS (antes de 🎙️) deve ter pelo menos 1.500 caracteres, preferencialmente 3.000–5.500 de detalhes novos e aplicáveis, sem limite superior imposto pelo aplicativo.\n'
+        'NÃO produza IMAGEM nova, NÃO devolva seção de IMAGEM, NÃO devolva TÍTULOS SEO, NÃO mude o cenário da IMAGEM. A entrada de IMAGEM abaixo é read-only e o produto é SEMPRE o mesmo da foto, independentemente da influenciadora.\n'
+        'A DIREÇÃO VISUAL EM INGLÊS (antes de 🎙️) deve ter PELO MENOS 1.600 caracteres, sem teto máximo. Pode ter muito mais se houver detalhes realmente úteis: mesma locação, plantas, clima, baguncinha, luz, animais que aparecem na IMAGEM e física de cada shot, sem enchimento repetitivo.\n'
         'Exigir ação física em cada etapa: energia documental, movimento natural, atmosfera viva e reações realistas, nunca estética de manequim.\n'
+        'BLOQUEIO TOTAL DE DESCRIÇÃO DO PRODUTO: imagem fornecida é a fonte única. NÃO escreva nome, marca, tipo, cor, tamanho numérico, embalagem, tecido, formato, tampa, rótulo ou material nos SHOTS VISUAIS. Sempre dizer somente the exact reference product/item. A influenciadora NÃO pode alterar o produto. A escala é relativa à pessoa e à referência: itens pequenos continuam pequenos; itens grandes continuam grandes.\n'
+        'HERANÇA INTEGRAL: inclua TODOS os detalhes concretos da imagem na direção do vídeo sem os condensar ou truncar. A única exceção são descrições da aparência do PRODUTO, que nunca devem ser escritas; referenciar a FOTO sem descrever.\n'
         f'Quantidade conferida pelo scanner: {qtd} UNIDADES. Se 2 ou 3 unidades, TODAS devem estar visíveis desde o primeiro até o último quadro: uma na mão, demais apoiadas conforme a IMAGEM. Não inventar unidades. {scan.get("regra_pos_vid", "")}\n'
         f'FÍSICA ATIVA ENCONTRADA NA IMAGEM (jamais introduzir causas ausentes):\n{ambiente}\n'
         'BAGUNCINHA VIVA: descreva com eventos temporais o que já existe no PROMPT DE IMAGEM: toalha se move pela gravidade e pelo vento real; gotas APENAS se ela estiver molhada; caneca, livro, louça, cabo e mesa ficam fisicamente apoiados; plantas em vento assíncrono; animal somente se presente; chuva, vapor e iluminação coerentes com a locação. INSIRA esses eventos no VÍDEO, não no prompt de IMAGEM.\n'
@@ -3617,11 +3642,10 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
         resposta=cliente_openai.chat.completions.create(
             model='gpt-4o-mini',
             messages=[
-                {'role':'system','content':'You are ÉLÉVO\'s expert video-motion director. Preserve the original still image verbatim, visual continuity, product inventory, rich UGC energy, emojis, audio, CTA structure. Output only the VIDEO section. English visual directions, Portuguese speech.'},
+                {'role':'system','content':'You are ÉLÉVO\'s expert video-motion director. The uploaded product reference alone determines appearance, and swapping the presenter NEVER changes any product detail. NEVER describe product appearance, packaging, color, shape, size category, brand or material in VISUAL text. Repeat every environmental and presenter detail of the still image in the video; preserve product count, relative natural size, rich UGC energy, emojis, audio and CTA. At least 1600 visual characters, no maximum. Output only the VIDEO section.'},
                 {'role':'user','content':instrucao},
             ],
             temperature=0.68,
-            max_tokens=6000,
         )
         proposta=(resposta.choices[0].message.content or '').strip().strip('`')
         if proposta.startswith('### 🎬'):
@@ -3648,246 +3672,17 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
     # V14: reforço determinístico, com descrição específica dos objetos da IMAGEM.
     # Entra APENAS no texto do vídeo, mesmo quando a IA responde pouco ou pula detalhes.
     novo_video=_injetar_ecossistema_v14(novo_video,imagem,scan,modo)
+    # Unconditional minimum: never shorten a video; add useful scene-inherited direction only.
+    if _direcao_visual_caracteres_v12(novo_video) < MIN_CARACTERES_DIRECAO_VISUAL_V12:
+        novo_video=_injetar_ecossistema_v14(_fallback_video_v12(novo_video,scan,ambiente,modo),imagem,scan,modo)
+    if _direcao_visual_caracteres_v12(novo_video) < MIN_CARACTERES_DIRECAO_VISUAL_V12:
+        raise ValueError('O vídeo não atingiu o mínimo de 1.600 caracteres visuais.')
     final=_trocar_so_video_v12(conteudo,novo_video)
     validado=extrair_blocos_roteiro(final)
     if validado['prompt_imagem']!=imagem or validado['secao_seo_texto']!=partes['secao_seo_texto']:
         raise ValueError('A integridade do prompt original de IMAGEM ou SEO foi alterada; geração cancelada.')
     return final
 
-
-
-# ==========================================================
-# ÉLÉVO V16.9 — PRODUTO INVIOLÁVEL + FÍSICA VIVA + VÍDEO COMPACTO
-# ÚNICA fonte de aparência do produto: a FOTO que o usuário enviar ao
-# gerador externo. Nunca completar cores, embalagens, rótulos ou medidas
-# através de uma ficha de personagem, de exemplos históricos ou do scanner.
-# ==========================================================
-PROTOCOLO_V169 = """
-[ÉLÉVO V16.9 — TRAVA DE REFERÊNCIA VISUAL E ESCALA REAL]
-IMAGEM DO PRODUTO: fonte exclusiva de forma, proporção, aspecto superficial, embalagem,
-marca, letras, rótulo e unidades. Nos PROMPTS VISUAIS não citar cor, formato, material,
-volume, tamanho nominal, embalagem sugerida ou adjetivos inventados para o produto.
-Nunca converter um produto menor em embalagem gigante ao trocar influenciadora.
-A perspectiva da foto é a referência: proporção mão-objeto, contato, gravidade,
-centro de massa, pressão dos dedos e sombra de apoio. Se o produto é pequeno,
-mostrá-lo discretamente pequeno; não encolher artificialmente um produto normal.
-O SELETOR DE INFLUENCIADORAS muda somente pessoa, voz, expressões e gestos.
-O SELETOR DE AMBIENTES muda somente a cenografia do entorno; nunca o produto.
-Usar o MESMO ambiente, planta, baguncinha, luz e possíveis animais na imagem e no vídeo.
-Toda ação visível deve ter causa: vento, gravidade, toque, chuva ou respiração.
-Gerar vídeo de 1.600 a 1.900 caracteres no total (direção visual + áudio + notas).
-Lema: proximidade, dor real e solução demonstrável; não inventar promoção,
-estoque, depoimento, resultados clínicos ou benefícios não comprovados.
-""".strip()
-
-
-def _cena_selecionada_v169(direcao):
-    """Descrição ambiental curta, reutilizada VERBATIM nas duas matrizes."""
-    chave = str(direcao.get('escolhido') or '')
-    cena = AMBIENTES_ELEVO_V165.get(chave, {})
-    if cena:
-        resumo = (
-            f"{cena['nome']}; {cena['elementos']}; "
-            f"light: {cena['luz']}; physical motion: {cena['fisica']}; "
-            f"animal: {cena['animal']}."
-        )
-    else:
-        resumo = (
-            f"{direcao.get('cenario', 'a lived-in Brazilian setting')}; "
-            f"light: {direcao.get('luz', 'natural light')}; "
-            f"motion: {direcao.get('fisica_ambiente', 'subtle real airflow')}; "
-            f"animal: {direcao.get('animal','none unless pictured')}."
-        )
-    # Uma presença de natureza coerente com a locação, sempre atrás da pessoa;
-    # nunca acrescentar a planta ao produto da referência.
-    ambiente_natureza = {
-        'banheiro': 'A small real fern near the bathroom window.',
-        'penteadeira': 'A modest houseplant by the window.',
-        'servico': 'A small outdoor potted plant beside the patio.',
-        'cozinha': 'A little kitchen herb pot behind the counter.',
-        'quarto': 'A discreet leafy plant by the window.',
-        'piscina': 'A small real shrub beside the deck.',
-        'garagem': 'A potted outdoor plant near the garage opening.',
-        'sala': 'A subtle indoor plant near the curtain.',
-        'banheira': 'A small fern on a safe distant shelf.',
-        'carro_chuva': 'A distant roadside tree outside the rainy window.',
-        'leitura': 'A modest potted plant beside the bookshelf.',
-        'lavabo': 'A small real houseplant in the far background.',
-        'calcada': 'A distant planted street tree beyond the curb.',
-    }
-    verde = ambiente_natureza.get(chave, '')
-    if verde and not any(p in resumo.lower() for p in ('fern','monstera','plant','foliage','garden','tree','vegetation','herb','leafy','shrub')):
-        resumo += ' ' + verde
-    return re.sub(r'\s+', ' ', resumo).strip()
-
-
-def _retrato_persona_v169(nome, descricao):
-    """Identidade visual das personagens, separada por completo do objeto de referência."""
-    # Nas fichas do elenco são fornecidas características da pessoa. A função
-    # nunca utiliza nenhum campo do scanner nem o nome do produto.
-    desc = re.sub(r'\s+', ' ', str(descricao or '')).strip()
-    # Descrições antigas podem conter uma instrução de demonstração comercial;
-    # a referência fotográfica do produto prevalece sempre sobre ela.
-    return f"Presenter {nome}. {desc[:1450]}" if desc else f"Presenter {nome}, preserve selected face and natural voice."
-
-
-def _audio_existente_v169(video, scan, gancho):
-    """Retém a fala da IA quando possível; na falta, cria gancho curto não enganoso."""
-    entrada = str(video or '')
-    i = entrada.find('🎙️')
-    if i < 0:
-        # A chamada de IA foi usada, mas não veio com bloco de áudio.
-        dor = str(scan.get('dor_pt') or 'essa dificuldade').strip()[:72]
-        return f"Amiga, também passa por {dor}? Olha este detalhe e confira se faz sentido para você."
-    fim = entrada.find('📝', i)
-    pedaco = entrada[i:fim if fim >= 0 else len(entrada)]
-    # Prefere uma citação da própria IA ao roteiro instrucional entre colchetes.
-    citacoes = re.findall(r'[“\"]([^“\"]{24,520})[”\"]', pedaco, flags=re.S)
-    fala = next((x for x in citacoes if '[' not in x and 'ESCREVA' not in x.upper()), '')
-    if not fala:
-        candidatos = [x.strip(' \t-\"“”') for x in pedaco.splitlines()
-                      if len(x.strip()) >= 35 and not x.strip().startswith(('🎙️','Áudio','Fala'))]
-        fala = next((x for x in candidatos if '[' not in x and 'ESCREVA' not in x.upper()), '')
-    if not fala:
-        dor = str(scan.get('dor_pt') or 'essa dificuldade').strip()[:65]
-        fala = f"Amiga, cansou de {dor}? Confira a referência e veja se esse achado combina com sua rotina."
-    # Cortar excesso de fala pelo limite de palavras, sem interromper a última palavra.
-    fala = re.sub(r'\s+', ' ', fala).strip()
-    palavras = fala.split()
-    if len(palavras) > 24:
-        fala = ' '.join(palavras[:24]).rstrip(' ,.;:') + '.'
-    # Estimativas de oferta só podem ser divulgadas se verificáveis fora deste app.
-    for padrao in [r'(?i)\b(?:lote secreto|lote vazado|estoque acabando|quase de graça|preço errado|últimas unidades|promoção liberada)\b[^.!?]*[.!?]?',
-                   r'(?i)\b(?:cura|garante|milagre)\b']:
-        fala = re.sub(padrao, '', fala).strip()
-    return fala[:285].strip(' ,;:-') or 'Amiga, veja este detalhe e confira se combina com sua rotina.'
-
-
-def _montar_imagem_v169(persona, cena, scan):
-    qtd = max(1, int(scan.get('qtd') or 1))
-    return (
-        '[SOURCE PHOTO / PRODUCT IDENTITY IS IMMUTABLE] RAW realistic smartphone still, '
-        'vertical 9:16, human handheld perspective and fine optical texture. '
-        f'{persona} '
-        f'[SAME SET FOR IMAGE AND VIDEO] {cena} '
-        f'[EXACT SOURCE OBJECTS: {qtd}] Use the attached PRODUCT PHOTO as the sole '
-        'authority for every product pixel. Do not name, describe, reinterpret, recolor, '
-        'resculpt, repackage or redesign the product. Never invent dimensions, volume, '
-        'cap type, material, label words, logo, colors or extra pieces. '
-        'Preserve the original item count and the object-to-hand size ratio. '
-        'A small item remains naturally small, not giant because it is near the lens; '
-        'a correctly sized item must never be shrunk. Natural placement: stable grip '
-        'and finger pressure if held; accurate base contact, friction and shadows if '
-        'resting. For multiple products keep every original item visible and supported. '
-        'For wearable products, honor fabric fit and tension instead of a rigid grip. '
-        'Plant foliage and domestic clutter belong to the SET, never to the product; '
-        'realistic lighting and lived-in imperfection, no new product, no CGI/overlays. '
-        'Only request products from the SAME supplied photo, not from this description.'
-    )
-
-
-def _montar_video_v169(cena, scan, nome, audio, gancho):
-    """1.600–1.900 caracteres totais, preservando mundo vivo e produto idêntico."""
-    qtd = max(1, int(scan.get('qtd') or 1))
-    # A cena é a mesma STRING da imagem, com orçamento para não inflar o vídeo.
-    cena_compacta = re.sub(r'\s+', ' ', cena).strip()
-    if len(cena_compacta) > 425:
-        # Prioriza cenário, objetos e luz; não adiciona elementos.
-        partes_cena = cena_compacta.split('; ')
-        cena_compacta = '; '.join(partes_cena[:3])
-        if len(cena_compacta) > 425:
-            cena_compacta = cena_compacta[:420].rsplit(' ', 1)[0] + '.' 
-    fala = _audio_existente_v169(audio, scan, gancho)
-    cabecalho = (
-        '🎬 [V16.9 — REAL-LIFE PHONE UGC / 9:16]\n'
-        f'[ONE SCENE — IMAGE=VIDEO] {cena_compacta}\n'
-        f'[PHOTO LOCK — {qtd} source item(s)] The attached reference PHOTO exclusively defines each '
-        'product. Do not invent, verbally describe, recolor, reshape, duplicate or resize '
-        'packaging. Actual hand-to-object scale is fixed by the photo; small items stay '
-        'naturally small, and normal items are never artificially shrunk.\n'
-        '0:00–0:03: Lively handheld smartphone shot; natural exposure and quick focus '
-        'settling. Solid product supported by hand or original surface, correct center '
-        'of gravity, skin contact and real shadows.\n'
-        f'0:03–0:06: {nome} reacts in her selected personality, authentic eye contact, '
-        'subtle lean, blink, slight mouth and hair motion; no switch of person or scene.\n'
-        '0:06–0:08: One purposeful human gesture: fingertip touch or grip change '
-        'with believable pressure, friction, inertia and object weight, never floating.\n'
-        '0:08–0:10: Same original item(s) and setting fully visible to the last frame, '
-        'realistic handheld settling; no black tail, logo overlay, 3D bag or platform UI.\n'
-        '🌿 [LIVED-IN PHYSICS] Existing plants bend with one plausible airflow and delayed '
-        'recovery; wet cloth drips ONLY if truly damp; water and rain follow gravity. '
-        'Animals or birds move naturally ONLY when present in this set. Objects remain '
-        'supported. Fine skin texture, realistic lens, ambient sound and consistent light.\n'
-        f'🎙️ Fala de {nome} (PT-BR): “{fala}”\n'
-        '📝 Texto para edição: dor real → solução verificável → convite de amiga; '
-        'sem descontos, estoques ou resultados inventados.'
-    )
-    # Pequena variação informativa já baseada na física do cenário, sem inventar objeto.
-    complementos = [
-        ' Object size and shape stay unchanged under camera parallax; the hands move around the object, never through it.',
-        ' World motion is driven by real forces, not an artificial animation loop or synchronized props.',
-        ' Gentle exposure settling follows existing light sources; real reflections remain consistent with lens angle.',
-        ' Natural ambient sound matches the selected location; human timing has small imperfections, not robotic motion.',
-        ' Never alter package print, surface finish, unit count, object orientation or light direction between frames.'
-    ]
-    # Inserção antes da fala: controle do tamanho sem destruir texto/CTA.
-    for complemento in complementos:
-        if len(cabecalho) >= MIN_CARACTERES_PROMPT_VIDEO:
-            break
-        cabecalho = cabecalho.replace('\n🎙️', complemento+'\n🎙️', 1)
-    if len(cabecalho) < MIN_CARACTERES_PROMPT_VIDEO:
-        extra=' Keep all pictured objects stable on actual supports, with natural contact, shadows, human hand pressure and physical continuity.'
-        while len(cabecalho) < MIN_CARACTERES_PROMPT_VIDEO:
-            cabecalho = cabecalho.replace('\n🎙️', extra+'\n🎙️', 1)
-    # Se a descrição ambiental for excepcionalmente longa, preservar estruturas
-    # obrigatórias e comprimir só a parte de scene, sem mutilar as instruções físicas.
-    if len(cabecalho) > MAX_CARACTERES_PROMPT_VIDEO:
-        excesso = len(cabecalho)-MAX_CARACTERES_PROMPT_VIDEO
-        remover = min(excesso, max(0,len(cena_compacta)-65))
-        if remover:
-            nova_cena = cena_compacta[:len(cena_compacta)-remover].rsplit(' ', 1)[0].rstrip(',;') + '.'
-            cabecalho=cabecalho.replace(cena_compacta, nova_cena,1)
-    if len(cabecalho) > MAX_CARACTERES_PROMPT_VIDEO:
-        # Retirar apenas frase de detalhamento redundante, nunca o produto ou áudio.
-        for complemento in reversed(complementos):
-            if len(cabecalho) <= MAX_CARACTERES_PROMPT_VIDEO:
-                break
-            cabecalho=cabecalho.replace(complemento, '',1)
-    if len(cabecalho) > MAX_CARACTERES_PROMPT_VIDEO:
-        # Fala longa: conservar a ideia principal (não cortar a direção física).
-        fala_curta=' '.join(fala.split()[:19]).rstrip(' ,.;:')+'.'
-        cabecalho=cabecalho.replace(fala, fala_curta,1)
-    if not (MIN_CARACTERES_PROMPT_VIDEO <= len(cabecalho) <= MAX_CARACTERES_PROMPT_VIDEO):
-        raise ValueError(f'Vídeo fora da faixa de 1600–1900 caracteres: {len(cabecalho)}')
-    return cabecalho
-
-
-def finalizar_roteiro_v169(conteudo, scan, direcao, nome, descricao, gancho, modo):
-    """Corrige produto+escala+video SEM nova chamada de IA; preserva SEO e copy."""
-    blocos = extrair_blocos_roteiro(conteudo)
-    if not blocos['prompt_imagem'] or not blocos['prompt_video']:
-        raise ValueError('A IA não devolveu os marcadores de IMAGEM e VÍDEO esperados.')
-    cena = _cena_selecionada_v169(direcao)
-    persona = _retrato_persona_v169(nome, descricao)
-    nova_img = _montar_imagem_v169(persona, cena, scan)
-    novo_video = _montar_video_v169(cena, scan, nome, blocos['prompt_video'], gancho)
-    # Busca somente conteúdo dessas duas seções, não toca em SEO nem nos outros módulos.
-    padrao_img = r'(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)(.*?)(?=###\s*🎬\s*PROMPT DE VÍDEO)'
-    resultado, ni = re.subn(
-        padrao_img, lambda m: m.group(1)+nova_img+'\n\n',
-        conteudo, count=1, flags=re.S|re.I)
-    padrao_vid = r'(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)(.*?)(?=###\s*🔑\s*TÍTULOS SEO)'
-    resultado, nv = re.subn(
-        padrao_vid, lambda m: m.group(1)+novo_video+'\n\n',
-        resultado, count=1, flags=re.S|re.I)
-    if ni != 1 or nv != 1:
-        raise ValueError('Os blocos não foram substituídos com segurança.')
-    finais = extrair_blocos_roteiro(resultado)
-    if len(finais['prompt_video']) < 1600 or len(finais['prompt_video']) > 1900:
-        raise ValueError('Validação do tamanho do vídeo falhou.')
-    if finais['secao_seo_texto'] != blocos['secao_seo_texto']:
-        raise ValueError('SEO foi alterado indevidamente.')
-    return resultado
 
 BANCO_DE_MEMORIA_17_3 = """
 ====================================================================
@@ -3979,24 +3774,22 @@ Use a estrutura psicológica destas falas campeãs (NUNCA copie o nome de outro 
 ====================================================================
 """
 
+# ÉLÉVO V16.9 — ACERVO DE CENA (EXEMPLOS DO USUÁRIO), SEM REDEFINIR OS MOLDES.
+BANCO_DE_MEMORIA_17_3 += """
 
-# Referências de roteiros validados pelo usuário (Documento sem título.docx):
-# V7/V8/V9.2 — foco orgânico de celular, física de contato, variações de luz,
-# microatividade de plantas, chuva e animais SOMENTE se presentes, preservação
-# da cena e densidade ambiental. Não transportar descrições antigas de produto
-# ou tamanho para uma nova referência fotográfica. Instruções conflitantes de
-# zoom extremo, promoções inventadas, sacola 3D e glitch ficam subordinadas.
-BANCO_DE_MEMORIA_17_3 += "\n\n" + PROTOCOLO_V169 + "\n" + (
-    "[REFERÊNCIAS EXTRAÍDAS DO ACERVO V7–V9.2] Varanda tropical: folhas reagem "
-    "ao vento e gotículas obedecem à gravidade; home office: mesa vivida, plantas, "
-    "café e luz existente; cozinha afetiva: objeto com sombra real e textura orgânica; "
-    "chuva: superfícies molhadas somente onde realmente recebem água; "
-    "pássaro, cão ou gato: movimentos pequenos, naturais e não repetitivos somente "
-    "se a matriz ambiental trouxer esse animal. Continuidade imagem-vídeo e produto "
-    "fotográfico invariável. Os exemplos são DIREÇÃO DE CENA, nunca descrições "
-    "de embalagem transferíveis entre produtos. Gancho novo a cada criação, "
-    "dor demonstrável, relação de proximidade e CTA honesto."
-)
+--- PARTE D: AJUSTES V16.9 EXTRAÍDOS DOS EXEMPLOS VALIDADOS 360º / V9.2 ---
+- AMBOS OS MODOS usam o mesmo princípio: o prompt de imagem descreve o MUNDO; o prompt de vídeo REPRODUZ ESSE MUNDO INTEGRALMENTE e adiciona os movimentos com física real. Não presumir que o gerador de vídeo receberá também o texto do prompt de imagem.
+- Referência de CENA V9.2: varanda coberta de casa de praia sob tempestade, chuva e vento com direção coerente, coqueiro visível respondendo ao vento, toalha molhada e objetos desarrumados no piso já mostrados na imagem, pequena ave abrigada nas vigas com eventual movimento natural. Ação humana curta, gesto tátil e aproximação de conversa íntima. Se a imagem selecionada for OUTRO ambiente, não transportar esses elementos para ela.
+- Referência de CENA 360º: home office brasileiro vivido com estante, luminária, objetos cotidianos na mesa, microfone discreto e gato já presente em uma poltrona; dois enquadramentos, foco orgânico do celular, interação breve, expressão espontânea e continuidade do fundo. Se a imagem selecionada for OUTRO ambiente, não transportar estes objetos.
+- Para qualquer outra matriz entre os 21 AMBIENTES: presença de plantas compatíveis com a locação, natureza funcional ou vista verde quando plausível, desordem doméstica discreta e inventário de cena fixo. Animal é OPCIONAL e não deve surgir apenas no vídeo.
+- O produto usado nos exemplos históricos NÃO deve ser descrito e NÃO serve de base para dimensão, material, forma ou cor de novo produto. Sua FOTO de referência é a única autoridade. Influenciadora é camada INDEPENDENTE; trocar a pessoa não pode trocar o objeto.
+- Escala deve ser particular a cada referência: objetos pequenos mantêm escala pequena, objetos grandes mantêm escala grande, sem forçar o enquadramento. Uma mão sustenta de forma anatomicamente realista; a câmera não infla objetos para dar impacto.
+- Óptica de celular: pequena busca natural de foco no momento certo, luz coerente, rolling shutter moderado só com movimento, textura de pele real, leves erros humanos e sem tremor artificial. Reação viva do ambiente só por causas naturais já definidas na imagem.
+- MÍNIMO de 1.600 caracteres de direção visual do VÍDEO, SEM máximo. Não criar texto repetitivo para alcançar a contagem. Áudio, CTA, emojis, títulos SEO, finalização e arquitetura dos 5 blocos permanecem como estão.
+- VISUAL NÃO DESCREVE PRODUTO em nenhum dos dois modos: usar expressões como 'the exact reference product' e 'same original reference item', sem atributos visuais ou identificação textual. Na fala e no SEO, o nome e os benefícios verificáveis podem continuar.
+- LEMA: vender a solução verificável do problema, demonstrar sensação plausível, falar com intimidade e proximidade. Ganchos variados, não prometer resultados ou escassez não confirmados.
+--- FIM DAS REFERÊNCIAS V16.9 ---
+"""
 
 with st.expander("🧠 17.3. Abrir Banco de Memória & Treinamento Oficial (Conectado ao 17 e ao 17.2)", expanded=False):
     st.caption("Todo o conhecimento do seu documento está gravado aqui e alimenta automaticamente os botões do Bloco 17 e do Bloco 17.2:")
@@ -4021,7 +3814,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
             - Produto/Kit: {scan_17.get('nome_pt')}
             - Quantidade Exata de Unidades na Foto: {scan_17.get('qtd')} unidade(s)
-            - Tipo de Embalagem/Peça: {scan_17.get('tipo_embalagem')}
+            - A FOTO ANEXADA nesta chamada é a única referência para a escala visual, não gere nenhum atributo físico do produto por texto
             - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NA FALA!): {scan_17.get('dor_pt')}
             - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_17.get('solucao_pt')}
             - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_17}
@@ -4030,16 +3823,16 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
 
             🚨 [REGRAS INQUEBRÁVEIS DE EXECUÇÃO]:
             1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com a urgência do lote secreto na sacolinha! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
-            2. POSICIONAMENTO DOS PRODUTOS (1 NA MÃO + RESTO NA BANCADA): Se houverem {scan_17.get('qtd')} unidades, ela segura APENAS 1 unidade na mão e as outras ficam paradas na bancada ao lado dela tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo! Não descreva cores com colchetes técnicos.
-            3. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
+            2. POSICIONAMENTO DOS PRODUTOS (1 NA MÃO + RESTO NA BANCADA): Se houverem {scan_17.get('qtd')} unidades, ela segura APENAS 1 unidade na mão e as outras ficam paradas na bancada ao lado dela tanto na Imagem quanto no Shot 1 e Shot 2 do Vídeo! Não descreva nenhuma característica física do produto, nem mesmo de forma implícita; só referência à FOTO. A troca da influencer é independente e NÃO pode afetar o produto.
+            3. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso! Não inventar dimensão. Toda IMAGEM deve ter vegetação verde discreta no fundo apropriada ao ambiente; repetir exatamente no VÍDEO. Repetir TODA a cena da IMAGEM no VÍDEO (a IMAGEM não será reutilizada no gerador de vídeo). MÍNIMO 1.600 caracteres visuais no vídeo, sem máximo.
 
             ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES:
 
             ### 📸 PROMPT DE IMAGEM
-            [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3, sorteando um ambiente vivo do Módulo Camaleão e aplicando: {scan_17.get('regra_pos_img')}]
+            [Escreva aqui em inglês ultra-denso (1.300 a 1.900+ caracteres) o Prompt de Imagem Base seguindo fielmente o Molde do Banco de Memória 17.3, sorteando um ambiente vivo do Módulo Camaleão e aplicando: {scan_17.get('regra_pos_img')}; detalhe a apresentadora, luz, plantas, baguncinha, clima e vida real, mas NUNCA DESCREVA O PRODUTO. Preserve seu tamanho real em relação à mão e ao cenário.]
 
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-            Shot 1 (Natural Hook & Physics): [Escreva em inglês seguindo prioritariamente o PROTOCOLO FÍSICO REALISTA V10: smartphone estável, sem zoom agressivo, produto inteiro e contínuo do início ao fim, aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 compact hand-proportioned size + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
+            Shot 1 (Natural Hook & Physics): [Escreva em inglês seguindo prioritariamente o PROTOCOLO FÍSICO REALISTA V10: smartphone estável, sem zoom agressivo, produto inteiro e contínuo do início ao fim, aplicando {scan_17.get('regra_pos_vid')} + CRITICAL PHYSICS & SCALING 1:1 size strictly inferred from reference, keeping small items naturally small and large items naturally large; ONE realistic contact gesture suited to the referenced item without describing it. NO hand overlapping, absolute physics stability, NO pixel melting.]
             Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while {scan_17.get('regra_pos_vid')}. ENVIRONMENT REINFORCEMENT LOCK: Repita em inglês todos os detalhes do cenário da imagem, plantas vivas, baguncinha e o animal se mexendo sutilmente no fundo.]
             Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
@@ -4079,21 +3872,23 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                     "Use this EXACT preset in the still image and repeat the identical object list "
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
-            instrucao_ouro += "\n\nREGRA FINAL V16.9 (supera exemplos históricos): " + PROTOCOLO_V169
             validar_cota_ia()
             resp = cliente_openai.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Siga 100% os Moldes do Banco de Memória 17.3. Escreva toda a parte visual em inglês puro."},
-                    {"role": "user", "content": instrucao_ouro}
+                    {"role": "system", "content": "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Siga os Moldes do Banco 17.3, com prioridade absoluta para o protocolo V16.9: a foto é a única referência visual do produto; NUNCA descrever sua aparência em prompts visuais; a escolha da influencer não modifica o item. Repita os detalhes do cenário da imagem no vídeo. Escreva toda a parte visual em inglês puro."},
+                    {"role": "user", "content": [
+                        {"type": "text", "text": instrucao_ouro},
+                        {"type": "image_url", "image_url": {"url": f"data:{getattr(img_produto, 'type', 'image/jpeg') or 'image/jpeg'};base64,{img_b64_roteiro}"}}
+                    ]}
                 ],
-                max_tokens=6500, temperature=0.75
+                temperature=0.75
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
-            conteudo_texto = finalizar_roteiro_v169(
-                conteudo_texto, scan_17, direcao_v11_17,
-                nome_inf_ativa, desc_inf_ativa, gancho_sorteado_17, "360")
+            conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
+            conteudo_texto = fixar_ambiente_ambos_prompts_v165(
+                conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -4129,7 +3924,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
                 - Produto/Kit: {scan_v92.get('nome_pt')}
                 - Quantidade Exata de Unidades na Foto: {scan_v92.get('qtd')} unidade(s)
-                - Tipo de Embalagem/Peça: {scan_v92.get('tipo_embalagem')}
+                - A FOTO ANEXADA nesta chamada é a única referência para a escala visual, não gere nenhum atributo físico do produto por texto
                 - A DOR VISCERAL QUE ELE RESOLVE (ATAQUE ISSO NOS PRIMEIROS 2 SEGUNDOS!): {scan_v92.get('dor_pt')}
                 - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_v92.get('solucao_pt')}
                 - ÂNGULO DE GANCHO SORTEADO PARA HOJE: {gancho_sorteado_v92}
@@ -4139,16 +3934,16 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
                 1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com o lote secreto vazado na sacolinha!
                 2. Preserve exatamente o ambiente da imagem de referência. Não sorteie novos cenários, animais ou objetos; aplique apenas o refinamento natural de textura.
-                3. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha sempre a quantidade e a identidade de cada unidade (1 na mão, demais na bancada); nenhuma pode desaparecer ao mudar enquadramento.
-                4. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. NÃO inserir logo extra, glitch ou quadro preto. A marca original da embalagem deve permanecer intacta.
+                3. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha sempre a quantidade e a identidade de cada unidade (1 na mão, demais na bancada); nenhuma pode desaparecer ao mudar enquadramento. Independentemente da influencer selecionada, é o MESMO produto original, sem reconstrução visual, em escala verdadeira (pequenos permanecem pequenos).
+                4. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. NÃO inserir logo extra, glitch ou quadro preto. A marca original da embalagem deve permanecer intacta. NÃO descreva nenhum aspecto físico do produto em imagem nem vídeo; descreva apenas o contexto, as pessoas e as ações, referindo-se ao produto unicamente como referência visual.
 
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, moody warm natural tropical sunlight filtering through greenery, NO flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic compact product size and proportions fitting comfortably inside a human hand, exact match to reference, do not oversize]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Plantas vivas, samambaias, monsteras, borboletas ou cachoeira em inglês]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Vira-lata caramelo ou gato em ação no fundo em inglês]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry; no new objects, realistic contact shadow.
+                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, natural ambient light consistent with the ACTUAL selected scene and weather, with subtle green vegetation somewhere in the background, NO flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She is standing inside [DESCREVA EM INGLÊS DENSO UM CENÁRIO INÉDITO DO BANCO DE MEMÓRIA 17.3]. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, natural real-world reference scale, never enlarged or universally shrunk; exact body-to-item proportions based only on the supplied photo, no product description]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [One authentic green plant or naturally visible greenery in the background, harmonious with the selected one of 21 environments. No unrequested waterfall or duplicated vegetation; copy the EXACT final image details to video]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Baguncinha reativa em inglês]. [ANIMAL FACTOR (STORYTELLING V9)]: [Optional animal only when appropriate to the chosen setting; natural subtle motion; if pictured, keep the SAME species in video; never insert an animal only during video]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry; no new objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:10: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no digital glitch, no additional logos, no 3D shopping bag, no overlays. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible, especially the very last frame. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
+                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep every detail of the ORIGINAL referenced item and the exact number of units constant through every frame; do not name or describe their physical features. 0:00-0:03: medium-close shot of the exact reference item at its natural scale, supported as shown by the approved image, realistic gravity, contact shadow and occlusion. One small physically plausible gesture only if suitable for the exact reference object; never invent parts or materials. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:10: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no digital glitch, no additional logos, no 3D shopping bag, no overlays. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible, especially the very last frame. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
@@ -4187,22 +3982,24 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                       + "\nOverride all random and tropical backdrops from the historical example. "
                                         "Use exactly this set for the still image and video, never replace it with "
                                         "generic ferns, a waterfall, a kitchen or an animal that was not selected.")
-                instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n" + PROTOCOLO_V169
+                instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
                 validar_cota_ia()
                 resp_v92 = cliente_openai.chat.completions.create(
                     model="gpt-4o-mini",
                     messages=[
-                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Siga 100% o Banco de Memória 17.3."},
-                        {"role": "user", "content": instrucao_v92}
+                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Siga o Banco 17.3, com o protocolo V16.9 soberano: NUNCA descrever aparência do produto, apenas invocar a foto; trocar influencer não troca produto; escala natural específica e detalhes totais do cenário no vídeo."},
+                        {"role": "user", "content": [
+                            {"type": "text", "text": instrucao_v92},
+                            {"type": "image_url", "image_url": {"url": f"data:{getattr(img_produto, 'type', 'image/jpeg') or 'image/jpeg'};base64,{img_b64_v92}"}}
+                        ]}
                     ],
-                    max_tokens=6500,
                     temperature=0.75
                 )
 
                 conteudo_v92 = resp_v92.choices[0].message.content.strip()
-                conteudo_v92 = finalizar_roteiro_v169(
-                    conteudo_v92, scan_v92, direcao_v11_92,
-                    nome_inf_ativa, desc_inf_ativa, gancho_sorteado_v92, "v9.2")
+                conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
+                conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
+                    conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
@@ -4243,7 +4040,7 @@ if st.session_state["roteiro_temporario"]:
                 
             qtd_caracteres_video = len(partes_roteiro["prompt_video"])
             qtd_caracteres_visuais = _direcao_visual_caracteres_v12(partes_roteiro["prompt_video"])
-            st.caption(f"🎞️ Vídeo V16.9: {qtd_caracteres_video:,} caracteres totais | produto fiel à referência | microfísica viva".replace(",", "."))
+            st.caption(f"🎞️ Vídeo V16.9: {qtd_caracteres_visuais:,} caracteres de direção visual (mín. 1.600; sem máximo) | total {qtd_caracteres_video:,} | cenário da imagem integral no vídeo | produto fiel à referência".replace(",", "."))
             st.markdown(partes_roteiro["prompt_video"], unsafe_allow_html=False)
             st.divider()
             
