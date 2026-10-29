@@ -722,6 +722,10 @@ def tt_obter_token_valido(email, config):
 
 def tt_perfil(token, escopos):
     campos = ["open_id", "display_name", "avatar_url"]
+    # É uma conta TikTok normal: o selo é opcional e só é consultado se
+    # o titular conceder user.info.profile (após aprovação do escopo).
+    if "user.info.profile" in escopos:
+        campos += ["username", "is_verified"]
     if "user.info.stats" in escopos:
         campos += ["follower_count", "likes_count", "video_count"]
     return tt_api(_TT_PERFIL, token, ",".join(campos)).get("user", {})
@@ -1548,11 +1552,24 @@ if "tt_oauth_aviso" in st.session_state:
 
 with tt_aba_conexao:
     if not TT_CONFIG["enabled"]:
-        st.warning("Conexão TikTok aguardando configuração oficial pelo administrador.")
-        st.markdown("**Necessário:** TikTok Login Kit, Client Key, Client Secret, "
-                    "Redirect URI HTTPS e chave de criptografia nos Secrets do Streamlit.")
-        st.caption("Não informe sua senha do TikTok no ÉLÉVO. A autorização ocorrerá no site oficial.")
-        st.link_button("Abrir TikTok for Developers", "https://developers.tiktok.com/", use_container_width=False)
+        st.info("Você vai conectar sua conta TikTok habitual — a mesma usada no aplicativo, "
+                "mesmo que seja uma conta verificada. NÃO precisa criar uma conta TikTok "
+                "de desenvolvedor para entrar.")
+        st.warning("A integração oficial do ÉLÉVO ainda precisa ser ativada pelo administrador. "
+                   "Por enquanto, a conexão automática está indisponível.")
+        st.button("◈ CONECTAR MINHA CONTA TIKTOK", disabled=True,
+                  use_container_width=True, key="tt_aguardando_config")
+        if E_O_CEO:
+            with st.expander("⚙ Configuração única do ÉLÉVO — somente administrador"):
+                st.markdown("Para que todos possam entrar com o TikTok normal, "
+                            "o dono do ÉLÉVO precisa registrar uma integração no portal "
+                            "TikTok for Developers e obter Client Key/Client Secret.")
+                st.markdown("Configure também a Redirect URI HTTPS e a chave de "
+                            "criptografia nos Secrets do Streamlit. "
+                            "Solicite `video.list` para vídeos; `user.info.profile` "
+                            "para mostrar o selo de verificação (opcional).")
+                st.link_button("Configurar integração oficial", "https://developers.tiktok.com/")
+        st.caption("Sua senha do TikTok nunca é digitada ou guardada no ÉLÉVO.")
     else:
         try:
             tt_idx, tt_registro = tt_localizar(tt_email)
@@ -1581,8 +1598,10 @@ with tt_aba_conexao:
                         st.error("Não foi possível revogar a autorização no TikTok. "
                                  "Tente novamente ou retire a permissão nas configurações da conta TikTok.")
             else:
-                st.write("Autorize com sua conta TikTok usando o Login Kit oficial.")
-                st.caption("Você será encaminhado ao TikTok e retornará ao ÉLÉVO após autorizar.")
+                st.write("Use sua **conta TikTok principal**, a mesma do aplicativo "
+                         "(pessoal, profissional ou verificada).")
+                st.caption("Ao clicar, você entra no TikTok oficial e autoriza o ÉLÉVO. "
+                           "Não é necessário ter conta de desenvolvedor.")
                 # Cookie cifrado para associar retorno ao navegador e à conta ÉLÉVO.
                 try:
                     url_tt = tt_link_autorizacao(tt_email, TT_CONFIG)
@@ -1619,6 +1638,10 @@ with tt_aba_desempenho:
                 tt_dados = st.session_state["tt_cache_resultado"]
                 tt_per = tt_dados.get("perfil", {})
                 st.markdown("**Perfil:** " + html_std.escape(str(tt_per.get("display_name") or registro.get("Nome_TikTok") or "TikTok")))
+                if tt_per.get("username"):
+                    st.caption("@" + str(tt_per["username"]))
+                if tt_per.get("is_verified") is True:
+                    st.success("✓ Conta verificada pelo TikTok")
                 if "follower_count" in tt_per:
                     st.metric("Seguidores", f'{int(tt_per.get("follower_count") or 0):,}'.replace(",", "."))
                 if not tem_videos:
