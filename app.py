@@ -151,7 +151,9 @@ def entrar_usuario(email, nome):
         # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
         # sem exigir F5 nem reaproveitar o estado de outro utilizador.
         email_bv_verificado="", mostrar_player_bv=False,
-        audio_boas_vindas_b64=None, erro_audio_bv=""
+        audio_boas_vindas_b64=None, erro_audio_bv="",
+        # Permite UM recarregamento do navegador após login, sem F5 manual.
+        bv_recarregamento_login=secrets.token_hex(8)
     )
     cookies["login"] = criar_token(email)
     cookies.save()
@@ -304,6 +306,36 @@ if not st.session_state["usuario_logado"]:
                                     if conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha): st.success(f"✅ Conta criada, {novo_nome}!")
                                     else: st.error("❌ Falha ao gravar no servidor.")
                             else: st.error("❌ Falha de conexão com o banco.")
+    st.stop()
+
+# Solução para browsers mobile/Streamlit Cloud que montam o player só após F5:
+# uma única atualização REAL do navegador após o login validado. O cookie já
+# foi gravado em entrar_usuario(), então o login é recuperado automaticamente.
+# O token é consumido antes de atualizar, impedindo loop caso a sessão persista.
+bv_nonce_refresh = st.session_state.pop("bv_recarregamento_login", "")
+if bv_nonce_refresh:
+    st.info("🦅 Acesso autorizado. Inicializando sua mensagem da Aurora...")
+    components.html(f"""
+    <script>
+    (function() {{
+        try {{
+            const pagina = window.parent;
+            const chave = "elevo_bv_refresh_{bv_nonce_refresh}";
+            if (pagina.sessionStorage.getItem(chave) !== "feito") {{
+                pagina.sessionStorage.setItem(chave, "feito");
+                window.setTimeout(function() {{ pagina.location.reload(); }}, 1600);
+            }}
+        }} catch (erro) {{
+            // O browser pode limitar navegação de frames incorporados.
+            // A reexecução interna da geração de áudio permanece como defesa.
+        }}
+    }})();
+    </script>
+    """, height=0, width=0)
+    # Permite prosseguir sem ficar preso caso alguma política do browser
+    # bloqueie a atualização automática.
+    if st.button("▶ Continuar para o painel", key="bv_login_continuar_fallback"):
+        st.rerun()
     st.stop()
 
 # ==========================================================
@@ -699,8 +731,13 @@ if (st.session_state.get("usuario_logado") and email_logado_agora
         if audio_bytes:
             st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
             st.session_state["mostrar_player_bv"] = True
-            # Importante: NÃO registrar o Gmail ainda. Antes a planilha era
-            # marcada aqui, mesmo se o navegador não chegasse a tocar o áudio.
+            # Não registrar o Gmail antes de o utilizador confirmar que ouviu.
+            # Streamlit precisa de uma execução nova para montar o componente
+            # de voz depois da chamada de TTS/cookies. Na primeira tentativa
+            # o painel abria, mas o iframe do áudio só aparecia após F5.
+            # Esta segunda execução é automática, uma única vez por geração;
+            # na próxima o email já foi verificado e o MP3 é reaproveitado.
+            st.rerun()
 
 if st.session_state.get("erro_audio_bv"):
     st.warning(st.session_state["erro_audio_bv"])
@@ -1218,7 +1255,11 @@ if E_O_CEO and link_planilha_ativa and robo_sheets:
     except Exception:
         df_hist = pd.DataFrame(columns=["Data", "Status"])
         
-    if not df_hist.empty and "Data" in df_hist.columns:
+    # Em uma conta sem missões salvas, exibir a trilha vazia em vez de ocultar
+    # o gráfico. Somente a apresentação do histórico muda.
+    if "Data" not in df_hist.columns:
+        df_hist = pd.DataFrame(columns=["Data", "Status"])
+    if "Data" in df_hist.columns:
         df_hist["Data_Parsed"] = pd.to_datetime(df_hist["Data"], format="%d/%m/%Y", errors="coerce")
         hoje_data = pd.Timestamp(agora_brasil.date())
         limite_30d = hoje_data - timedelta(days=29)
@@ -1232,7 +1273,8 @@ if E_O_CEO and link_planilha_ativa and robo_sheets:
         df_grafico_missoes["Status_Num"] = df_grafico_missoes["Data_Parsed"].isin(df_30d["Data_Parsed"]).astype(int)
         df_grafico_missoes["Data_Formatada"] = df_grafico_missoes["Data_Parsed"].dt.strftime("%d/%m")
         
-        df_plot = df_grafico_missoes.set_index("Data_Formatada")["Status_Num"]
+        # A matriz abaixo usa a mesma informação dos últimos 30 dias.
+        # Não altera o registro das missões nem os outros gráficos.
         
         col_stat1, col_stat2, col_stat3 = st.columns(3)
         col_stat1.metric("⚔️ Dias Cumpridos", f"{dias_cumpridos}/30")
@@ -1246,7 +1288,73 @@ if E_O_CEO and link_planilha_ativa and robo_sheets:
         else:
             col_stat3.markdown("<h1 style='text-align: center;'>😟📉</h1>", unsafe_allow_html=True)
             
-        st.bar_chart(df_plot, color="#00E5FF")
+        # MATRIZ ÉLÉVO | 30 DIAS — leitura semanal, limpa e responsiva.
+        # Cada quadrado é um dia: verde = cumprido, neutro = pendente.
+        st.markdown('<div class="elevo-v13-panel-title"><span class="elevo-v13-led"></span> 🗓️ Trilha de Missões — 30 Dias</div>', unsafe_allow_html=True)
+        df_matriz = df_grafico_missoes.copy()
+        dia_inicio_semana = df_matriz["Data_Parsed"].iloc[0] - pd.Timedelta(days=int(df_matriz["Data_Parsed"].iloc[0].weekday()))
+        df_matriz["Dia_Semana"] = df_matriz["Data_Parsed"].dt.weekday
+        df_matriz["Semana"] = ((df_matriz["Data_Parsed"] - dia_inicio_semana).dt.days // 7).astype(int)
+        df_matriz["Situacao"] = df_matriz["Status_Num"].map({1: "Missão concluída", 0: "Missão pendente"})
+        df_matriz["Data_Exibicao"] = df_matriz["Data_Parsed"].dt.strftime("%d/%m/%Y")
+        semanas_total = int(df_matriz["Semana"].max()) + 1
+
+        fundo_celula = "#DCE5EE" if modo_claro else "#223042"
+        borda_celula = "#C3D1DF" if modo_claro else "#33465C"
+        texto_pendente = "#52667A" if modo_claro else "#A8BBCE"
+        texto_dashboard = "#475569" if modo_claro else "#94A3B8"
+        grafico_trilha = go.Figure()
+        for concluida, cor, cor_texto, cor_borda in [
+            (False, fundo_celula, texto_pendente, borda_celula),
+            (True, "#00DCA0", "#062D23", "#37FFD0"),
+        ]:
+            dados_dia = df_matriz[df_matriz["Status_Num"].eq(int(concluida))]
+            if not dados_dia.empty:
+                grafico_trilha.add_trace(go.Scatter(
+                    x=dados_dia["Dia_Semana"], y=dados_dia["Semana"],
+                    mode="markers+text", name="Concluída" if concluida else "Pendente",
+                    marker=dict(symbol="square", size=38, color=cor,
+                                line=dict(color=cor_borda, width=1.6)),
+                    text=dados_dia["Data_Parsed"].dt.strftime("%d"),
+                    textposition="middle center", textfont=dict(size=12, color=cor_texto, family="Montserrat, sans-serif"),
+                    customdata=dados_dia[["Data_Exibicao", "Situacao"]].to_numpy(),
+                    hovertemplate="<b>%{customdata[0]}</b><br>%{customdata[1]}<extra></extra>",
+                    showlegend=False
+                ))
+
+        # Realça somente o dia atual sem apagar o estado da missão.
+        grafico_trilha.add_trace(go.Scatter(
+            x=[int(hoje_data.weekday())],
+            y=[int((hoje_data - dia_inicio_semana).days // 7)],
+            mode="markers", marker=dict(symbol="square-open", size=44, color="#D4AF37",
+                                        line=dict(color="#D4AF37", width=3)),
+            hoverinfo="skip", showlegend=False
+        ))
+        grafico_trilha.update_layout(
+            height=130 + semanas_total * 47,
+            margin=dict(l=8, r=10, t=42, b=12),
+            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+            showlegend=False, dragmode=False,
+            font=dict(color=texto_dashboard, family="Montserrat, sans-serif", size=11),
+            hoverlabel=dict(bgcolor="#102131" if not modo_claro else "#FFFFFF",
+                            font=dict(color="#F1F5F9" if not modo_claro else "#172437", size=12))
+        )
+        grafico_trilha.update_xaxes(
+            side="top", tickmode="array", tickvals=list(range(7)),
+            ticktext=["SEG", "TER", "QUA", "QUI", "SEX", "SÁB", "DOM"],
+            range=[-0.58, 6.58], showgrid=False, zeroline=False,
+            showline=False, ticks="", fixedrange=True, tickfont=dict(size=10)
+        )
+        grafico_trilha.update_yaxes(
+            tickmode="array", tickvals=list(range(semanas_total)),
+            ticktext=[f"S{i+1}" for i in range(semanas_total)],
+            range=[semanas_total - 0.4, -0.6], showgrid=False,
+            zeroline=False, showline=False, ticks="", fixedrange=True,
+            tickfont=dict(size=10)
+        )
+        st.plotly_chart(grafico_trilha, use_container_width=True,
+                        config={"displayModeBar": False, "responsive": True, "staticPlot": False})
+        st.caption("🟢 Concluída   ·   ◼ Pendente   ·   🟨 Contorno dourado: hoje")
     else:
         st.info("Nenhum histórico de missões ainda.")
 
