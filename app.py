@@ -2198,9 +2198,7 @@ with col_box_elenco:
             st.markdown(f"**Personalidade:** {perfil_preview_topo['personalidade']}")
             st.markdown(f"**Voz:** {perfil_preview_topo['voz']}")
             st.markdown(f"**Emoção:** {perfil_preview_topo['emocao']}")
-            with st.expander("Ver referência / descrição-base", expanded=False):
-                st.write(perfil_preview_topo["referencia"])
-            st.caption(perfil_preview_topo["observacao"])
+            st.caption("Identidade completa protegida e aplicada automaticamente aos Blocos 17 e 17.2.")
         else:
             st.markdown("**🧾 Ficha da influência**")
             st.caption("Nenhuma influência foi marcada ainda.")
@@ -2419,9 +2417,9 @@ if chave_ativa:
                         st.image(base64.b64decode(FOTO_CEO_REFERENCIA_2), caption="Referência 02", use_container_width=True)
         with col_personal:
             with st.container(border=True):
-                st.markdown("#### ✍️ Descrição atual do CEO")
-                st.caption("Essa é a descrição enviada ao Bloco 17 / 17.2 quando você seleciona sua influência principal.")
-                st.code(descricao_ceo_galeria, language=None)
+                st.markdown("#### 🔒 Identidade do CEO")
+                st.caption("Descrição técnica guardada na memória da personagem.")
+                st.success("Pronta para os Blocos 17 e 17.2. Não é necessário copiar ou editar a ficha.")
         st.caption("✅ A influência do CEO está ativa automaticamente nos prompts de imagem, vídeo e fala dos Blocos 17 e 17.2.")
     elif chave_ativa in INFLUENCIADORAS_ELEVO_V164:
         perfil_ativo = INFLUENCIADORAS_ELEVO_V164[chave_ativa]
@@ -3053,7 +3051,8 @@ with st.container(border=True):
     
     with aba_gerador_360:
         if eh_customizada:
-            st.info(f"✨ **Influencer Ativa no seu Login:** `{nome_inf_ativa}` — *{desc_inf_ativa}*")
+            st.success(f"✅ **Influenciadora ativa:** {nome_inf_ativa}")
+            st.caption("Identidade, voz, emoção e aparência já incluídas automaticamente no prompt.")
         else:
             if E_O_CEO:
                 st.caption("🦅 **Influencer Padrão do CEO Ativa:** Aurora Original (Para testar outra personagem, acesse a aba ao lado).")
@@ -3091,13 +3090,9 @@ with aba_config_influencer:
 
     dados_ativos_tab = st.session_state.get("influencer_atual") or {}
     nome_ativo_tab = str(dados_ativos_tab.get("Nome_Influencer") or ("Aurora" if E_O_CEO else "Nenhuma salva"))
-    desc_ativa_tab = str(dados_ativos_tab.get("Descricao_Visual") or (DESCRICAO_CEO_PADRAO if E_O_CEO else ""))
-
     if dados_ativos_tab.get("Nome_Influencer") or E_O_CEO:
-        st.success(f"✅ Influência ativa no login: {nome_ativo_tab}")
-        if desc_ativa_tab:
-            with st.expander("Ver descrição ativa que será usada nos Blocos 17 e 17.2"):
-                st.code(desc_ativa_tab, language=None)
+        st.success(f"✅ Influenciadora ativa: {nome_ativo_tab}")
+        st.caption("Dados técnicos guardados; os Blocos 17 e 17.2 os utilizam automaticamente.")
 
     col_tab_a, col_tab_b = st.columns([1, 1])
     with col_tab_a:
