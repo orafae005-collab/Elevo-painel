@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8 — carrosséis horizontais de influenciadoras e ambientes, mantendo lógica V16.7.
+# ÉLÉVO V16.9 — referência visual do produto protegida; física real e vídeo compacto (1400-1500).
 import base64
 import requests
 import time
@@ -2945,11 +2945,11 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     qtd = max(1, min(qtd, 30))
     if qtd <= 1:
         regra_pos_img = (
-            f"She is firmly holding ONE product, the EXACT {tipo_emb} from the provided reference image, in one hand. "
+            "She is firmly holding ONE original unit from the provided reference image, in one hand. "
             f"DO NOT alter, redraw, or describe the product colors, logo, or text — copy the source reference image 100% intact."
         )
         regra_pos_vid = (
-            f"holding the EXACT single {tipo_emb} from the reference image in one hand (DO NOT alter or describe colors/labels, copy reference 100% intact)."
+            "holding ONE original unit from the product reference photograph, with unchanged appearance, size, brand and label; never redescribe it."
         )
     else:
         resto = qtd - 1
@@ -3198,7 +3198,7 @@ LISTA_SORTEIO_GANCHOS_CAMPEOES = [
 # Mantém o tema, login, scanner, banco de imagens e acesso Google Sheets.
 # Não há limite superior de caracteres imposto ao vídeo; 1.500 é o mínimo.
 # ==========================================================
-MIN_CARACTERES_PROMPT_VIDEO = 1500
+MIN_CARACTERES_PROMPT_VIDEO = 1400  # V16.9 mínimo total; máximo 1500
 
 # Cada criação escolhe uma locação nova entre 20 famílias e várias microvariações.
 # Nada é introduzido no vídeo se não tiver aparecido no PROMPT DE IMAGEM.
@@ -3367,7 +3367,7 @@ def selecionar_gancho_v11():
 # A primeira chamada preserva os moldes originais V8.1/V9.2.
 # A segunda chamada amplia SOMENTE a seção 🎬, preservando emojis e etapas.
 # ==========================================================
-MIN_CARACTERES_DIRECAO_VISUAL_V12 = 1500
+MIN_CARACTERES_DIRECAO_VISUAL_V12 = 1400  # legado; pós-processador amplo desativado
 
 DIRETRIZ_VIDEO_V12 = """
 [ÉLÉVO V12 — IMMERSIVE PHYSICAL VIDEO DIRECTION / STRONG DOCUMENTARY UGC]
@@ -3657,7 +3657,208 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
     return final
 
 
+
+# ==========================================================
+# V16.9 — PROTEÇÃO DETERMINÍSTICA DE IMAGEM / VÍDEO
+# Duas saídas independentes da persona: a embalagem vem SOMENTE da foto.
+# ==========================================================
+
+
+def _resumir_sem_cortar_palavra_v169(texto, limite):
+    texto = re.sub(r'\s+', ' ', str(texto or '')).strip()
+    if len(texto) <= limite:
+        return texto
+    corte = texto[:limite].rsplit(' ', 1)[0]
+    return corte or texto[:limite]
+
+
+def _fala_de_roteiro_v169(video, scan):
+    """Reaproveita o gancho gerado para esta rodada, mas não traz o prompt visual antigo."""
+    trecho = re.split(r'🎙️|🎙|🔊', video or '', maxsplit=1)
+    fala = trecho[1] if len(trecho) > 1 else ''
+    m = re.search(r'["“]([^"”]{25,320})["”]', fala)
+    if m:
+        palavras = m.group(1).strip().split()
+        if 8 <= len(palavras) <= 28:
+            return ' '.join(palavras)
+    # Fallback neutro se não houver fala com tamanho apropriado.
+    dor = _resumir_sem_cortar_palavra_v169(scan.get('dor_pt','um problema cotidiano'),55).strip('.,:;')
+    solucao = _resumir_sem_cortar_palavra_v169(scan.get('solucao_pt','uma saída prática'),55).strip('.,:;')
+    fala = f"Você também enfrenta {dor}? Olha essa possibilidade: {solucao}. Confira os detalhes antes de decidir!"
+    return _resumir_sem_cortar_palavra_v169(fala,175)
+
+
+def _ambiente_enxuto_v169(direcao):
+    """Usa a mesma cena sorteada/selecionada, NUNCA cria uma segunda cena aleatória."""
+    codigo = str(direcao.get('escolhido','')).strip()
+    cena = AMBIENTES_ELEVO_V165.get(codigo)
+    if cena and codigo != 'infinito':
+        return {
+            'nome': cena['nome'], 'elementos': str(cena['elementos']),
+            'luz': str(cena['luz']), 'fisica': str(cena['fisica']),
+            'animal': str(cena['animal']), 'som': str(cena.get('som', ''))
+        }
+    return {'nome': str(direcao.get('cenario','interior brasileiro vivido')),
+            'elementos': 'the same real room and existing everyday objects from the still image, with modest natural greenery where present',
+            'luz': str(direcao.get('luz','natural existing room light')),
+            'fisica': str(direcao.get('fisica_ambiente','tiny causal background movements')),
+            'animal': str(direcao.get('animal','no animal')), 'som': ''}
+
+
+def _criar_imagem_ref_v169(scan, direcao, nome, descricao):
+    cena = _ambiente_enxuto_v169(direcao)
+    n = max(1,int(scan.get('qtd',1)))
+    lista = (f'Exactly {n} original referenced units; one naturally held, the remaining {n-1} resting on a stable surface, all visible.'
+             if n > 1 else 'Exactly one original referenced product, naturally supported by one hand or the original stable surface.')
+    return (
+        '[SOURCE PRODUCT PHOTO — ABSOLUTE VISUAL AUTHORITY] Attach the real reference product photo to the external image generator. '
+        'Render the EXACT SAME original item shown in that photo. Do not describe, infer, recolor, redesign, enlarge, shrink, rebrand, rotate labels, add caps, change materials or replace packaging. '
+        'Keep the physical scale faithful to the photo and plausible relative to fingers, palm, forearm and nearby furniture. '
+        'Use natural camera distance, not exaggerated macro foreground perspective; small original products must remain visibly small. '
+        f'{lista}\n'
+        f'[SELECTED INFLUENCER ONLY — NOT PRODUCT] {nome}. {descricao} '
+        'The selected adult influencer affects face, hair, voice, expressions and wardrobe ONLY. Never modify the source product to match her aesthetic. '
+        'Real human complexion and asymmetric microexpressions, natural skin pores, fine hair strands, normal anatomy.\n'
+        f'[ENVIRONMENT LOCK — {cena["nome"]}] SET: {cena["elementos"]}. LIGHT: {cena["luz"]}. '
+        f'PHYSICAL WORLD: {cena["fisica"]}. ANIMAL POLICY: {cena["animal"]}. '
+        'Keep practical everyday clutter and authentic vegetation in this setting when present, but never introduce impossible water, animals, windows or props. '
+        'A real Brazilian smartphone photo, 9:16, consistent room scale, perspective and contact shadows. '
+        'Product supported by true weight, friction and grip; unchanged geometry and readable original packaging, no UI, no watermarks, no extra logos. '
+        'The image is the binding first frame of the matching video.'
+    )
+
+
+def _criar_video_curto_v169(scan, direcao, nome, descricao, fala):
+    """1400–1500 chars TOTAL, including spoken hook. Physical constraints prioritized."""
+    cena = _ambiente_enxuto_v169(direcao)
+    qtd = max(1,int(scan.get('qtd',1)))
+    nome = _resumir_sem_cortar_palavra_v169(nome, 48)
+    pessoa = _resumir_sem_cortar_palavra_v169(descricao, 105)
+    local = _resumir_sem_cortar_palavra_v169(cena['elementos'], 180)
+    luz = _resumir_sem_cortar_palavra_v169(cena['luz'], 100)
+    dinamica = _resumir_sem_cortar_palavra_v169(cena['fisica'], 150)
+    animal = _resumir_sem_cortar_palavra_v169(cena['animal'], 70)
+    unidades = (f'Keep all {qtd} original units visible; one in hand and {qtd-1} on stable surfaces.'
+                if qtd > 1 else 'Keep the single original unit visible and supported throughout.')
+    # The base stays short enough even for a kit, while optional meaningful detail fills the range.
+    base = (
+        f'🎬 RAW PHONE VIDEO 9:16, 9s. SAME still-image scene: {cena["nome"]}. '
+        f'SET: {local}. LIGHT: {luz}. '
+        f'Background physics: {dinamica}. Animal: {animal}. '
+        f'PRESENTER: {nome}; {pessoa}. Same face, age, voice, hair, hands and wardrobe as the selected still. '
+        'PRODUCT LOCK: use ONLY the exact product in the supplied photo, never describe or redesign its appearance. '
+        'Keep true real-world size against hand and furniture; do not magnify small items or invent dimensions. '
+        f'{unidades} Preserve original count, labels, geometry and scale at every instant. '
+        '0–3s: natural hand-held framing, tiny phone autofocus settling on the existing item. '
+        '3–6s: slight human reframe toward the speaker; object stays in frame, grip pressure, gravity, inertia and table contact physically correct. '
+        '6–9s: believable eye contact, asymmetric blinking and lip-sync, real breathing. '
+        'Living plants, cloth, light and any existing animal react only to plausible causes, never looping or teleporting. '
+        'Same light direction and shadows; no giant foreground perspective, morphing, CGI, glitched logos, UI, black frame or floating shopping bag. '
+        'Final frame keeps the SAME item clearly visible. '
+        f'🎙️ PT-BR natural hook: "{fala}"'
+    )
+    extras = (
+        ' Subtle skin pores and flyaway hair; realistic thumb opposition, skin compression and contact shadows.',
+        ' Organic background sound, minute handheld drift and non-synchronized leaf motion only when wind exists.',
+        ' Preserve lens perspective, focus falloff, material reflections and stable prop placement.',
+        ' No artificial plastic sheen, changing product geometry or sudden environment replacement.',
+    )
+    # If product or scene is long, reduce variable context rather than cut a sentence.
+    if len(base) > 1485:
+        # trim the variable scene/persona, never cut the inventory/identity guard or audio.
+        return _criar_video_curto_v169_limitado(scan, direcao, nome, fala)
+    for clause in extras:
+        if len(base) + len(clause) <= 1495:
+            base += clause
+    if len(base) < 1400:
+        # Add semantically real physics from the approved scene; no blind repeated filler.
+        complements = (
+            ' Existing objects retain mass, texture, perspective and natural occlusion.',
+            ' The product never changes size when the presenter or camera moves.',
+            ' Physical life stays in the background, never hiding the source item.',
+        )
+        for clause in complements:
+            if len(base) + len(clause) <= 1495:
+                base += clause
+    if not 1400 <= len(base) <= 1500:
+        return _criar_video_curto_v169_limitado(scan, direcao, nome, fala)
+    return base
+
+
+def _criar_video_curto_v169_limitado(scan, direcao, nome, fala):
+    """Bounded safety fallback: no product hallucination or excessive token dump."""
+    cena = _ambiente_enxuto_v169(direcao)
+    nome = _resumir_sem_cortar_palavra_v169(nome, 48)
+    n = max(1, int(scan.get('qtd',1)))
+    fala = _resumir_sem_cortar_palavra_v169(fala, 168)
+    qtd = f'{n} unchanged referenced units; one held and {n-1} supported, all visible' if n > 1 else 'one unchanged referenced item, continuously supported'
+    core = (
+        f'🎬 RAW SMARTPHONE 9:16, 9s. SAME location as first-frame image: {cena["nome"]}. '
+        f'Visible set: {_resumir_sem_cortar_palavra_v169(cena["elementos"], 115)}. '
+        f'Actual lighting: {_resumir_sem_cortar_palavra_v169(cena["luz"], 75)}. '
+        f'Background life: {_resumir_sem_cortar_palavra_v169(cena["fisica"], 100)}; '
+        f'animal only if already pictured. Influencer: {nome}. Same original face, hair, body language and voice. '
+        'PRODUCT LOCK: the original reference alone controls size, packaging, count and label. '
+        'Never describe, redesign, recolor or magnify it. '
+        f'Maintain {qtd}. '
+        '0–3s: handheld focus settles naturally. '
+        '3–6s: presenter reframes slightly; real hand grip, mass, friction and gravity. '
+        '6–9s: subtle speech gestures, blinks, breathing, ordinary room life. Same plants and background objects throughout. '
+        'Moving leaves require wind; droplets require actual water; animal motions must be subtle and causal. '
+        'Shadows and reflections obey light; no teleporting, morphing or invented props. '
+        'The final frame shows the very same product; no UI, overlay, digital logo, floating icon or black ending. '
+        f'🎙️ Spoken Brazilian Portuguese hook: "{fala}"'
+    )
+    for clause in (
+        ' Keep fingers anatomically natural, thumb opposition and object mass believable.',
+        ' No aggressive macro zoom or sudden focus changes; products stay the correct apparent size.',
+        ' Light direction, hair lag, fabric creases and set perspective remain consistent.',
+        ' Avoid mechanical looping, showroom perfection or impossible animal animation.',
+        ' Preserve hand-object contact and subtle real sensor grain until the final frame.',
+    ):
+        if len(core) + len(clause) <= 1500:
+            core += clause
+    if len(core) < 1400:
+        # scene-specific text is preferable, but keep the 1500 cap guaranteed.
+        clause = ' Real phone exposure and motion parallax stay stable; all original objects keep their positions.'
+        if len(core) + len(clause) <= 1500:
+            core += clause
+    if len(core) > 1500 or len(core) < 1400:
+        raise ValueError(f'Prompt compacto fora do intervalo: {len(core)} caracteres')
+    return core
+
+
+def finalizar_prompts_v169(conteudo, scan, direcao, nome, descricao, modo):
+    """Protects product and bounds BOTH 360 and V9.2 video; keeps existing SEO hooks."""
+    partes = extrair_blocos_roteiro(conteudo)
+    if not partes['prompt_imagem'] or not partes['prompt_video']:
+        raise ValueError('As seções de imagem/vídeo não vieram completas da IA; nenhuma alteração foi salva.')
+    fala = _fala_de_roteiro_v169(partes['prompt_video'], scan)
+    img = _criar_imagem_ref_v169(scan, direcao, nome, descricao)
+    vid = _criar_video_curto_v169(scan, direcao, nome, descricao, fala)
+    if not 1400 <= len(vid) <= 1500:
+        raise ValueError('O comando de vídeo ultrapassou o limite de 1500 caracteres.')
+    saida = re.sub(
+        r'(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)(.*?)(?=###\s*🎬|\Z)',
+        lambda m: m.group(1) + img.strip() + '\n\n',
+        conteudo, count=1, flags=re.S | re.I
+    )
+    saida = _trocar_so_video_v12(saida, vid)
+    revisto = extrair_blocos_roteiro(saida)
+    if (revisto['prompt_imagem'] != img.strip() or revisto['prompt_video'] != vid.strip()
+            or revisto['secao_seo_texto'] != partes['secao_seo_texto']):
+        raise ValueError('Erro de integridade: imagem, vídeo ou SEO alterado inesperadamente.')
+    return saida
+
 BANCO_DE_MEMORIA_17_3 = """
+[ÉLÉVO V16.9 — PROTOCOLO PRIORITÁRIO DE REFERÊNCIA FOTOGRÁFICA]
+A foto do produto é a única fonte visual autorizada para aparência, embalagem, proporções, cor, marca, texto, material, quantidade e escala. A identificação comercial pode existir no diagnóstico e SEO, MAS NUNCA deve virar descrição visual ou substituição do produto nos prompts de IMAGEM e VÍDEO.
+Se o documento histórico citar frasco azul, tampa amarela, tamanho 1kg, 300ml, personagem Aurora ou outro exemplo, trate-o como EXEMPLO HISTÓRICO de técnica; jamais o copie para o produto atual. A aparência da influenciadora selecionada afeta SOMENTE a pessoa, jamais o produto.
+PRODUTO: não inferir cor, formato, tampa, rótulo, dimensão, recipiente ou material. Dizer apenas EXACT ORIGINAL PRODUCT FROM THE USER REFERENCE PHOTO. Preservar escala relativa: proporções idênticas à fotografia e tamanho plausível diante da mão e da bancada; não ampliar por lente macro nem reduzir arbitrariamente todos os produtos. Câmera a distância natural e produto apoiado por gravidade, pressão dos dedos, atrito e sombras de contato.
+VÍDEO: comando COPIÁVEL com 1.400 a 1.500 caracteres TOTAIS, incluindo a instrução de fala. Mesmo ambiente da imagem, mesmos objetos e a mesma influenciadora, com plantas/natureza e animal somente quando pertencem ao ambiente escolhido, movimentos causados por vento, gravidade e contato. Não adicionar coisas novas no vídeo. Nenhuma segunda ampliação por IA.
+FALA: gancho variável baseado em dor verificável, solução sem alegações inventadas e proximidade humana. NÃO declarar lotes secretos, preço ou estoque sem dados fornecidos. CTA somente como instrução para edição externa, sem gráfico flutuante no vídeo.
+O lema permanece: não vendemos produtos; aproximamos pessoas da solução de um problema real.
+[FINAL DAS REGRAS PRIORITÁRIAS]
 ====================================================================
 [ 🧠 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (OS 5 PROMPTS DE OURO MASTER + ACERVO COMPLETO V3 A V9.2 DO DOCUMENTO) ]
 
@@ -3827,6 +4028,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                   + "\nOverride all random environment suggestions in the historical examples. "
                                     "Use this EXACT preset in the still image and repeat the identical object list "
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
+            instrucao_ouro += "\n\n[PRIORIDADE V16.9] Produto visual é APENAS a foto do usuário: nunca enumerar cor, tipo, tampa, embalagem, rótulo ou tamanho imaginado; influenciadora só altera a pessoa. Crie fala com 18-25 palavras e ganho verificável. O vídeo final será montado em 1400-1500 caracteres. Não inventar estoque nem preços."
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
             validar_cota_ia()
             resp = cliente_openai.chat.completions.create(
@@ -3839,9 +4041,9 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             )
             
             conteudo_texto = resp.choices[0].message.content.strip()
-            conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
-            conteudo_texto = fixar_ambiente_ambos_prompts_v165(
-                conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
+            conteudo_texto = finalizar_prompts_v169(
+                conteudo_texto, scan_17, direcao_v11_17,
+                nome_inf_ativa, desc_inf_ativa, "360")
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -3935,6 +4137,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                       + "\nOverride all random and tropical backdrops from the historical example. "
                                         "Use exactly this set for the still image and video, never replace it with "
                                         "generic ferns, a waterfall, a kitchen or an animal that was not selected.")
+                instrucao_v92 += "\n\n[PRIORIDADE V16.9] Produto visual é APENAS a foto do usuário: nunca enumerar cor, tipo, tampa, embalagem, rótulo ou tamanho imaginado; influenciadora só altera a pessoa. Crie fala com 18-25 palavras e ganho verificável. O vídeo final será montado em 1400-1500 caracteres. Não inventar estoque nem preços."
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17
                 validar_cota_ia()
                 resp_v92 = cliente_openai.chat.completions.create(
@@ -3948,9 +4151,9 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 )
 
                 conteudo_v92 = resp_v92.choices[0].message.content.strip()
-                conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
-                conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
-                    conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
+                conteudo_v92 = finalizar_prompts_v169(
+                    conteudo_v92, scan_v92, direcao_v11_92,
+                    nome_inf_ativa, desc_inf_ativa, "v9.2")
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
@@ -3991,7 +4194,7 @@ if st.session_state["roteiro_temporario"]:
                 
             qtd_caracteres_video = len(partes_roteiro["prompt_video"])
             qtd_caracteres_visuais = _direcao_visual_caracteres_v12(partes_roteiro["prompt_video"])
-            st.caption(f"🎞️ Vídeo V14: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada | ecossistema vivo".replace(",", "."))
+            st.caption(f"🎞️ Vídeo V16.9 compacto: {qtd_caracteres_video:,} caracteres totais (meta: 1.400–1.500) | produto preservado pela foto original | ambiente vivo".replace(",", "."))
             st.markdown(partes_roteiro["prompt_video"], unsafe_allow_html=False)
             st.divider()
             
