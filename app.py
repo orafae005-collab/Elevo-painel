@@ -1,4 +1,4 @@
-# ÉLÉVO V16.3 — TikTok OAuth opcional + perfil e vídeos, mantendo Aurora e os demais módulos.
+# ÉLÉVO V16 — interface premium, autenticação Google opcional, isolamento de sessão e limites de IA.
 import base64
 import requests
 import time
@@ -107,7 +107,7 @@ SESSAO_DADOS_PRIVADOS = {
 
 def limpar_sessao_privada():
     for chave in list(st.session_state.keys()):
-        if chave in SESSAO_DADOS_PRIVADOS or chave.startswith(("missao_", "input_", "audio_input_", "bv_login_", "tt_cache_", "tt_oauth_")):
+        if chave in SESSAO_DADOS_PRIVADOS or chave.startswith(("missao_", "input_", "audio_input_", "bv_login_")):
             st.session_state.pop(chave, None)
 
 def ativar_identidade(email, nome, metodo):
@@ -579,222 +579,6 @@ def validar_cota_ia():
         raise RuntimeError("Não foi possível validar a cota de IA. Tente novamente.")
 
 # ==========================================================
-# ÉLÉVO V16.3 | TikTok — LOGIN KIT OFICIAL, LIGAÇÃO DE CONTA
-# Mantém autenticação ÉLÉVO separada. Nunca solicita senha TikTok.
-# Requer aprovação TikTok for Developers e Secrets; sem isso o módulo
-# aparece como "aguardando configuração", sem fingir estar conectado.
-# ==========================================================
-from urllib.parse import urlencode, urlparse
-
-_TT_AUTORIZAR = "https://www.tiktok.com/v2/auth/authorize/"
-_TT_TOKEN = "https://open.tiktokapis.com/v2/oauth/token/"
-_TT_REVOKE = "https://open.tiktokapis.com/v2/oauth/revoke/"
-_TT_PERFIL = "https://open.tiktokapis.com/v2/user/info/"
-_TT_VIDEOS = "https://open.tiktokapis.com/v2/video/list/"
-_TT_COLUNAS = ["Elevo_Email", "TikTok_Open_ID", "Nome_TikTok",
-               "Escopos", "Credenciais_Cifradas", "Atualizado_Em"]
-
-
-def tt_config():
-    """Somente configuração autorizada do app (nunca dados de login pessoais)."""
-    chave = str(st.secrets.get("TIKTOK_CLIENT_KEY", "")).strip()
-    segredo = str(st.secrets.get("TIKTOK_CLIENT_SECRET", "")).strip()
-    retorno = str(st.secrets.get("TIKTOK_REDIRECT_URI", "")).strip()
-    cifra = str(st.secrets.get("TIKTOK_TOKEN_ENCRYPTION_KEY", "")).strip()
-    escopos = str(st.secrets.get("TIKTOK_SCOPES", "user.info.basic")).strip()
-    escopos_lista = [s.strip() for s in escopos.split(",") if s.strip()]
-    if "user.info.basic" not in escopos_lista:
-        escopos_lista.insert(0, "user.info.basic")
-    parsed = urlparse(retorno)
-    configurado = bool(chave and segredo and cifra and
-                       parsed.scheme == "https" and parsed.netloc and
-                       not parsed.query and not parsed.fragment and robo_sheets)
-    return {"key": chave, "secret": segredo, "redirect": retorno,
-            "encrypt": cifra, "scopes": ",".join(dict.fromkeys(escopos_lista)),
-            "enabled": configurado}
-
-
-def tt_fernet(config):
-    from cryptography.fernet import Fernet
-    return Fernet(config["encrypt"].encode("ascii"))
-
-
-def tt_sheet():
-    if not robo_sheets:
-        raise RuntimeError("Google Sheets indisponível")
-    planilha = robo_sheets.open_by_key(re.search(r"/d/([a-zA-Z0-9-_]+)", LINK_BANCO_MESTRE).group(1))
-    try:
-        return planilha.worksheet("TikTok_Vinculos")
-    except gspread.exceptions.WorksheetNotFound:
-        aba = planilha.add_worksheet(title="TikTok_Vinculos", rows="1000", cols="6")
-        aba.append_row(_TT_COLUNAS)
-        return aba
-
-
-def tt_registros():
-    return tt_sheet().get_all_records()
-
-
-def tt_localizar(email):
-    registros = [(i, r) for i, r in enumerate(tt_registros(), start=2)
-                 if str(r.get("Elevo_Email", "")).strip().lower() == email]
-    if len(registros) > 1:
-        raise RuntimeError("Cadastro TikTok duplicado. Revisar a planilha antes de continuar.")
-    return registros[0] if registros else (None, None)
-
-
-def tt_salvar(email, dados_token, perfil, config):
-    """Tokens ficam cifrados no banco e nunca seguem para HTML / downloads."""
-    open_id = str(dados_token.get("open_id", ""))
-    if not open_id or not dados_token.get("access_token") or not dados_token.get("refresh_token"):
-        raise RuntimeError("O TikTok não devolveu os dados necessários para manter o vínculo.")
-    aba = tt_sheet()
-    existentes = aba.get_all_records()
-    for i, item in enumerate(existentes, start=2):
-        outro_dono = str(item.get("Elevo_Email", "")).strip().lower()
-        outro_id = str(item.get("TikTok_Open_ID", ""))
-        if outro_id == open_id and outro_dono != email:
-            raise RuntimeError("Esta conta TikTok já foi vinculada a outro usuário ÉLÉVO.")
-        if outro_dono == email and outro_id and outro_id != open_id:
-            raise RuntimeError("Desconecte a conta TikTok anterior antes de vincular outra.")
-    payload = dict(dados_token)
-    payload.setdefault("expires_in", 86400)
-    payload["access_expires_at"] = int(time.time()) + int(payload["expires_in"])
-    payload["refresh_expires_at"] = int(time.time()) + int(payload.get("refresh_expires_in", 0))
-    token_cifrado = tt_fernet(config).encrypt(json.dumps(payload).encode("utf-8")).decode("ascii")
-    linha = [email, open_id, str(perfil.get("display_name") or "Conta TikTok"),
-             str(payload.get("scope", "")), token_cifrado,
-             datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")]
-    idx, _ = tt_localizar(email)
-    if idx:
-        aba.update(range_name=f"A{idx}:F{idx}", values=[linha])
-    else:
-        aba.append_row(linha)
-
-
-def tt_token_request(config, parametros):
-    resposta = requests.post(_TT_TOKEN, data={"client_key": config["key"],
-                                   "client_secret": config["secret"], **parametros}, timeout=15)
-    resposta.raise_for_status()
-    dados = resposta.json()
-    if dados.get("error") or not dados.get("access_token"):
-        raise RuntimeError("TikTok não autorizou o token solicitado.")
-    return dados
-
-
-def tt_api(rota, token, campos, *, metodo="get", corpo=None):
-    headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
-    params = {"fields": campos}
-    if metodo == "post":
-        resp = requests.post(rota, params=params, headers=headers, json=corpo or {}, timeout=15)
-    else:
-        resp = requests.get(rota, params=params, headers=headers, timeout=15)
-    resp.raise_for_status()
-    dados = resp.json()
-    erro = dados.get("error", {})
-    if isinstance(erro, dict) and erro.get("code") not in (None, "ok", 0):
-        raise RuntimeError("O TikTok recusou a consulta. Revise as permissões do aplicativo.")
-    return dados.get("data", {}) or {}
-
-
-def tt_obter_token_valido(email, config):
-    _, registro = tt_localizar(email)
-    if not registro:
-        return None, None
-    pacote = json.loads(tt_fernet(config).decrypt(
-        str(registro["Credenciais_Cifradas"]).encode("ascii")).decode("utf-8"))
-    if int(pacote.get("access_expires_at", 0)) <= int(time.time()) + 120:
-        if int(pacote.get("refresh_expires_at", 0)) <= int(time.time()) + 120:
-            raise RuntimeError("A autorização TikTok expirou. Desconecte e vincule novamente.")
-        antigo_id = str(pacote.get("open_id", ""))
-        novo = tt_token_request(config, {"grant_type": "refresh_token",
-                                         "refresh_token": pacote["refresh_token"]})
-        if novo.get("open_id") != antigo_id:
-            raise RuntimeError("A conta retornada pelo TikTok não corresponde ao vínculo salvo.")
-        # TikTok pode rotacionar o refresh token: persistir o novo imediatamente.
-        novo.setdefault("refresh_token", pacote["refresh_token"])
-        novo.setdefault("refresh_expires_in", max(0, int(pacote.get("refresh_expires_at", 0)) - int(time.time())))
-        tt_salvar(email, novo, {"display_name": registro.get("Nome_TikTok", "")}, config)
-        pacote = {**novo, "access_expires_at": int(time.time()) + int(novo.get("expires_in", 86400)),
-                  "refresh_expires_at": int(time.time()) + int(novo.get("refresh_expires_in", 0))}
-    return pacote, registro
-
-
-def tt_perfil(token, escopos):
-    campos = ["open_id", "display_name", "avatar_url"]
-    # É uma conta TikTok normal: o selo é opcional e só é consultado se
-    # o titular conceder user.info.profile (após aprovação do escopo).
-    if "user.info.profile" in escopos:
-        campos += ["username", "is_verified"]
-    if "user.info.stats" in escopos:
-        campos += ["follower_count", "likes_count", "video_count"]
-    return tt_api(_TT_PERFIL, token, ",".join(campos)).get("user", {})
-
-
-def tt_ultimos_videos(token):
-    campos = "id,title,video_description,create_time,share_url,view_count,like_count,comment_count,share_count"
-    dados = tt_api(_TT_VIDEOS, token, campos, metodo="post", corpo={"max_count": 20})
-    return dados.get("videos", []) or []
-
-
-def tt_link_autorizacao(email, config):
-    # Mesmo navegador: state deve coincidir com nonce em cookie cifrado, com TTL.
-    nonce = "tt_" + secrets.token_urlsafe(24)
-    cookies["tt_oauth_pendente"] = json.dumps({"nonce": nonce,
-                                               "email": email,
-                                               "criado": int(time.time())})
-    cookies.save()
-    return _TT_AUTORIZAR + "?" + urlencode({
-        "client_key": config["key"], "response_type": "code",
-        "scope": config["scopes"], "redirect_uri": config["redirect"],
-        "state": nonce,
-    })
-
-
-def tt_processar_retorno(config):
-    estado = str(st.query_params.get("state", ""))
-    if not estado.startswith("tt_"):
-        return
-    codigo = str(st.query_params.get("code", ""))
-    erro = str(st.query_params.get("error", ""))
-    # Remover código de uso único da URL imediatamente; não imprimir/logar tokens.
-    for parametro in ("code", "state", "scopes", "error", "error_description"):
-        if parametro in st.query_params:
-            del st.query_params[parametro]
-    pendente_json = cookies.get("tt_oauth_pendente", "")
-    cookies.pop("tt_oauth_pendente", None)  # one-shot, inclusive após falha
-    cookies.save()
-    try:
-        pendente = json.loads(pendente_json)
-        if not config["enabled"] or not hmac.compare_digest(estado, str(pendente.get("nonce", ""))):
-            raise RuntimeError("Autorização expirada ou iniciada em outro navegador.")
-        if int(time.time()) - int(pendente.get("criado", 0)) not in range(0, 601):
-            raise RuntimeError("A autorização expirou após 10 minutos. Tente novamente.")
-        email_atual = str(st.session_state.get("email_usuario", "")).lower()
-        if not st.session_state.get("usuario_logado") or email_atual != pendente.get("email"):
-            raise RuntimeError("Faça login na mesma conta ÉLÉVO que iniciou a vinculação.")
-        if erro or not codigo:
-            raise RuntimeError("O TikTok não concedeu a autorização. Tente novamente.")
-        token = tt_token_request(config, {"code": codigo,
-                                            "grant_type": "authorization_code",
-                                            "redirect_uri": config["redirect"]})
-        perfil = tt_perfil(token["access_token"], set(str(token.get("scope", "")).split(",")))
-        if not perfil.get("open_id") or perfil["open_id"] != token.get("open_id"):
-            raise RuntimeError("A identidade retornada pelo TikTok não pôde ser validada.")
-        tt_salvar(email_atual, token, perfil, config)
-        for chave in ("tt_cache_email", "tt_cache_resultado", "tt_cache_instante"):
-            st.session_state.pop(chave, None)
-        st.session_state["tt_oauth_aviso"] = "✅ Conta TikTok vinculada com autorização oficial!"
-    except Exception as e:
-        # Erros técnicos podem conter informações sensíveis: não mostrar traceback.
-        st.session_state["tt_oauth_aviso"] = "⚠️ Não foi possível vincular: " + str(e)[:180]
-
-
-TT_CONFIG = tt_config()
-# Callback exige sessão do ÉLÉVO autenticada; não cria login por conta própria.
-tt_processar_retorno(TT_CONFIG)
-
-# ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
 # ==========================================================
 col_vazia, col_tema = st.columns([8, 2])
@@ -1123,7 +907,7 @@ st.markdown(f"""
   .elevo-v13-panel-title {{color:{'#1262BC' if modo_claro else '#8CBFFF'}!important;}}
   .elevo-v13-led {{background:#4DB4FF;box-shadow:0 0 10px rgba(63,156,255,.34);}}
   div[data-testid="stPlotlyChart"] {{border-radius:14px;overflow:hidden;}}
-  #elevo-dashboard-top,#painel,#missoes,#radar,#aurora,#criacao,#academia,#tiktok {{scroll-margin-top:75px;}}
+  #elevo-dashboard-top,#painel,#missoes,#radar,#aurora,#criacao,#academia {{scroll-margin-top:75px;}}
   @media(min-width:1000px) {{
     [data-testid="stMainBlockContainer"],.block-container {{margin-left:224px!important;
       width:calc(100% - 224px)!important;max-width:calc(1480px - 224px)!important;}}
@@ -1148,7 +932,6 @@ st.markdown(f"""
   <a class="principal" href="#painel">▦ Visão geral</a>
   <a href="#missoes">◷ Missões</a>
   <a href="#radar">◈ Insights e tendências</a>
-  <a href="#tiktok">◈ Conectar TikTok</a>
   <a href="#aurora">✧ Aurora IA</a>
   <div class="secao">CRIATIVIDADE</div>
   <a href="#criacao">▣ Criação de prompts</a>
@@ -1509,7 +1292,7 @@ else:
     <nav class="elevo-shortcut-grid" aria-label="Acesso rápido às ferramentas">
       <a href="#criacao">▣ Criação 360º<span>Imagem e vídeo: gerar e copiar prompts</span></a>
       <a href="#aurora">✧ Aurora IA<span>Orientações e comandos por voz</span></a>
-      <a href="#tiktok">◈ TikTok<span>Vincular e consultar desempenho</span></a>
+      <a href="#missoes">◷ Missões<span>Hábitos e progresso</span></a>
     </nav>""", unsafe_allow_html=True)
 
 with st.expander("🔐 Minha Conta e Google", expanded=False):
@@ -1532,160 +1315,6 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     if GOOGLE_ATIVO and st.user.is_logged_in:
         st.logout()
     st.rerun()
-
-# ==========================================================
-# TIKTOK INTELLIGENCE — VINCULAR CONTA E IMPORTAR DADOS REAIS
-# OAuth somente para CONECTAR TikTok ao ÉLÉVO, não substitui login ÉLÉVO.
-# As APIs de perfil/vídeos NÃO expõem vendas e comissão de afiliados.
-# ==========================================================
-st.markdown('<div id="tiktok"></div>', unsafe_allow_html=True)
-st.markdown("### ◈ TikTok Intelligence")
-st.caption("Conecte a conta TikTok ao ÉLÉVO para consultar o perfil e os vídeos autorizados. "
-           "Vendas e comissões do TikTok Shop exigem aprovação de uma API separada.")
-
-tt_aba_conexao, tt_aba_desempenho, tt_aba_comercial = st.tabs(
-    ["🔗 Vincular conta", "📊 Desempenho", "🛒 Vendas e comissões"])
-
-tt_email = str(st.session_state.get("email_usuario", "")).strip().lower()
-if "tt_oauth_aviso" in st.session_state:
-    st.info(st.session_state.pop("tt_oauth_aviso"))
-
-with tt_aba_conexao:
-    if not TT_CONFIG["enabled"]:
-        st.info("Você vai conectar sua conta TikTok habitual — a mesma usada no aplicativo, "
-                "mesmo que seja uma conta verificada. NÃO precisa criar uma conta TikTok "
-                "de desenvolvedor para entrar.")
-        st.warning("A integração oficial do ÉLÉVO ainda precisa ser ativada pelo administrador. "
-                   "Por enquanto, a conexão automática está indisponível.")
-        st.button("◈ CONECTAR MINHA CONTA TIKTOK", disabled=True,
-                  use_container_width=True, key="tt_aguardando_config")
-        if E_O_CEO:
-            with st.expander("⚙ Configuração única do ÉLÉVO — somente administrador"):
-                st.markdown("Para que todos possam entrar com o TikTok normal, "
-                            "o dono do ÉLÉVO precisa registrar uma integração no portal "
-                            "TikTok for Developers e obter Client Key/Client Secret.")
-                st.markdown("Configure também a Redirect URI HTTPS e a chave de "
-                            "criptografia nos Secrets do Streamlit. "
-                            "Solicite `video.list` para vídeos; `user.info.profile` "
-                            "para mostrar o selo de verificação (opcional).")
-                st.link_button("Configurar integração oficial", "https://developers.tiktok.com/")
-        st.caption("Sua senha do TikTok nunca é digitada ou guardada no ÉLÉVO.")
-    else:
-        try:
-            tt_idx, tt_registro = tt_localizar(tt_email)
-            if tt_registro:
-                st.success("TikTok conectado a esta conta ÉLÉVO.")
-                st.write("**Conta TikTok:** " + str(tt_registro.get("Nome_TikTok") or "Perfil vinculado"))
-                st.caption("Permissões concedidas: " + str(tt_registro.get("Escopos") or "não informadas"))
-                st.caption("Última autorização: " + str(tt_registro.get("Atualizado_Em") or "—"))
-                if st.button("Desconectar TikTok", key="tt_btn_desconectar"):
-                    try:
-                        tt_pacote, _ = tt_obter_token_valido(tt_email, TT_CONFIG)
-                        rev = requests.post(_TT_REVOKE, data={"client_key": TT_CONFIG["key"],
-                                "client_secret": TT_CONFIG["secret"],
-                                "token": tt_pacote["access_token"]}, timeout=15)
-                        rev.raise_for_status()
-                        if rev.text.strip():
-                            retorno_rev = rev.json()
-                            if retorno_rev.get("error"):
-                                raise RuntimeError("TikTok não confirmou a revogação.")
-                        tt_sheet().delete_rows(tt_idx)
-                        for k in ("tt_cache_email", "tt_cache_resultado", "tt_cache_instante"):
-                            st.session_state.pop(k, None)
-                        st.success("Permissão revogada e vínculo removido.")
-                        st.rerun()
-                    except Exception:
-                        st.error("Não foi possível revogar a autorização no TikTok. "
-                                 "Tente novamente ou retire a permissão nas configurações da conta TikTok.")
-            else:
-                st.write("Use sua **conta TikTok principal**, a mesma do aplicativo "
-                         "(pessoal, profissional ou verificada).")
-                st.caption("Ao clicar, você entra no TikTok oficial e autoriza o ÉLÉVO. "
-                           "Não é necessário ter conta de desenvolvedor.")
-                # Cookie cifrado para associar retorno ao navegador e à conta ÉLÉVO.
-                try:
-                    url_tt = tt_link_autorizacao(tt_email, TT_CONFIG)
-                    st.link_button("◈ VINCULAR MINHA CONTA TIKTOK", url_tt,
-                                   use_container_width=True, type="primary")
-                except Exception:
-                    st.error("Não foi possível iniciar a autorização. Revise a configuração do administrador.")
-        except Exception:
-            st.warning("O banco de vínculos do TikTok está indisponível. Tente novamente.")
-
-with tt_aba_desempenho:
-    if not TT_CONFIG["enabled"]:
-        st.info("Os dados reais aparecerão após a configuração do aplicativo TikTok e a autorização da conta.")
-    else:
-        try:
-            pacote, registro = tt_obter_token_valido(tt_email, TT_CONFIG)
-            if not registro:
-                st.info("Vincule primeiro sua conta na aba 'Vincular conta'.")
-            else:
-                autorizado = {p.strip() for p in str(pacote.get("scope", "")).split(",")}
-                tem_videos = "video.list" in autorizado
-                st.caption("Exibe somente o que as permissões oficiais liberam. "
-                           "Sincroniza ao abrir e reutiliza dados por até 10 minutos nesta sessão.")
-                forcar = st.button("↻ Sincronizar dados agora", key="tt_btn_sync")
-                cache_ok = (st.session_state.get("tt_cache_email") == tt_email
-                            and time.time() - st.session_state.get("tt_cache_instante", 0) < 600)
-                if forcar or not cache_ok:
-                    with st.spinner("Consultando TikTok oficial..."):
-                        perfil_tt = tt_perfil(pacote["access_token"], autorizado)
-                        videos_tt = tt_ultimos_videos(pacote["access_token"]) if tem_videos else []
-                    st.session_state["tt_cache_email"] = tt_email
-                    st.session_state["tt_cache_resultado"] = {"perfil": perfil_tt, "videos": videos_tt}
-                    st.session_state["tt_cache_instante"] = time.time()
-                tt_dados = st.session_state["tt_cache_resultado"]
-                tt_per = tt_dados.get("perfil", {})
-                st.markdown("**Perfil:** " + html_std.escape(str(tt_per.get("display_name") or registro.get("Nome_TikTok") or "TikTok")))
-                if tt_per.get("username"):
-                    st.caption("@" + str(tt_per["username"]))
-                if tt_per.get("is_verified") is True:
-                    st.success("✓ Conta verificada pelo TikTok")
-                if "follower_count" in tt_per:
-                    st.metric("Seguidores", f'{int(tt_per.get("follower_count") or 0):,}'.replace(",", "."))
-                if not tem_videos:
-                    st.info("Perfil conectado. Para exibir vídeos e visualizações, o administrador "
-                            "deve obter aprovação da permissão `video.list` e reconectar a conta.")
-                else:
-                    tt_vids = tt_dados.get("videos", [])
-                    if not tt_vids:
-                        st.info("Nenhum vídeo público foi retornado para esta consulta.")
-                    else:
-                        views = sum(int(v.get("view_count") or 0) for v in tt_vids)
-                        likes = sum(int(v.get("like_count") or 0) for v in tt_vids)
-                        compartilhamentos = sum(int(v.get("share_count") or 0) for v in tt_vids)
-                        a, b, c = st.columns(3)
-                        a.metric("Views (vídeos listados)", f"{views:,}".replace(",", "."))
-                        b.metric("Curtidas", f"{likes:,}".replace(",", "."))
-                        c.metric("Compartilhamentos", f"{compartilhamentos:,}".replace(",", "."))
-                        st.caption("Totais limitados aos últimos 20 vídeos públicos retornados; "
-                                   "não são o alcance total da conta nem o funil de vendas.")
-                        linhas = [{"Vídeo": str(v.get("title") or v.get("video_description") or "Sem título")[:100],
-                                   "Visualizações": int(v.get("view_count") or 0),
-                                   "Curtidas": int(v.get("like_count") or 0),
-                                   "Comentários": int(v.get("comment_count") or 0),
-                                   "Compartilhamentos": int(v.get("share_count") or 0),
-                                   "Link": str(v.get("share_url") or "")}
-                                  for v in tt_vids]
-                        df_tiktok = pd.DataFrame(linhas)
-                        st.dataframe(df_tiktok, use_container_width=True, hide_index=True)
-                        st.download_button("Baixar relatório dos vídeos (CSV)",
-                             data=df_tiktok.to_csv(index=False).encode("utf-8-sig"),
-                             file_name="elevo_tiktok_videos.csv", mime="text/csv",
-                             key="tt_download_videos")
-        except Exception:
-            st.warning("Não foi possível consultar TikTok neste momento. "
-                       "Revise a autorização, a conexão de rede e os Secrets.")
-
-with tt_aba_comercial:
-    st.info("Vendas, pedidos, cliques nos produtos e comissões de afiliados **não são fornecidos** "
-            "pela API de perfil/vídeos do TikTok. Eles não serão inventados no ÉLÉVO.")
-    st.markdown("Para sincronizar esses números de forma automática, será necessária "
-                "aprovação específica da **TikTok Shop Affiliate API** e a autorização da conta "
-                "TikTok Shop. Até lá, o painel financeiro do ÉLÉVO continua usando seus dados existentes.")
-    st.link_button("Informações oficiais sobre TikTok Shop Affiliate API",
-                   "https://partner.tiktokshop.com/docv2/page/affiliate-integration")
 
 # ==========================================================
 # 4 a 9 E 14. NÚCLEO FINANCEIRO VIP E GRÁFICOS (EXCLUSIVO DO CEO)
