@@ -146,7 +146,13 @@ def ler_token(token):
         return ""
 
 def entrar_usuario(email, nome):
-    st.session_state.update(usuario_logado=True, email_usuario=email, nome_usuario=nome)
+    st.session_state.update(
+        usuario_logado=True, email_usuario=email, nome_usuario=nome,
+        # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
+        # sem exigir F5 nem reaproveitar o estado de outro utilizador.
+        email_bv_verificado="", mostrar_player_bv=False,
+        audio_boas_vindas_b64=None, erro_audio_bv=""
+    )
     cookies["login"] = criar_token(email)
     cookies.save()
 
@@ -593,93 +599,129 @@ st.markdown('<div class="subtitulo">SISTEMA DE INTELIGÊNCIA E ESCALA DE VENDAS<
 
 # ==========================================================
 # 2.5. BOAS-VINDAS CINEMÁTICA (100% VINCULADA AO GMAIL ÚNICO)
+# CORREÇÃO PONTUAL: exibe após login, tenta autoplay e oferece play imediato.
 # ==========================================================
-if "email_bv_verificado" not in st.session_state: 
+if "email_bv_verificado" not in st.session_state:
     st.session_state["email_bv_verificado"] = ""
 if "audio_boas_vindas_b64" not in st.session_state:
     st.session_state["audio_boas_vindas_b64"] = None
 if "mostrar_player_bv" not in st.session_state:
     st.session_state["mostrar_player_bv"] = False
+if "erro_audio_bv" not in st.session_state:
+    st.session_state["erro_audio_bv"] = ""
 
 email_logado_agora = str(st.session_state.get("email_usuario", "")).strip().lower()
 nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
 
-if st.session_state.get("usuario_logado") and email_logado_agora != "" and st.session_state["email_bv_verificado"] != email_logado_agora:
+
+def registrar_boas_vindas_confirmada(email):
+    """Marca na planilha somente quando o utilizador confirma 'JÁ OUVI'."""
+    if not robo_sheets or not email:
+        return False
+    try:
+        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+        if not match_id:
+            return False
+        planilha = robo_sheets.open_by_key(match_id.group(1))
+        try:
+            aba = planilha.worksheet("Memoria_Audio_VIP")
+        except gspread.exceptions.WorksheetNotFound:
+            aba = planilha.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
+            aba.append_row(["Gmail_Unico", "Data_Acesso"])
+        ja_registrados = [str(e).strip().lower() for e in aba.col_values(1) if "@" in str(e)]
+        if email not in ja_registrados:
+            agora_reg = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+            aba.append_row([email, agora_reg])
+        return True
+    except Exception:
+        return False
+
+
+if (st.session_state.get("usuario_logado") and email_logado_agora
+        and st.session_state["email_bv_verificado"] != email_logado_agora):
+    # Esta verificação acontece na própria execução imediatamente após o login.
     st.session_state["email_bv_verificado"] = email_logado_agora
     st.session_state["mostrar_player_bv"] = False
     st.session_state["audio_boas_vindas_b64"] = None
-    precisa_tocar = False
-    
+    st.session_state["erro_audio_bv"] = ""
+
+    # Em falhas temporárias do Sheets, não ocultar silenciosamente a mensagem.
+    precisa_tocar = True
     if robo_sheets:
         try:
             match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
             if match_id:
                 planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-                try: 
+                try:
                     aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
-                except Exception:
+                except gspread.exceptions.WorksheetNotFound:
                     aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
                     aba_bv.append_row(["Gmail_Unico", "Data_Acesso"])
-                
-                lista_gmails_ja_ouviram = [str(e).strip().lower() for e in aba_bv.col_values(1) if "@" in str(e)]
-                
-                if email_logado_agora not in lista_gmails_ja_ouviram:
-                    precisa_tocar = True
-        except Exception: 
+                lista_gmails_ja_ouviram = [
+                    str(e).strip().lower() for e in aba_bv.col_values(1) if "@" in str(e)
+                ]
+                precisa_tocar = email_logado_agora not in lista_gmails_ja_ouviram
+        except Exception:
             pass
-    
+
     if precisa_tocar:
         texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_apenas_fala}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
         audio_bytes = None
-        
-        with st.spinner(f"🦅 Preparando credenciais de áudio para {email_logado_agora}..."):
-            try:
-                CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
-                if CHAVE_ELEVEN:
+
+        # O espaço é mostrado enquanto a voz é preparada; não é preciso recarregar.
+        aviso_audio_bv = st.empty()
+        aviso_audio_bv.info("🦅 Aurora está preparando sua primeira mensagem de boas-vindas...")
+        try:
+            CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
+            if CHAVE_ELEVEN:
+                try:
                     resp_voz = requests.post(
-                        "https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T", 
-                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}}, 
-                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN}, 
+                        "https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T",
+                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}},
+                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN},
                         timeout=10
                     )
-                    if resp_voz.status_code == 200: 
+                    if resp_voz.status_code == 200 and resp_voz.content:
                         audio_bytes = resp_voz.content
-                    else: 
-                        raise Exception()
-                else: 
-                    raise Exception()
-            except Exception:
+                except Exception:
+                    pass
+
+            if not audio_bytes:
                 tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
-                fp.seek(0)
-                audio_bytes = fp.read()
-                
+                audio_bytes = fp.getvalue()
+        except Exception:
+            st.session_state["erro_audio_bv"] = "Não foi possível carregar a voz da Aurora neste momento."
+        finally:
+            aviso_audio_bv.empty()
+
         if audio_bytes:
             st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
             st.session_state["mostrar_player_bv"] = True
-            
-            try:
-                agora_reg = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-                aba_bv.append_row([email_logado_agora, agora_reg])
-            except Exception:
-                pass
+            # Importante: NÃO registrar o Gmail ainda. Antes a planilha era
+            # marcada aqui, mesmo se o navegador não chegasse a tocar o áudio.
+
+if st.session_state.get("erro_audio_bv"):
+    st.warning(st.session_state["erro_audio_bv"])
+    if st.button("🔄 TENTAR CARREGAR ÁUDIO NOVAMENTE", key="btn_repetir_bv"):
+        st.session_state["email_bv_verificado"] = ""
+        st.rerun()
 
 if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
     audio_b64 = st.session_state["audio_boas_vindas_b64"]
-    
+
     html_play_intro = f"""
-    <!-- GMAIL_ID_UNICO: {email_logado_agora} -->
     <div id="caixa-intro" style="background: linear-gradient(145deg, #0a0a0a, #141414); padding: 30px; border-radius: 16px; text-align: center; border: 2px solid #D4AF37; box-shadow: 0px 0px 25px rgba(212, 175, 55, 0.2); margin: 10px auto 10px auto; max-width: 600px; transition: opacity 1s ease;">
         <h3 style="color: #D4AF37; margin: 0 0 10px 0; font-family: 'Montserrat', sans-serif; text-transform: uppercase; letter-spacing: 1px;">🦅 MENSAGEM DA DIRETORIA</h3>
         <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 13px; margin-bottom: 5px;">
             Conta autenticada: <b style="color: #00FFFF;">{email_logado_agora}</b>
         </p>
-        <p style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
-            Clique no botão abaixo para ouvir as instruções iniciais da Aurora.
+        <p id="status-intro" role="status" aria-live="polite" style="color: #A0A0A0; font-family: 'Montserrat', sans-serif; font-size: 14px; margin-bottom: 20px;">
+            A Aurora tentará iniciar a mensagem automaticamente.
         </p>
-        
-        <button id="btn-tocar" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
+
+        <button id="btn-tocar" type="button" style="background: linear-gradient(90deg, #D4AF37, #B8860B); color: #111; border: none; padding: 15px 40px; font-size: 16px; font-weight: 900; border-radius: 50px; cursor: pointer; box-shadow: 0px 5px 15px rgba(212, 175, 55, 0.4); text-transform: uppercase; font-family: 'Montserrat', sans-serif; transition: transform 0.2s;">
             ▶ REPRODUZIR MENSAGEM
         </button>
 
@@ -687,10 +729,10 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
             <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
         </div>
-        
-        <audio id="audio-intro" src="data:audio/mp3;base64,{audio_b64}" preload="auto"></audio>
+
+        <audio id="audio-intro" src="data:audio/mpeg;base64,{audio_b64}" preload="auto" playsinline></audio>
     </div>
-    
+
     <style>
         .bar {{ width: 8px; height: 4px; background: #D4AF37; border-radius: 4px; display: inline-block; transition: all 0.3s ease; }}
         .playing {{ background: #00FFFF; animation: bounce 0.4s infinite alternate ease-in-out; }}
@@ -700,39 +742,69 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
         .playing:nth-child(7) {{ animation-delay: 0.2s; }} .playing:nth-child(8) {{ animation-delay: 0.0s; }}
         @keyframes bounce {{ 0% {{ height: 4px; opacity: 0.5; box-shadow: 0 0 0 transparent; }} 100% {{ height: 40px; opacity: 1; box-shadow: 0 0 10px #00FFFF; }} }}
     </style>
-    
+
     <script>
-        const btn = document.getElementById('btn-tocar');
-        const aud = document.getElementById('audio-intro');
-        const vis = document.getElementById('visualizer-intro');
-        const box = document.getElementById('caixa-intro');
-        const bars = document.querySelectorAll('.bar');
-        
-        if(btn && aud) {{
-            btn.addEventListener('click', function() {{
-                aud.play();
+        (function() {{
+            const btn = document.getElementById('btn-tocar');
+            const aud = document.getElementById('audio-intro');
+            const vis = document.getElementById('visualizer-intro');
+            const box = document.getElementById('caixa-intro');
+            const status = document.getElementById('status-intro');
+            const bars = document.querySelectorAll('#caixa-intro .bar');
+            if (!btn || !aud) return;
+
+            function reproduzir() {{
+                try {{
+                    const tentativa = aud.play();
+                    if (tentativa && typeof tentativa.catch === 'function') {{
+                        tentativa.catch(function() {{
+                            // Chrome, Safari e celulares podem bloquear autoplay com som.
+                            // Neste caso o botão já está visível e funciona com um toque.
+                            btn.style.display = 'inline-block';
+                            status.textContent = 'Toque em reproduzir para ouvir a Aurora.';
+                        }});
+                    }}
+                }} catch (e) {{
+                    btn.style.display = 'inline-block';
+                    status.textContent = 'Toque em reproduzir para ouvir a Aurora.';
+                }}
+            }}
+
+            btn.addEventListener('click', reproduzir);
+            aud.addEventListener('playing', function() {{
                 btn.style.display = 'none';
                 vis.style.display = 'flex';
+                status.textContent = 'Mensagem da Aurora em reprodução.';
                 box.style.borderColor = '#00FFFF';
                 box.style.boxShadow = '0px 0px 25px rgba(0, 255, 255, 0.2)';
+                bars.forEach(bar => bar.classList.add('playing'));
             }});
-            
-            aud.addEventListener('play', () => {{ bars.forEach(bar => bar.classList.add('playing')); }});
-            aud.addEventListener('pause', () => {{ bars.forEach(bar => bar.classList.remove('playing')); }});
-            
-            aud.addEventListener('ended', () => {{ 
-                bars.forEach(bar => bar.classList.remove('playing')); 
+            aud.addEventListener('pause', function() {{
+                bars.forEach(bar => bar.classList.remove('playing'));
+            }});
+            aud.addEventListener('error', function() {{
+                btn.style.display = 'inline-block';
+                status.textContent = 'Não foi possível reproduzir. Toque novamente para tentar.';
+            }});
+            aud.addEventListener('ended', function() {{
+                bars.forEach(bar => bar.classList.remove('playing'));
+                status.textContent = 'Mensagem concluída.';
                 box.style.opacity = '0';
                 setTimeout(() => {{ box.style.display = 'none'; }}, 1000);
             }});
-        }}
+
+            // Tenta tocar no instante em que o componente é exibido após ENTRAR.
+            // Se o navegador bloquear áudio automático, o PLAY nunca desaparece.
+            reproduzir();
+        }})();
     </script>
     """
     components.html(html_play_intro, height=280)
-    
+
     col_v1, col_btn_fechar, col_v2 = st.columns([1, 1, 1])
     with col_btn_fechar:
         if st.button("✅ JÁ OUVI / FECHAR MENSAGEM", use_container_width=True, key="btn_fechar_bv"):
+            registrar_boas_vindas_confirmada(email_logado_agora)
             st.session_state["mostrar_player_bv"] = False
             st.session_state["audio_boas_vindas_b64"] = None
             st.rerun()
