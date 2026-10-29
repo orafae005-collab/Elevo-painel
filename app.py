@@ -3937,6 +3937,54 @@ def sanitizar_descricao_produto_visual_v1684(conteudo):
 
     return re.sub(pattern, repl, conteudo, flags=re.DOTALL | re.IGNORECASE)
 
+# ==========================================================
+# ÉLÉVO V16.8.5 — CORREÇÃO CIRÚRGICA SOMENTE NO PROMPT DE VÍDEO
+# Não modifica imagem, fala, SEO, identidade, ambientes nem finalização.
+# ==========================================================
+def travar_escala_e_fisica_somente_video_v1685(conteudo):
+    """Fixa geometria e inércia do produto em todos os frames do vídeo."""
+    marcador = '[ÉLÉVO V16.8.5 — VIDEO PRODUCT SCALE / PHYSICS LOCK]'
+    trava = (
+        marcador + "\n"
+        "VIDEO-ONLY ABSOLUTE CONTINUITY PRIORITY. The separately attached product photo and "
+        "the APPROVED FIRST FRAME are the authority for each item's true size and shape. "
+        "At 00:00 establish ONE rigid, solid, physically weighted 3D object with fixed real dimensions. "
+        "Keep that EXACT SAME object and the original number of units in every frame until 00:10. "
+        "DO NOT regenerate, swap, stretch, inflate, enlarge, miniaturize, morph or relabel it "
+        "when the influencer's face enters frame or a camera shot changes. "
+        "Compare the object's height and width with the SAME hand, fingers, forearm and nearby furniture "
+        "at 00:00, 00:03, 00:05, 00:08 and 00:10; maintain consistent real-world proportions. "
+        "If the camera changes angle, ONLY physically correct perspective and occlusion may change, "
+        "never the object's physical dimensions. Keep natural initial camera-to-product distance, "
+        "lens field of view and arm extension substantially stable; favor a gentle tilt/reframe "
+        "over camera movement toward the package. NO dolly-in, macro zoom, crop-to-enlarge, "
+        "forced close-up, digital zoom or product moved toward the lens. "
+        "The hand visible at the start belongs to the SAME influencer; no invisible second presenter, "
+        "offscreen handoff or newly recreated jar after reframing. \n"
+        "REAL-WEIGHT PHYSICS: gravity pulls the object downward; the supporting hand makes small "
+        "wrist and forearm corrections consistent with its apparent mass, with stable finger grip, "
+        "skin compression, plausible thumb contact and no finger intersection. "
+        "Rotation comes only from an actual hand gesture; acceleration and stopping show subtle "
+        "inertia, believable friction and small stabilization, not weightless hovering. "
+        "If supported on a table, keep stable contact, coherent contact shadow and no sliding "
+        "unless pushed; if held, keep the same grip and anatomy through the shot. "
+        "Reflections, label orientation and shadows track continuous lighting and rigid geometry. "
+        "Keep the existing environment's wind, plants, animal and small natural motions intact. "
+        "For multi-item kits keep every original unit distinct and in its initial location. "
+        "Never describe or guess packaging colors, printed text, exact dimensions, volume or lot: "
+        "the separately attached product reference supplies all appearance. "
+        "Preserve the original audio, on-screen-text editing notes, SEO and the already selected "
+        "V9.2 closing logo/glitch exactly as written; this change ONLY governs product size "
+        "and physical continuity during the video. \n"
+    )
+    padrao = r'(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)'
+    if not re.search(padrao, conteudo):
+        raise ValueError('Bloco de vídeo não encontrado para a trava física V16.8.5.')
+    trecho_video = re.split(r'(?im)^###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n', conteudo, maxsplit=1)[1]
+    if marcador in trecho_video:
+        return conteudo
+    return re.sub(padrao, lambda m: m.group(1) + trava, conteudo, count=1)
+
 DIRETRIZES_VIDA_REAL_V1682 = (
     '[21 ENVIRONMENTS / NATURAL UGC PHYSICS — NEVER REPLACE THE CURRENT OUTPUT FORMAT] '
     'The selected ÉLÉVO environment, not the product-only reference photo, defines the new setting. '
@@ -4049,6 +4097,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
             conteudo_texto = fixar_trava_produto_ambos_prompts_v1682(conteudo_texto)
             conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
+            conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -4162,6 +4211,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
                 conteudo_v92 = fixar_trava_produto_ambos_prompts_v1682(conteudo_v92)
                 conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
+                conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
