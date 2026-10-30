@@ -631,9 +631,9 @@ def mensagem_erro_criacao_v1686(erro, etapa="geração"):
     if nome == "BadRequestError" or codigo == 400:
         return ("REQUISICAO_IA", "O provedor rejeitou o pedido de geração. "
                 "Consulte os registros técnicos da aplicação.")
-    if isinstance(erro, ValueError) and ("Bloco" in str(erro) or "títulos" in str(erro) or "formato" in str(erro).lower()):
-        return ("FORMATO_IA", "A resposta da IA não veio no formato esperado de imagem e vídeo. "
-                "Gere novamente.")
+    if isinstance(erro, ValueError) and ("Bloco" in str(erro) or "títulos" in str(erro) or "formato" in str(erro).lower() or "seção" in str(erro)):
+        return ("FORMATO_IA", "A geração ou validação das seções não foi concluída. "
+                "O estágio indicado no aviso ajuda a localizar a falha. Tente novamente.")
     if codigo in (500, 502, 503, 504):
         return ("SERVICO_EXTERNO", "Um serviço externo ficou temporariamente indisponível. "
                 "Tente novamente.")
@@ -3196,136 +3196,140 @@ def validar_formato_roteiro_v1689(conteudo):
 
 
 def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
-    """Recupera somente seções ausentes; não muda os prompts criativos nem o modelo.
+    """Preserva a geração original; se faltar seção, recupera conteúdo em JSON.
 
-    A V16.9.2 repetia o pacote inteiro quando faltava SEO ou um cabeçalho.
-    Isso podia falhar de novo por limite de comprimento. Aqui cada seção já
-    válida é preservada e a IA é acionada APENAS para a seção que falta.
+    A V16.9.3 ainda exigia headings Markdown NAS RESPOSTAS DE REPARO.
+    O reparo agora separa conteúdo de formatação: a ÉLÉVO monta os headings.
+    Nunca sintetiza conteúdo de imagem/vídeo inexistente localmente.
     """
     import logging
     log = logging.getLogger("elevo.geracao")
     chaves = ("prompt_imagem", "prompt_video", "secao_seo_texto")
-    headings = {
+    headers = {
         "prompt_imagem": "### 📸 PROMPT DE IMAGEM",
         "prompt_video": "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO",
         "secao_seo_texto": "### 🔑 TÍTULOS SEO (Separados)",
     }
+    rotulos = {
+        "prompt_imagem": "PROMPT DE IMAGEM RAW UGC em inglês: personagem, ambiente ÉLÉVO e foto externa do produto",
+        "prompt_video": "PROMPT DE VÍDEO UNIFICADO: imagem aprovada, física, áudio, fala, CTA e, se V9.2, logo final",
+        "secao_seo_texto": "TÍTULOS SEO em português: três linhas Geral, Solução e Marca",
+    }
 
-    def _chamar(mensagens, max_tokens, temp):
-        validar_cota_ia()
-        retorno = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini", messages=mensagens,
-            max_tokens=max_tokens, temperature=temp)
-        escolha = retorno.choices[0] if retorno.choices else None
-        conteudo = (escolha.message.content or "") if escolha else ""
-        return normalizar_titulos_roteiro_v1689(conteudo), getattr(escolha, "finish_reason", "ausente")
-
-    def _partes(texto):
-        # Parser auxiliar APENAS da recuperação: cada bloco termina no próximo
-        # cabeçalho real, mesmo se uma seção intermediária estiver ausente.
-        # O extrator da interface original permanece completamente intocado.
-        secoes = {chave: "" for chave in chaves}
-        marcadores = list(re.finditer(
+    def _partes_do_texto(texto):
+        """Só separa pelos headings-mestre, sem alterar subtítulos do vídeo."""
+        texto = normalizar_titulos_roteiro_v1689(str(texto or ""))
+        saida = {k: "" for k in chaves}
+        marcas = list(re.finditer(
             r"(?im)^###\s*(?:📸\s*PROMPT DE IMAGEM|🎬\s*PROMPT DE VÍDEO[^\n]*|🔑\s*TÍTULOS SEO[^\n]*)[^\n]*$",
-            texto or ""))
-        for i, marcador in enumerate(marcadores):
-            titulo = marcador.group(0)
-            chave = ("prompt_imagem" if "📸" in titulo else
-                     "prompt_video" if "🎬" in titulo else "secao_seo_texto")
-            fim = marcadores[i + 1].start() if i + 1 < len(marcadores) else len(texto)
-            trecho = texto[marcador.end():fim].strip()
-            if trecho and not secoes[chave]:
-                secoes[chave] = trecho
-        return secoes
+            texto))
+        for i, m in enumerate(marcas):
+            linha = m.group(0)
+            chave = "prompt_imagem" if "📸" in linha else ("prompt_video" if "🎬" in linha else "secao_seo_texto")
+            fim = marcas[i+1].start() if i+1 < len(marcas) else len(texto)
+            corpo = texto[m.end():fim].strip()
+            if corpo and not saida[chave]:
+                saida[chave] = corpo
+        return saida
 
-    def _presentes(partes):
-        return {chave: str(partes.get(chave, "") or "").strip() for chave in chaves}
+    def _montar(p):
+        return "\n\n".join(headers[k] + "\n" + p[k] for k in chaves)
 
-    def _montar(partes):
-        return "\n\n".join(headings[chave] + "\n" + partes[chave] for chave in chaves)
+    def _chamar_inicial():
+        # A PRIMEIRA CHAMADA É IDÊNTICA À V16.9.3 VALIDADA.
+        validar_cota_ia()
+        resp = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "system", "content": sistema},
+                      {"role": "user", "content": instrucao}],
+            max_tokens=6500, temperature=temperatura)
+        escolha = resp.choices[0] if resp.choices else None
+        texto = str((escolha.message.content if escolha else "") or "")
+        fim = str(getattr(escolha, "finish_reason", "ausente"))
+        return normalizar_titulos_roteiro_v1689(texto), fim
 
-    # Chamada inicial, idêntica à versão aprovada V16.9.2.
-    texto, fim = _chamar([
-        {"role": "system", "content": sistema},
-        {"role": "user", "content": instrucao},
-    ], max_tokens=6500, temp=temperatura)
-    if validar_formato_roteiro_v1689(texto):
-        return texto
+    inicial, finish = _chamar_inicial()
+    partes = _partes_do_texto(inicial)
+    log.info("ÉLÉVO formato inicial: motivo=%s, tamanhos=%s", finish,
+             {k:len(v) for k,v in partes.items()})
+    if validar_formato_roteiro_v1689(inicial) and finish != "length":
+        return inicial
 
-    partes = _presentes(_partes(texto))
-    log.warning("Formato de IA parcial: imagem=%s, video=%s, seo=%s, motivo=%s",
-                bool(partes["prompt_imagem"]), bool(partes["prompt_video"]),
-                bool(partes["secao_seo_texto"]), fim)
+    # Se a API interrompeu a resposta por limite, a ÚLTIMA seção emitida
+    # não é segura: pode terminar no meio de uma instrução ou frase.
+    if finish == "length":
+        ultima = next((k for k in reversed(chaves) if partes[k]), None)
+        if ultima:
+            partes[ultima] = ""
+            log.warning("Saída inicial truncada: reconstituindo seção final %s", ultima)
 
-    # Só refaz a geração completa se nenhum dos dois prompts principais veio
-    # identificável. Nunca descarta uma seção que já estava completa.
-    if not partes["prompt_imagem"] and not partes["prompt_video"]:
-        texto2, fim2 = _chamar([
-            {"role": "system", "content": sistema +
-             "\nFORMATO OBRIGATÓRIO: devolva 3 seções Markdown com estes cabeçalhos exatos, "
-             "na ordem: ### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, "
-             "### 🔑 TÍTULOS SEO (Separados). Não omita nenhuma seção. Mantenha o conteúdo do briefing."},
-            {"role": "user", "content": instrucao},
-        ], max_tokens=7500, temp=0.5)
-        if validar_formato_roteiro_v1689(texto2):
-            return texto2
-        for chave, valor in _presentes(_partes(texto2)).items():
-            if not partes[chave] and valor:
-                partes[chave] = valor
-        log.warning("Segunda resposta incompleta: motivo=%s, faltantes=%s", fim2,
-                    ",".join(chave for chave in chaves if not partes[chave]))
+    # O histórico 17.3 aparece inteiro no pedido original; repetir o acervo
+    # durante cada reparo induzia a IA a copiar antigos modelos/headers.
+    # Somente na recuperação utiliza o briefing atual, que contém as regras
+    # de personagem, produto, ambiente, voz e logo da geração em curso.
+    comeco = instrucao.find("🔍 [DIAGNÓSTICO")
+    briefing = instrucao[comeco:] if comeco >= 0 else instrucao[-18000:]
 
-    # Reparação cirúrgica. Por exemplo, se só faltar SEO, não gera imagem/vídeo
-    # pela terceira vez: apenas a pequena seção SEO é solicitada.
     for chave in chaves:
         if partes[chave]:
             continue
-        heading = headings[chave]
-        rotulo = {"prompt_imagem": "PROMPT DE IMAGEM",
-                  "prompt_video": "PROMPT DE VÍDEO COMPLETO E UNIFICADO",
-                  "secao_seo_texto": "TÍTULOS SEO (três títulos Geral, Solução e Marca)"}[chave]
-        limite = {"prompt_imagem": 4200, "prompt_video": 6500,
-                  "secao_seo_texto": 900}[chave]
-        # A instrução original inclui a influenciadora, cenário escolhido,
-        # referência do produto, finalização e regras próprias do Bloco 17/17.2.
-        # Não inventa nem altera essas decisões para recuperar o formato.
-        instrucao_somente = (
-            "Recupere SOMENTE a seção que faltou no pacote. Preserve todas as regras "
-            "de personagem, ambiente, referência de produto, logo e formato do briefing. "
-            "Não produza as outras duas seções.\n"
-            f"Comece exatamente com o cabeçalho '{heading}' e depois escreva "
-            f"o conteúdo completo de {rotulo}. Não use cercas de código."
+        pedido = (
+            "Devolva JSON VÁLIDO com somente uma propriedade chamada 'conteudo', "
+            "cujo valor seja uma string de texto completa. Não devolva markdown externo nem "
+            "os três cabeçalhos-mestre; o aplicativo acrescentará o cabeçalho. "
+            "Produza APENAS: " + rotulos[chave] + ". "
+            "Preserve a identidade adulta selecionada, o cenário escolhido, a foto externa "
+            "como única referência do produto e a estrutura de fala/CTA. "
+            "Não reintroduza marcas ou produtos dos exemplos históricos. "
+            "Se for o vídeo V9.2, mantenha o fechamento de logo especificado no briefing. "
+            "Não crie afirmações comerciais não comprovadas."
         )
-        reparo, motivo = _chamar([
-            {"role": "system", "content": sistema + "\n" + instrucao_somente},
-            {"role": "user", "content": instrucao},
-        ], max_tokens=limite, temp=0.4)
-        capturado = _presentes(_partes(reparo))
-        for campo, valor in capturado.items():
-            if not partes[campo] and valor:
-                partes[campo] = valor
-        # Algumas respostas omitem o cabeçalho mesmo sob instrução direta.
-        # Aceitar somente texto claramente aproveitável na seção requerida;
-        # SEO precisa incluir os três títulos para não deixar botões vazios.
-        if not partes[chave] and not any(capturado.values()):
-            candidato = reparo.strip()
-            candidato = candidato.removeprefix("```").removesuffix("```").strip()
-            if chave in ("prompt_imagem", "prompt_video"):
-                if len(candidato) >= 200 and not re.search(r"(?im)^\s*#{1,6}\s*[📸🎬🔑]", candidato):
-                    partes[chave] = candidato
-            elif all(re.search(p, candidato, re.I) for p in
-                     (r"(?:🔍|\bGeral\b)", r"(?:💡|\bSolu[cç][aã]o\b)",
-                      r"(?:🏷️|\bMarca\b)")):
-                partes[chave] = candidato
-        log.info("Reparo pontual %s: recuperado=%s, motivo=%s",
-                 chave, bool(partes[chave]), motivo)
+        contexto = briefing
+        # O vídeo deve obedecer ao cenário da IMAGEM aprovada, sem reproduzir
+        # outra imagem ou trocar a aparência do produto.
+        if chave == "prompt_video" and partes["prompt_imagem"]:
+            contexto += "\n\nIMAGEM APROVADA (REFERÊNCIA DE CENÁRIO):\n" + partes["prompt_imagem"][:6000]
+        limite = {"prompt_imagem": 3800, "prompt_video": 6200,
+                  "secao_seo_texto": 1300}[chave]
+        recuperado = ""
+        for tentativa in range(2):
+            validar_cota_ia()
+            resp = cliente_openai.chat.completions.create(
+                model="gpt-4o-mini",
+                response_format={"type":"json_object"},
+                messages=[
+                    {"role":"system", "content": sistema + "\n" + pedido},
+                    {"role":"user", "content": contexto},
+                ], max_tokens=limite, temperature=0.35)
+            escolha = resp.choices[0] if resp.choices else None
+            fim = str(getattr(escolha,"finish_reason","ausente"))
+            corpo = str((escolha.message.content if escolha else "") or "")
+            try:
+                pacote = json.loads(corpo)
+                recuperado = pacote.get("conteudo", "")
+                if not isinstance(recuperado, str):
+                    recuperado = ""
+            except (json.JSONDecodeError, TypeError, AttributeError):
+                recuperado = ""
+            recuperado = recuperado.strip()
+            if recuperado.startswith("###"):
+                # Modelo pode incluir heading mesmo sob resposta JSON: retirar
+                # SÓ o heading externo, nunca os subtítulos internos do vídeo.
+                recuperado = re.sub(r"^###\s*[^\n]+\n", "", recuperado, count=1).strip()
+            if fim == "stop" and len(recuperado) >= (200 if chave != "secao_seo_texto" else 35):
+                break
+            log.warning("Reparo de %s incompleto: tentativa=%s, motivo=%s, caracteres=%s",
+                        chave,tentativa+1,fim,len(recuperado))
+            recuperado = ""
+        if not recuperado:
+            raise ValueError("Não foi possível recuperar a seção " + chave +
+                             " depois de duas respostas incompletas da IA")
+        partes[chave] = recuperado
 
-    if all(partes.values()):
-        final = _montar(partes)
-        if validar_formato_roteiro_v1689(final):
-            return final
-    raise ValueError("Formato de roteiro incompleto após recuperação pontual de seções")
-
+    final = _montar(partes)
+    if not validar_formato_roteiro_v1689(final):
+        raise ValueError("Resposta da IA incompleta após reconstrução das três seções")
+    return final
 
 def escanear_dor_e_contagem_da_foto(img_b64):
     """
@@ -4453,15 +4457,21 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
             validar_cota_ia()
+            etapa_formato_elevo = "geracao_inicial_recuperacao"
             conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
                 instrucao_ouro,
                 "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Preserve os headings dos Moldes 17.3, mas IGNORE qualquer aparência, marca, cor, quantidade nominal ou descrição de produto presente em exemplos históricos. Foto do produto é referência externa exclusiva. Escreva toda a parte visual em inglês puro.",
                 temperatura=0.75)
+            etapa_formato_elevo = "aplicar_ambiente"
             conteudo_texto = fixar_ambiente_ambos_prompts_v165(
                 conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
+            etapa_formato_elevo = "reforco_video_v12"
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
+            etapa_formato_elevo = "referencia_produto"
             conteudo_texto = fixar_trava_produto_ambos_prompts_v1682(conteudo_texto)
+            etapa_formato_elevo = "limpeza_visual"
             conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
+            etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
@@ -4471,7 +4481,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             time.sleep(1)
             st.rerun()
         except Exception as e:
-            mostrar_erro_criacao_v1686(e, "Bloco 17 — criação 360º")
+            mostrar_erro_criacao_v1686(e, "Bloco 17 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
 # ==========================================================
 # MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
@@ -4557,15 +4567,21 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
                 instrucao_v92 += f"\n\n[OVERRIDE ESPECÍFICO DA LOGO V9.2 — TEM PRIORIDADE SOBRE REGRAS HISTÓRICAS ANTI-LOGO]\nNo BLOCO 17.2 / V9.2, é OBRIGATÓRIO incluir uma única finalização de logo com o nome exato '{logo_ativa_usuario}'. Essa finalização ocorre somente no fechamento do vídeo, em um glitch digital vermelho rápido, com logo textual curta, limpa, centralizada e legível. Não escrever descrições longas da logo, não criar slogan, não repetir a logo e não substituir a marca impressa na embalagem."
                 validar_cota_ia()
+                etapa_formato_elevo = "geracao_inicial_recuperacao"
                 conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
                     instrucao_v92,
                     "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Preserve a estrutura 17.3, mas ignore produtos e identidades dos exemplos históricos; foto separada determina o produto e influencer selecionada determina só a pessoa.",
                     temperatura=0.75)
+                etapa_formato_elevo = "aplicar_ambiente"
                 conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
                     conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
+                etapa_formato_elevo = "reforco_video_v12"
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
+                etapa_formato_elevo = "referencia_produto"
                 conteudo_v92 = fixar_trava_produto_ambos_prompts_v1682(conteudo_v92)
+                etapa_formato_elevo = "limpeza_visual"
                 conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
+                etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
@@ -4575,7 +4591,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
-                mostrar_erro_criacao_v1686(e, "Bloco 17.2 — criação V9.2")
+                mostrar_erro_criacao_v1686(e, "Bloco 17.2 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
 # ==========================================================
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
