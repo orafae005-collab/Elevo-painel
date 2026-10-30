@@ -107,7 +107,7 @@ SESSAO_DADOS_PRIVADOS = {
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
     "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
     "bv_recarregamento_login", "google_pendente", "google_erro",
-    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao",
+    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_inf_pendente_salvar",
     "elevo_ceo_identity_v1641_loaded", "elevo_ceo_original_v1682",
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
 }
@@ -2204,7 +2204,15 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
                 else:
                     aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(),
                                         agora_str, logo_marca.strip()])
-                return True
+                # Confirma por leitura; algumas contas sofrem atraso transitório do Sheets.
+                for _ in range(3):
+                    try:
+                        if _verificar_salvamento(aba_inf):
+                            return True
+                    except Exception:
+                        pass
+                    time.sleep(0.5)
+                return None
 
             if acao == "excluir":
                 col_emails = aba_inf.col_values(1)
@@ -2235,6 +2243,27 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
                 return None
             time.sleep(1 + tentativa * 2)
     return None
+
+
+def tentar_persistir_influencer_pendente_v1690(email_usr):
+    """Reenvia automaticamente ao Sheets a influenciadora que ficou apenas na sessão."""
+    pend = st.session_state.get("elevo_inf_pendente_salvar") or {}
+    if not pend:
+        return False
+    if str(pend.get("Email", "")).strip().lower() != str(email_usr or "").strip().lower():
+        return False
+    ok = gerenciar_influencer_usuario(
+        "salvar",
+        email_usr,
+        pend.get("Nome_Influencer", ""),
+        pend.get("Descricao_Visual", ""),
+        pend.get("Logo_Marca", ""),
+    )
+    if ok:
+        st.session_state.pop("elevo_inf_pendente_salvar", None)
+        st.session_state.pop("elevo_inf_erro_gravacao", None)
+        return True
+    return False
 
 
 # ==========================================================
@@ -2310,6 +2339,11 @@ if st.session_state.get("email_inf_carregado") != email_elenco_v164:
     st.session_state["email_inf_carregado"] = email_elenco_v164
     st.session_state.pop("elevo_inf_preset_id", None)
     st.session_state.pop("elevo_inf_obs", None)
+
+# Se um salvamento anterior falhou temporariamente no Google Sheets,
+# tenta concluir sozinho no primeiro rerun da própria conta.
+if email_elenco_v164:
+    tentar_persistir_influencer_pendente_v1690(email_elenco_v164)
 
 # Ao instalar a correção, elimina o default temporário "Ana Clara" que
 # a V16.4 pode ter deixado na SESSÃO do CEO. Apenas LÊ a conta do Sheets;
@@ -2551,8 +2585,15 @@ def aplicar_cartao_influencia_v164(card_id):
     ok = gerenciar_influencer_usuario("salvar", email_elenco_v164, nome_aplicado, descricao_aplicada, marca)
     if not ok:
         st.session_state["elevo_inf_erro_gravacao"] = True
+        st.session_state["elevo_inf_pendente_salvar"] = {
+            "Email": email_elenco_v164,
+            "Nome_Influencer": nome_aplicado,
+            "Descricao_Visual": descricao_aplicada,
+            "Logo_Marca": marca,
+        }
     else:
         st.session_state.pop("elevo_inf_erro_gravacao", None)
+        st.session_state.pop("elevo_inf_pendente_salvar", None)
 
 st.markdown(
     '<div class="elevo-carrossel-instrucao">'
@@ -2644,7 +2685,7 @@ else:
         st.info("Você pode escolher uma influenciadora da galeria ou criar a sua própria na aba 'Minha Influenciadora'.")
 
 if st.session_state.pop("elevo_inf_erro_gravacao", False):
-    st.warning("Personagem aplicada nesta sessão, mas o Google Sheets não confirmou o salvamento. Tente selecionar novamente para persistir.")
+    st.warning("Personagem aplicada nesta sessão. O Google Sheets ainda não confirmou o salvamento, então a plataforma vai tentar persistir automaticamente nos próximos recarregamentos desta conta.")
 
 # ==========================================================
 # 15. MATRIZ DE AMBIENTES ÉLÉVO V16.6 — 20 CENÁRIOS + 21º INFINITO
