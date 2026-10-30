@@ -107,7 +107,7 @@ SESSAO_DADOS_PRIVADOS = {
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
     "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
     "bv_recarregamento_login", "google_pendente", "google_erro",
-    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_inf_pendente_salvar",
+    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
     "elevo_ceo_identity_v1641_loaded", "elevo_ceo_original_v1682",
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
 }
@@ -612,32 +612,32 @@ def mensagem_erro_criacao_v1686(erro, etapa="geração"):
     if isinstance(erro, RuntimeError):
         descricao = str(erro)
         if "Limite de " in descricao and "operações de IA" in descricao:
-            return ("LIMITE_DIARIO", descricao + " As 3 criações gratuitas são um limite separado; "
-                    "uma criação pode usar até três operações de IA.")
+            return ("LIMITE_PROVEDOR", "Um limite operacional externo foi atingido. "
+                    "Não foi gerado um pacote final. Verifique os logs do servidor.")
         if "cota de ia" in descricao.lower() or "consumo" in descricao.lower():
-            return ("CONTROLE_IA", "O controle de consumo de IA no Google Sheets está temporariamente "
-                    "indisponível. Não foi descontada uma criação gratuita. Tente novamente após normalizar o serviço.")
+            return ("SERVICO_EXTERNO", "Falha de um controle externo de IA. "
+                    "O acesso público ao gerador não possui limite interno de criações.")
         if "login" in descricao.lower():
             return ("SESSAO", "A sessão precisa ser validada novamente. Saia e entre na sua conta.")
     if nome == "RateLimitError" or codigo == 429:
         return ("LIMITE_PROVEDOR", "O serviço de IA atingiu um limite temporário de requisições ou de créditos "
-                "do provedor. Não foi descontada uma criação gratuita. Verifique a conta/API e tente novamente.")
+                "do provedor. Verifique a conta/API e tente novamente.")
     if nome in ("APIConnectionError", "APITimeoutError", "ConnectTimeout", "ReadTimeout", "Timeout"):
         return ("CONEXAO_IA", "Não foi possível concluir a conexão com a IA. "
-                "Não foi descontada uma criação gratuita. Tente novamente.")
+                "Tente novamente.")
     if nome == "AuthenticationError" or codigo == 401:
         return ("CONFIGURACAO_IA", "A chave ou autenticação da IA precisa ser conferida pelo administrador. "
-                "Não foi descontada uma criação gratuita.")
+                "")
     if nome == "BadRequestError" or codigo == 400:
         return ("REQUISICAO_IA", "O provedor rejeitou o pedido de geração. "
-                "Não foi descontada uma criação gratuita. Consulte os registros técnicos da aplicação.")
+                "Consulte os registros técnicos da aplicação.")
     if isinstance(erro, ValueError) and ("Bloco" in str(erro) or "títulos" in str(erro) or "formato" in str(erro).lower()):
         return ("FORMATO_IA", "A resposta da IA não veio no formato esperado de imagem e vídeo. "
-                "Não foi descontada uma criação gratuita. Gere novamente.")
+                "Gere novamente.")
     if codigo in (500, 502, 503, 504):
         return ("SERVICO_EXTERNO", "Um serviço externo ficou temporariamente indisponível. "
-                "Não foi descontada uma criação gratuita. Tente novamente.")
-    return ("FALHA_GERACAO", "A criação não foi concluída. Nenhuma criação gratuita foi descontada. "
+                "Tente novamente.")
+    return ("FALHA_GERACAO", "A criação não foi concluída. "
             "O detalhe técnico foi registrado nos logs, sem expor informações da sua conta.")
 
 
@@ -650,47 +650,21 @@ def mostrar_erro_criacao_v1686(erro, etapa="geração"):
     st.error(f"⚠️ {mensagem} (Código: {codigo}; etapa: {etapa})")
 
 # ==========================================================
-# LIMITE GERAL DE CONSUMO DE IA — custos previsíveis por conta / dia.
-# As 3 criações gratuitas são um limite SEPARADO, mantido como antes.
-# Sheets não oferece transação atômica: para SaaS em escala usar banco com
-# transações e rate limit no servidor/provedor de API.
+# ACESSO PÚBLICO ILIMITADO ÀS FERRAMENTAS EXISTENTES (somente usuários logados).
+# As despesas com a API são do operador; configurar limites de custo no provedor.
+# O painel administrativo e os bancos privados continuam restritos ao CEO.
 # ==========================================================
 def validar_cota_ia():
+    """Valida autenticação; operações públicas de IA não têm cota por usuário.
+
+    O controle de custos da chave OpenAI é responsabilidade do proprietário
+    e dos limites orçamentários configurados no provedor, NÃO de conta CEO.
+    Nunca concede privilégios administrativos ou acesso aos dados de terceiros.
+    """
     email = str(st.session_state.get("email_usuario", "")).strip().lower()
     if not email or not st.session_state.get("usuario_logado"):
         raise RuntimeError("Faça login para usar a inteligência artificial.")
-    if email == EMAIL_MESTRE.strip().lower():
-        return
-    if not robo_sheets:
-        raise RuntimeError("Controle de consumo indisponível; tente novamente.")
-    for tentativa in range(3):
-        try:
-            max_dia = max(1, int(st.secrets.get("LIMITE_IA_DIARIO", 30)))
-            planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
-            try:
-                aba = planilha.worksheet("Consumo_IA_Diario")
-            except gspread.exceptions.WorksheetNotFound:
-                aba = planilha.add_worksheet(title="Consumo_IA_Diario", rows="2000", cols="3")
-                aba.append_row(["Email", "Data", "Tipo"])
-            hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
-            usados = sum(1 for r in aba.get_all_records()
-                         if str(r.get("Email", "")).strip().lower() == email and str(r.get("Data", "")) == hoje)
-            if usados >= max_dia:
-                raise RuntimeError(f"Limite de {max_dia} operações de IA atingido hoje. Volte amanhã.")
-            # Reserva por operação de IA (scanner, criação e reforço do vídeo).
-            # O crédito gratuito da criação é separado e só é descontado em caso de sucesso.
-            aba.append_row([email, hoje, "IA"])
-            return
-        except RuntimeError:
-            raise
-        except gspread.exceptions.APIError as erro:
-            status = getattr(getattr(erro, "response", None), "status_code", None)
-            if status in (429, 500, 502, 503, 504) and tentativa < 2:
-                time.sleep(1 + tentativa * 2)
-                continue
-            raise RuntimeError("Controle de consumo de IA indisponível; tente novamente.") from erro
-        except Exception as erro:
-            raise RuntimeError("Não foi possível validar a cota de IA. Tente novamente.") from erro
+    return
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
@@ -2138,6 +2112,8 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
     log = logging.getLogger("elevo.influencer")
     if not robo_sheets:
         log.warning("Banco de influencers indisponível: cliente Sheets não inicializado")
+        if acao == "salvar":
+            st.session_state["elevo_erro_sheets_codigo"] = "SHEETS_SEM_SERVICO"
         return None
 
     email_clean = str(email_usr or "").strip().lower()
@@ -2169,10 +2145,17 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
                 aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="5")
                 aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca"])
 
-            # Não exigir escrita de cabeçalho em TODAS as leituras; isto falhava
-            # desnecessariamente para contas normais em planilhas antigas.
+            # Planilhas antigas podem ter só 3 colunas. Escrever na coluna E
+            # antes de expandir o grid resulta em APIError 400, sobretudo
+            # quando o usuário escolhe pela primeira vez um preset novo.
+            # Somente a conta de serviço escreve no banco mestre, e cada
+            # usuário acessa EXCLUSIVAMENTE sua linha pelo email autenticado.
             if acao == "salvar":
+                if aba_inf.col_count < 5:
+                    aba_inf.resize(cols=5)
                 cabecalho = aba_inf.row_values(1)
+                if len(cabecalho) < 4:
+                    aba_inf.update_cell(1, 4, "Data_Atualizacao")
                 if len(cabecalho) < 5:
                     aba_inf.update_cell(1, 5, "Logo_Marca")
 
@@ -2204,15 +2187,8 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
                 else:
                     aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(),
                                         agora_str, logo_marca.strip()])
-                # Confirma por leitura; algumas contas sofrem atraso transitório do Sheets.
-                for _ in range(3):
-                    try:
-                        if _verificar_salvamento(aba_inf):
-                            return True
-                    except Exception:
-                        pass
-                    time.sleep(0.5)
-                return None
+                st.session_state.pop("elevo_erro_sheets_codigo", None)
+                return True
 
             if acao == "excluir":
                 col_emails = aba_inf.col_values(1)
@@ -2240,30 +2216,12 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
             log.warning("Sheets influencers ação=%s, tentativa=%d, erro=%s, status=%s",
                         acao, tentativa + 1, nome_classe, status)
             if not transitorio or tentativa == 2:
+                if acao == "salvar":
+                    status_seguro = str(status) if isinstance(status, int) else "SEM_STATUS"
+                    st.session_state["elevo_erro_sheets_codigo"] = f"SHEETS_{status_seguro}_{nome_classe[:30]}"
                 return None
             time.sleep(1 + tentativa * 2)
     return None
-
-
-def tentar_persistir_influencer_pendente_v1690(email_usr):
-    """Reenvia automaticamente ao Sheets a influenciadora que ficou apenas na sessão."""
-    pend = st.session_state.get("elevo_inf_pendente_salvar") or {}
-    if not pend:
-        return False
-    if str(pend.get("Email", "")).strip().lower() != str(email_usr or "").strip().lower():
-        return False
-    ok = gerenciar_influencer_usuario(
-        "salvar",
-        email_usr,
-        pend.get("Nome_Influencer", ""),
-        pend.get("Descricao_Visual", ""),
-        pend.get("Logo_Marca", ""),
-    )
-    if ok:
-        st.session_state.pop("elevo_inf_pendente_salvar", None)
-        st.session_state.pop("elevo_inf_erro_gravacao", None)
-        return True
-    return False
 
 
 # ==========================================================
@@ -2339,11 +2297,6 @@ if st.session_state.get("email_inf_carregado") != email_elenco_v164:
     st.session_state["email_inf_carregado"] = email_elenco_v164
     st.session_state.pop("elevo_inf_preset_id", None)
     st.session_state.pop("elevo_inf_obs", None)
-
-# Se um salvamento anterior falhou temporariamente no Google Sheets,
-# tenta concluir sozinho no primeiro rerun da própria conta.
-if email_elenco_v164:
-    tentar_persistir_influencer_pendente_v1690(email_elenco_v164)
 
 # Ao instalar a correção, elimina o default temporário "Ana Clara" que
 # a V16.4 pode ter deixado na SESSÃO do CEO. Apenas LÊ a conta do Sheets;
@@ -2585,15 +2538,8 @@ def aplicar_cartao_influencia_v164(card_id):
     ok = gerenciar_influencer_usuario("salvar", email_elenco_v164, nome_aplicado, descricao_aplicada, marca)
     if not ok:
         st.session_state["elevo_inf_erro_gravacao"] = True
-        st.session_state["elevo_inf_pendente_salvar"] = {
-            "Email": email_elenco_v164,
-            "Nome_Influencer": nome_aplicado,
-            "Descricao_Visual": descricao_aplicada,
-            "Logo_Marca": marca,
-        }
     else:
         st.session_state.pop("elevo_inf_erro_gravacao", None)
-        st.session_state.pop("elevo_inf_pendente_salvar", None)
 
 st.markdown(
     '<div class="elevo-carrossel-instrucao">'
@@ -2685,7 +2631,9 @@ else:
         st.info("Você pode escolher uma influenciadora da galeria ou criar a sua própria na aba 'Minha Influenciadora'.")
 
 if st.session_state.pop("elevo_inf_erro_gravacao", False):
-    st.warning("Personagem aplicada nesta sessão. O Google Sheets ainda não confirmou o salvamento, então a plataforma vai tentar persistir automaticamente nos próximos recarregamentos desta conta.")
+    codigo = st.session_state.get("elevo_erro_sheets_codigo", "SHEETS_SEM_CONFIRMACAO")
+    st.warning(f"Personagem aplicada nesta sessão, mas o banco compartilhado ainda não confirmou o salvamento ({codigo}). "
+               "Ela pode ser usada agora; para permanecer após novo login, o Sheets precisa confirmar a gravação.")
 
 # ==========================================================
 # 15. MATRIZ DE AMBIENTES ÉLÉVO V16.6 — 20 CENÁRIOS + 21º INFINITO
@@ -3412,24 +3360,12 @@ elif E_O_CEO:
 else:
     logo_ativa_usuario = "Minha Marca VIP"
 
-pode_gerar_roteiro = bool(E_O_CEO)
+# Acesso sem limite de criações às ferramentas JÁ PÚBLICAS, após autenticação.
+# CEO continua exclusivo dos controles administrativos e dos próprios dados.
+# O banco mestre permanece compartilhado; usuários não precisam de planilha.
+pode_gerar_roteiro = bool(st.session_state.get("usuario_logado") and email_sessao)
 usos_feitos = 0
 aba_limites = None
-
-if not E_O_CEO and robo_sheets:
-    try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if match_id:
-            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-            try: aba_limites = planilha_mestre.worksheet("Limites_Roteiros")
-            except Exception:
-                aba_limites = planilha_mestre.add_worksheet(title="Limites_Roteiros", rows="1000", cols="2")
-                aba_limites.append_row(["Email", "Gerou"])
-            lista_usos = aba_limites.col_values(1)
-            usos_feitos = lista_usos.count(email_sessao)
-            pode_gerar_roteiro = usos_feitos < 3
-    except Exception:
-        pode_gerar_roteiro = False
 
 if "txt_diretrizes_360" not in st.session_state:
     st.session_state["txt_diretrizes_360"] = ""
@@ -3458,7 +3394,10 @@ with st.container(border=True):
             if E_O_CEO:
                 st.caption("🦅 **Influencer Padrão do CEO Ativa:** Aurora Original (Para testar outra personagem, acesse a aba ao lado).")
             else:
-                st.warning("⚠️ Você ainda não cadastrou a sua própria Influencer! O sistema usará a personagem padrão (Aurora). Vá na aba **'👤 Configurar Minha Influencer'** acima para criar e salvar a sua!")
+                if isinstance(st.session_state.get("influencer_atual"), dict) and st.session_state["influencer_atual"].get("Nome_Influencer"):
+                    st.caption("✅ Influenciadora selecionada no elenco ativa para esta sessão.")
+                else:
+                    st.warning("⚠️ Selecione uma influenciadora no elenco ou configure a sua própria.")
         
         col_img, col_dados = st.columns([1, 1])
         with col_img: 
@@ -3476,10 +3415,10 @@ with st.container(border=True):
             btn_gerar_roteiro = False
             if not st.session_state["modo_entidade_v9"]:
                 if not pode_gerar_roteiro:
-                    st.error("🚨 LIMITE ATINGIDO! Você já gerou os seus 3 roteiros gratuitos. Faça o upgrade para a conta CEO para uso ilimitado.")
+                    st.error("Entre na sua conta para gerar roteiros.")
                     btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                 else:
-                    txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR ({3 - usos_feitos} Restantes)"
+                    txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)"
                     btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
             else:
                 st.success("🧬 **CRIAÇÃO V9.2 ATIVADA!** Clique no botão do **Bloco 17.2** logo abaixo.")
@@ -3573,10 +3512,10 @@ if st.session_state.get("modo_entidade_v9"):
                 gerenciar_influencer_usuario("salvar", email_sessao, nome_inf_ativa, desc_inf_ativa, logo_ativa_usuario)
 
         if not pode_gerar_roteiro:
-            st.error("Limite de roteiros atingido ou controle de cotas indisponível. Tente novamente mais tarde se houver erro de conexão.")
+            st.error("Entre na sua conta para gerar roteiros.")
             btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
         else:
-            txt_btn_v92 = f"🔥 LER RÓTULO E GERAR NA V9.2 COM IDENTIDADE '{logo_ativa_usuario}' (Ilimitado)" if E_O_CEO else f"🔥 LER RÓTULO E GERAR NA V9.2 ({3 - usos_feitos} Restantes)"
+            txt_btn_v92 = f"🔥 LER RÓTULO E GERAR NA V9.2 (Ilimitado)"
             btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, key="btn_v92_ativo")
 
 # ==========================================================
@@ -4431,9 +4370,6 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
-            if not E_O_CEO and aba_limites is not None:
-                try: aba_limites.append_row([email_sessao, "Sim"])
-                except Exception: pass
                 
             st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
             time.sleep(1)
@@ -4538,9 +4474,6 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
-                if not E_O_CEO and aba_limites is not None:
-                    try: aba_limites.append_row([email_sessao, "Sim_V92"])
-                    except Exception: pass
 
                 st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
                 time.sleep(1)
