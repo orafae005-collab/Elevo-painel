@@ -3196,39 +3196,135 @@ def validar_formato_roteiro_v1689(conteudo):
 
 
 def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
-    """Mantém o mesmo prompt e modelo; recupera cabeçalhos sem outra chamada.
+    """Recupera somente seções ausentes; não muda os prompts criativos nem o modelo.
 
-    Só repete a geração UMA vez quando realmente faltarem seções essenciais.
+    A V16.9.2 repetia o pacote inteiro quando faltava SEO ou um cabeçalho.
+    Isso podia falhar de novo por limite de comprimento. Aqui cada seção já
+    válida é preservada e a IA é acionada APENAS para a seção que falta.
     """
-    resposta = cliente_openai.chat.completions.create(
-        model="gpt-4o-mini", messages=[{"role": "system", "content": sistema},
-                                      {"role": "user", "content": instrucao}],
-        max_tokens=6500, temperature=temperatura)
-    conteudo = normalizar_titulos_roteiro_v1689(
-        (resposta.choices[0].message.content or "") if resposta.choices else "")
-    if validar_formato_roteiro_v1689(conteudo):
-        return conteudo
-
     import logging
-    fim = getattr(resposta.choices[0], "finish_reason", "ausente") if resposta.choices else "ausente"
-    logging.getLogger("elevo.geracao").warning(
-        "Formato incompleto; tentar recuperar (finish_reason=%s, comprimento=%d)", fim, len(conteudo))
-    # Só um retry com o MESMO briefing; não altera estilo, influencer, produto nem cenário.
-    validar_cota_ia()
-    resposta2 = cliente_openai.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
+    log = logging.getLogger("elevo.geracao")
+    chaves = ("prompt_imagem", "prompt_video", "secao_seo_texto")
+    headings = {
+        "prompt_imagem": "### 📸 PROMPT DE IMAGEM",
+        "prompt_video": "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO",
+        "secao_seo_texto": "### 🔑 TÍTULOS SEO (Separados)",
+    }
+
+    def _chamar(mensagens, max_tokens, temp):
+        validar_cota_ia()
+        retorno = cliente_openai.chat.completions.create(
+            model="gpt-4o-mini", messages=mensagens,
+            max_tokens=max_tokens, temperature=temp)
+        escolha = retorno.choices[0] if retorno.choices else None
+        conteudo = (escolha.message.content or "") if escolha else ""
+        return normalizar_titulos_roteiro_v1689(conteudo), getattr(escolha, "finish_reason", "ausente")
+
+    def _partes(texto):
+        # Parser auxiliar APENAS da recuperação: cada bloco termina no próximo
+        # cabeçalho real, mesmo se uma seção intermediária estiver ausente.
+        # O extrator da interface original permanece completamente intocado.
+        secoes = {chave: "" for chave in chaves}
+        marcadores = list(re.finditer(
+            r"(?im)^###\s*(?:📸\s*PROMPT DE IMAGEM|🎬\s*PROMPT DE VÍDEO[^\n]*|🔑\s*TÍTULOS SEO[^\n]*)[^\n]*$",
+            texto or ""))
+        for i, marcador in enumerate(marcadores):
+            titulo = marcador.group(0)
+            chave = ("prompt_imagem" if "📸" in titulo else
+                     "prompt_video" if "🎬" in titulo else "secao_seo_texto")
+            fim = marcadores[i + 1].start() if i + 1 < len(marcadores) else len(texto)
+            trecho = texto[marcador.end():fim].strip()
+            if trecho and not secoes[chave]:
+                secoes[chave] = trecho
+        return secoes
+
+    def _presentes(partes):
+        return {chave: str(partes.get(chave, "") or "").strip() for chave in chaves}
+
+    def _montar(partes):
+        return "\n\n".join(headings[chave] + "\n" + partes[chave] for chave in chaves)
+
+    # Chamada inicial, idêntica à versão aprovada V16.9.2.
+    texto, fim = _chamar([
+        {"role": "system", "content": sistema},
+        {"role": "user", "content": instrucao},
+    ], max_tokens=6500, temp=temperatura)
+    if validar_formato_roteiro_v1689(texto):
+        return texto
+
+    partes = _presentes(_partes(texto))
+    log.warning("Formato de IA parcial: imagem=%s, video=%s, seo=%s, motivo=%s",
+                bool(partes["prompt_imagem"]), bool(partes["prompt_video"]),
+                bool(partes["secao_seo_texto"]), fim)
+
+    # Só refaz a geração completa se nenhum dos dois prompts principais veio
+    # identificável. Nunca descarta uma seção que já estava completa.
+    if not partes["prompt_imagem"] and not partes["prompt_video"]:
+        texto2, fim2 = _chamar([
             {"role": "system", "content": sistema +
              "\nFORMATO OBRIGATÓRIO: devolva 3 seções Markdown com estes cabeçalhos exatos, "
              "na ordem: ### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, "
              "### 🔑 TÍTULOS SEO (Separados). Não omita nenhuma seção. Mantenha o conteúdo do briefing."},
-            {"role": "user", "content": instrucao}],
-        max_tokens=7500, temperature=0.5)
-    conteudo2 = normalizar_titulos_roteiro_v1689(
-        (resposta2.choices[0].message.content or "") if resposta2.choices else "")
-    if validar_formato_roteiro_v1689(conteudo2):
-        return conteudo2
-    raise ValueError("Formato inesperado da resposta de IA após normalização e uma nova tentativa")
+            {"role": "user", "content": instrucao},
+        ], max_tokens=7500, temp=0.5)
+        if validar_formato_roteiro_v1689(texto2):
+            return texto2
+        for chave, valor in _presentes(_partes(texto2)).items():
+            if not partes[chave] and valor:
+                partes[chave] = valor
+        log.warning("Segunda resposta incompleta: motivo=%s, faltantes=%s", fim2,
+                    ",".join(chave for chave in chaves if not partes[chave]))
+
+    # Reparação cirúrgica. Por exemplo, se só faltar SEO, não gera imagem/vídeo
+    # pela terceira vez: apenas a pequena seção SEO é solicitada.
+    for chave in chaves:
+        if partes[chave]:
+            continue
+        heading = headings[chave]
+        rotulo = {"prompt_imagem": "PROMPT DE IMAGEM",
+                  "prompt_video": "PROMPT DE VÍDEO COMPLETO E UNIFICADO",
+                  "secao_seo_texto": "TÍTULOS SEO (três títulos Geral, Solução e Marca)"}[chave]
+        limite = {"prompt_imagem": 4200, "prompt_video": 6500,
+                  "secao_seo_texto": 900}[chave]
+        # A instrução original inclui a influenciadora, cenário escolhido,
+        # referência do produto, finalização e regras próprias do Bloco 17/17.2.
+        # Não inventa nem altera essas decisões para recuperar o formato.
+        instrucao_somente = (
+            "Recupere SOMENTE a seção que faltou no pacote. Preserve todas as regras "
+            "de personagem, ambiente, referência de produto, logo e formato do briefing. "
+            "Não produza as outras duas seções.\n"
+            f"Comece exatamente com o cabeçalho '{heading}' e depois escreva "
+            f"o conteúdo completo de {rotulo}. Não use cercas de código."
+        )
+        reparo, motivo = _chamar([
+            {"role": "system", "content": sistema + "\n" + instrucao_somente},
+            {"role": "user", "content": instrucao},
+        ], max_tokens=limite, temp=0.4)
+        capturado = _presentes(_partes(reparo))
+        for campo, valor in capturado.items():
+            if not partes[campo] and valor:
+                partes[campo] = valor
+        # Algumas respostas omitem o cabeçalho mesmo sob instrução direta.
+        # Aceitar somente texto claramente aproveitável na seção requerida;
+        # SEO precisa incluir os três títulos para não deixar botões vazios.
+        if not partes[chave] and not any(capturado.values()):
+            candidato = reparo.strip()
+            candidato = candidato.removeprefix("```").removesuffix("```").strip()
+            if chave in ("prompt_imagem", "prompt_video"):
+                if len(candidato) >= 200 and not re.search(r"(?im)^\s*#{1,6}\s*[📸🎬🔑]", candidato):
+                    partes[chave] = candidato
+            elif all(re.search(p, candidato, re.I) for p in
+                     (r"(?:🔍|\bGeral\b)", r"(?:💡|\bSolu[cç][aã]o\b)",
+                      r"(?:🏷️|\bMarca\b)")):
+                partes[chave] = candidato
+        log.info("Reparo pontual %s: recuperado=%s, motivo=%s",
+                 chave, bool(partes[chave]), motivo)
+
+    if all(partes.values()):
+        final = _montar(partes)
+        if validar_formato_roteiro_v1689(final):
+            return final
+    raise ValueError("Formato de roteiro incompleto após recuperação pontual de seções")
 
 
 def escanear_dor_e_contagem_da_foto(img_b64):
