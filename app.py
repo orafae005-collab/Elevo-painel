@@ -88,6 +88,10 @@ if len(AUTH_COOKIE_PASSWORD) < 32:
     st.stop()
 cookies = EncryptedCookieManager(prefix="elevo_v80_", password=AUTH_COOKIE_PASSWORD)
 if not cookies.ready():
+    # O componente de cookies precisa sincronizar com o navegador antes de usar
+    # cookies.get() ou cookies["login"]. Uma parada silenciosa aparenta tela branca.
+    st.info("🔐 Carregando o acesso da ÉLÉVO...")
+    st.caption("Se o carregamento não concluir, atualize a página ou abra o mesmo endereço em uma nova aba.")
     st.stop()
 
 if "usuario_logado" not in st.session_state:
@@ -115,15 +119,17 @@ def limpar_sessao_privada():
 
 
 def limpar_sessao_ao_sair():
-    """Limpa dados do usuário sem cancelar a fila de exclusão do cookie.
+    """Sai sem desmontar os componentes que controlam os cookies do navegador.
 
-    EncryptedCookieManager mantém exclusões pendentes em 'CookieManager.queue'.
-    Apagar essa chave logo após cookies.save() pode impedir o navegador de
-    concluir a exclusão e fazer a conta antiga reaparecer no rerun.
+    O Streamlit mantém estados de widgets/componentes no st.session_state. Na
+    versão anterior, apagar quase tudo (exceto a fila) podia desmontar o
+    gerenciador logo antes do novo formulário de login. Mantemos toda chave
+    interna do CookieManager, mas removemos os dados da conta anterior.
     """
     for chave in list(st.session_state.keys()):
-        if chave != "CookieManager.queue":
-            st.session_state.pop(chave, None)
+        if str(chave).startswith("CookieManager."):
+            continue
+        st.session_state.pop(chave, None)
     st.session_state.update(
         usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="",
         elevo_logout_pendente=True,
@@ -205,6 +211,10 @@ def entrar_usuario(email, nome):
     limpar_sessao_privada()
     # Novo login explícito: não herdar o bloqueio de restauração do logout anterior.
     st.session_state.pop("elevo_logout_pendente", None)
+    # Esta marca protege contra a restauração de uma sessão antiga caso o
+    # navegador demore para excluir o cookie. Apagar apenas após login válido.
+    if st.query_params.get("elevo_acesso") == "novo":
+        del st.query_params["elevo_acesso"]
     st.session_state.update(
         usuario_logado=True, email_usuario=email, nome_usuario=nome, auth_metodo="senha",
         # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
@@ -307,7 +317,9 @@ def entrar_com_google_vinculado(ident):
     return True
 
 ident_google = google_identidade_atual() if GOOGLE_ATIVO else None
-if GOOGLE_ATIVO and st.user.is_logged_in and not st.session_state.get("elevo_logout_pendente", False):
+if (GOOGLE_ATIVO and st.user.is_logged_in
+        and not st.session_state.get("elevo_logout_pendente", False)
+        and st.query_params.get("elevo_acesso") != "novo"):
     # Identidade Google assume precedência, NUNCA herda a sessão de outro Gmail.
     if not ident_google:
         st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
@@ -330,8 +342,13 @@ if GOOGLE_ATIVO and st.user.is_logged_in and not st.session_state.get("elevo_log
 # Códigos antigos ?sessao=... eram falsificáveis: eliminar e nunca aceitá-los.
 if "sessao" in st.query_params:
     del st.query_params["sessao"]
+# Marcador sem dados pessoais: permite mostrar a tela de acesso mesmo se o
+# navegador ainda estiver concluindo a exclusão assíncrona do cookie antigo.
+ELEVO_MOSTRAR_LOGIN = st.query_params.get("elevo_acesso") == "novo"
 # Evita restaurar a conta antiga enquanto o navegador processa o cookie removido.
-if st.session_state.get("elevo_logout_pendente", False):
+if st.session_state.get("elevo_logout_pendente", False) or ELEVO_MOSTRAR_LOGIN:
+    # A fila de exclusão pode ainda estar pendente. Insistimos sem bloquear
+    # a exibição do formulário e sem restaurar a conta a partir do cookie antigo.
     if cookies.get("login"):
         cookies.pop("login", None)
         cookies.save()
@@ -339,6 +356,7 @@ if st.session_state.get("elevo_logout_pendente", False):
 
 if (not st.session_state["usuario_logado"]
         and not st.session_state.get("elevo_logout_pendente", False)
+        and not ELEVO_MOSTRAR_LOGIN
         and cookies.get("login")
         and not (GOOGLE_ATIVO and st.user.is_logged_in)):
     email_cookie = ler_token(cookies.get("login", ""))
@@ -355,6 +373,8 @@ if (not st.session_state["usuario_logado"]
         cookies.save()
 
 if not st.session_state["usuario_logado"]:
+    if ELEVO_MOSTRAR_LOGIN:
+        st.success("✅ Você saiu da conta. Entre com outra conta ou crie uma nova.")
     # Visual V13: somente apresentação; nenhuma mudança na lógica de credenciais/cookies.
     st.markdown("""
     <style>
@@ -464,6 +484,9 @@ if not st.session_state["usuario_logado"]:
                         st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
                         if st.button("✨ Criar meu acesso com Google", use_container_width=True):
                             try:
+                                if st.query_params.get("elevo_acesso") == "novo":
+                                    del st.query_params["elevo_acesso"]
+                                st.session_state.pop("elevo_logout_pendente", None)
                                 # Senha aleatória não entregue ao usuário; login por OIDC.
                                 # Primeiro registra o vínculo. Se o cadastro de usuário
                                 # falhar, a mesma identidade Google poderá concluir depois.
@@ -518,6 +541,10 @@ if not st.session_state["usuario_logado"]:
                 if GOOGLE_ATIVO:
                     st.caption("────────── ou ──────────")
                     if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
+                        # Clique explícito: permita a nova autenticação Google.
+                        if st.query_params.get("elevo_acesso") == "novo":
+                            del st.query_params["elevo_acesso"]
+                        st.session_state.pop("elevo_logout_pendente", None)
                         st.login("google")
                 else:
                     st.caption("🔒 Acesso Google disponível após configurar OAuth nos Secrets.")
@@ -1396,18 +1423,23 @@ with st.expander("🔐 Minha Conta e Google", expanded=False):
         st.caption("O administrador ainda precisa configurar Google OAuth para liberar esta opção.")
 
 if st.button("Sair da Conta (Logout)", key="btn_logout"):
-    # Saída real para contas comuns, CEO e Google, sem prender o usuário.
+    # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
+    # componente acontece no navegador, por isso o bloqueio de restauração.
     sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
     cookies.pop("login", None)
     cookies.save()
-    limpar_sessao_ao_sair()  # preserva CookieManager.queue até a exclusão ser aplicada
-    # O componente de cookies grava no navegador de forma assíncrona.
-    # Não reiniciar antes de sua exclusão ter oportunidade de ser processada.
-    time.sleep(0.8)
+    # 2) Forçar explicitamente a tela de login, mesmo que o cookie antigo
+    # ainda esteja no browser por alguns instantes. Não contém e-mail/token.
+    st.query_params["elevo_acesso"] = "novo"
+    # 3) Limpar apenas o estado do aplicativo e preservar os componentes
+    # internos que precisam continuar montados para excluir o cookie.
+    limpar_sessao_ao_sair()
     if sair_do_google:
-        st.logout()  # também remove o cookie OIDC e inicia uma nova sessão
+        # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
+        st.logout()
         st.stop()
-    st.rerun()  # sem login antigo: apresenta Entrar / Criar Conta
+    # Não usar sleep(): isso não espera uma confirmação do navegador.
+    st.rerun()
 
 # ==========================================================
 # 4 a 9 E 14. NÚCLEO FINANCEIRO VIP E GRÁFICOS (EXCLUSIVO DO CEO)
