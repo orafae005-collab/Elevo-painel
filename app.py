@@ -4352,13 +4352,38 @@ def travar_escala_e_fisica_somente_video_v1685(conteudo):
         "V9.2 closing logo/glitch exactly as written; this change ONLY governs product size "
         "and physical continuity during the video. \n"
     )
-    padrao = r'(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)'
-    if not re.search(padrao, conteudo):
-        raise ValueError('Bloco de vídeo não encontrado para a trava física V16.8.5.')
-    trecho_video = re.split(r'(?im)^###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n', conteudo, maxsplit=1)[1]
+    # Compatibilidade: contas/provedores podem devolver o mesmo cabeçalho com
+    # variações de emoji, acento, negrito ou nível de Markdown. Normalize apenas
+    # o cabeçalho da seção de vídeo, sem reescrever o conteúdo criativo.
+    linhas = conteudo.splitlines(keepends=True)
+    indice_video = None
+    for i, linha in enumerate(linhas):
+        limpa = re.sub(r"[*_`#🎬🎥📹\s]", "", linha).casefold()
+        limpa = limpa.replace("í", "i").replace("é", "e")
+        if "promptdevideo" in limpa or "videoprompt" in limpa:
+            indice_video = i
+            break
+    if indice_video is None:
+        # A trava física é um reforço, não deve invalidar um roteiro inteiro.
+        # Registra o motivo para diagnóstico e deixa a validação das seções
+        # principais decidir se o conteúdo pode ser exibido.
+        import logging
+        logging.getLogger("elevo.geracao").warning(
+            "Trava física ignorada: cabeçalho de vídeo não reconhecido; conteúdo preservado.")
+        return conteudo
+    linha_original = linhas[indice_video]
+    if not re.match(r"^\s*###\s*🎬\s*PROMPT DE VÍDEO", linha_original, re.IGNORECASE):
+        final_de_linha = "\n" if linha_original.endswith("\n") else ""
+        linhas[indice_video] = "### 🎬 PROMPT DE VÍDEO" + final_de_linha
+        conteudo = "".join(linhas)
+    padrao = r'(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n?)'
+    partes = re.split(padrao, conteudo, maxsplit=1)
+    if len(partes) < 3:
+        return conteudo
+    trecho_video = partes[2]
     if marcador in trecho_video:
         return conteudo
-    return re.sub(padrao, lambda m: m.group(1) + trava, conteudo, count=1)
+    return partes[0] + partes[1] + ("\n" + trava) + trecho_video
 
 DIRETRIZES_VIDA_REAL_V1682 = (
     '[21 ENVIRONMENTS / NATURAL UGC PHYSICS — NEVER REPLACE THE CURRENT OUTPUT FORMAT] '
