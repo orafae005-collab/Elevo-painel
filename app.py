@@ -2129,52 +2129,112 @@ if E_O_CEO:
 
 # ==========================================================
 def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo_marca=""):
-    if not robo_sheets: return None
-    try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if not match_id: return None
-        planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-        try:
-            aba_inf = planilha_mestre.worksheet("Banco_Influencers")
-            cabecalho = aba_inf.row_values(1)
-            if len(cabecalho) < 5:
-                aba_inf.update_cell(1, 5, "Logo_Marca")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="5")
-            aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca"])
-        
-        email_clean = str(email_usr).strip().lower()
-        
-        if acao == "ler":
-            registros = aba_inf.get_all_records()
-            user_inf = [r for r in registros if str(r.get("Email", "")).strip().lower() == email_clean]
-            if user_inf:
-                return user_inf[-1]
-            return None
-            
-        elif acao == "salvar":
-            col_emails = aba_inf.col_values(1)
-            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            # Update without deleting the previous profile before the write completes.
-            indices = [i for i in range(2, len(col_emails) + 1)
-                       if str(col_emails[i - 1]).strip().lower() == email_clean]
-            if indices:
-                aba_inf.update(f"B{indices[-1]}:E{indices[-1]}",
-                               [[nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()]])
-            else:
-                aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()])
-            return True
-            
-        elif acao == "excluir":
-            col_emails = aba_inf.col_values(1)
-            apagou = False
-            for i in range(len(col_emails), 1, -1):
-                if str(col_emails[i-1]).strip().lower() == email_clean:
-                    aba_inf.delete_rows(i)
-                    apagou = True
-            return apagou
-    except Exception:
+    """Leitura/gravação compatível com o banco atual, com retentativas limitadas.
+
+    Nunca apaga perfil antes de confirmar escrita; um erro transitório de Sheets
+    não pode impedir permanentemente a seleção de uma influenciadora.
+    """
+    import logging
+    log = logging.getLogger("elevo.influencer")
+    if not robo_sheets:
+        log.warning("Banco de influencers indisponível: cliente Sheets não inicializado")
         return None
+
+    email_clean = str(email_usr or "").strip().lower()
+    if not email_clean:
+        return None
+
+    def _verificar_salvamento(aba):
+        # Evita repetir append se a API devolveu erro depois de efetivar a gravação.
+        try:
+            linhas = aba.get_all_values()
+            for linha in reversed(linhas[1:]):
+                if len(linha) >= 3 and linha[0].strip().lower() == email_clean:
+                    return (linha[1] == nome_inf.strip() and linha[2] == desc_inf.strip()
+                            and (len(linha) < 5 or linha[4] == logo_marca.strip()))
+        except Exception:
+            pass
+        return False
+
+    for tentativa in range(3):
+        try:
+            match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+            if not match_id:
+                log.error("Configuração inválida: identificador do banco de influencers")
+                return None
+            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
+            try:
+                aba_inf = planilha_mestre.worksheet("Banco_Influencers")
+            except gspread.exceptions.WorksheetNotFound:
+                aba_inf = planilha_mestre.add_worksheet(title="Banco_Influencers", rows="1000", cols="5")
+                aba_inf.append_row(["Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca"])
+
+            # Não exigir escrita de cabeçalho em TODAS as leituras; isto falhava
+            # desnecessariamente para contas normais em planilhas antigas.
+            if acao == "salvar":
+                cabecalho = aba_inf.row_values(1)
+                if len(cabecalho) < 5:
+                    aba_inf.update_cell(1, 5, "Logo_Marca")
+
+            if acao == "ler":
+                # get_all_values tolera cabeçalhos vazios/duplicados, presentes
+                # em algumas planilhas antigas; get_all_records pode rejeitá-los.
+                registros = aba_inf.get_all_values()
+                if not registros:
+                    return None
+                cabecalho = registros[0]
+                indice_email = cabecalho.index("Email") if "Email" in cabecalho else 0
+                registros_usuario = []
+                for linha in registros[1:]:
+                    if indice_email < len(linha) and linha[indice_email].strip().lower() == email_clean:
+                        campos = ("Email", "Nome_Influencer", "Descricao_Visual", "Data_Atualizacao", "Logo_Marca")
+                        registros_usuario.append({campo: (linha[i] if i < len(linha) else "")
+                                                  for i, campo in enumerate(campos)})
+                return registros_usuario[-1] if registros_usuario else None
+
+            if acao == "salvar":
+                col_emails = aba_inf.col_values(1)
+                agora_str = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
+                indices = [i for i in range(2, len(col_emails) + 1)
+                           if str(col_emails[i - 1]).strip().lower() == email_clean]
+                if indices:
+                    # Idempotente: atualiza apenas a linha da conta solicitante.
+                    aba_inf.update(f"B{indices[-1]}:E{indices[-1]}",
+                                   [[nome_inf.strip(), desc_inf.strip(), agora_str, logo_marca.strip()]])
+                else:
+                    aba_inf.append_row([email_clean, nome_inf.strip(), desc_inf.strip(),
+                                        agora_str, logo_marca.strip()])
+                return True
+
+            if acao == "excluir":
+                col_emails = aba_inf.col_values(1)
+                apagou = False
+                for i in range(len(col_emails), 1, -1):
+                    if str(col_emails[i - 1]).strip().lower() == email_clean:
+                        aba_inf.delete_rows(i)
+                        apagou = True
+                return apagou
+            return None
+        except Exception as erro:
+            status = getattr(getattr(erro, "response", None), "status_code", None)
+            status = status or getattr(erro, "status_code", None)
+            nome_classe = type(erro).__name__
+            # Só repetimos falhas temporárias, jamais um erro permanente de permissão.
+            transitorio = (status in (429, 500, 502, 503, 504)
+                           or nome_classe in ("ConnectionError", "Timeout", "ReadTimeout",
+                                              "ConnectTimeout", "APIConnectionError"))
+            if acao == "salvar" and transitorio:
+                try:
+                    if 'aba_inf' in locals() and _verificar_salvamento(aba_inf):
+                        return True
+                except Exception:
+                    pass
+            log.warning("Sheets influencers ação=%s, tentativa=%d, erro=%s, status=%s",
+                        acao, tentativa + 1, nome_classe, status)
+            if not transitorio or tentativa == 2:
+                return None
+            time.sleep(1 + tentativa * 2)
+    return None
 
 
 # ==========================================================
@@ -3070,6 +3130,117 @@ def extrair_blocos_roteiro(md_texto):
         if len(titulos_limpos) >= 3: dados["titulo_3"] = titulos_limpos[2]
 
     return dados
+
+def normalizar_titulos_roteiro_v1689(conteudo):
+    """Restaura APENAS cabeçalhos Markdown quando a IA varia emoji, numeração ou título."""
+    import unicodedata
+    if not isinstance(conteudo, str):
+        return ""
+    conteudo = conteudo.strip()
+    if conteudo.startswith("```"):
+        linhas = conteudo.splitlines()
+        if linhas and linhas[0].strip().startswith("```"):
+            linhas.pop(0)
+        if linhas and linhas[-1].strip().startswith("```"):
+            linhas.pop()
+        conteudo = "\n".join(linhas)
+
+    def _limpo(linha):
+        linha = re.sub(r"^\s*#{1,6}\s*", "", linha).strip().strip("* ")
+        linha = re.sub(r"^(?:[1-3]️⃣|[1-3][.)-])\s*", "", linha).strip()
+        linha = re.sub(r"^[📸🎬🔑🔍🏷️🎥🖼️📷]\s*", "", linha).strip()
+        sem_acentos = unicodedata.normalize("NFKD", linha)
+        return "".join(c for c in sem_acentos if not unicodedata.combining(c)).casefold()
+
+    linhas=conteudo.splitlines()
+    marcadores={}
+    for i, linha in enumerate(linhas):
+        if len(linha.strip()) > 160:
+            continue
+        texto = _limpo(linha)
+        if not texto:
+            continue
+        if "imagem" in texto or "image" in texto:
+            if any(s in texto for s in ("prompt de imagem", "gabarito de imagem",
+                                       "matriz de imagem", "imagem base", "image prompt")):
+                marcadores.setdefault("imagem", i)
+                continue
+        if "video" in texto:
+            if any(s in texto for s in ("prompt de video", "comando de video", "video completo",
+                                       "matriz de video", "video prompt")):
+                marcadores.setdefault("video", i)
+                continue
+        if "seo" in texto:
+            if any(s in texto for s in ("titulos seo", "titulos para seo", "seo titles", "titulos de seo")):
+                marcadores.setdefault("seo", i)
+    # O modelo às vezes devolve o título de SEO diretamente como primeiro título.
+    if "seo" not in marcadores and "video" in marcadores:
+        for i, linha in enumerate(linhas[marcadores["video"]+1:], marcadores["video"]+1):
+            if re.match(r"^\s*(?:\*\*)?\s*[🔍💡🏷️]\s*(?:Geral|Solução|Marca)", linha, re.I):
+                marcadores["seo"] = i
+                break
+
+    if not ("imagem" in marcadores and "video" in marcadores):
+        return conteudo
+    if marcadores["imagem"] >= marcadores["video"]:
+        return conteudo
+    if "seo" in marcadores and marcadores["seo"] <= marcadores["video"]:
+        return conteudo
+
+    titulos = {"imagem": "### 📸 PROMPT DE IMAGEM", "video": "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO",
+               "seo": "### 🔑 TÍTULOS SEO (Separados)"}
+    for key, indice in marcadores.items():
+        titulo = titulos[key]
+        if key == "seo" and _limpo(linhas[indice]).startswith(("geral", "solucao", "marca")):
+            # Insere cabeçalho, preservando o primeiro título SEO como dado original.
+            linhas[marcadores[key]] = titulo + "\n" + linhas[marcadores[key]]
+        else:
+            linhas[marcadores[key]] = titulo
+    return "\n".join(linhas).strip()
+
+
+def validar_formato_roteiro_v1689(conteudo):
+    partes = extrair_blocos_roteiro(conteudo)
+    return (bool(partes["prompt_imagem"].strip()) and
+            bool(partes["prompt_video"].strip()) and
+            bool(partes["secao_seo_texto"].strip()))
+
+
+def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
+    """Mantém o mesmo prompt e modelo; recupera cabeçalhos sem outra chamada.
+
+    Só repete a geração UMA vez quando realmente faltarem seções essenciais.
+    """
+    resposta = cliente_openai.chat.completions.create(
+        model="gpt-4o-mini", messages=[{"role": "system", "content": sistema},
+                                      {"role": "user", "content": instrucao}],
+        max_tokens=6500, temperature=temperatura)
+    conteudo = normalizar_titulos_roteiro_v1689(
+        (resposta.choices[0].message.content or "") if resposta.choices else "")
+    if validar_formato_roteiro_v1689(conteudo):
+        return conteudo
+
+    import logging
+    fim = getattr(resposta.choices[0], "finish_reason", "ausente") if resposta.choices else "ausente"
+    logging.getLogger("elevo.geracao").warning(
+        "Formato incompleto; tentar recuperar (finish_reason=%s, comprimento=%d)", fim, len(conteudo))
+    # Só um retry com o MESMO briefing; não altera estilo, influencer, produto nem cenário.
+    validar_cota_ia()
+    resposta2 = cliente_openai.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {"role": "system", "content": sistema +
+             "\nFORMATO OBRIGATÓRIO: devolva 3 seções Markdown com estes cabeçalhos exatos, "
+             "na ordem: ### 📸 PROMPT DE IMAGEM, ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO, "
+             "### 🔑 TÍTULOS SEO (Separados). Não omita nenhuma seção. Mantenha o conteúdo do briefing."},
+            {"role": "user", "content": instrucao}],
+        max_tokens=7500, temperature=0.5)
+    conteudo2 = normalizar_titulos_roteiro_v1689(
+        (resposta2.choices[0].message.content or "") if resposta2.choices else "")
+    if validar_formato_roteiro_v1689(conteudo2):
+        return conteudo2
+    raise ValueError("Formato inesperado da resposta de IA após normalização e uma nova tentativa")
+
 
 def escanear_dor_e_contagem_da_foto(img_b64):
     """
@@ -4206,16 +4377,10 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
             validar_cota_ia()
-            resp = cliente_openai.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Preserve os headings dos Moldes 17.3, mas IGNORE qualquer aparência, marca, cor, quantidade nominal ou descrição de produto presente em exemplos históricos. Foto do produto é referência externa exclusiva. Escreva toda a parte visual em inglês puro."},
-                    {"role": "user", "content": instrucao_ouro}
-                ],
-                max_tokens=6500, temperature=0.75
-            )
-            
-            conteudo_texto = resp.choices[0].message.content.strip()
+            conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
+                instrucao_ouro,
+                "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Preserve os headings dos Moldes 17.3, mas IGNORE qualquer aparência, marca, cor, quantidade nominal ou descrição de produto presente em exemplos históricos. Foto do produto é referência externa exclusiva. Escreva toda a parte visual em inglês puro.",
+                temperatura=0.75)
             conteudo_texto = fixar_ambiente_ambos_prompts_v165(
                 conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
             conteudo_texto = reforcar_apenas_video_v12(conteudo_texto, scan_17, "360")
@@ -4319,17 +4484,10 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
                 instrucao_v92 += f"\n\n[OVERRIDE ESPECÍFICO DA LOGO V9.2 — TEM PRIORIDADE SOBRE REGRAS HISTÓRICAS ANTI-LOGO]\nNo BLOCO 17.2 / V9.2, é OBRIGATÓRIO incluir uma única finalização de logo com o nome exato '{logo_ativa_usuario}'. Essa finalização ocorre somente no fechamento do vídeo, em um glitch digital vermelho rápido, com logo textual curta, limpa, centralizada e legível. Não escrever descrições longas da logo, não criar slogan, não repetir a logo e não substituir a marca impressa na embalagem."
                 validar_cota_ia()
-                resp_v92 = cliente_openai.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[
-                        {"role": "system", "content": "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Preserve a estrutura 17.3, mas ignore produtos e identidades dos exemplos históricos; foto separada determina o produto e influencer selecionada determina só a pessoa."},
-                        {"role": "user", "content": instrucao_v92}
-                    ],
-                    max_tokens=6500,
-                    temperature=0.75
-                )
-
-                conteudo_v92 = resp_v92.choices[0].message.content.strip()
+                conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
+                    instrucao_v92,
+                    "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Preserve a estrutura 17.3, mas ignore produtos e identidades dos exemplos históricos; foto separada determina o produto e influencer selecionada determina só a pessoa.",
+                    temperatura=0.75)
                 conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
                     conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
                 conteudo_v92 = reforcar_apenas_video_v12(conteudo_v92, scan_v92, "v9.2")
