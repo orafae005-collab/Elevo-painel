@@ -113,6 +113,22 @@ def limpar_sessao_privada():
         if chave in SESSAO_DADOS_PRIVADOS or chave.startswith(("missao_", "input_", "audio_input_", "bv_login_")):
             st.session_state.pop(chave, None)
 
+
+def limpar_sessao_ao_sair():
+    """Limpa dados do usuário sem cancelar a fila de exclusão do cookie.
+
+    EncryptedCookieManager mantém exclusões pendentes em 'CookieManager.queue'.
+    Apagar essa chave logo após cookies.save() pode impedir o navegador de
+    concluir a exclusão e fazer a conta antiga reaparecer no rerun.
+    """
+    for chave in list(st.session_state.keys()):
+        if chave != "CookieManager.queue":
+            st.session_state.pop(chave, None)
+    st.session_state.update(
+        usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="",
+        elevo_logout_pendente=True,
+    )
+
 def ativar_identidade(email, nome, metodo):
     identidade_anterior = str(st.session_state.get("email_usuario", "")).strip().lower()
     if identidade_anterior and identidade_anterior != email.strip().lower():
@@ -187,6 +203,8 @@ def ler_token(token):
 
 def entrar_usuario(email, nome):
     limpar_sessao_privada()
+    # Novo login explícito: não herdar o bloqueio de restauração do logout anterior.
+    st.session_state.pop("elevo_logout_pendente", None)
     st.session_state.update(
         usuario_logado=True, email_usuario=email, nome_usuario=nome, auth_metodo="senha",
         # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
@@ -289,7 +307,7 @@ def entrar_com_google_vinculado(ident):
     return True
 
 ident_google = google_identidade_atual() if GOOGLE_ATIVO else None
-if GOOGLE_ATIVO and st.user.is_logged_in:
+if GOOGLE_ATIVO and st.user.is_logged_in and not st.session_state.get("elevo_logout_pendente", False):
     # Identidade Google assume precedência, NUNCA herda a sessão de outro Gmail.
     if not ident_google:
         st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
@@ -312,7 +330,16 @@ if GOOGLE_ATIVO and st.user.is_logged_in:
 # Códigos antigos ?sessao=... eram falsificáveis: eliminar e nunca aceitá-los.
 if "sessao" in st.query_params:
     del st.query_params["sessao"]
-if (not st.session_state["usuario_logado"] and cookies.get("login")
+# Evita restaurar a conta antiga enquanto o navegador processa o cookie removido.
+if st.session_state.get("elevo_logout_pendente", False):
+    if cookies.get("login"):
+        cookies.pop("login", None)
+        cookies.save()
+    st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
+
+if (not st.session_state["usuario_logado"]
+        and not st.session_state.get("elevo_logout_pendente", False)
+        and cookies.get("login")
         and not (GOOGLE_ATIVO and st.user.is_logged_in)):
     email_cookie = ler_token(cookies.get("login", ""))
     if email_cookie == EMAIL_MESTRE.strip().lower():
@@ -1369,13 +1396,18 @@ with st.expander("🔐 Minha Conta e Google", expanded=False):
         st.caption("O administrador ainda precisa configurar Google OAuth para liberar esta opção.")
 
 if st.button("Sair da Conta (Logout)", key="btn_logout"):
+    # Saída real para contas comuns, CEO e Google, sem prender o usuário.
+    sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
     cookies.pop("login", None)
     cookies.save()
-    limpar_sessao_privada()
-    st.session_state.clear()  # inclui widgets, uploads e textos da conta anterior
-    if GOOGLE_ATIVO and st.user.is_logged_in:
-        st.logout()
-    st.rerun()
+    limpar_sessao_ao_sair()  # preserva CookieManager.queue até a exclusão ser aplicada
+    # O componente de cookies grava no navegador de forma assíncrona.
+    # Não reiniciar antes de sua exclusão ter oportunidade de ser processada.
+    time.sleep(0.8)
+    if sair_do_google:
+        st.logout()  # também remove o cookie OIDC e inicia uma nova sessão
+        st.stop()
+    st.rerun()  # sem login antigo: apresenta Entrar / Criar Conta
 
 # ==========================================================
 # 4 a 9 E 14. NÚCLEO FINANCEIRO VIP E GRÁFICOS (EXCLUSIVO DO CEO)
