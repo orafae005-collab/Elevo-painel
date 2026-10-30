@@ -548,6 +548,54 @@ if bv_nonce_refresh:
     st.stop()
 
 # ==========================================================
+# ÉLÉVO V16.8.6 — DIAGNÓSTICO SEGURO PARA CONTAS COMUNS
+# Não expõe credenciais, conteúdo do prompt nem erros brutos da API.
+# ==========================================================
+def mensagem_erro_criacao_v1686(erro, etapa="geração"):
+    nome = type(erro).__name__
+    resposta = getattr(erro, "response", None)
+    codigo = getattr(erro, "status_code", None) or getattr(resposta, "status_code", None)
+    if isinstance(erro, RuntimeError):
+        descricao = str(erro)
+        if "Limite de " in descricao and "operações de IA" in descricao:
+            return ("LIMITE_DIARIO", descricao + " As 3 criações gratuitas são um limite separado; "
+                    "uma criação pode usar até três operações de IA.")
+        if "cota de ia" in descricao.lower() or "consumo" in descricao.lower():
+            return ("CONTROLE_IA", "O controle de consumo de IA no Google Sheets está temporariamente "
+                    "indisponível. Não foi descontada uma criação gratuita. Tente novamente após normalizar o serviço.")
+        if "login" in descricao.lower():
+            return ("SESSAO", "A sessão precisa ser validada novamente. Saia e entre na sua conta.")
+    if nome == "RateLimitError" or codigo == 429:
+        return ("LIMITE_PROVEDOR", "O serviço de IA atingiu um limite temporário de requisições ou de créditos "
+                "do provedor. Não foi descontada uma criação gratuita. Verifique a conta/API e tente novamente.")
+    if nome in ("APIConnectionError", "APITimeoutError", "ConnectTimeout", "ReadTimeout", "Timeout"):
+        return ("CONEXAO_IA", "Não foi possível concluir a conexão com a IA. "
+                "Não foi descontada uma criação gratuita. Tente novamente.")
+    if nome == "AuthenticationError" or codigo == 401:
+        return ("CONFIGURACAO_IA", "A chave ou autenticação da IA precisa ser conferida pelo administrador. "
+                "Não foi descontada uma criação gratuita.")
+    if nome == "BadRequestError" or codigo == 400:
+        return ("REQUISICAO_IA", "O provedor rejeitou o pedido de geração. "
+                "Não foi descontada uma criação gratuita. Consulte os registros técnicos da aplicação.")
+    if isinstance(erro, ValueError) and ("Bloco" in str(erro) or "títulos" in str(erro) or "formato" in str(erro).lower()):
+        return ("FORMATO_IA", "A resposta da IA não veio no formato esperado de imagem e vídeo. "
+                "Não foi descontada uma criação gratuita. Gere novamente.")
+    if codigo in (500, 502, 503, 504):
+        return ("SERVICO_EXTERNO", "Um serviço externo ficou temporariamente indisponível. "
+                "Não foi descontada uma criação gratuita. Tente novamente.")
+    return ("FALHA_GERACAO", "A criação não foi concluída. Nenhuma criação gratuita foi descontada. "
+            "O detalhe técnico foi registrado nos logs, sem expor informações da sua conta.")
+
+
+def mostrar_erro_criacao_v1686(erro, etapa="geração"):
+    import logging
+    codigo, mensagem = mensagem_erro_criacao_v1686(erro, etapa)
+    logging.getLogger("elevo.geracao").error(
+        "Falha geracao (%s), etapa=%s, classe=%s", codigo, etapa, type(erro).__name__,
+        exc_info=(type(erro), erro, erro.__traceback__))
+    st.error(f"⚠️ {mensagem} (Código: {codigo}; etapa: {etapa})")
+
+# ==========================================================
 # LIMITE GERAL DE CONSUMO DE IA — custos previsíveis por conta / dia.
 # As 3 criações gratuitas são um limite SEPARADO, mantido como antes.
 # Sheets não oferece transação atômica: para SaaS em escala usar banco com
@@ -561,25 +609,34 @@ def validar_cota_ia():
         return
     if not robo_sheets:
         raise RuntimeError("Controle de consumo indisponível; tente novamente.")
-    try:
-        max_dia = max(1, int(st.secrets.get("LIMITE_IA_DIARIO", 30)))
-        planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
+    for tentativa in range(3):
         try:
-            aba = planilha.worksheet("Consumo_IA_Diario")
-        except gspread.exceptions.WorksheetNotFound:
-            aba = planilha.add_worksheet(title="Consumo_IA_Diario", rows="2000", cols="3")
-            aba.append_row(["Email", "Data", "Tipo"])
-        hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
-        usados = sum(1 for r in aba.get_all_records()
-                     if str(r.get("Email", "")).strip().lower() == email and str(r.get("Data", "")) == hoje)
-        if usados >= max_dia:
-            raise RuntimeError(f"Limite de {max_dia} operações de IA atingido hoje. Volte amanhã.")
-        # Reserva antes da requisição para evitar consumo livre em caso de falha.
-        aba.append_row([email, hoje, "IA"])
-    except RuntimeError:
-        raise
-    except Exception:
-        raise RuntimeError("Não foi possível validar a cota de IA. Tente novamente.")
+            max_dia = max(1, int(st.secrets.get("LIMITE_IA_DIARIO", 30)))
+            planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
+            try:
+                aba = planilha.worksheet("Consumo_IA_Diario")
+            except gspread.exceptions.WorksheetNotFound:
+                aba = planilha.add_worksheet(title="Consumo_IA_Diario", rows="2000", cols="3")
+                aba.append_row(["Email", "Data", "Tipo"])
+            hoje = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%Y-%m-%d")
+            usados = sum(1 for r in aba.get_all_records()
+                         if str(r.get("Email", "")).strip().lower() == email and str(r.get("Data", "")) == hoje)
+            if usados >= max_dia:
+                raise RuntimeError(f"Limite de {max_dia} operações de IA atingido hoje. Volte amanhã.")
+            # Reserva por operação de IA (scanner, criação e reforço do vídeo).
+            # O crédito gratuito da criação é separado e só é descontado em caso de sucesso.
+            aba.append_row([email, hoje, "IA"])
+            return
+        except RuntimeError:
+            raise
+        except gspread.exceptions.APIError as erro:
+            status = getattr(getattr(erro, "response", None), "status_code", None)
+            if status in (429, 500, 502, 503, 504) and tentativa < 2:
+                time.sleep(1 + tentativa * 2)
+                continue
+            raise RuntimeError("Controle de consumo de IA indisponível; tente novamente.") from erro
+        except Exception as erro:
+            raise RuntimeError("Não foi possível validar a cota de IA. Tente novamente.") from erro
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
@@ -2985,6 +3042,9 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
         dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade verificável no rótulo"))
         solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício documentado na embalagem"))
+    except RuntimeError:
+        # Uma falha conhecida de cota deve chegar ao botão; não mascarar como scanner genérico.
+        raise
     except Exception:
         qtd = 1
         tipo_emb = "product container"
@@ -4109,7 +4169,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             time.sleep(1)
             st.rerun()
         except Exception as e:
-            st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
+            mostrar_erro_criacao_v1686(e, "Bloco 17 — criação 360º")
 
 # ==========================================================
 # MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
@@ -4223,7 +4283,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
-                st.error("A solicitação não pôde ser concluída. Verifique a conexão ou sua cota de IA.")
+                mostrar_erro_criacao_v1686(e, "Bloco 17.2 — criação V9.2")
 
 # ==========================================================
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
