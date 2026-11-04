@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.2 — continuidade V16.8.1 + referência visual fixa do produto e microfísica nos 21 ambientes.
+# ÉLÉVO V16.8.3 — evolução pontual da V16.8.2: identidade por foto, interface fluida e voz acessível.
 import base64
 import requests
 import time
@@ -110,6 +110,9 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
     "elevo_ceo_identity_v1641_loaded", "elevo_ceo_original_v1682",
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
+    "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
+    "elevo_propria_analise", "elevo_propria_foto_hash", "elevo_propria_erro_analise",
+    "elevo_propria_autofoco",
 }
 
 def limpar_sessao_privada():
@@ -2225,6 +2228,129 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
 
 
 # ==========================================================
+# ÉLÉVO V16.8.3 — IDENTIDADE PRÓPRIA ISOLADA POR LOGIN
+# Guardada em aba adicional; nunca sobrescrita ao testar os cinco presets.
+# O rosto vem da FOTO, não de descrições inventadas pela IA.
+# ==========================================================
+def gerenciar_identidade_propria_v1683(acao, email, nome="", descricao="", notas="", foto_b64=""):
+    """Leitura/gravação por e-mail autenticado, em aba separada do elenco ativo."""
+    email = str(email or "").strip().lower()
+    if not email or not robo_sheets:
+        return None
+    try:
+        chave = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1)
+        planilha = robo_sheets.open_by_key(chave)
+        try:
+            aba = planilha.worksheet("Banco_Influencias_Proprias")
+        except gspread.exceptions.WorksheetNotFound:
+            if acao == "ler":
+                return None
+            aba = planilha.add_worksheet(title="Banco_Influencias_Proprias", rows="1000", cols="6")
+            aba.append_row(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em"])
+        if acao == "ler":
+            valores = aba.get_all_values()
+            for linha in reversed(valores[1:]):
+                if linha and str(linha[0]).strip().lower() == email:
+                    linha = (linha + [""] * 6)[:6]
+                    return dict(zip(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em"], linha))
+            return None
+        if acao == "salvar":
+            if aba.col_count < 6:
+                aba.resize(cols=6)
+            if len(foto_b64) > 42000:
+                raise ValueError("Imagem acima do limite de persistência segura")
+            agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
+            valores = [nome.strip(), descricao.strip(), notas.strip(), foto_b64.strip(), agora]
+            indices = [i for i, v in enumerate(aba.col_values(1), 1) if i > 1 and v.strip().lower() == email]
+            if indices:
+                aba.update(f"B{indices[-1]}:F{indices[-1]}", [valores])
+            else:
+                aba.append_row([email] + valores)
+            return True
+    except Exception as erro:
+        import logging
+        logging.getLogger("elevo.influencer").warning("Identidade própria: %s — %s", acao, type(erro).__name__)
+    return None
+
+
+def obter_identidade_propria_v1683(email):
+    if st.session_state.get("elevo_propria_cache_email") != email:
+        st.session_state["elevo_propria_cache"] = gerenciar_identidade_propria_v1683("ler", email)
+        st.session_state["elevo_propria_cache_email"] = email
+    return st.session_state.get("elevo_propria_cache")
+
+
+def otimizar_foto_influencia_v1683(arquivo_bytes, limite_b64=42000):
+    """Compressão para uma célula do Google Sheets; imagem enviada continua privada."""
+    from PIL import Image, ImageOps
+    import io
+    with Image.open(io.BytesIO(arquivo_bytes)) as original:
+        original = ImageOps.exif_transpose(original)
+        if original.width * original.height > 45000000:
+            raise ValueError("Imagem excessivamente grande")
+        img = original.convert("RGB")
+        for lado in (460, 400, 350, 300, 256):
+            tmp = img.copy()
+            tmp.thumbnail((lado, lado), getattr(Image, "Resampling", Image).LANCZOS)
+            for qualidade in (75, 65, 54):
+                saida = io.BytesIO()
+                tmp.save(saida, format="JPEG", quality=qualidade, optimize=True)
+                encoded = base64.b64encode(saida.getvalue()).decode("ascii")
+                if len(encoded) <= limite_b64:
+                    return encoded
+    raise ValueError("Não foi possível compactar a foto com segurança")
+
+
+def analisar_referencia_influencia_v1683(foto_b64):
+    """Extrai assinatura VISUAL de um retrato. Não analisa produto nem muda cenário."""
+    validar_cota_ia()
+    pedido = (
+        "Analyze the attached portrait as a VISUAL character reference for future photorealistic "
+        "still-image and video prompts. Return valid JSON with one string key named "
+        "'visual_signature_en', and another boolean key 'valid_single_subject'. "
+        "Set valid_single_subject to false when the photo does not clearly show exactly one person. "
+        "Describe ONLY directly observable stable appearance: "
+        "face shape, eyes, hair length/style/color, skin tone as seen, eyebrows, body posture when visible, "
+        "and the photographed outfit when visible. Never invent invisible details, age, profession, "
+        "race, identity, health or other sensitive traits. Never describe a product, brand, "
+        "background product or item for sale. Do not invent a specific person name. "
+        "Use ~90-170 precise English words, one coherent third-person description. "
+        "Keep the SAME person and physical features in image and every video frame."
+    )
+    resposta = cliente_openai.chat.completions.create(
+        model="gpt-4o-mini", response_format={"type":"json_object"},
+        messages=[{"role":"system","content":pedido},
+                  {"role":"user","content":[{"type":"text", "text":"Produce the visible-person signature only."},
+                   {"type":"image_url", "image_url":{"url":"data:image/jpeg;base64," + foto_b64,
+                                                             "detail":"high"}}]}],
+        max_tokens=520, temperature=0.15)
+    conteudo = resposta.choices[0].message.content or "{}"
+    resultado = json.loads(conteudo)
+    if resultado.get("valid_single_subject") is False:
+        raise ValueError("Envie uma foto com uma única pessoa visível")
+    descricao = str(resultado.get("visual_signature_en", "")).strip()
+    if not (80 <= len(descricao) <= 1800):
+        raise ValueError("A IA não devolveu uma análise visual válida da foto")
+    return descricao
+
+
+def ativar_identidade_propria_v1683(perfil, email):
+    nome = str(perfil.get("Nome", "") or "Minha Influência").strip()
+    descricao = str(perfil.get("Descricao_Visual", "")).strip()
+    if not descricao:
+        raise ValueError("Identidade sem descrição visual")
+    logo = str((st.session_state.get("influencer_atual") or {}).get("Logo_Marca", ""))
+    st.session_state["influencer_atual"] = {
+        "Email": email, "Nome_Influencer": nome,
+        "Descricao_Visual": descricao, "Logo_Marca": logo,
+    }
+    st.session_state["elevo_inf_preset_id"] = ""
+    salvo = gerenciar_influencer_usuario("salvar", email, nome, descricao, logo)
+    if not salvo:
+        st.session_state["elevo_inf_erro_gravacao"] = True
+    return salvo
+
+# ==========================================================
 # ÉLÉVO V16.4 — ELENCO DIGITAL (substitui SOMENTE Laboratório + 9s)
 # Retratos originais embarcados no app.py; não necessita upload de imagens.
 # ==========================================================
@@ -2330,7 +2456,7 @@ if chave_preview_topo == "ceo_original" and E_O_CEO:
         "emocao": "Confiança, sofisticação e proximidade estratégica.",
         "voz": "Tom firme, elegante e natural em português brasileiro.",
         "referencia": "Usa a identidade original do CEO e respeita a descrição já aplicada nos Blocos 17 e 17.2.",
-        "observacao": "Se quiser, você ainda pode escolher uma das outras influenciadoras ou criar a sua própria na aba Minha Influenciadora."
+        "observacao": "Se quiser, você ainda pode escolher uma das outras influenciadoras ou criar a sua própria no botão 'Usar minha influência · Foto'."
     }
 elif chave_preview_topo in INFLUENCIADORAS_ELEVO_V164:
     pf = INFLUENCIADORAS_ELEVO_V164[chave_preview_topo]
@@ -2373,7 +2499,7 @@ with col_box_elenco:
             st.markdown("**Personalidade:** livre escolha")
             st.markdown("**Voz:** definida conforme a selecionada")
             st.markdown("**Emoção:** definida conforme a selecionada")
-            st.caption("Escolha um card da galeria ou crie a sua própria influência na aba Minha Influenciadora.")
+            st.caption("Escolha um card da galeria ou crie a sua própria influência no botão 'Usar minha influência · Foto'.")
 
 
 # ==========================================================
@@ -2485,9 +2611,9 @@ nome_ceo_galeria, descricao_ceo_galeria = (
 )
 
 if E_O_CEO:
-    st.info("Nenhuma influenciadora vem marcada automaticamente. Você pode escolher a sua identidade do CEO, testar uma das outras ou criar a sua própria na aba 'Minha Influenciadora'.")
+    st.info("Nenhuma influenciadora vem marcada automaticamente. Você pode escolher a sua identidade do CEO, testar uma das outras ou criar a sua própria no botão 'Usar minha influência · Foto'.")
 else:
-    st.info("Nenhuma influenciadora vem marcada automaticamente. Você pode escolher um perfil pronto ou criar a sua própria na aba 'Minha Influenciadora'.")
+    st.info("Nenhuma influenciadora vem marcada automaticamente. Você pode escolher um perfil pronto ou criar a sua própria no botão 'Usar minha influência · Foto'.")
 
 perfil_sessao_atual = st.session_state.get("influencer_atual") or {}
 if perfil_sessao_atual.get("Nome_Influencer"):
@@ -2520,6 +2646,16 @@ for chave_perfil, perfil in INFLUENCIADORAS_ELEVO_V164.items():
     })
 
 def aplicar_cartao_influencia_v164(card_id):
+    # Não substituir permanentemente a identidade própria ao explorar o catálogo.
+    anterior = st.session_state.get("influencer_atual") or {}
+    propria_existente = obter_identidade_propria_v1683(email_elenco_v164)
+    nomes_presets = {p["nome"] for p in INFLUENCIADORAS_ELEVO_V164.values()}
+    if (not propria_existente and anterior.get("Descricao_Visual")
+            and anterior.get("Nome_Influencer") not in nomes_presets):
+        backup_nome = str(anterior.get("Nome_Influencer", "")).strip()
+        backup_desc = str(anterior.get("Descricao_Visual", "")).strip()
+        if gerenciar_identidade_propria_v1683("salvar", email_elenco_v164, backup_nome, backup_desc):
+            st.session_state["elevo_propria_cache"] = gerenciar_identidade_propria_v1683("ler", email_elenco_v164)
     marca = str((st.session_state.get("influencer_atual") or {}).get("Logo_Marca", "")).strip()
     if card_id == "ceo_original":
         nome_aplicado = nome_ceo_galeria
@@ -2575,9 +2711,11 @@ with col_acao1:
         st.session_state["elevo_inf_preset_id"] = ""
         st.rerun()
 with col_acao2:
-    if st.button("👤 Usar influência própria", key="elenco_usar_propria", use_container_width=True):
+    if st.button("📸 Usar minha influência · Foto", key="elenco_usar_propria", use_container_width=True):
+        st.session_state["elevo_propria_estudio_aberto"] = True
+        st.session_state["elevo_propria_autofoco"] = True
         st.session_state["elevo_inf_preset_id"] = ""
-        st.info("Agora é só abrir a aba 'Minha Influenciadora' e salvar a sua própria influência.")
+        st.rerun()
 
 chave_ativa = st.session_state.get("elevo_inf_preset_id", "")
 if chave_ativa:
@@ -2628,12 +2766,114 @@ else:
     elif E_O_CEO:
         st.info("Sua influência original do CEO continua disponível. Se quiser ativá-la visualmente, clique no primeiro cartão. Você também pode escolher outra ou criar a sua própria.")
     else:
-        st.info("Você pode escolher uma influenciadora da galeria ou criar a sua própria na aba 'Minha Influenciadora'.")
+        st.info("Você pode escolher uma influenciadora da galeria ou criar a sua própria no botão 'Usar minha influência · Foto'.")
 
 if st.session_state.pop("elevo_inf_erro_gravacao", False):
     codigo = st.session_state.get("elevo_erro_sheets_codigo", "SHEETS_SEM_CONFIRMACAO")
     st.warning(f"Personagem aplicada nesta sessão, mas o banco compartilhado ainda não confirmou o salvamento ({codigo}). "
                "Ela pode ser usada agora; para permanecer após novo login, o Sheets precisa confirmar a gravação.")
+
+# ==========================================================
+# V16.8.3 — ESTÚDIO DE INFLUÊNCIA PRÓPRIA JUNTO AO ELENCO (MOBILE-FIRST)
+# Abre pelo botão da galeria e não duplica o cadastro abaixo dos geradores.
+# ==========================================================
+if st.session_state.get("elevo_propria_estudio_aberto", False):
+    st.markdown('<div id="minha-influencia"></div>', unsafe_allow_html=True)
+    if st.session_state.pop("elevo_propria_autofoco", False):
+        components.html("""<script>setTimeout(()=>{try{window.parent.document.getElementById('minha-influencia')?.scrollIntoView({behavior:'smooth',block:'start'});}catch(e){}},550);</script>""", height=0, width=0)
+    with st.container(border=True):
+        cab1, cab2 = st.columns([5, 1])
+        with cab1:
+            st.markdown("#### 📸 Minha Influência · Estúdio Visual")
+            st.caption("Envie um retrato. A IA reconhece os detalhes visíveis; a descrição técnica fica nos bastidores.")
+        with cab2:
+            if st.button("✕ Fechar", key="elevo_fechar_propria", use_container_width=True):
+                st.session_state["elevo_propria_estudio_aberto"] = False
+                st.rerun()
+        propria_salva = obter_identidade_propria_v1683(email_elenco_v164)
+        if propria_salva and propria_salva.get("Descricao_Visual"):
+            st.success("✅ Você já tem uma identidade própria salva neste login.")
+            if st.button("▶ Ativar minha identidade salva", key="elevo_restaurar_propria", use_container_width=True):
+                ativar_identidade_propria_v1683(propria_salva, email_elenco_v164)
+                st.session_state["elevo_propria_estudio_aberto"] = False
+                st.rerun()
+            foto_anterior = propria_salva.get("Foto_JPEG_B64", "")
+            if foto_anterior:
+                with st.expander("Ver foto de referência salva", expanded=False):
+                    try:
+                        st.image(base64.b64decode(foto_anterior), width=220)
+                        st.download_button("⬇️ Baixar referência para a geradora externa",
+                                           data=base64.b64decode(foto_anterior),
+                                           file_name="referencia_influencia_elevo.jpg", mime="image/jpeg",
+                                           use_container_width=True, key="elevo_baixar_referencia_v1683")
+                    except (ValueError, TypeError):
+                        st.caption("Foto anterior indisponível, mas sua descrição visual permanece salva.")
+        foto_propria = st.file_uploader(
+            "📷 Foto da influenciadora (obrigatória para uma nova análise automática)",
+            type=["jpg", "jpeg", "png", "webp"], key="elevo_upload_propria_v1683",
+            help="Use um retrato nítido. A foto será salva no Google Sheets da plataforma, vinculada ao seu login.")
+        nome_propria = st.text_input("👤 Nome da sua influenciadora (opcional)",
+                                    value=propria_salva.get("Nome", "") if propria_salva else "",
+                                    placeholder="Ex.: Isabela Monteiro", key="elevo_nome_propria_v1683")
+        notas_proprias = st.text_area(
+            "✍️ Detalhes opcionais (roupa, cabelo, jeito de falar...)",
+            placeholder="Ex.: usar camiseta preta; cabelo preso; expressão acolhedora. A aparência real da foto tem prioridade.",
+            value=propria_salva.get("Observacoes", "") if propria_salva else "",
+            height=105, key="elevo_notas_propria_v1683")
+        if foto_propria is not None:
+            tamanho_foto = foto_propria.size
+            if tamanho_foto > 12 * 1024 * 1024:
+                st.error("Envie uma foto de até 12 MB.")
+            else:
+                brutos = foto_propria.getvalue()
+                assinatura = hashlib.sha256(brutos).hexdigest()
+                # Só uma leitura de IA por foto; a cada rerun do Streamlit não paga novamente.
+                if assinatura != st.session_state.get("elevo_propria_foto_hash"):
+                    try:
+                        with st.spinner("🔍 Analisando aparência da foto e fixando a identidade..."):
+                            foto_compacta = otimizar_foto_influencia_v1683(brutos)
+                            descricao_ia = analisar_referencia_influencia_v1683(foto_compacta)
+                            st.session_state["elevo_propria_analise"] = {
+                                "foto": foto_compacta, "visual": descricao_ia}
+                            st.session_state["elevo_propria_foto_hash"] = assinatura
+                            st.session_state.pop("elevo_propria_erro_analise", None)
+                    except Exception as erro:
+                        st.session_state["elevo_propria_analise"] = None
+                        st.session_state["elevo_propria_erro_analise"] = type(erro).__name__
+                        st.session_state["elevo_propria_foto_hash"] = assinatura
+                        st.warning("A foto foi recebida, mas a análise por IA falhou. "
+                                   "Confira seus créditos/API e tente enviar novamente.")
+                if (st.session_state.get("elevo_propria_erro_analise") and
+                        assinatura == st.session_state.get("elevo_propria_foto_hash")):
+                    if st.button("↻ Tentar analisar a foto novamente", key="elevo_tentar_foto_v1683"):
+                        st.session_state.pop("elevo_propria_foto_hash", None)
+                        st.session_state.pop("elevo_propria_erro_analise", None)
+                        st.rerun()
+                if (st.session_state.get("elevo_propria_analise") and
+                        assinatura == st.session_state.get("elevo_propria_foto_hash")):
+                    st.caption("✅ Aparência identificada automaticamente. Não precisa escrever descrição física.")
+                    if st.button("✅ Aplicar esta foto à minha influência", type="primary",
+                                 use_container_width=True, key="elevo_aplicar_foto_v1683"):
+                        analise = st.session_state["elevo_propria_analise"]
+                        visual_base = analise["visual"]
+                        extras = notas_proprias.strip()
+                        # Notas sobre figurino são separadas da assinatura permanente.
+                        descricao_final = visual_base + (" [OPTIONAL DIRECTION, keep the face identity; allow explicitly requested hair or outfit changes consistently]: " + extras if extras else "")
+                        nome_final = nome_propria.strip() or "Minha Influência"
+                        salvo = gerenciar_identidade_propria_v1683(
+                            "salvar", email_elenco_v164, nome_final, descricao_final, extras, analise["foto"])
+                        if salvo:
+                            st.session_state["elevo_propria_cache"] = gerenciar_identidade_propria_v1683("ler", email_elenco_v164)
+                            ativar_identidade_propria_v1683(
+                                st.session_state["elevo_propria_cache"] or {
+                                    "Nome": nome_final, "Descricao_Visual": descricao_final}, email_elenco_v164)
+                            st.session_state["elevo_propria_estudio_aberto"] = False
+                            st.rerun()
+                        else:
+                            st.error("Não foi possível salvar a foto e identidade no Google Sheets. "
+                                     "Nenhuma identidade anterior foi apagada.")
+        elif not propria_salva:
+            st.info("Envie a foto acima para criar sua personagem. Nome e observações são opcionais.")
 
 # ==========================================================
 # 15. MATRIZ DE AMBIENTES ÉLÉVO V16.6 — 20 CENÁRIOS + 21º INFINITO
@@ -2961,128 +3201,6 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     """
     components.html(html_btn, height=45)
 
-def render_microfone_diretrizes_youtube():
-    html_mic = """
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: -6px; margin-bottom: 6px;">
-        <button id="btn_mic_yt" onclick="toggleDictation()" style="
-            background: linear-gradient(135deg, #161B24 0%, #0F131A 100%);
-            color: #00E5FF;
-            border: 1.5px solid #00E5FF;
-            border-radius: 50px;
-            padding: 6px 14px;
-            font-family: 'Montserrat', sans-serif;
-            font-size: 12px;
-            font-weight: 700;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            box-shadow: 0 0 12px rgba(0, 229, 255, 0.25);
-            transition: all 0.25s ease;
-        ">
-            <span id="mic_icon" style="font-size: 15px;">🎙️</span>
-            <span id="mic_text">Falar Diretrizes (Voz Automática)</span>
-        </button>
-        <span id="mic_status" style="font-family: 'Montserrat', sans-serif; font-size: 11px; color: #94A3B8;"></span>
-    </div>
-
-    <script>
-    let recognition = null;
-    let isListening = false;
-
-    function encontrarTextareaDiretrizes() {
-        const parentDoc = window.parent.document;
-        const textareas = parentDoc.querySelectorAll('textarea');
-        for (let ta of textareas) {
-            if (ta.placeholder && ta.placeholder.includes("Quero que ela mostre a textura")) {
-                return ta;
-            }
-            if (ta.getAttribute('aria-label') && ta.getAttribute('aria-label').includes("Diretrizes")) {
-                return ta;
-            }
-        }
-        return textareas.length > 0 ? textareas[0] : null;
-    }
-
-    function injetarTextoNoStreamlit(ta, novoTexto) {
-        if (!ta) return;
-        const textoAtual = ta.value ? ta.value.trim() + " " : "";
-        const textoFinal = textoAtual + novoTexto.trim();
-        const nativeTextAreaValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value").set;
-        nativeTextAreaValueSetter.call(ta, textoFinal);
-        ta.dispatchEvent(new Event('input', { bubbles: true }));
-        ta.dispatchEvent(new Event('change', { bubbles: true }));
-        ta.focus();
-    }
-
-    function toggleDictation() {
-        const btn = document.getElementById('btn_mic_yt');
-        const txt = document.getElementById('mic_text');
-        const status = document.getElementById('mic_status');
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-
-        if (!SpeechRecognition) {
-            status.innerHTML = "⚠️ Use o navegador Chrome/Edge para voz ao vivo.";
-            status.style.color = "#FFD700";
-            return;
-        }
-
-        if (isListening && recognition) {
-            recognition.stop();
-            return;
-        }
-
-        recognition = new SpeechRecognition();
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
-        recognition.continuous = false;
-
-        recognition.onstart = function() {
-            isListening = true;
-            btn.style.background = "linear-gradient(135deg, #FF0040 0%, #990026 100%)";
-            btn.style.borderColor = "#FF0040";
-            btn.style.color = "#FFFFFF";
-            btn.style.boxShadow = "0 0 18px rgba(255, 0, 64, 0.6)";
-            txt.innerHTML = "🔴 Ouvindo... (Clique para parar)";
-            status.innerHTML = "Pode falar agora...";
-            status.style.color = "#00FF9D";
-        };
-
-        recognition.onresult = function(event) {
-            let transcript = "";
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    transcript += event.results[i][0].transcript;
-                }
-            }
-            if (transcript) {
-                const ta = encontrarTextareaDiretrizes();
-                injetarTextoNoStreamlit(ta, transcript);
-                status.innerHTML = "✅ Texto inserido! (Aperte Enter ou clique fora da caixa)";
-                status.style.color = "#00FF9D";
-            }
-        };
-
-        recognition.onerror = function(event) {
-            status.innerHTML = "⚠️ Permita o microfone no navegador.";
-            status.style.color = "#FF2E54";
-        };
-
-        recognition.onend = function() {
-            isListening = false;
-            btn.style.background = "linear-gradient(135deg, #161B24 0%, #0F131A 100%)";
-            btn.style.borderColor = "#00E5FF";
-            btn.style.color = "#00E5FF";
-            btn.style.boxShadow = "0 0 12px rgba(0, 229, 255, 0.25)";
-            txt.innerHTML = "Falar Diretrizes (Voz Automática)";
-        };
-
-        recognition.start();
-    }
-    </script>
-    """
-    components.html(html_mic, height=44)
-
 def extrair_blocos_roteiro(md_texto):
     dados = {
         "prompt_imagem": "",
@@ -3119,6 +3237,32 @@ def extrair_blocos_roteiro(md_texto):
         if len(titulos_limpos) >= 3: dados["titulo_3"] = titulos_limpos[2]
 
     return dados
+
+# ==========================================================
+# V16.8.3 — IDENTIDADE VISUAL IDÊNTICA NA FOTO E NO VÍDEO
+# Pós-processamento aditivo: não altera a organização dos três blocos.
+# ==========================================================
+def sincronizar_persona_imagem_video_v1683(roteiro, nome, assinatura_visual):
+    """Injeta exatamente a mesma assinatura em ambas as saídas, sem tocar no produto."""
+    if not isinstance(roteiro, str) or not assinatura_visual:
+        return roteiro
+    trechos = extrair_blocos_roteiro(roteiro)
+    if not all(trechos.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+        return roteiro
+    # Imagem e vídeo recebem LITERALMENTE o mesmo bloco de aparência.
+    trava = ("[ÉLÉVO SELECTED PERSON — IDENTICAL VISUAL SIGNATURE FOR IMAGE AND VIDEO: "
+             + str(nome).strip() + ". " + str(assinatura_visual).strip()
+              + " Keep the same face shape, eyes and skin appearance; keep hair and outfit identical "
+               "in image/video, respecting optional explicit changes to hair or clothing; "
+               "only the selected person may change, NEVER the separately supplied product reference. "
+               "Do not describe the product, packaging, color, label, size or brand. "
+               "Never substitute another presenter.]")
+    for chave in ("prompt_imagem", "prompt_video"):
+        if "ÉLÉVO SELECTED PERSON — IDENTICAL VISUAL SIGNATURE" not in trechos[chave]:
+            trechos[chave] += "\n\n" + trava
+    return ("### 📸 PROMPT DE IMAGEM\n" + trechos["prompt_imagem"]
+            + "\n\n### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + trechos["prompt_video"]
+            + "\n\n### 🔑 TÍTULOS SEO (Separados)\n" + trechos["secao_seo_texto"])
 
 def normalizar_titulos_roteiro_v1689(conteudo):
     """Restaura APENAS cabeçalhos Markdown quando a IA varia emoji, numeração ou título."""
@@ -3481,10 +3625,7 @@ with st.container(border=True):
             st.session_state["modo_entidade_v9"] = True
             st.rerun()
 
-    aba_gerador_360, aba_config_influencer = st.tabs([
-        "📸 Gerar Roteiro & Diretrizes", 
-        "👤 Minha Influenciadora"
-    ])
+    aba_gerador_360 = st.container()
     
     with aba_gerador_360:
         if eh_customizada:
@@ -3503,13 +3644,12 @@ with st.container(border=True):
         with col_img: 
             img_produto = st.file_uploader("📸 Foto do Produto", type=["png", "jpg", "jpeg"], key="img_produto_roteiro")
         with col_dados:
-            render_microfone_diretrizes_youtube()
             
             explicacao_video_usuario = st.text_area(
                 "📝 Diretrizes / O que você quer no vídeo? (Opcional)",
                 placeholder="Ex: Quero que ela mostre a textura do produto, foque nos detalhes ou fale com tom de segredo...",
                 height=115,
-                help="Clique no botão '🎙️ Falar Diretrizes' acima para ditar por voz igual no YouTube/Google, ou digite manualmente!",
+                help="Digite ou toque no microfone ao lado do campo para ditar pelo navegador.",
                 key="txt_diretrizes_360"
             )
             btn_gerar_roteiro = False
@@ -3524,64 +3664,6 @@ with st.container(border=True):
                 st.success("🧬 **CRIAÇÃO V9.2 ATIVADA!** Clique no botão do **Bloco 17.2** logo abaixo.")
 
     
-with aba_config_influencer:
-    st.markdown("<h4 style='color: #00E5FF;'>🧬 Identidade Visual da Sua Influenciadora</h4>", unsafe_allow_html=True)
-    st.caption("As influenciadoras da galeria já estão completas: é só escolher. Use esta aba apenas se quiser criar uma personagem totalmente sua. Nenhum cartão vem marcado automaticamente.")
-
-    dados_ativos_tab = st.session_state.get("influencer_atual") or {}
-    nome_ativo_tab = str(dados_ativos_tab.get("Nome_Influencer") or ("Aurora" if E_O_CEO else "Nenhuma salva"))
-    if dados_ativos_tab.get("Nome_Influencer") or E_O_CEO:
-        st.success(f"✅ Influenciadora ativa: {nome_ativo_tab}")
-        st.caption("Dados técnicos guardados; os Blocos 17 e 17.2 os utilizam automaticamente.")
-
-    col_tab_a, col_tab_b = st.columns([1, 1])
-    with col_tab_a:
-        novo_nome_inf = st.text_input(
-            "👤 Nome da sua Influenciadora:",
-            placeholder="Ex: Maya, Valentina, Bia...",
-            key="input_nome_inf"
-        )
-    with col_tab_b:
-        st.caption("Se quiser abandonar o perfil atual, limpe a memória do seu login:")
-        if st.button("🧹 Limpar influencer do meu login", type="secondary", use_container_width=True, key="btn_excluir_inf"):
-            with st.spinner("Removendo influencer da memória para liberar novo cadastro..."):
-                gerenciar_influencer_usuario("excluir", email_sessao)
-                st.session_state["influencer_atual"] = None
-                st.session_state["elevo_inf_preset_id"] = ""
-                st.session_state["elevo_inf_obs"] = ""
-                st.success("Influencer removida do seu login. Agora você pode escolher outra ou criar a sua própria.")
-                time.sleep(1)
-                st.rerun()
-
-    nova_desc_inf = st.text_area(
-        "🎨 Descrição visual da personagem (opcional):",
-        placeholder="Ex: Mulher brasileira jovem de 24 anos, pele morena iluminada, cabelos cacheados volumosos e brilhantes na altura dos ombros, olhos castanhos expressivos, usando uma camiseta básica branca, expressão de amiga fofoqueira...",
-        height=130,
-        key="input_desc_inf"
-    )
-    st.caption("Se você informar apenas o nome, o ÉLÉVO aplica uma descrição-base neutra. Se quiser, descreva a personalidade, emoção, forma de falar e aparência.")
-    if st.button("💾 APLICAR E SALVAR INFLUÊNCIA NO MEU LOGIN", type="primary", use_container_width=True, key="btn_salvar_inf"):
-        if not novo_nome_inf.strip():
-            st.warning("⚠️ Informe um nome. A descrição visual é opcional.")
-        else:
-            with st.spinner("Gravando a sua Influencer no banco de memória exclusivo do seu login..."):
-                desc_personalizada_v164 = (nova_desc_inf.strip() or
-                    "Fictional adult Brazilian virtual presenter, natural appearance, realistic skin texture, conversational Brazilian Portuguese voice, expressions and body language adapted to the product without exaggerated acting; maintain consistent identity throughout image and video.")
-                if gerenciar_influencer_usuario("salvar", email_sessao, novo_nome_inf, desc_personalizada_v164, logo_ativa_usuario):
-                    st.session_state["influencer_atual"] = {
-                        "Email": email_sessao,
-                        "Nome_Influencer": novo_nome_inf.strip(),
-                        "Descricao_Visual": desc_personalizada_v164,
-                        "Logo_Marca": logo_ativa_usuario
-                    }
-                    st.session_state["elevo_inf_preset_id"] = ""
-                    st.session_state["elevo_inf_obs"] = obter_observacao_salva_v164(desc_personalizada_v164)
-                    st.success(f"🔥 {novo_nome_inf.strip()} foi aplicada ao sistema e vinculada ao seu login!")
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.error("❌ Erro ao salvar no banco de dados. Verifique a conexão com a planilha.")
-
 # ==========================================================
 # 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17 + CAMPO DE LOGO EXCLUSIVO DA V9.2)
 # ==========================================================
@@ -4233,9 +4315,8 @@ lotes secretos, estoque, preços, promoções nem resultado clínico ou garantid
 Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao vídeo bruto.
 """.strip()
 
-with st.expander("🧠 17.3. Abrir Banco de Memória & Treinamento Oficial (Conectado ao 17 e ao 17.2)", expanded=False):
-    st.caption("Todo o conhecimento do seu documento está gravado aqui e alimenta automaticamente os botões do Bloco 17 e do Bloco 17.2:")
-    st.code(BANCO_DE_MEMORIA_17_3, language="markdown")
+# Banco 17.3 permanece integral nos prompts dos motores 17 e 17.2.
+# Interface de código-fonte desativada: evita expor documentação técnica ao usuário.
 
 
 # ==========================================================
@@ -4498,6 +4579,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
             etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
+            conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, desc_inf_ativa)
             st.session_state["roteiro_temporario"] = conteudo_texto
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
@@ -4608,6 +4690,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
                 etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
+                conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, desc_inf_ativa)
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
@@ -4740,3 +4823,112 @@ with st.container(border=True):
                     
                     st.info("💡 **Parecer Executivo da Aurora:**")
                     st.markdown(resposta_mentoria)
+
+# ==========================================================
+# V16.8.3 — DITADO PT-BR EM CAMPOS DE ESCRITA (NAVEGADOR)
+# Um microfone discreto ao lado de cada campo livre, sem tocar em senhas.
+# Usa SpeechRecognition quando disponível. Não grava áudio no servidor.
+# ==========================================================
+components.html(r"""
+<script>
+(function () {
+  try {
+    const doc = window.parent.document;
+    const W = window.parent;
+    if (W.__elevoVoice1683 && W.__elevoVoice1683.install) {
+      W.__elevoVoice1683.install();
+      return;
+    }
+    const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
+    let gravador = null;
+    let botaoAtivo = null;
+    function campoPermitido(el) {
+      if (!el || !el.matches || !el.matches('textarea, input')) return false;
+      const tipo = (el.getAttribute('type') || 'text').toLowerCase();
+      if (!['text','search','url'].includes(tipo)) return false;
+      if (el.disabled || el.readOnly || el.getAttribute('autocomplete') === 'one-time-code') return false;
+      if (el.closest('[data-elevo-no-voice]')) return false;
+      const rotulo = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('placeholder') || '')).toLowerCase();
+      if (/senha|password|token|chave secreta|api.?key|email|e-mail|gmail|código de segurança/.test(rotulo)) return false;
+      return true;
+    }
+    function inserirTexto(el, texto) {
+      const antigo = el.value || '';
+      const novo = antigo.trim() ? antigo.replace(/\s+$/, '') + ' ' + texto.trim() : texto.trim();
+      const proto = el.tagName === 'TEXTAREA' ? W.HTMLTextAreaElement.prototype : W.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, novo);
+      el.dispatchEvent(new W.Event('input', {bubbles:true}));
+      el.dispatchEvent(new W.Event('change', {bubbles:true}));
+      el.focus();
+    }
+    function stop() {
+      if (gravador) { try {gravador.stop();} catch(e){} }
+      if (botaoAtivo) {botaoAtivo.textContent='🎙️';botaoAtivo.removeAttribute('data-listening');}
+      gravador=null;botaoAtivo=null;
+    }
+    function toggle(el, btn) {
+      if (gravador) { stop(); return; }
+      if (!SR) { btn.title='Ditado não disponível. Use Chrome/Edge com acesso ao microfone.'; btn.textContent='⚠️';return; }
+      try {
+        gravador = new SR();
+        botaoAtivo = btn;
+        gravador.lang='pt-BR'; gravador.continuous=false; gravador.interimResults=false;
+        gravador.onstart=()=>{btn.textContent='🔴';btn.setAttribute('data-listening','1');};
+        gravador.onresult=(event)=>{
+          let texto='';
+          for(let i=event.resultIndex;i<event.results.length;i++){
+            if(event.results[i].isFinal) texto += event.results[i][0].transcript + ' ';
+          }
+          if(texto.trim()) inserirTexto(el,texto);
+        };
+        gravador.onerror=()=>{btn.title='Verifique a permissão do microfone no navegador.';stop();};
+        gravador.onend=stop;
+        gravador.start();
+      } catch(e) {stop();btn.title='Microfone indisponível neste navegador.';}
+    }
+    function instalar() {
+      doc.querySelectorAll('textarea, input').forEach(el=>{
+        if (!campoPermitido(el)) return;
+        const pai = el.parentElement;
+        if (!pai || pai.querySelector(':scope > .elevo-voz-btn-1683')) return;
+        el.dataset.elevoVoz1683='1';
+        pai.style.position='relative';
+        const b=doc.createElement('button');
+        b.type='button';b.textContent='🎙️';b.title='Ditar texto em português (voz para texto)';
+        b.setAttribute('aria-label','Ditar neste campo'); b.className='elevo-voz-btn-1683';
+        Object.assign(b.style,{position:'absolute',right:'10px',top:'8px',zIndex:'20',border:'1px solid #26718c',
+          borderRadius:'9px',background:'#10263c',color:'#dffaff',height:'32px',width:'35px',fontSize:'15px',
+          cursor:'pointer',padding:'0',lineHeight:'1'});
+        el.style.paddingRight='52px';
+        b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggle(el,b);});
+        pai.appendChild(b);
+      });
+    }
+    W.__elevoVoice1683={install:instalar};
+    instalar();
+    let agendado=false;
+    const observer=new W.MutationObserver(()=>{
+      if(agendado) return;
+      agendado=true;
+      W.requestAnimationFrame(()=>{agendado=false;instalar();});
+    });
+    observer.observe(doc.body,{childList:true,subtree:true});
+  } catch(e) { /* Alguns navegadores isolam iframes; digitação manual continua disponível. */ }
+})();
+</script>
+""", height=0, width=0)
+
+st.markdown("""
+<style>
+@media(max-width:767px) {
+  .block-container {padding: 4.4rem .7rem 2.2rem !important;}
+  [data-testid="stVerticalBlockBorderWrapper"] {border-radius:13px!important;}
+  [data-testid="stHorizontalBlock"] {gap:.48rem!important;}
+  .stButton button {min-height:46px!important;white-space:normal!important;line-height:1.25!important;}
+  [data-baseweb="tab-list"] {overflow-x:auto;scrollbar-width:thin;}
+  .elevo-elenco-card {height:306px!important;}
+  .elevo-elenco-foto {height:139px!important;}
+  [data-testid="stFileUploader"] section {min-height:86px!important;}
+}
+</style>
+""",unsafe_allow_html=True)
