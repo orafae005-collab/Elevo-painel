@@ -1,4 +1,7 @@
-# ÉLÉVO V16.8.3 — evolução pontual da V16.8.2: identidade por foto, interface fluida e voz acessível.
+# ÉLÉVO V16.8.5 — Intelligence Upgrade Controlado + Memory Engine V1.
+# BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
+# Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
+
 import base64
 import requests
 import time
@@ -42,11 +45,59 @@ except KeyError:
     st.error("🚨 ALERTA: Falta a chave OPENAI_API_KEY no cadeado (Secrets).")
     st.stop()
 
+
+# ==========================================================
+# V16.8.5 — ROTEAMENTO AUDITÁVEL, SEM MIGRAÇÃO AUTOMÁTICA DE MODELO
+# É deliberado: Chat Completions e gpt-4o-mini continuam em produção.
+# GPT-6 é comparado isoladamente antes de alterar as 8 operações.
+# ==========================================================
+ELEVO_MODELO_PRODUCAO_V1685 = "gpt-4o-mini"  # fallback original validado
+ELEVO_MODELOS_CANDIDATOS_V1685 = {
+    "Roteiros e física (Sol)": "gpt-6.1-sol",
+    "Leitura de fotos (Terra)": "gpt-6.1-terra",
+    "Auditoria (Astra)": "gpt-6-astra",
+}
+ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685 = {
+    "gpt-4o-mini": (0.15, 0.60),
+    "gpt-6.1-sol": (2.00, 10.00),
+    "gpt-6.1-terra": (1.00, 5.00),
+    "gpt-6-astra": (10.00, 50.00),
+}
+
+def elevo_chat_create_v1685(**kwargs):
+    """Compatível com o retorno legado. Não altera prompts nem parâmetros.
+
+    Registra somente estimativas de tokens/custo em sessão, sem conteúdo ou chave.
+    O custo é aproximado: desconsidera cache, ferramentas e tarifas regionais.
+    """
+    resposta = cliente_openai.chat.completions.create(**kwargs)
+    try:
+        uso = getattr(resposta, "usage", None)
+        n_in = int(getattr(uso, "prompt_tokens", 0) or 0)
+        n_out = int(getattr(uso, "completion_tokens", 0) or 0)
+        modelo = str(kwargs.get("model", ELEVO_MODELO_PRODUCAO_V1685))
+        tarifa = ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685.get(modelo)
+        if tarifa and (n_in or n_out):
+            custo = (n_in * tarifa[0] + n_out * tarifa[1]) / 1_000_000
+            st.session_state["elevo_ai_est_usd_v1"] = (
+                float(st.session_state.get("elevo_ai_est_usd_v1", 0.0)) + custo
+            )
+            st.session_state["elevo_ai_tokens_v1"] = (
+                int(st.session_state.get("elevo_ai_tokens_v1", 0)) + n_in + n_out
+            )
+            st.session_state["elevo_ai_chamadas_v1"] = (
+                int(st.session_state.get("elevo_ai_chamadas_v1", 0)) + 1
+            )
+    except (TypeError, ValueError, AttributeError, RuntimeError):
+        # Telemetria nunca pode quebrar a resposta que funcionou.
+        pass
+    return resposta
+
 def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
     try:
         validar_cota_ia()
-        response = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini",
+        response = elevo_chat_create_v1685(
+            model=ELEVO_MODELO_PRODUCAO_V1685,
             messages=[
                 {"role": "system", "content": sistema_contexto},
                 {"role": "user", "content": prompt}
@@ -113,6 +164,9 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
     "elevo_propria_analise", "elevo_propria_foto_hash", "elevo_propria_erro_analise",
     "elevo_propria_autofoco",
+    "elevo_mem_v1_contexto", "elevo_mem_v1_feedback_ultimo", "elevo_mem_v1_nota",
+    "elevo_ai_est_usd_v1", "elevo_ai_tokens_v1", "elevo_ai_chamadas_v1",
+    "elevo_modelos_acesso_v1", "elevo_modelo_comparativo_v1",
 }
 
 def limpar_sessao_privada():
@@ -1782,8 +1836,8 @@ def buscar_oportunidade_do_dia(dt_cache, indice_tema):
         }}
         """
         validar_cota_ia()
-        resp = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini",
+        resp = elevo_chat_create_v1685(
+            model=ELEVO_MODELO_PRODUCAO_V1685,
             response_format={"type": "json_object"},
             messages=[{"role": "system", "content": sys_op}, {"role": "user", "content": pmt_op}],
             temperature=0.85
@@ -2079,8 +2133,8 @@ if E_O_CEO:
                         
                         validar_cota_ia()
                         
-                        response = cliente_openai.chat.completions.create(
-                            model="gpt-4o-mini",
+                        response = elevo_chat_create_v1685(
+                            model=ELEVO_MODELO_PRODUCAO_V1685,
                             messages=[
                                 {"role": "system", "content": sistema_raiox},
                                 {"role": "user", "content": conteudo_prompt}
@@ -2317,8 +2371,8 @@ def analisar_referencia_influencia_v1683(foto_b64):
         "Use ~90-170 precise English words, one coherent third-person description. "
         "Keep the SAME person and physical features in image and every video frame."
     )
-    resposta = cliente_openai.chat.completions.create(
-        model="gpt-4o-mini", response_format={"type":"json_object"},
+    resposta = elevo_chat_create_v1685(
+        model=ELEVO_MODELO_PRODUCAO_V1685, response_format={"type":"json_object"},
         messages=[{"role":"system","content":pedido},
                   {"role":"user","content":[{"type":"text", "text":"Produce the visible-person signature only."},
                    {"type":"image_url", "image_url":{"url":"data:image/jpeg;base64," + foto_b64,
@@ -3421,8 +3475,8 @@ def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
     def _chamar_inicial():
         # A PRIMEIRA CHAMADA É IDÊNTICA À V16.9.3 VALIDADA.
         validar_cota_ia()
-        resp = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini",
+        resp = elevo_chat_create_v1685(
+            model=ELEVO_MODELO_PRODUCAO_V1685,
             messages=[{"role": "system", "content": sistema},
                       {"role": "user", "content": instrucao}],
             max_tokens=6500, temperature=temperatura)
@@ -3477,8 +3531,8 @@ def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
         recuperado = ""
         for tentativa in range(2):
             validar_cota_ia()
-            resp = cliente_openai.chat.completions.create(
-                model="gpt-4o-mini",
+            resp = elevo_chat_create_v1685(
+                model=ELEVO_MODELO_PRODUCAO_V1685,
                 response_format={"type":"json_object"},
                 messages=[
                     {"role":"system", "content": sistema + "\n" + pedido},
@@ -3524,8 +3578,8 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     """
     try:
         validar_cota_ia()
-        resp_s = cliente_openai.chat.completions.create(
-            model="gpt-4o-mini",
+        resp_s = elevo_chat_create_v1685(
+            model=ELEVO_MODELO_PRODUCAO_V1685,
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": "You are a Neuromarketing & Product Scanner. Output flat JSON only (never output lists or nested dicts)."},
@@ -3740,6 +3794,35 @@ if st.session_state.get("modo_entidade_v9"):
             btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, key="btn_v92_ativo")
 
 # ==========================================================
+
+# ==========================================================
+# V16.8.5 — auditoria CEO opt-in. Não promove novos modelos automaticamente.
+# ==========================================================
+if E_O_CEO:
+    with st.expander("🔬 Intelligence Upgrade — modelos e consumo (somente CEO)", expanded=False):
+        st.caption("Produção preservada em gpt-4o-mini. O teste abaixo consulta os modelos da sua chave; não altera os 8 fluxos de geração.")
+        cols_modelo = st.columns(3)
+        with cols_modelo[0]:
+            st.metric("Chamadas nesta sessão", int(st.session_state.get("elevo_ai_chamadas_v1", 0)))
+        with cols_modelo[1]:
+            st.metric("Tokens nesta sessão", int(st.session_state.get("elevo_ai_tokens_v1", 0)))
+        with cols_modelo[2]:
+            st.metric("Custo estimado (USD)", f"${float(st.session_state.get('elevo_ai_est_usd_v1', 0.0)):.4f}")
+        st.caption("Valores estimados pelas tarifas de texto, sem cache, processamento regional ou outras cobranças. A cobrança real é a registrada na OpenAI API.")
+        if st.button("🔎 Conferir disponibilidade de GPT-6.1 Sol, Terra e Astra", key="elevo_consultar_modelos_v1"):
+            try:
+                modelos_api = {str(m.id) for m in cliente_openai.models.list().data}
+                st.session_state["elevo_modelos_acesso_v1"] = {
+                    nome: (id_api in modelos_api)
+                    for nome, id_api in ELEVO_MODELOS_CANDIDATOS_V1685.items()
+                }
+            except Exception:
+                st.warning("Não foi possível consultar a disponibilidade da chave. A geração original não foi alterada.")
+        if isinstance(st.session_state.get("elevo_modelos_acesso_v1"), dict):
+            for nome, disponivel in st.session_state["elevo_modelos_acesso_v1"].items():
+                st.write(("✅ Encontrado: " if disponivel else "⚪ Não listado: ") + nome)
+            st.caption("Estar listado não substitui um teste real de resposta/estrutura nem autoriza migrar. Continue usando o modelo original até comparar na sua conta.")
+
 # 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (100% DO DOCUMENTO ENVIADO PELO SÓCIO + LEMA DOR & SOLUÇÃO)
 # ==========================================================
 PROTOCOLO_FISICO_17 = "[PROTOCOLO FÍSICO REALISTA V10 — PRIORIDADE MÁXIMA; PREVALECE SOBRE MOLDES ANTIGOS]\n- CONSERVAÇÃO: mesmo número de produtos, identidade, altura, largura, volume, tampa, marca e rótulo em TODOS os quadros; não duplicar, fundir, deformar, trocar textura nem desaparecer. O objeto não teletransporta entre mão e bancada.\n- REFERÊNCIA FIXA: a foto fornecida é REFERÊNCIA APENAS DO PRODUTO (não do ambiente). Cor, embalagem, impressão, acabamento e tamanho relativo vêm exclusivamente dela; o cenário vem do AMBIENTE ELEVO ESCOLHIDO ou sorteado. Nunca descreva cor, peso, volume, tampa ou rótulo do produto no prompt visual.\n- CONTATO E GRAVIDADE: produto apoiado na bancada tem base em contato contínuo, sombra de contato consistente, gravidade, inércia e oclusão reais; produto na mão mantém posição estável, dedos anatomicamente corretos, pressão e oclusão coerentes, nenhuma interpenetração ou flutuação.\n- CÂMERA: celular realista, câmera principalmente estável, deslocamentos curtos e suaves; proibir zoom violento, whip-pan, tremor excessivo, troca brusca de foco, glare artificial. Profundidade de campo coerente sem ocultar itens essenciais.\n- PELE E MATERIAIS: poros finos, fios de cabelo individuais, rugosidade realista, leve assimetria; materiais com BRDF plausível, reflexos dependentes da iluminação real, sem brilho plástico ou nitidez falsa. Evitar hiperbolização da pele, do olhar ou da respiração.\n- AMBIENTE: plantas e tecidos se movem apenas se houver vento plausível; vapor e água só onde efetivamente existem na referência; sombras, reflexos, perspectiva, luz e exposição temporalmente contínuos. Incluir a planta, a baguncinha orgânica e o único animal discreto previstos no cenário escolhido, mesmo que a foto enviada exiba somente o produto; não criar objetos extras no VÍDEO que não constem na imagem de cena.\n- FINAL: a partir de 0:08, a apresentadora mantém o produto perfeitamente visível em quadro; no último segundo, segurar imagem estável com produto e ambiente intactos até o último frame. PROIBIDO quadro preto, fade para preto, glitch, logo sobreposto, marca d'água, sacola 3D flutuante ou elementos duplicados. Logo original impressa na embalagem permanece; não acrescentar logo da empresa na imagem.\n- ÁUDIO/COPY: fala factível em 9 segundos (aprox. 18–25 palavras, ajustar à locução), sem afirmar benefícios não demonstrados no rótulo, escassez, preço ou estoque não confirmados. Texto de CTA pode ficar para edição fora do gerador; não gerar UI nativa.\n- Se um molde histórico conflitar com estas regras, este protocolo é soberano."
@@ -4178,8 +4261,8 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
     novo_video=None
     try:
         validar_cota_ia()
-        resposta=cliente_openai.chat.completions.create(
-            model='gpt-4o-mini',
+        resposta=elevo_chat_create_v1685(
+            model=ELEVO_MODELO_PRODUCAO_V1685,
             messages=[
                 {'role':'system','content':'You are ÉLÉVO\'s expert video-motion director. Preserve the original still image verbatim, visual continuity, product inventory, rich UGC energy, emojis, audio, CTA structure. Output only the VIDEO section. English visual directions, Portuguese speech.'},
                 {'role':'user','content':instrucao},
@@ -4378,6 +4461,37 @@ TRAVA_PRODUTO_FOTO_V1682 = (
     'of creating a product from this text.'
 )
 
+
+# ==========================================================
+# V16.8.5 — TRAVA DE FIDELIDADE DO PRODUTO E DA PERSONA (IMAGEM + VÍDEO)
+# Apenas reforço por inserção nos dois blocos; áudio, SEO e layout não mudam.
+# ==========================================================
+TRAVA_FIDELIDADE_NEUTRA_V1685 = (
+    "[CRITICAL 1:1 PRODUCT REFERENCE & PERSONA ISOLATION LOCK V16.8.5] "
+    "Use ONLY the actual product image separately uploaded to the external generator. "
+    "No product appearance descriptions, guesses or inherited historical product details. "
+    "Never make a product larger to improve visibility, nor shrink large products artificially; "
+    "use natural hand-to-object scale and realistic camera distance. If the source photo has "
+    "no scale cue, do not invent dimensions. Keep exactly the source unit count. "
+    "Changing influencer changes ONLY the person; product identity, printing, size and shape "
+    "must remain unchanged. Rigid geometry, natural mass, hand contact, gravity, surface "
+    "friction, depth and shadows remain coherent in every shot. The same original scene "
+    "and one existing, subtly moving background animal continue without new objects. "
+    "No added logo in the still image; preserve the existing 360 or V9.2 closing rules."
+)
+
+def aplicar_fidelidade_neutra_v1685(conteudo):
+    marcador = "[CRITICAL 1:1 PRODUCT REFERENCE & PERSONA ISOLATION LOCK V16.8.5]"
+    for cabecalho in (r"(?im)^(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)",
+                      r"(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)"):
+        padrao = re.compile(cabecalho)
+        if not padrao.search(conteudo):
+            raise ValueError("Cabeçalho do roteiro ausente antes de aplicar a trava de fidelidade.")
+        conteudo = padrao.sub(lambda m: m.group(1) + TRAVA_FIDELIDADE_NEUTRA_V1685 + "\n", conteudo, count=1)
+    if conteudo.count(marcador) != 2:
+        raise ValueError("As travas de imagem/vídeo precisam ser idênticas.")
+    return conteudo
+
 def fixar_trava_produto_ambos_prompts_v1682(conteudo):
     """Aplica a MESMA trava visual nos dois outputs sem tocar na fala, SEO ou botões."""
     cabecalho = TRAVA_PRODUTO_FOTO_V1682 + '\n'
@@ -4525,6 +4639,149 @@ DIRETRIZES_VIDA_REAL_V1682 = (
 )
 
 # ==========================================================
+
+# ==========================================================
+# V16.8.5 — MEMORY ENGINE V1: feedback humano, isolado por login
+# Google Sheets já conectado; sem novos pacotes nem migração de banco.
+# Não envia prompt/foto ao banco. Produto é fingerprint SHA256 por login.
+# ==========================================================
+COLUNAS_MEMORIA_ELEVO_V1 = [
+    "Identificador", "Email", "Registrado_Em", "Modo", "Situacao",
+    "Produto_SHA256", "Nome_Produto_IA", "Qtd_IA", "Influenciadora",
+    "Ambiente", "Feedback_Usuario", "Hash_Roteiro",
+]
+DIRETRIZ_FINAL_ELEVO_V1685 = (
+    "[V16.8.5 — FINAL NON-NEGOTIABLE VISUAL PRIORITY] "
+    "Product image is an EXTERNAL immutable reference. Never describe, guess or re-create "
+    "the product appearance in image/video prompts, even if a historical example does so. "
+    "The selected human influencer dictates ONLY person face, hair, clothing, voice, and emotion, "
+    "identically in STILL and VIDEO. One continuous scene and same inventory, realistic scale "
+    "relative to hand and furniture without universal shrinking or magnifying. "
+    "Maintain believable object mass, uninterrupted grip-to-lift-to-place-to-release, gravity, "
+    "contact shadows and lens perspective, natural autonomous plant movement, single plausible "
+    "background animal from the still image, lively yet physically causal human motion. "
+    "Do not introduce new objects or change references after reframing. "
+    "Keep established headings, image/video/audio/CTA/SEO, minimum 1,500 ENGLISH VISUAL video "
+    "characters, no hard maximum, existing 360 clean close and V9.2 single logo-only close. "
+    "A feeling, health result, urgency, supply limit or discount needs verifiable source evidence; "
+    "avoid guarantees or unsupported scarcity. AI-generated media requires publication disclosure "
+    "where platform rules require it."
+)
+
+def _elevo_mem_planilha_v1(criar=False):
+    if not robo_sheets:
+        return None
+    chave = re.search(r"/d/([a-zA-Z0-9-_]+)", LINK_BANCO_MESTRE)
+    if not chave:
+        return None
+    livro = robo_sheets.open_by_key(chave.group(1))
+    try:
+        aba = livro.worksheet("Memoria_Elevo_V1")
+    except gspread.exceptions.WorksheetNotFound:
+        if not criar:
+            return None
+        aba = livro.add_worksheet(title="Memoria_Elevo_V1", rows="2000", cols="12")
+        aba.append_row(COLUNAS_MEMORIA_ELEVO_V1)
+    return aba
+
+
+def _elevo_mem_texto_seguro_v1(valor, limite=300):
+    # Impede que observações escritas virem fórmulas ao entrar no Sheets.
+    valor = str(valor or "").replace("\r", " ").replace("\n", " ").strip()[:limite]
+    if valor.startswith(("=", "+", "-", "@")):
+        valor = "'" + valor
+    return valor
+
+
+def elevo_mem_salvar_feedback_v1(email, contexto, status, observacao):
+    """Registra apenas aprovação ou defeito explícito, sem treinar pesos da IA."""
+    email = str(email or "").strip().lower()
+    if not st.session_state.get("usuario_logado") or email != str(st.session_state.get("email_usuario", "")).strip().lower():
+        raise PermissionError("Identidade não confere com o login atual")
+    if status not in ("APROVADO", "DEFEITO"):
+        raise ValueError("Feedback inválido")
+    if status == "DEFEITO" and len(str(observacao or "").strip()) < 5:
+        raise ValueError("Descreva o defeito em pelo menos cinco caracteres")
+    aba = _elevo_mem_planilha_v1(criar=True)
+    if aba is None:
+        raise RuntimeError("Google Sheets indisponível para gravar a memória")
+    digest = str(contexto.get("produto_hash", ""))
+    hash_roteiro = str(contexto.get("roteiro_hash", ""))
+    if not re.fullmatch(r"[0-9a-f]{64}", digest) or not re.fullmatch(r"[0-9a-f]{64}", hash_roteiro):
+        raise ValueError("Memória sem referência válida do produto e roteiro")
+    identificador = hashlib.sha256((email + "|" + hash_roteiro + "|" + status + "|" + str(observacao)).encode()).hexdigest()[:24]
+    # Se clicar de novo, não cria a mesma observação duas vezes.
+    if any(str(reg.get("Identificador", "")) == identificador and
+           str(reg.get("Email", "")).strip().lower() == email for reg in aba.get_all_records()):
+        return False
+    linha = [
+        identificador, email, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(timespec="seconds"),
+        _elevo_mem_texto_seguro_v1(contexto.get("modo", ""), 25), status, digest,
+        _elevo_mem_texto_seguro_v1(contexto.get("nome_produto", ""), 110),
+        int(contexto.get("quantidade", 1)),
+        _elevo_mem_texto_seguro_v1(contexto.get("persona", ""), 100),
+        _elevo_mem_texto_seguro_v1(contexto.get("ambiente", ""), 150),
+        _elevo_mem_texto_seguro_v1(observacao, 500), hash_roteiro,
+    ]
+    aba.append_row(linha, value_input_option="RAW")
+    return True
+
+
+def elevo_mem_recuperar_relevantes_v1(email, produto_hash, nome_produto=""):
+    """Máximo 3 relatos recentes do MESMO login e MESMO produto identificado.
+
+    Nunca copia descrições de produtos, marcas ou rostos de outro criativo.
+    """
+    try:
+        aba = _elevo_mem_planilha_v1(criar=False)
+        if aba is None:
+            return ""
+        email = str(email or "").strip().lower()
+        if email != str(st.session_state.get("email_usuario", "")).strip().lower():
+            return ""
+        registros = aba.get_all_records()
+        vistos = set()
+        selecionados = []
+        for reg in reversed(registros):
+            if str(reg.get("Email", "")).strip().lower() != email:
+                continue
+            if str(reg.get("Produto_SHA256", "")) != str(produto_hash):
+                continue
+            if reg.get("Situacao") not in ("APROVADO", "DEFEITO"):
+                continue
+            chave = str(reg.get("Identificador", ""))
+            if chave in vistos:
+                continue
+            vistos.add(chave)
+            selecionados.append(reg)
+            if len(selecionados) >= 3:
+                break
+        if not selecionados:
+            return ""
+        linhas = ["[MEMORY ENGINE V1 — SAME USER + SAME PRODUCT REFERENCE ONLY]",
+                  "Historical human feedback is advisory, never a product description or verified claim.",
+                  "Retain approved physical/camera practices; avoid defects. Never copy item appearance or offers."]
+        for r in selecionados:
+            nota = str(r.get("Feedback_Usuario", "")).replace("\n", " ").strip()[:250]
+            linhas.append(f"- {r.get('Situacao')}: {nota or 'Resultado classificado sem comentário.'}")
+        return "\n".join(linhas)
+    except Exception:
+        # A memória é facultativa: indisponibilidade não quebra a geração.
+        import logging
+        logging.getLogger("elevo.memoria").warning("Memória indisponível na consulta", exc_info=False)
+        return ""
+
+
+def elevo_mem_contextualizar_v1(email, modo, scan, foto_bytes, persona, ambiente):
+    digest = hashlib.sha256(email.lower().encode("utf-8") + b"|" + foto_bytes).hexdigest()
+    contexto = {
+        "produto_hash": digest, "nome_produto": scan.get("nome_pt", ""),
+        "quantidade": scan.get("qtd", 1), "persona": persona,
+        "ambiente": ambiente, "modo": modo,
+    }
+    retorno = elevo_mem_recuperar_relevantes_v1(email, digest, scan.get("nome_pt", ""))
+    return contexto, retorno
+
 # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -4534,6 +4791,9 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro)
             gancho_sorteado_17 = selecionar_gancho_v11()
             direcao_v11_17 = selecionar_direcao_fisica_v11(email_sessao, "360")
+            contexto_mem_17, licoes_mem_17 = elevo_mem_contextualizar_v1(
+                email_sessao, "360", scan_17, img_produto.getvalue(),
+                nome_inf_ativa, str(direcao_v11_17.get("escolhido", "")))
             
             instrucao_ouro = f"""
             Atue como o Motor Oficial da Máquina de Criação 360º (Bloco 17), conectado diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
@@ -4601,6 +4861,9 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                     "Use this EXACT preset in the still image and repeat the identical object list "
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
+            instrucao_ouro += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
+            if licoes_mem_17:
+                instrucao_ouro += "\n\n" + licoes_mem_17
             validar_cota_ia()
             etapa_formato_elevo = "geracao_inicial_recuperacao"
             conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
@@ -4616,10 +4879,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = fixar_trava_produto_ambos_prompts_v1682(conteudo_texto)
             etapa_formato_elevo = "limpeza_visual"
             conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
+            conteudo_texto = aplicar_fidelidade_neutra_v1685(conteudo_texto)
             etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, desc_inf_ativa)
             st.session_state["roteiro_temporario"] = conteudo_texto
+            contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
+            st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
             salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
                 
@@ -4642,6 +4908,9 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92)
                 gancho_sorteado_v92 = selecionar_gancho_v11()
                 direcao_v11_92 = selecionar_direcao_fisica_v11(email_sessao, "v9.2")
+                contexto_mem_92, licoes_mem_92 = elevo_mem_contextualizar_v1(
+                    email_sessao, "v9.2", scan_v92, img_produto.getvalue(),
+                    nome_inf_ativa, str(direcao_v11_92.get("escolhido", "")))
 
                 instrucao_v92 = f"""
                 Atue como a ENTIDADE V9.2 (Protocolo O.U.R.O.), conectada diretamente ao BANCO DE MEMÓRIA 17.3 abaixo:
@@ -4712,6 +4981,9 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                         "generic ferns, a waterfall, a kitchen or an animal that was not selected.")
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
                 instrucao_v92 += f"\n\n[OVERRIDE ESPECÍFICO DA LOGO V9.2 — TEM PRIORIDADE SOBRE REGRAS HISTÓRICAS ANTI-LOGO]\nNo BLOCO 17.2 / V9.2, é OBRIGATÓRIO incluir uma única finalização de logo com o nome exato '{logo_ativa_usuario}'. Essa finalização ocorre somente no fechamento do vídeo, em um glitch digital vermelho rápido, com logo textual curta, limpa, centralizada e legível. Não escrever descrições longas da logo, não criar slogan, não repetir a logo e não substituir a marca impressa na embalagem."
+                instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
+                if licoes_mem_92:
+                    instrucao_v92 += "\n\n" + licoes_mem_92
                 validar_cota_ia()
                 etapa_formato_elevo = "geracao_inicial_recuperacao"
                 conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
@@ -4727,10 +4999,13 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = fixar_trava_produto_ambos_prompts_v1682(conteudo_v92)
                 etapa_formato_elevo = "limpeza_visual"
                 conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
+                conteudo_v92 = aplicar_fidelidade_neutra_v1685(conteudo_v92)
                 etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, desc_inf_ativa)
                 st.session_state["roteiro_temporario"] = conteudo_v92
+                contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
+                st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
                 salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
 
@@ -4786,6 +5061,38 @@ if st.session_state["roteiro_temporario"]:
         else:
             st.markdown(st.session_state["roteiro_temporario"])
         
+
+        # Memory Engine V1: nada é aprovado automaticamente.
+        with st.expander("🧠 17.3 — Avaliar este criativo para ensinar a ÉLÉVO", expanded=False):
+            contexto_feedback = st.session_state.get("elevo_mem_v1_contexto") or {}
+            texto_atual = st.session_state.get("roteiro_temporario") or ""
+            hash_atual = hashlib.sha256(texto_atual.encode("utf-8")).hexdigest()
+            if contexto_feedback.get("roteiro_hash") != hash_atual:
+                st.info("Esta criação é anterior à memória V1 ou foi restaurada do histórico. Gere novamente para classificar com a foto e a quantidade rastreáveis.")
+            else:
+                st.caption("Somente sua conta acessa estes feedbacks. A ÉLÉVO guarda identificador criptográfico da foto, modo, ambiente, influenciadora e observação — não guarda a foto ou os prompts neste banco.")
+                nota_mem = st.text_area(
+                    "Observação opcional para aprovação; obrigatória para defeito",
+                    placeholder="Ex.: aprovado: escala fiel e mãos naturais. Defeito: produto aumentou quando a câmera se moveu.",
+                    max_chars=500, key="elevo_mem_v1_nota", height=85)
+                col_aprovar_mem, col_defeito_mem = st.columns(2)
+                with col_aprovar_mem:
+                    aprovou_mem = st.button("✅ Aprovar como referência", key="elevo_mem_aprovar_v1", use_container_width=True)
+                with col_defeito_mem:
+                    defeito_mem = st.button("⚠️ Registrar defeito", key="elevo_mem_defeito_v1", use_container_width=True)
+                if aprovou_mem or defeito_mem:
+                    try:
+                        situacao_mem = "APROVADO" if aprovou_mem else "DEFEITO"
+                        gravou_mem = elevo_mem_salvar_feedback_v1(email_sessao, contexto_feedback, situacao_mem, nota_mem)
+                        if gravou_mem:
+                            st.success("Feedback gravado na memória da sua conta. Será consultado apenas em próximas gerações do mesmo produto/foto.")
+                        else:
+                            st.info("Este feedback já estava gravado; nenhuma duplicidade criada.")
+                    except Exception as erro_mem:
+                        st.warning("A memória não foi gravada: " + (
+                            str(erro_mem) if isinstance(erro_mem, (ValueError, PermissionError, RuntimeError))
+                            else "verifique o acesso ao Google Sheets."))
+
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"): 
             st.session_state["roteiro_temporario"] = None
