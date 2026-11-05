@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.5 — Intelligence Upgrade Controlado + Memory Engine V1.
+# ÉLÉVO V16.8.6 — GPT-6 Luna com fallback + cards VIP legíveis + Memory Engine V1.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
 # Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
 
@@ -22,7 +22,7 @@ import gspread
 import re
 import plotly.express as px
 import plotly.graph_objects as go
-from openai import OpenAI
+from openai import OpenAI, APIStatusError
 import hashlib
 import hmac
 import secrets
@@ -47,36 +47,115 @@ except KeyError:
 
 
 # ==========================================================
-# V16.8.5 — ROTEAMENTO AUDITÁVEL, SEM MIGRAÇÃO AUTOMÁTICA DE MODELO
-# É deliberado: Chat Completions e gpt-4o-mini continuam em produção.
-# GPT-6 é comparado isoladamente antes de alterar as 8 operações.
+# V16.8.6 — TROCA CONTROLADA PARA GPT-6 LUNA, SEM ALTERAR OS OITO PROMPTS.
+# O fluxo Chat Completions permanece; GPT-4o mini é fallback.
+# Reversão instantânea opcional nos Secrets: ELEVO_AI_MODEL = "gpt-4o-mini"
 # ==========================================================
-ELEVO_MODELO_PRODUCAO_V1685 = "gpt-4o-mini"  # fallback original validado
+ELEVO_MODELO_FALLBACK_V1686 = "gpt-4o-mini"
+ELEVO_MODELO_PRETENDIDO_V1686 = str(st.secrets.get("ELEVO_AI_MODEL", "gpt-6-luna")).strip()
+if ELEVO_MODELO_PRETENDIDO_V1686 not in {"gpt-6-luna", "gpt-4o-mini"}:
+    ELEVO_MODELO_PRETENDIDO_V1686 = ELEVO_MODELO_FALLBACK_V1686
+# Mantém o nome da variável usada nas oito chamadas originais (sem alterar suas funções).
+ELEVO_MODELO_PRODUCAO_V1685 = ELEVO_MODELO_PRETENDIDO_V1686
 ELEVO_MODELOS_CANDIDATOS_V1685 = {
-    "Roteiros e física (Sol)": "gpt-6.1-sol",
+    "Criação e leitura de fotos (Luna)": "gpt-6-luna",
+    "Roteiros complexos (Sol)": "gpt-6.1-sol",
     "Leitura de fotos (Terra)": "gpt-6.1-terra",
     "Auditoria (Astra)": "gpt-6-astra",
 }
 ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685 = {
     "gpt-4o-mini": (0.15, 0.60),
+    "gpt-6-luna": (0.10, 0.50),
     "gpt-6.1-sol": (2.00, 10.00),
     "gpt-6.1-terra": (1.00, 5.00),
     "gpt-6-astra": (10.00, 50.00),
 }
 
-def elevo_chat_create_v1685(**kwargs):
-    """Compatível com o retorno legado. Não altera prompts nem parâmetros.
+def _elevo_luna_parametros_v1686(kwargs):
+    """Adapta somente parâmetros técnicos; nenhum prompt é modificado."""
+    p = dict(kwargs)
+    p["model"] = "gpt-6-luna"
+    # O modo none conserva a variação dos prompts legados e o Chat Completions.
+    p["reasoning_effort"] = "none"
+    if "max_tokens" in p:
+        p["max_completion_tokens"] = p.pop("max_tokens")
+    return p
 
-    Registra somente estimativas de tokens/custo em sessão, sem conteúdo ou chave.
-    O custo é aproximado: desconsidera cache, ferramentas e tarifas regionais.
+def _elevo_luna_erro_compatibilidade_v1686(erro):
+    """Retorna True só para falhas de modelo/parâmetro/serviço, não moderação."""
+    status = int(getattr(erro, "status_code", 0) or 0)
+    if status in (403, 404, 429, 500, 502, 503, 504):
+        return True
+    if status != 400:
+        return False
+    txt = str(erro).lower()
+    if any(x in txt for x in ("content_filter", "safety", "policy", "moderation")):
+        return False
+    return any(x in txt for x in (
+        "model", "not supported", "unsupported", "invalid parameter",
+        "max_tokens", "max_completion_tokens", "temperature", "reasoning_effort",
+        "permission", "access", "not found", "does not exist",
+    ))
+
+def _elevo_luna_resposta_incompleta_v1686(resposta):
+    """Não deixa uma saída vazia/truncada seguir para os validadores de roteiro."""
+    try:
+        escolha = resposta.choices[0]
+        # Não substituir recusas ou filtragem de conteúdo por outro modelo.
+        if str(getattr(escolha, "finish_reason", "")) in ("content_filter", "refusal"):
+            return False
+        conteudo = getattr(escolha.message, "content", None)
+        return not conteudo or str(getattr(escolha, "finish_reason", "")) == "length"
+    except (AttributeError, IndexError, TypeError):
+        return True
+
+def elevo_chat_create_v1685(**kwargs):
+    """Compatível com a API anterior e com todos os validadores existentes.
+
+    GPT-6 Luna é testado apenas quando habilitado. Em caso de incompatibilidade
+    ou resposta vazia/truncada, tenta uma única vez o modelo funcional anterior.
+    Não reescreve os comandos e não retorna conteúdo do usuário nos logs.
     """
-    resposta = cliente_openai.chat.completions.create(**kwargs)
+    pedido = dict(kwargs)
+    modelo_solicitado = str(pedido.get("model", ELEVO_MODELO_PRODUCAO_V1685))
+    usa_luna = (modelo_solicitado == "gpt-6-luna"
+                 and not st.session_state.get("elevo_luna_indisponivel_v1686", False))
+    modelo_real = ELEVO_MODELO_FALLBACK_V1686
+    if usa_luna:
+        try:
+            resposta = cliente_openai.chat.completions.create(
+                **_elevo_luna_parametros_v1686(pedido)
+            )
+            if _elevo_luna_resposta_incompleta_v1686(resposta):
+                # A saída truncada não deve virar um roteiro inválido.
+                st.session_state["elevo_luna_fallback_motivo_v1686"] = "Resposta incompleta"
+                resposta = cliente_openai.chat.completions.create(
+                    **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
+                )
+            else:
+                modelo_real = "gpt-6-luna"
+        except APIStatusError as erro:
+            if not _elevo_luna_erro_compatibilidade_v1686(erro):
+                raise
+            st.session_state["elevo_luna_indisponivel_v1686"] = True
+            st.session_state["elevo_luna_fallback_motivo_v1686"] = "Incompatibilidade ou indisponibilidade"
+            resposta = cliente_openai.chat.completions.create(
+                **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
+            )
+    else:
+        resposta = cliente_openai.chat.completions.create(
+            **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
+        )
+    st.session_state["elevo_ai_ultimo_modelo_v1686"] = modelo_real
+    if usa_luna and modelo_real == ELEVO_MODELO_FALLBACK_V1686:
+        st.session_state["elevo_ai_fallback_count_v1686"] = (
+            int(st.session_state.get("elevo_ai_fallback_count_v1686", 0)) + 1
+        )
     try:
         uso = getattr(resposta, "usage", None)
         n_in = int(getattr(uso, "prompt_tokens", 0) or 0)
         n_out = int(getattr(uso, "completion_tokens", 0) or 0)
-        modelo = str(kwargs.get("model", ELEVO_MODELO_PRODUCAO_V1685))
-        tarifa = ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685.get(modelo)
+        tarifa = ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685.get(modelo_real)
         if tarifa and (n_in or n_out):
             custo = (n_in * tarifa[0] + n_out * tarifa[1]) / 1_000_000
             st.session_state["elevo_ai_est_usd_v1"] = (
@@ -89,8 +168,7 @@ def elevo_chat_create_v1685(**kwargs):
                 int(st.session_state.get("elevo_ai_chamadas_v1", 0)) + 1
             )
     except (TypeError, ValueError, AttributeError, RuntimeError):
-        # Telemetria nunca pode quebrar a resposta que funcionou.
-        pass
+        pass  # A telemetria nunca pode interromper uma geração bem-sucedida.
     return resposta
 
 def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
@@ -167,6 +245,8 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_mem_v1_contexto", "elevo_mem_v1_feedback_ultimo", "elevo_mem_v1_nota",
     "elevo_ai_est_usd_v1", "elevo_ai_tokens_v1", "elevo_ai_chamadas_v1",
     "elevo_modelos_acesso_v1", "elevo_modelo_comparativo_v1",
+    "elevo_luna_indisponivel_v1686", "elevo_luna_fallback_motivo_v1686",
+    "elevo_ai_ultimo_modelo_v1686", "elevo_ai_fallback_count_v1686",
 }
 
 def limpar_sessao_privada():
@@ -1854,8 +1934,50 @@ op_hoje = buscar_oportunidade_do_dia(agora_brasil.strftime("%Y-%m-%d"), dia_do_a
 
 col_m1, col_m2 = st.columns([1, 1])
 with col_m1:
-    st.info(f"💎 **Visão de Águia:** {frase_hoje}")
-    st.warning(f"📈 **Inteligência Financeira & Patrimônio:** {dica_hoje}")
+    # V16.8.6: somente os 2 cards desta área. Evita o contraste quebrado
+    # entre fundo claro nativo dos st.info/warning e texto claro do tema VIP.
+    st.markdown(f"""
+    <style>
+      .elevo-vip-nota-v1686 {{
+          background: linear-gradient(112deg, #101C31 0%, #0B1629 60%, #13213A 100%) !important;
+          border: 1px solid rgba(0,229,255,.30) !important;
+          border-left: 4px solid #00E5FF !important;
+          border-radius: 13px !important; padding: 14px 17px !important;
+          margin: 0 0 12px 0 !important;
+          box-shadow: 0 7px 20px rgba(0,0,0,.25), inset 0 0 16px rgba(0,229,255,.025) !important;
+          overflow-wrap: anywhere !important;
+      }}
+      .elevo-vip-nota-v1686.ouro {{
+          border-color: rgba(212,175,55,.35) !important;
+          border-left-color: #D4AF37 !important;
+      }}
+      .elevo-vip-nota-v1686 .vip-titulo {{
+          color: #7CEFFF !important; -webkit-text-fill-color: #7CEFFF !important;
+          font-weight: 800 !important; font-size: .93rem !important;
+          line-height: 1.5 !important; margin-bottom: 7px !important;
+      }}
+      .elevo-vip-nota-v1686.ouro .vip-titulo {{
+          color: #F3D985 !important; -webkit-text-fill-color: #F3D985 !important;
+      }}
+      .elevo-vip-nota-v1686 .vip-conteudo {{
+          color: #E7F1FF !important; -webkit-text-fill-color: #E7F1FF !important;
+          font-weight: 500 !important; font-size: .94rem !important;
+          line-height: 1.6 !important; word-break: normal !important;
+      }}
+      @media (max-width: 700px) {{
+          .elevo-vip-nota-v1686 {{padding: 12px 13px !important;}}
+          .elevo-vip-nota-v1686 .vip-conteudo {{font-size: .87rem !important;}}
+      }}
+    </style>
+    <div class="elevo-vip-nota-v1686">
+       <div class="vip-titulo">💎 Visão de Águia</div>
+       <div class="vip-conteudo">{html_std.escape(str(frase_hoje))}</div>
+    </div>
+    <div class="elevo-vip-nota-v1686 ouro">
+       <div class="vip-titulo">📈 Inteligência Financeira &amp; Patrimônio</div>
+       <div class="vip-conteudo">{html_std.escape(str(dica_hoje))}</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     with st.container(border=True):
         st.markdown(f"**🚀 Oportunidade Empresarial Oculta (24h): {op_hoje.get('titulo', 'Nova Oportunidade')}**")
@@ -3800,7 +3922,7 @@ if st.session_state.get("modo_entidade_v9"):
 # ==========================================================
 if E_O_CEO:
     with st.expander("🔬 Intelligence Upgrade — modelos e consumo (somente CEO)", expanded=False):
-        st.caption("Produção preservada em gpt-4o-mini. O teste abaixo consulta os modelos da sua chave; não altera os 8 fluxos de geração.")
+        st.caption(f"Modelo principal: {ELEVO_MODELO_PRODUCAO_V1685} | fallback: gpt-4o-mini. As 8 operações e os prompts continuam intactos.")
         cols_modelo = st.columns(3)
         with cols_modelo[0]:
             st.metric("Chamadas nesta sessão", int(st.session_state.get("elevo_ai_chamadas_v1", 0)))
@@ -3808,8 +3930,9 @@ if E_O_CEO:
             st.metric("Tokens nesta sessão", int(st.session_state.get("elevo_ai_tokens_v1", 0)))
         with cols_modelo[2]:
             st.metric("Custo estimado (USD)", f"${float(st.session_state.get('elevo_ai_est_usd_v1', 0.0)):.4f}")
-        st.caption("Valores estimados pelas tarifas de texto, sem cache, processamento regional ou outras cobranças. A cobrança real é a registrada na OpenAI API.")
-        if st.button("🔎 Conferir disponibilidade de GPT-6.1 Sol, Terra e Astra", key="elevo_consultar_modelos_v1"):
+        st.caption("Valores aproximados; se houver tentativa Luna com fallback, o custo da tentativa pode não estar incluído. Consulte a cobrança real na OpenAI API.")
+        st.caption(f"Último modelo usado: {st.session_state.get('elevo_ai_ultimo_modelo_v1686', 'nenhuma geração nesta sessão')} | Fallbacks: {int(st.session_state.get('elevo_ai_fallback_count_v1686', 0))}")
+        if st.button("🔎 Conferir disponibilidade do Luna, Sol, Terra e Astra", key="elevo_consultar_modelos_v1"):
             try:
                 modelos_api = {str(m.id) for m in cliente_openai.models.list().data}
                 st.session_state["elevo_modelos_acesso_v1"] = {
@@ -3821,7 +3944,7 @@ if E_O_CEO:
         if isinstance(st.session_state.get("elevo_modelos_acesso_v1"), dict):
             for nome, disponivel in st.session_state["elevo_modelos_acesso_v1"].items():
                 st.write(("✅ Encontrado: " if disponivel else "⚪ Não listado: ") + nome)
-            st.caption("Estar listado não substitui um teste real de resposta/estrutura nem autoriza migrar. Continue usando o modelo original até comparar na sua conta.")
+            st.caption("Acesso listado não garante respostas completas; se o Luna falhar por incompatibilidade, a ÉLÉVO retorna ao GPT-4o mini nesta sessão.")
 
 # 17.3. BANCO DE MEMÓRIA E TREINAMENTO INTEGRAL (100% DO DOCUMENTO ENVIADO PELO SÓCIO + LEMA DOR & SOLUÇÃO)
 # ==========================================================
