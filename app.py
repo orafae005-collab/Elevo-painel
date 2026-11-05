@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.6 — GPT-6 Luna com fallback + cards VIP legíveis + Memory Engine V1.
+# ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
 # Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
 
@@ -1012,6 +1012,61 @@ st.markdown(f"""
     {ajuste_modo_claro_css}
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================================
+# ÉLÉVO V16.8.7 — ÚNICA ALTERAÇÃO FUNCIONAL: ESTILO DE AVISOS.
+# Os avisos nativos estavam com fundo claro e texto claro, sem contraste.
+# Reestiliza st.info/success/warning/error somente no modo VIP escuro.
+# Não altera as chamadas, o conteúdo dos avisos ou qualquer motor de IA.
+# ==========================================================
+if not modo_claro:
+    st.markdown("""
+    <style>
+      /* 1. Streamlit status/alert: neutraliza o fundo nativo claro. */
+      div[data-testid="stAlert"],
+      div[data-testid="stAlert"] > div,
+      div[data-testid="stAlert"] [data-baseweb="notification"] {
+          background-color: #101D32 !important;
+          background-image: linear-gradient(112deg,#111E34 0%,#0D182C 100%) !important;
+          color: #E9F5FF !important;
+      }
+      div[data-testid="stAlert"] {
+          border: 1px solid rgba(0,229,255,.32) !important;
+          border-left: 3px solid #49CFF9 !important;
+          border-radius: 12px !important;
+          box-shadow: 0 8px 20px rgba(0,0,0,.24) !important;
+          overflow-wrap: anywhere !important;
+      }
+      /* 2. Filhos de texto recebem contraste explícito, inclusive se
+         o tema geral aplica color claro em elementos internos. */
+      div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+      div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] *,
+      div[data-testid="stAlert"] [data-testid^="stAlertContent"],
+      div[data-testid="stAlert"] [data-testid^="stAlertContent"] * {
+          color: #E9F5FF !important;
+          -webkit-text-fill-color: #E9F5FF !important;
+          opacity: 1 !important;
+      }
+      div[data-testid="stAlert"] svg {
+          color: #84DCFF !important;
+          opacity: 1 !important;
+      }
+      /* 3. Notificações transitórias, sem afetar os cards do app. */
+      div[data-testid="stToast"],
+      div[data-testid="stToast"] [data-baseweb="toast"] {
+          background: #101D32 !important;
+          border: 1px solid rgba(0,229,255,.28) !important;
+          color: #E9F5FF !important;
+      }
+      div[data-testid="stToast"] [data-testid="stMarkdownContainer"],
+      div[data-testid="stToast"] [data-testid="stMarkdownContainer"] * {
+          color: #E9F5FF !important;
+      }
+      @media (max-width: 700px) {
+          div[data-testid="stAlert"] {border-radius: 10px !important;}
+      }
+    </style>
+    """, unsafe_allow_html=True)
 
 # ==========================================================
 # V13 - REFINAMENTO VISUAL RESPONSIVO (SEM TROCAR A PALETA)
