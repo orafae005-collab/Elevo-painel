@@ -1,5 +1,6 @@
-# ÉLÉVO V16.8.19 — Um roteiro TEMPORÁRIO por usuário no Sheets; substituição e lixeira reais.
-# Base V16.8.18 preservada; alteradas APENAS leitura/gravação/limpeza do histórico temporário.
+# ÉLÉVO V16.8.20 — Rascunho temporário PRIVADO por login na memória do servidor;
+# sem gravação de roteiros no Google Sheets. Blindagem visual de produto nos Blocos 17/17.2.
+# Base V16.8.19 preservada: sem mudanças de autenticação, IA, créditos, layout ou memórias 17.3.
 # ÉLÉVO V16.8.16 — Aurora primeiro cadastro + recuperação de crédito + dark VIP (base V16.8.14).
 # Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
@@ -34,6 +35,7 @@ from streamlit_cookies_manager import EncryptedCookieManager
 import io
 import json
 import logging
+import threading
 import html as html_std
 from zoneinfo import ZoneInfo
 from gtts import gTTS
@@ -252,6 +254,7 @@ SESSAO_DADOS_PRIVADOS = {
     "historico_v11_cenas", "historico_v11_ganchos", "roteiro_temporario",
     "elevo_roteiro_limpo_sessao_v1688", "elevo_hist_restauracao_email_v16819",
     "elevo_hist_erro_gravacao_v16817", "elevo_hist_mensagem_v16817",
+    "elevo_roteiro_usuario_v16820",
     "elevo_hist_mensagem_aviso_v16818",
     "influencer_atual", "email_inf_carregado", "dados_prontos",
     "ultimo_feedback_analisado", "ultima_taxa_conversao", "txt_diretrizes_360",
@@ -4211,6 +4214,52 @@ if "roteiro_temporario" not in st.session_state:
 if "modo_entidade_v9" not in st.session_state:
     st.session_state["modo_entidade_v9"] = False
 
+# V16.8.20 — MEMÓRIA VOLÁTIL DE RASCUNHO, UM POR LOGIN.
+# Usa recurso compartilhado somente DENTRO do processo do Streamlit.
+# Rascunhos são privados por chave de e-mail autenticado e removidos na lixeira,
+# na geração seguinte ou quando o servidor reinicia; não escreve em Sheets/Drive.
+@st.cache_resource(show_spinner=False)
+def _elevo_rascunhos_cache_v16820():
+    return {"lock": threading.RLock(), "itens": {}}
+
+
+def _elevo_rascunho_usuario_v16820(email_usr):
+    email = str(email_usr or "").strip().lower()
+    if not email or email == "anonimo" or not st.session_state.get("usuario_logado"):
+        raise PermissionError("É necessário estar autenticado para acessar o rascunho.")
+    if email != str(st.session_state.get("email_usuario") or "").strip().lower():
+        raise PermissionError("Conta do rascunho diferente da conta autenticada.")
+    return hashlib.sha256(email.encode("utf-8")).hexdigest()
+
+
+def elevo_rascunho_carregar_v16820(email_usr):
+    chave = _elevo_rascunho_usuario_v16820(email_usr)
+    cache = _elevo_rascunhos_cache_v16820()
+    with cache["lock"]:
+        return str(cache["itens"].get(chave) or "") or None
+
+
+def elevo_rascunho_substituir_v16820(email_usr, roteiro):
+    chave = _elevo_rascunho_usuario_v16820(email_usr)
+    conteudo = str(roteiro or "")
+    if not conteudo.strip():
+        raise ValueError("Não é possível guardar um roteiro vazio.")
+    cache = _elevo_rascunhos_cache_v16820()
+    with cache["lock"]:
+        # Apenas UM texto por conta. A substituição descarta o anterior.
+        cache["itens"][chave] = conteudo
+    return True
+
+
+def elevo_rascunho_apagar_v16820(email_usr):
+    chave = _elevo_rascunho_usuario_v16820(email_usr)
+    cache = _elevo_rascunhos_cache_v16820()
+    with cache["lock"]:
+        existia = chave in cache["itens"]
+        cache["itens"].pop(chave, None)
+    return int(existia)
+
+
 # V16.8.17 — Histórico de roteiros TEMPORÁRIOS (somente aba Historico_Roteiros).
 # A aba Memoria_Elevo_V1 / feedback 17.3 e os outros bancos não são alterados.
 ELEVO_HISTORICO_COLUNAS_V16817 = ["Email", "DataHora", "JsonRoteiro"]
@@ -4548,6 +4597,84 @@ def neutralizar_descricao_variavel_do_produto_v16811(conteudo):
             limpar(inicio_video) + final_video +
             "\n\n### 🔑 TÍTULOS SEO (Separados)\n" + secoes["secao_seo_texto"])
 
+def blindar_produto_visual_externo_v16820(conteudo, scan):
+    """Bloqueia identidade/cores/capacidades de produto inventadas pela IA.
+
+    Atua SOMENTE nas descrições visuais geradas pela IA; nunca edita foto,
+    identidade humana, fala, áudio, títulos, logo final ou instruções V10.
+    O scanner é o mesmo em todas as trocas de influenciadora.
+    """
+    secoes = extrair_blocos_roteiro(conteudo)
+    if not all(secoes.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+        return conteudo
+
+    nome_produto = str((scan or {}).get("nome_pt") or "")
+    comuns = {"produto", "creme", "tratamento", "kit", "de", "da", "do", "dos", "das",
+              "para", "com", "sem", "unidade", "unidades", "reposição", "massa", "capilar",
+              "profissional", "the", "and", "hair", "original", "novo", "nova"}
+    palavras = {p.casefold() for p in re.findall(r"[^\W\d_]{4,}", nome_produto, re.UNICODE)
+                if p.casefold() not in comuns}
+    padrao_marca = (re.compile(r"(?iu)\b(?:" + "|".join(map(re.escape, sorted(palavras, key=len, reverse=True))) + r")\b")
+                    if palavras else None)
+    tipo = str((scan or {}).get("tipo_embalagem") or "").lower()
+    roupa = bool(re.search(r"(?i)\b(?:clothing|garment|dress|shirt|shorts|skirt|shoes|vestido|roupa|calça|camiseta)\b", tipo))
+    nomes = (r"product|item|package|packaging|bottle|jar|tub|pot|container|box|tube|"
+             r"lid|label|labeling|canister|pote|frasco|embalagem|rótulo|tampa")
+    if roupa:
+        nomes += r"|garment|dress|shirt|shorts|skirt|shoes|vestido|roupa|calça|camiseta"
+    produto = re.compile(r"(?i)\b(?:" + nomes + r")\b")
+    aspecto = re.compile(
+        r"(?i)\b(?:\d{2,5}\s?(?:ml|g|kg|oz|liters?|gramas?|mililitros?)|"
+        r"purple|violet|pink|magenta|blue|red|yellow|gold|silver|white|black|"
+        r"orange|teal|lilac|turquoise|roxo|rosa|azul|vermelho|amarelo|dourado|"
+        r"branco|preto|cylindrical|square|tall|wide|branded|labeled)\b")
+    # Cores de cabelo, céu, folhas, tecido de cenário, logo/glitch NÃO são produto.
+    # O limite de proximidade impede que a cor da influenciadora vire cor do pote.
+    outro_objeto = re.compile(
+        r"(?i)\b(?:hair|skin|face|eyes|dress|clothes|shirt|sky|ocean|plant|"
+        r"leaves|leaf|bird|flower|light|lighting|shadow|glitch|logo|fone|cabelo|"
+        r"pele|rosto|olhos|céu|planta|folha|pássaro|roupa)\b")
+    separador = re.compile(r"((?<=[,;.!?])\s+(?=[A-Za-zÀ-ÿ\[\(])|\n+)")
+    referencia = ("The presenter naturally handles the exact product unit(s) from the separately "
+                  "uploaded product reference, with original count, true 1:1 physical scale, "
+                  "realistic human grip and no reconstructed packaging.")
+
+    def trecho_arriscado(parte):
+        if padrao_marca and padrao_marca.search(parte):
+            return True
+        for obj in produto.finditer(parte):
+            janela = parte[max(0, obj.start() - 42):min(len(parte), obj.end() + 42)]
+            # Não remover descrições do ambiente ou da influenciadora distantes
+            # do produto, embora estejam na mesma sentença original.
+            for desc in aspecto.finditer(janela):
+                ent = janela[max(0, desc.start() - 17):min(len(janela), desc.end() + 17)]
+                if not outro_objeto.search(ent):
+                    return True
+        return False
+
+    def limpar_visual(texto):
+        partes = separador.split(texto)
+        for i in range(0, len(partes), 2):
+            trecho = partes[i]
+            if trecho_arriscado(trecho):
+                # Manter os marcadores de câmera (Shot 1, Shot 2, Interaction),
+                # removendo somente a oração que inventou aparência do produto.
+                titulo_shot = re.match(
+                    r"(?is)^\s*((?:Shot|Cena)\s*\d+(?:\s*\([^)]*\))?\s*:\s*|"
+                    r"Interaction(?:\s*\([^)]*\))?\s*:\s*)", trecho)
+                partes[i] = (titulo_shot.group(1) if titulo_shot else "") + referencia
+        return "".join(partes)
+
+    video = secoes["prompt_video"]
+    inicio_fala = re.search(r"(?im)^\s*(?:🎙️|🎧|📝|🏁|🔑|Áudio\b|Fala\b|Texto na Tela\b|Finalização\b)", video)
+    parte_visual, parte_editorial = ((video[:inicio_fala.start()], video[inicio_fala.start():])
+                                     if inicio_fala else (video, ""))
+    return ("### 📸 PROMPT DE IMAGEM\n" + limpar_visual(secoes["prompt_imagem"]) +
+            "\n\n### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" +
+            limpar_visual(parte_visual).rstrip() + ("\n" + parte_editorial.lstrip("\n") if parte_editorial else "") +
+            "\n\n### 🔑 TÍTULOS SEO (Separados)\n" + secoes["secao_seo_texto"])
+
+
 def sincronizar_persona_imagem_video_v1683(roteiro, nome, assinatura_visual):
     """Injeta exatamente a mesma assinatura em ambas as saídas, sem tocar no produto."""
     if not isinstance(roteiro, str) or not assinatura_visual:
@@ -4875,15 +5002,18 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     }
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
-# V16.8.19: recuperar o rascunho somente uma vez por conta/sessão, evitando
-# novas consultas ao Sheets a cada clique ou atualização do Streamlit.
-if st.session_state.get("elevo_hist_restauracao_email_v16819") != email_sessao:
-    st.session_state["elevo_hist_restauracao_email_v16819"] = email_sessao
-    if (not st.session_state["roteiro_temporario"]
-            and not st.session_state.get("elevo_roteiro_limpo_sessao_v1688", False)):
-        roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
-        if roteiro_salvo_nuvem and "can't assist" not in roteiro_salvo_nuvem.lower():
-            st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
+# V16.8.20: ao mudar de login, limpar IMEDIATAMENTE o roteiro do usuário
+# anterior. Recuperar somente o rascunho volátil da conta autenticada.
+if st.session_state.get("elevo_roteiro_usuario_v16820") != email_sessao:
+    st.session_state["elevo_roteiro_usuario_v16820"] = email_sessao
+    st.session_state["roteiro_temporario"] = None
+    st.session_state.pop("elevo_mem_v1_contexto", None)
+    st.session_state.pop("elevo_mem_v1_nota", None)
+    st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+    try:
+        st.session_state["roteiro_temporario"] = elevo_rascunho_carregar_v16820(email_sessao)
+    except PermissionError:
+        pass
 
 if "influencer_atual" not in st.session_state or st.session_state.get("email_inf_carregado") != email_sessao:
     st.session_state["influencer_atual"] = gerenciar_influencer_usuario("ler", email_sessao)
@@ -6117,6 +6247,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 instrucao_ouro,
                 "Você é o Diretor de Arte e Copywriter Visceral da ÉLÉVO. Lema: 'Não vendemos produtos, vendemos a solução de uma dor e a sensação do resultado'. Preserve os headings dos Moldes 17.3, mas IGNORE qualquer aparência, marca, cor, quantidade nominal ou descrição de produto presente em exemplos históricos. Foto do produto é referência externa exclusiva. Escreva toda a parte visual em inglês puro.",
                 temperatura=0.75)
+            etapa_formato_elevo = "blindagem_descricao_visual"
+            conteudo_texto = blindar_produto_visual_externo_v16820(conteudo_texto, scan_17)
             etapa_formato_elevo = "aplicar_ambiente"
             conteudo_texto = fixar_ambiente_ambos_prompts_v165(
                 conteudo_texto, direcao_v11_17.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
@@ -6136,7 +6268,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
             st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
             # Substitui o ÚNICO rascunho deste login (sem interferir no Banco 17.3).
-            st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_texto)
+            elevo_rascunho_substituir_v16820(email_sessao, conteudo_texto)
+            st.session_state["elevo_hist_erro_gravacao_v16817"] = False
             
                 
             st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
@@ -6248,6 +6381,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                     instrucao_v92,
                     "Você é a Entidade V9.2 Master. Seu lema inegociável: 'Nós não vendemos produtos, nós resolvemos problemas, atacamos a dor visceral, entregamos a sensação do desejo e geramos proximidade de amiga confidente'. Preserve a estrutura 17.3, mas ignore produtos e identidades dos exemplos históricos; foto separada determina o produto e influencer selecionada determina só a pessoa.",
                     temperatura=0.75)
+                etapa_formato_elevo = "blindagem_descricao_visual"
+                conteudo_v92 = blindar_produto_visual_externo_v16820(conteudo_v92, scan_v92)
                 etapa_formato_elevo = "aplicar_ambiente"
                 conteudo_v92 = fixar_ambiente_ambos_prompts_v165(
                     conteudo_v92, direcao_v11_92.get('escolhido',''), st.session_state.get('elevo_ambiente_obs',''))
@@ -6267,7 +6402,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
                 # Mesma regra de rascunho temporário do motor 360º.
-                st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_v92)
+                elevo_rascunho_substituir_v16820(email_sessao, conteudo_v92)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
                 st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
@@ -6393,9 +6529,6 @@ st.markdown("""
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
 # ==========================================================
 if st.session_state["roteiro_temporario"]:
-    if st.session_state.get("elevo_hist_erro_gravacao_v16817", False):
-        st.warning("⚠️ O roteiro foi gerado e está na tela, mas o Google Sheets não confirmou "
-                   "o salvamento temporário. Copie o conteúdo antes de sair e confira a conexão.")
     with st.container(border=True, key="elevo_resultado_v16812"):
         partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
         
@@ -6472,27 +6605,18 @@ if st.session_state["roteiro_temporario"]:
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"):
-            try:
-                removidos_v16819 = excluir_todos_roteiros_do_usuario_v16817(email_sessao)
-            except Exception as exc:
-                logging.warning("ELEVO_HISTORICO_LIXEIRA: %s", type(exc).__name__)
-                st.error("⚠️ O Google Sheets não confirmou a exclusão. O roteiro continua "
-                         "na tela para você poder tentar novamente, sem risco de restaurar "
-                         "um roteiro que deveria estar apagado.")
-            else:
-                # Só limpar a tela quando o registro temporário do Sheets tiver sido
-                # excluído (ou a aba já estiver vazia). Sem mover arquivos à lixeira do Drive.
-                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
-                st.session_state["roteiro_temporario"] = None
-                st.session_state.pop("elevo_mem_v1_contexto", None)
-                st.session_state.pop("elevo_mem_v1_nota", None)
-                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
-                st.session_state["elevo_hist_mensagem_v16817"] = (
-                    f"🗑️ Roteiro removido da tela e {removidos_v16819} registro(s) "
-                    "temporário(s) excluído(s) da sua conta em Historico_Roteiros. "
-                    "Banco 17.3 preservado."
-                )
-                st.rerun()
+            # V16.8.20: lixeira não depende de conexão com Sheets.
+            elevo_rascunho_apagar_v16820(email_sessao)
+            st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
+            st.session_state["roteiro_temporario"] = None
+            st.session_state.pop("elevo_mem_v1_contexto", None)
+            st.session_state.pop("elevo_mem_v1_nota", None)
+            st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+            st.session_state["elevo_hist_mensagem_v16817"] = (
+                "🗑️ Roteiro temporário apagado da tela e da memória deste login. "
+                "O Banco 17.3 foi preservado."
+            )
+            st.rerun()
 
 # Manutenção separada: o CEO pode eliminar os roteiros antigos de TODAS as contas,
 # mas somente mediante confirmação explícita. Outros dados de planilha não são tocados.
@@ -6514,6 +6638,7 @@ if E_O_CEO:
                          "verifique o Sheets antes de tentar novamente.")
             else:
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
+                elevo_rascunho_apagar_v16820(email_sessao)
                 st.session_state["roteiro_temporario"] = None
                 st.session_state.pop("elevo_mem_v1_contexto", None)
                 st.session_state.pop("elevo_mem_v1_nota", None)
