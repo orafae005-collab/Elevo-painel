@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.22 — trava pontual de identidade entre unidades e influenciadoras; estrutura V16.8.21 mantida.
 # ÉLÉVO V16.8.21 — 3 opções de vídeo; logo final removida; texto V9.2 no vídeo.
 # ÉLÉVO V16.8.20 — Rascunho temporário PRIVADO por login na memória do servidor;
 # sem gravação de roteiros no Google Sheets. Blindagem visual de produto nos Blocos 17/17.2.
@@ -4691,7 +4692,12 @@ def sincronizar_persona_imagem_video_v1683(roteiro, nome, assinatura_visual):
                "in image/video, respecting optional explicit changes to hair or clothing; "
                "only the selected person may change, NEVER the separately supplied product reference. "
                "Do not describe the product, packaging, color, label, size or brand. "
-               "Never substitute another presenter.]")
+               "Never substitute another presenter. "
+               "[PRODUCT SOURCE OVERRIDES PERSONA] Treat the separately attached product photo "
+               "as the only visual authority for ALL displayed units, not the person description, "
+               "sample prompts, or prior videos. When source units are identical, every copy "
+               "retains the SAME printed design, silhouette and real-world scale. A different "
+               "influencer cannot cause a different product or a different label.]" )
     for chave in ("prompt_imagem", "prompt_video"):
         if "ÉLÉVO SELECTED PERSON — IDENTICAL VISUAL SIGNATURE" not in trechos[chave]:
             trechos[chave] += "\n\n" + trava
@@ -5793,8 +5799,14 @@ TRAVA_PRODUTO_FOTO_V1682 = (
     'DO NOT describe, translate, reconstruct, recolor, redesign or invent the product in this text prompt. '
     'NEVER import a bottle, pot, cap, label color, lot number, or product name from historical templates '
     'or from the selected influencer persona. Treat the influencer photo, clothes and niche as PERSON-ONLY, '
-    'never as a source of any product attribute. Changes of influencer affect ONLY the person and voice, '
-    'not this photo-referenced product. Maintain physical proportions relative to the real human hand '
+    'never as a source of any product attribute. Changing influencers affects ONLY the presenter and voice. PRODUCT IDENTITY NEVER CHANGES: '
+    'the separately attached product photo defines every unit in every generation, '
+    'regardless of which influencer is selected. If the original kit contains identical units, '
+    'all copies must retain identical printed artwork, container geometry and proportions; '
+    'a near/far placement changes only perspective, not the original package design. '
+    'If the photographed kit contains different units, map each to its specific referenced unit '
+    'without mixing or inventing variants. Preserve each unit count and its continuous identity. '
+    'Maintain physical proportions relative to the real human hand '
     'and furniture: small goods must remain small, large goods must stay realistically large, '
     'without forced universal hand-held size, false giant scale or dramatic near-lens enlargement. '
     'Use compatible body contact, gravity, oclusion, lens geometry and continuous light. '
