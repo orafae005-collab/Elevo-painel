@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.10 — Precisão física 1:1: patch mínimo sobre V16.8.9, sem reconstrução.
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
 # Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
@@ -4649,6 +4650,7 @@ TRAVA_PRODUTO_FOTO_V1682 = (
 # Apenas reforço por inserção nos dois blocos; áudio, SEO e layout não mudam.
 # ==========================================================
 TRAVA_FIDELIDADE_NEUTRA_V1685 = (
+    "[CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, exact match to reference, do not oversize] "
     "[CRITICAL 1:1 PRODUCT REFERENCE & PERSONA ISOLATION LOCK V16.8.5] "
     "Use ONLY the actual product image separately uploaded to the external generator. "
     "No product appearance descriptions, guesses or inherited historical product details. "
@@ -4662,14 +4664,33 @@ TRAVA_FIDELIDADE_NEUTRA_V1685 = (
     "No added logo in the still image; preserve the existing 360 or V9.2 closing rules."
 )
 
-def aplicar_fidelidade_neutra_v1685(conteudo):
+def ancora_fisica_confirmavel_v16810(scan):
+    """Apenas referência física, nunca aparência: evita forçar escala universal."""
+    tipo = str((scan or {}).get("tipo_embalagem", "")).strip().lower()
+    if (re.search(r"(?<!\d)400\s*(?:g|grams?|gramas?)\b", tipo)
+            and re.search(r"\b(?:cosmetic|tub|jar|pot|cream|mask|pote|creme|tratamento)\b", tipo)):
+        return (
+            "[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: Only when the supplied reference "
+            "confirms an ordinary 400g cosmetic treatment container, it must remain naturally "
+            "compact, never an oversized showcase prop. It can be picked up securely with ONE "
+            "adult human hand, fingers wrapping around its sides, if the real reference permits. "
+            "Keep genuine proportions relative to the hand, wrist, forearm, body and supporting "
+            "furniture. Preserve the exact reference silhouette: height, width and depth. "
+            "Do not invent centimeter measurements or redraw any packaging detail. "
+        )
+    return ""
+
+
+def aplicar_fidelidade_neutra_v1685(conteudo, scan=None):
     marcador = "[CRITICAL 1:1 PRODUCT REFERENCE & PERSONA ISOLATION LOCK V16.8.5]"
+    ancora = ancora_fisica_confirmavel_v16810(scan)
+    reforco = TRAVA_FIDELIDADE_NEUTRA_V1685 + ("\n" + ancora if ancora else "") + "\n"
     for cabecalho in (r"(?im)^(###\s*📸\s*PROMPT DE IMAGEM[^\n]*\n)",
                       r"(?im)^(###\s*🎬\s*PROMPT DE VÍDEO[^\n]*\n)"):
         padrao = re.compile(cabecalho)
         if not padrao.search(conteudo):
             raise ValueError("Cabeçalho do roteiro ausente antes de aplicar a trava de fidelidade.")
-        conteudo = padrao.sub(lambda m: m.group(1) + TRAVA_FIDELIDADE_NEUTRA_V1685 + "\n", conteudo, count=1)
+        conteudo = padrao.sub(lambda m: m.group(1) + reforco, conteudo, count=1)
     if conteudo.count(marcador) != 2:
         raise ValueError("As travas de imagem/vídeo precisam ser idênticas.")
     return conteudo
@@ -4739,11 +4760,11 @@ def travar_escala_e_fisica_somente_video_v1685(conteudo):
         marcador + "\n"
         "VIDEO-ONLY ABSOLUTE CONTINUITY PRIORITY. The separately attached product photo and "
         "the APPROVED FIRST FRAME are the authority for each item's true size and shape. "
-        "At 00:00 establish ONE rigid, solid, physically weighted 3D object with fixed real dimensions. "
-        "Keep that EXACT SAME object and the original number of units in every frame until 00:10. "
+        "At 00:00 establish EACH photo-referenced unit as a separate rigid, solid, physically weighted 3D object with fixed real dimensions. "
+        "Keep those EXACT SAME objects and their original count physically traceable from first to final frame. "
         "DO NOT regenerate, swap, stretch, inflate, enlarge, miniaturize, morph or relabel it "
         "when the influencer's face enters frame or a camera shot changes. "
-        "Compare the object's height and width with the SAME hand, fingers, forearm and nearby furniture "
+        "Compare each object's height and width with the SAME hand, fingers, forearm and nearby furniture "
         "at 00:00, 00:03, 00:05, 00:08 and 00:10; maintain consistent real-world proportions. "
         "If the camera changes angle, ONLY physically correct perspective and occlusion may change, "
         "never the object's physical dimensions. Keep natural initial camera-to-product distance, "
@@ -4751,7 +4772,7 @@ def travar_escala_e_fisica_somente_video_v1685(conteudo):
         "over camera movement toward the package. NO dolly-in, macro zoom, crop-to-enlarge, "
         "forced close-up, digital zoom or product moved toward the lens. "
         "The hand visible at the start belongs to the SAME influencer; no invisible second presenter, "
-        "offscreen handoff or newly recreated jar after reframing. \n"
+        "offscreen handoff or newly recreated product after reframing. \n"
         "REAL-WEIGHT PHYSICS: gravity pulls the object downward; the supporting hand makes small "
         "wrist and forearm corrections consistent with its apparent mass, with stable finger grip, "
         "skin compression, plausible thumb contact and no finger intersection. "
@@ -4761,7 +4782,7 @@ def travar_escala_e_fisica_somente_video_v1685(conteudo):
         "unless pushed; if held, keep the same grip and anatomy through the shot. "
         "Reflections, label orientation and shadows track continuous lighting and rigid geometry. "
         "Keep the existing environment's wind, plants, animal and small natural motions intact. "
-        "For multi-item kits keep every original unit distinct and in its initial location. "
+        "For multi-item kits, preserve each unit's continuous trajectory; untouched units remain on their original supports, and moved units change location only through visible grasp, lift, lower, contact and release. "
         "Never describe or guess packaging colors, printed text, exact dimensions, volume or lot: "
         "the separately attached product reference supplies all appearance. "
         "Preserve the original audio, on-screen-text editing notes, SEO and the already selected "
@@ -5061,7 +5082,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = fixar_trava_produto_ambos_prompts_v1682(conteudo_texto)
             etapa_formato_elevo = "limpeza_visual"
             conteudo_texto = sanitizar_descricao_produto_visual_v1684(conteudo_texto)
-            conteudo_texto = aplicar_fidelidade_neutra_v1685(conteudo_texto)
+            conteudo_texto = aplicar_fidelidade_neutra_v1685(conteudo_texto, scan_17)
             etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, desc_inf_ativa)
@@ -5120,7 +5141,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic macro mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, authentic lighting matching the chosen ÉLÉVO environment, NO artificial flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She occupies EXACTLY the selected 22-environment preset, preserving its actual geometry, decorations, lived-in objects, single background animal and plants; do not replace it with a generic tropical room. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic source-photo proportions and human-hand-relative scale, never forcibly oversized or artificially compact; no product appearance descriptors]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Describe ONLY the real plant(s) defined by the selected environment, correctly lit and positioned]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Describe the selected environment original lived-in everyday clutter with plausible contact and inertia]. [ANIMAL FACTOR (STORYTELLING V9)]: [Include ONLY the single cat or dog defined by the selected environment in an unobtrusive background position]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry from the selected ÉLÉVO preset; only scene-defined objects, realistic contact shadow.
+                RAW photography, cinematic mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, authentic lighting matching the chosen ÉLÉVO environment, NO artificial flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She occupies EXACTLY the selected 22-environment preset, preserving its actual geometry, decorations, lived-in objects, single background animal and plants; do not replace it with a generic tropical room. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic source-photo proportions and human-hand-relative scale, never forcibly oversized or artificially compact; no product appearance descriptors]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Describe ONLY the real plant(s) defined by the selected environment, correctly lit and positioned]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Describe the selected environment original lived-in everyday clutter with plausible contact and inertia]. [ANIMAL FACTOR (STORYTELLING V9)]: [Include ONLY the single cat or dog defined by the selected environment in an unobtrusive background position]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry from the selected ÉLÉVO preset; only scene-defined objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
                 [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, no overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — execute a fast clean red digital glitch and reveal exactly one centered text logo reading '{logo_ativa_usuario}'. Keep the logo simple, short, legible and medium-sized; no slogan, no paragraph, no extra decorative description, no duplicate logos. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
@@ -5182,7 +5203,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = fixar_trava_produto_ambos_prompts_v1682(conteudo_v92)
                 etapa_formato_elevo = "limpeza_visual"
                 conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
-                conteudo_v92 = aplicar_fidelidade_neutra_v1685(conteudo_v92)
+                conteudo_v92 = aplicar_fidelidade_neutra_v1685(conteudo_v92, scan_v92)
                 etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, desc_inf_ativa)
