@@ -4503,6 +4503,152 @@ def extrair_blocos_roteiro(md_texto):
 
     return dados
 
+
+# ==========================================================
+# ÉLÉVO V16.8.23 — REFERÊNCIA DE PRODUTO IMUTÁVEL / TODAS AS INFLUENCIADORAS
+# Última etapa dos Blocos 17 e 17.2. Não modifica interface, fala, SEO,
+# configuração da IA, créditos, login, biblioteca nem identidade da pessoa.
+# ==========================================================
+REGRA_PRODUTO_UNIVERSAL_V16823 = (
+    "[UNIVERSAL EXTERNAL PRODUCT REFERENCE / ALL INFLUENCERS] "
+    "In the IMAGE and VIDEO visual instructions, refer to the item ONLY as "
+    "'the exact item(s) from the separately supplied product reference image'. "
+    "Never write an affirmative description or name of the item's appearance, "
+    "category, color, material, capacity, packaging, markings or design. "
+    "The product photograph, not the selected presenter or memory examples, "
+    "is the sole visual authority. The only permitted product-related textual "
+    "directions are independently verified unit count, true 1:1 scale, "
+    "natural holding/support, contact, gravity, camera distance and continuous "
+    "object identity. Changing the influencer alters ONLY the person and voice. "
+    "Preserve the existing scene, physics, camera, environment, text-on-screen, "
+    "speech and SEO without reinterpretation."
+)
+
+
+def blindar_saida_visual_final_v16823(roteiro, scan=None):
+    """Última barreira determinística para TODOS os presets e influência própria.
+
+    Retira afirmações sobre atributos do produto sem apagar a aparência humana,
+    folhagens, objetos do cenário, gancho, fala, legenda, SEO e locks de física.
+    O retorno mantém exatamente os três headings aprovados pela plataforma.
+    """
+    secoes = extrair_blocos_roteiro(roteiro)
+    if not all(secoes.get(k) for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
+        # Nunca devolver uma saída artificialmente quebrada ao usuário.
+        return roteiro
+
+    # No prompt de vídeo, preservar integralmente fala, textos na tela e fecho.
+    video = secoes['prompt_video']
+    editorial = re.search(
+        r"(?im)^\s*(?:🎙️|🎧|📝|🏁|🔑|Áudio\b|Fala\b|Texto na Tela\b|Finalização\b)",
+        video,
+    )
+    if editorial:
+        visual_video, cauda_video = video[:editorial.start()], video[editorial.start():]
+    else:
+        visual_video, cauda_video = video, ''
+
+    # A regra não usa o perfil nem a foto da influenciadora para inferir nada.
+    # A modalidade de objeto detectada pelo scanner apenas restringe palavras
+    # que podem designar o produto na descrição, nunca cria uma nova descrição.
+    tipo = str((scan or {}).get('tipo_embalagem') or '').lower()
+    categorias = r'jars?|tubs?|bottles?|pots?|containers?|flasks?|canisters?|boxes?|packages?|packets?|tubes?|potes?|frascos?|embalagens?|recipientes?'
+    roupa = bool(re.search(r'\b(?:dress|shorts|skirt|shirt|clothes|clothing|garment|pants|shoes|vestido|saia|roupa|camiseta|calça|croch[eê]|tric[oô])\b', tipo))
+    produto_nome = str((scan or {}).get('nome_pt') or '').strip()
+    # Excluir termos comuns que também podem descrever a pessoa ou o cenário.
+    ignorar = {'produto', 'kit', 'creme', 'tratamento', 'de', 'do', 'da', 'com',
+               'para', 'reposicao', 'reposição', 'massa', 'profissional',
+               'natural', 'brasil', 'original', 'product', 'the', 'hair'}
+    termos_marca = [p for p in re.findall(r'[^\W\d_]{4,}', produto_nome, re.UNICODE)
+                   if p.casefold() not in ignorar]
+    if termos_marca:
+        marca_pat = re.compile(r'(?iu)\b(?:' + '|'.join(re.escape(p) for p in sorted(termos_marca, key=len, reverse=True)) + r')\b')
+    else:
+        marca_pat = None
+
+    cor = r'purple|violet|pink|magenta|blue|red|green|yellow|gold|silver|white|black|orange|teal|lilac|brown|roxo|rosa|azul|vermelho|verde|amarelo|dourado|branco|preto|marrom'
+    mater = r'plastic|metal|glass|transparent|glossy|matte|cylindrical|square|round|tall|slim|compact|ceramic|crochet|knitted|tricot|croch[eê]|cil[ií]ndrico|transparente|pl[aá]stico'
+    qualificadores = rf'(?:{cor}|{mater}|branded|labeled|exact|original|tiny|large|small|medium|identical|matching|reference|photo-referenced|cosmetic|hair|treatment|new)'
+    # Padrão restrito a substantivos do PRODUTO: não interfere em "red hair",
+    # "white top", "purple flowers", roupa da pessoa ou plantas do ambiente.
+    descricao_nucleo = re.compile(
+        rf'(?i)\b(?:(?P<qtd>one|two|three|four|five|six|seven|eight|nine|ten|\d+)\s+)?'
+        rf'(?:(?:the|a|an|both|each|those|these)\s+)?'
+        rf'(?:(?:{qualificadores}|[0-9]+\s?(?:g|kg|ml|oz))\s+){{1,5}}'
+        rf'(?:{categorias})\b'
+    )
+    descricoes_diretas = re.compile(
+        rf'(?i)\b(?:{cor})\s+(?:\w+[ -]+){{0,2}}(?:{categorias}|products?|items?|units?|kits?)\b'
+        rf'|\b(?:{categorias}|products?|items?|units?|kits?)\s+(?:with|in|featuring|colored|coloured|of)\s+'
+        rf'(?:a\s+)?(?:{cor}|{mater})\b'
+    )
+    # Se o produto é vestuário, trocar SOMENTE menções à roupa de REFERÊNCIA;
+    # não apagar roupas, cabelo e aparência do perfil da influenciadora.
+    vestuario_ref = (re.compile(
+        rf'(?i)\b(?:the exact|the referenced|the photo-referenced|the product)\s+'
+        rf'(?:[a-z-]+\s+){{0,4}}(?:shorts|skirts?|dresses|shirts?|garments?|vestidos?|saias?|cal[cç]as?|pe[cç]as?)\b'
+    ) if roupa else None)
+    atributo_explicito = re.compile(
+        rf'(?i)\b(?:the|this|that|each|both)\s+(?:product|item|unit|kit)\s+'
+        rf'(?:is|looks|appears|has|features|comes in)\s+'
+        rf'[^.;\n]{{0,85}}\b(?:{cor}|{mater}|\d+\s*(?:g|kg|ml))\b[^.;\n]{{0,55}}'
+    )
+    qtd_palavras = {'one':'one', 'two':'two', 'three':'three', 'four':'four',
+                    'five':'five', 'six':'six', 'seven':'seven', 'eight':'eight',
+                    'nine':'nine', 'ten':'ten'}
+
+    def _sub_nucleo(m):
+        q = (m.group('qtd') or '').lower()
+        return (qtd_palavras.get(q, q) + ' ' if q else '') + 'exact reference item(s)'
+
+    def _limpar_visual(txt):
+        # As travas e os presets oficialmente aprovados NÃO são reescritos
+        # pelo filtro: só o texto visual livre criado pela IA é sanitizado.
+        travas_protegidas = []
+        def _guardar_trava(m):
+            trecho = m.group(0)
+            if (trecho.startswith('[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]')
+                    and re.search(r'(?i)\b\d+\s*(?:g|kg|ml|oz)\b', trecho)):
+                trecho = ('[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: '
+                          'Use the separately supplied reference at true 1:1 scale, '
+                          'anchored to natural hand size, camera distance, gravity '
+                          'and real contact; do not infer product characteristics.')
+            indice = len(travas_protegidas)
+            travas_protegidas.append(trecho)
+            return 'ELEVOLOCKPROTEGIDO' + str(indice) + 'FIM'
+        txt = re.sub(r'(?m)^[ \t]*\[(?:ÉLÉVO|CRITICAL)[^\n]*',
+                     _guardar_trava, txt)
+        # Tipos de produto oriundos de exemplos antigos, mesmo sem cor.
+        txt = re.sub(
+            rf'(?i)\b(?:ordinary\s+)?(?:compact\s+)?\d+(?:[.,]\d+)?\s*'
+            rf'(?:g|kg|ml|oz|liters?|litros?|grams?|gramas?)\s+'
+            rf'(?:[a-z-]+\s+){{0,4}}(?:{categorias})\b',
+            'exact reference item(s)', txt,
+        )
+        txt = descricao_nucleo.sub(_sub_nucleo, txt)
+        txt = descricoes_diretas.sub('exact reference item(s)', txt)
+        if vestuario_ref:
+            txt = vestuario_ref.sub('the exact photo-referenced item', txt)
+        txt = atributo_explicito.sub('the exact photo-referenced item retains its identity', txt)
+        # O scanner pode ter lido nome, peso ou capacidade, mas NÃO deve
+        # determinar como o gerador desenha o produto no prompt visual.
+        txt = re.sub(r'(?i)\b\d+(?:[.,]\d+)?\s*(?:g|kg|ml|millilit(?:ers?|res?)|grams?|gramas?|liters?|litros?|oz)\b',
+                     'reference-sized', txt)
+        txt = re.sub(r'(?i)\b(?:label|rótulo)\s+(?:reads?|says?|saying|showing|marked|with|contendo|diz)\s+["“\']?[^.;\n\]]{1,70}',
+                     'original reference markings', txt)
+        if marca_pat:
+            txt = marca_pat.sub('reference item', txt)
+        for i, trecho in enumerate(travas_protegidas):
+            txt = txt.replace('ELEVOLOCKPROTEGIDO' + str(i) + 'FIM', trecho)
+        # A assinatura da PESSOA e a natureza ficam exatamente como estavam.
+        return txt
+
+    img_limpa = _limpar_visual(secoes['prompt_imagem'])
+    vid_limpo = _limpar_visual(visual_video) + cauda_video
+    return ('### 📸 PROMPT DE IMAGEM\n' + img_limpa.rstrip()
+            + '\n\n### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + vid_limpo.rstrip()
+            + '\n\n### 🔑 TÍTULOS SEO (Separados)\n' + secoes['secao_seo_texto'])
+
 # ==========================================================
 # V16.8.3 — IDENTIDADE VISUAL IDÊNTICA NA FOTO E NO VÍDEO
 # Pós-processamento aditivo: não altera a organização dos três blocos.
@@ -5835,20 +5981,21 @@ TRAVA_FIDELIDADE_NEUTRA_V1685 = (
 )
 
 def ancora_fisica_confirmavel_v16810(scan):
-    """Apenas referência física, nunca aparência: evita forçar escala universal."""
-    tipo = str((scan or {}).get("tipo_embalagem", "")).strip().lower()
-    if (re.search(r"(?<!\d)400\s*(?:g|grams?|gramas?)\b", tipo)
-            and re.search(r"\b(?:cosmetic|tub|jar|pot|cream|mask|pote|creme|tratamento)\b", tipo)):
-        return (
-            "[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: Only when the supplied reference "
-            "confirms an ordinary 400g cosmetic treatment container, it must remain naturally "
-            "compact, never an oversized showcase prop. It can be picked up securely with ONE "
-            "adult human hand, fingers wrapping around its sides, if the real reference permits. "
-            "Keep genuine proportions relative to the hand, wrist, forearm, body and supporting "
-            "furniture. Preserve the exact reference silhouette: height, width and depth. "
-            "Do not invent centimeter measurements or redraw any packaging detail. "
-        )
-    return ""
+    """Âncora universal 1:1; nenhum tipo, cor, capacidade ou embalagem sai no texto.
+
+    O scanner continua servindo à fala/SEO, mas nunca à descrição visual do
+    objeto. Esta regra independe da influenciadora ou do tipo de produto.
+    """
+    return (
+        "[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: Preserve the EXACT "
+        "externally referenced item(s) at their true real-world size. Use the "
+        "presenter's hand, wrist, body and stable furniture only as physical "
+        "scale anchors, with believable camera distance and perspective. "
+        "Grip or support each unit ONLY if physically plausible for that item. "
+        "Keep original solid geometry, weight, gravity, contact and proportions "
+        "unchanged; never enlarge an item for emphasis or force any assumed "
+        "standard size. Do not infer or verbally specify any product attribute. "
+    )
 
 
 def aplicar_fidelidade_neutra_v1685(conteudo, scan=None):
@@ -6332,6 +6479,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                                     "Use this EXACT preset in the still image and repeat the identical object list "
                                     "and physical conditions in the video. Do not switch location after 0:00. ")
             instrucao_ouro += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
+            instrucao_ouro += "\n\n" + REGRA_PRODUTO_UNIVERSAL_V16823
             instrucao_ouro += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
             if licoes_mem_17:
                 instrucao_ouro += "\n\n" + licoes_mem_17
@@ -6360,6 +6508,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             if st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
                 # A imagem/fala/SEO do Bloco 17 permanecem literalmente intactos.
                 conteudo_texto = elevo_video_produto_3s_v16821(conteudo_texto)
+            # Última etapa universal: nenhuma influenciadora transfere atributos ao produto.
+            conteudo_texto = blindar_saida_visual_final_v16823(conteudo_texto, scan_17)
             st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
@@ -6475,6 +6625,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                   "Renderize as TRÊS frases de 📝 Texto na Tela no próprio vídeo, legíveis e sincronizadas; "
                                   "o encerramento não deve conter logotipo extra, interface ou marca d'água. "
                                   "Nunca modifique texto falado, SEO, fotografia inicial ou embalagem.")
+                instrucao_v92 += "\n\n" + REGRA_PRODUTO_UNIVERSAL_V16823
                 instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                 if licoes_mem_92:
                     instrucao_v92 += "\n\n" + licoes_mem_92
@@ -6503,6 +6654,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 # Os filtros abaixo atingem só o VÍDEO; a IMAGEM e SEO não mudam.
                 conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
                 conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
+                # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
+                conteudo_v92 = blindar_saida_visual_final_v16823(conteudo_v92, scan_v92)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
