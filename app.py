@@ -231,6 +231,7 @@ if "usuario_logado" not in st.session_state:
 SESSAO_DADOS_PRIVADOS = {
     "historico_viva_voz", "ultimo_audio_b64", "ultimo_hash_audio",
     "historico_v11_cenas", "historico_v11_ganchos", "roteiro_temporario",
+    "elevo_roteiro_limpo_sessao_v1688",
     "influencer_atual", "email_inf_carregado", "dados_prontos",
     "ultimo_feedback_analisado", "ultima_taxa_conversao", "txt_diretrizes_360",
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
@@ -3838,7 +3839,10 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     }
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
-if not st.session_state["roteiro_temporario"]:
+# Não restaurar do Google Sheets após o usuário limpar deliberadamente a tela.
+# O histórico no Sheets permanece íntegro; esta trava só vale para a sessão atual.
+if (not st.session_state["roteiro_temporario"]
+        and not st.session_state.get("elevo_roteiro_limpo_sessao_v1688", False)):
     roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
     if roteiro_salvo_nuvem and "can't assist" not in roteiro_salvo_nuvem.lower():
         st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
@@ -5061,6 +5065,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, desc_inf_ativa)
+            st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
             st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
@@ -5181,6 +5186,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, desc_inf_ativa)
+                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
@@ -5272,8 +5278,13 @@ if st.session_state["roteiro_temporario"]:
                             else "verifique o acesso ao Google Sheets."))
 
         st.markdown("<br>", unsafe_allow_html=True)
-        if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"): 
+        if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"):
+            # Primeiro bloquear a recarga automática do último histórico salvo.
+            # Em seguida, limpar o roteiro e o feedback temporário, sem apagar Sheets.
+            st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
             st.session_state["roteiro_temporario"] = None
+            st.session_state.pop("elevo_mem_v1_contexto", None)
+            st.session_state.pop("elevo_mem_v1_nota", None)
             st.rerun()
 
 st.markdown('<div id="academia"></div>', unsafe_allow_html=True)
