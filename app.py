@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.14 — Estabilidade do painel e saudação única por login (base V16.8.13).
+# ÉLÉVO V16.8.15 — Correção visual dark + saudação Aurora única permanente (base V16.8.14).
 # Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
@@ -378,8 +378,7 @@ def entrar_usuario(email, nome):
         audio_boas_vindas_b64=None, erro_audio_bv="",
         elevo_bv_epoca_local_v16814=secrets.token_hex(16),
     )
-    # A saudação volta a estar autorizada apenas num NOVO login explícito.
-    cookies.pop("elevo_bv_ouvida_v16814", None)
+    # Mantém a trava permanente da Aurora; novo login não deve reativar a fala.
     nonce_senha_v16814 = secrets.token_hex(16)
     st.session_state["elevo_bv_password_nonce_v16814"] = nonce_senha_v16814
     cookies["elevo_bv_login_v16814"] = nonce_senha_v16814
@@ -704,7 +703,6 @@ if not st.session_state["usuario_logado"]:
                         if st.query_params.get("elevo_acesso") == "novo":
                             del st.query_params["elevo_acesso"]
                         st.session_state.pop("elevo_logout_pendente", None)
-                        cookies.pop("elevo_bv_ouvida_v16814", None)
                         cookies.pop("elevo_bv_google_v16814", None)
                         cookies.save()
                         st.login("google")
@@ -1379,6 +1377,73 @@ if not modo_claro:
     """, unsafe_allow_html=True)
 
 # ==========================================================
+# ÉLÉVO V16.8.15 — Correção visual: popovers, dialogs e painéis internos
+# do Streamlit herdavam fundo claro em alguns cenários do modo VIP escuro.
+# Reforça o tema dark sem alterar conteúdo, lógica ou paleta principal.
+# ==========================================================
+if not modo_claro:
+    st.markdown("""
+    <style>
+      div[data-baseweb="popover"],
+      div[data-baseweb="popover"] > div,
+      div[data-baseweb="popover"] > div > div,
+      div[data-baseweb="popover"] [data-testid="stVerticalBlock"],
+      div[data-baseweb="popover"] [data-testid="stMarkdownContainer"],
+      div[data-baseweb="popover"] [data-testid="stMarkdownContainer"] *,
+      div[data-baseweb="popover"] label,
+      div[data-baseweb="popover"] p,
+      div[data-baseweb="popover"] span,
+      div[data-baseweb="popover"] small,
+      div[data-baseweb="popover"] input,
+      div[data-baseweb="popover"] textarea,
+      div[data-baseweb="popover"] [data-baseweb="input"],
+      div[data-baseweb="popover"] [data-baseweb="input"] > div,
+      div[data-baseweb="popover"] [data-testid="stNumberInput"] > div,
+      div[data-baseweb="popover"] [data-testid="stNumberInput"] input {
+          background: #0E1A2B !important;
+          color: #EAF6FF !important;
+          -webkit-text-fill-color: #EAF6FF !important;
+      }
+      div[data-baseweb="popover"] > div {
+          border: 1px solid rgba(0,229,255,.24) !important;
+          border-radius: 16px !important;
+          box-shadow: 0 14px 38px rgba(0,0,0,.45) !important;
+          background-image: linear-gradient(145deg,#0F1C30 0%,#0A1220 100%) !important;
+      }
+      div[data-baseweb="popover"] button {
+          color: #EAF6FF !important;
+      }
+      div[data-baseweb="popover"] [data-testid="stNumberInputStepDown"],
+      div[data-baseweb="popover"] [data-testid="stNumberInputStepUp"] {
+          background:#15263F !important;
+          border-color: rgba(0,229,255,.24) !important;
+          color:#EAF6FF !important;
+      }
+      div[data-testid="stPopoverBody"], div[data-testid="stPopover"] {
+          background: transparent !important;
+      }
+      div[data-testid="stContainer"] div[data-testid="stMarkdownContainer"] p {
+          color: inherit;
+      }
+      div[data-testid="stStatusWidget"],
+      div[data-testid="stSpinner"],
+      div[data-testid="stExpanderDetails"] {
+          background: transparent !important;
+          color: #EAF6FF !important;
+      }
+      ul[data-baseweb="menu"],
+      li[role="option"] {
+          background: #0E1A2B !important;
+          color: #EAF6FF !important;
+      }
+      li[role="option"]:hover, li[aria-selected="true"] {
+          background: rgba(0,229,255,.12) !important;
+          color: #9CEBFF !important;
+      }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
 # V13 - REFINAMENTO VISUAL RESPONSIVO (SEM TROCAR A PALETA)
 # ==========================================================
 st.markdown("""
@@ -1582,40 +1647,16 @@ nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
 
 
 def elevo_chave_boas_vindas_v16814(email):
-    """Marca estável entre reruns e F5, única em cada entrada autenticada."""
+    """Chave PERMANENTE por conta neste navegador.
+    A Aurora fala uma única vez para cada e-mail neste navegador, mesmo após logout/login.
+    """
     email = str(email).strip().lower()
-    metodo = str(st.session_state.get("auth_metodo", ""))
-    if metodo == "google":
-        # Google/OIDC não utiliza cookie de senha. Sincronização entre login e F5.
-        nonce = (str(st.session_state.get("elevo_bv_google_nonce_v16814", "") or "")
-                 or str(cookies.get("elevo_bv_google_v16814", "") or ""))
-        if not nonce:
-            nonce = secrets.token_hex(16)
-            cookies["elevo_bv_google_v16814"] = nonce
-            cookies.save()
-        st.session_state["elevo_bv_google_nonce_v16814"] = nonce
-        material = "google:" + email + ":" + nonce
-    else:
-        # O nonce em session_state resolve a latência de sincronização do cookie:
-        # primeira renderização e F5 devem calcular a MESMA chave de saudação.
-        nonce = (str(st.session_state.get("elevo_bv_password_nonce_v16814", "") or "")
-                 or str(cookies.get("elevo_bv_login_v16814", "") or ""))
-        if nonce:
-            st.session_state["elevo_bv_password_nonce_v16814"] = nonce
-            material = "senha:" + email + ":" + nonce
-        else:
-            token = str(cookies.get("login", "") or "")
-            if token and ler_token(token) == email:
-                material = "senha_legado:" + token
-            else:
-                # Login não persistente (ex.: usuário optou por não lembrar).
-                nonce = st.session_state.setdefault("elevo_bv_epoca_local_v16814", secrets.token_hex(16))
-                material = "temporario:" + email + ":" + nonce
+    material = "aurora-permanente:" + email
     return hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
 
 
 def elevo_marcar_boas_vindas_v16814(chave):
-    """Salvar a trava ANTES de tocar, não depender de planilha ou evento ended."""
+    """Salvar a trava permanente ANTES de tocar, sem depender de planilha ou evento ended."""
     st.session_state["elevo_bv_chave_v16814"] = chave
     try:
         cookies["elevo_bv_ouvida_v16814"] = chave
@@ -1767,9 +1808,9 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
             // A conta e os bytes são dados, nunca HTML executável.
             email.textContent = data.email || '';
             const idSessao = String(data.visitKey || '');
-            const chaveNavegador = 'elevo_bv_unica_v16814_' + idSessao;
+            const chaveNavegador = 'elevo_bv_unica_permanente_v16815_' + idSessao;
             let ouvidoNoNavegador = false;
-            try { ouvidoNoNavegador = window.sessionStorage.getItem(chaveNavegador) === 'iniciado'; }
+            try { ouvidoNoNavegador = window.localStorage.getItem(chaveNavegador) === 'iniciado'; }
             catch (_) {}
             if (ouvidoNoNavegador) {
                 container.style.display = 'none';
@@ -1794,7 +1835,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
                 }
             }
             const onPlaying = () => {
-                try { window.sessionStorage.setItem(chaveNavegador, 'iniciado'); }
+                try { window.localStorage.setItem(chaveNavegador, 'iniciado'); }
                 catch (_) {}
                 btn.style.display = 'none';
                 vis.style.display = 'flex';
@@ -2026,7 +2067,6 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     # componente acontece no navegador, por isso o bloqueio de restauração.
     sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
     cookies.pop("login", None)
-    cookies.pop("elevo_bv_ouvida_v16814", None)
     cookies.pop("elevo_bv_google_v16814", None)
     cookies.pop("elevo_bv_login_v16814", None)
     cookies.save()
