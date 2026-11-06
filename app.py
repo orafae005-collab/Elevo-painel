@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.23.1 — modo claro VIP e detalhes extensos recolhíveis (somente apresentação).
+# Base V16.8.23 intacta: mesmos geradores, prompts, autenticação, dados e cobrança.
 # ÉLÉVO V16.8.22.2 — padrão inicial claro no celular, escuro no PC; botão manual preservado.
 # ÉLÉVO V16.8.22.1 — abertura de login com video PC + celular; codigo V16.8.22 intacto.
 # ÉLÉVO V16.8.22 — trava pontual de identidade entre unidades e influenciadoras; estrutura V16.8.21 mantida.
@@ -3861,6 +3863,24 @@ with _elevo_area_criacao_v16823:
 @media (max-width:760px){.elevo-ambiente-card {height:192px}}
  </style>""", unsafe_allow_html=True)
 
+    # V16.8.23.1 — coerência com o tema claro, sem afetar os cards no tema escuro.
+    if modo_claro:
+        st.markdown("""<style>
+        .elevo-ambiente-card {
+            background:linear-gradient(145deg,#FFFFFF,#F3F8FF)!important;
+            border:1px solid #D7E4F4!important;
+            box-shadow:0 5px 16px rgba(22,65,120,.055)!important;
+        }
+        .elevo-ambiente-card.ativo {
+            border:2px solid #2574E9!important;
+            box-shadow:0 0 0 3px rgba(37,116,233,.10)!important;
+        }
+        .elevo-ambiente-card .nome {color:#153251!important;}
+        .elevo-ambiente-card .tag {color:#155EB0!important;}
+        .elevo-ambiente-card .descricao {color:#435A76!important;}
+        .elevo-ambiente-card .flag {color:#087F69!important;}
+        </style>""", unsafe_allow_html=True)
+
     items_ambiente = list(AMBIENTES_ELEVO_V165.items())
     st.markdown(
         '<div class="elevo-carrossel-instrucao">'
@@ -3904,11 +3924,14 @@ with _elevo_area_criacao_v16823:
         with col_cena:
             with st.container(border=True):
                 st.markdown(f'#### {cena["icone"]} {cena["nome"]}')
-                st.caption('Ficha cinematográfica do ambiente selecionado')
-                st.markdown(f'**🌤 Luz:** {cena["luz"]}')
-                st.markdown(f'**🎭 Baguncinha:** {cena["elementos"]}')
-                st.markdown(f'**💨 Física e movimento:** {cena["fisica"]}')
-                st.markdown(f'**🔊 Som ambiente:** {cena["som"]}')
+                st.caption(cena["resumo"])
+                # V16.8.23.1: a ficha completa é apenas recolhida na tela.
+                # Os atributos originais permanecem disponíveis para os geradores.
+                with st.expander("▸ Ver ficha cinematográfica completa", expanded=False):
+                    st.markdown(f'**🌤 Luz:** {cena["luz"]}')
+                    st.markdown(f'**🎭 Baguncinha:** {cena["elementos"]}')
+                    st.markdown(f'**💨 Física e movimento:** {cena["fisica"]}')
+                    st.markdown(f'**🔊 Som ambiente:** {cena["som"]}')
         with col_detalhes:
             with st.container(border=True):
                 st.markdown('#### ✍️ Personalização (opcional)')
@@ -6881,34 +6904,33 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
     # Os textos gerados, validadores, fotos, cópias e modelos de IA ficam intocados.
     # A prévia e a parte recolhida, concatenadas, são idênticas ao prompt integral.
     # ==========================================================
-    def dividir_prompt_previa_v16812(texto, max_chars=1050):
-        """Recorta somente a visualização; jamais reescreve o prompt gerado."""
-        conteudo = str(texto or "")
-        if len(conteudo) <= max_chars + 100:
-            return conteudo, ""
-        alvo = min(max_chars, max(450, len(conteudo) // 2))
-        corte = conteudo.rfind(" ", max(1, alvo - 75), alvo + 1)
-        corte = (corte + 1) if corte >= 0 else alvo
-        return conteudo[:corte], conteudo[corte:]
-
-
     def mostrar_prompt_recolhivel_v16812(prompt, identificador):
-        """Mostra uma prévia reduzida e uma seta nativa para revelar todo o restante."""
-        inicio, restante = dividir_prompt_previa_v16812(prompt)
-        if not restante:
-            st.markdown(prompt)
+        """Resumo visual com seta para o texto integral, sem alterar o prompt nem a cópia."""
+        conteudo = str(prompt or "")
+        if not conteudo:
             return
-        # Escape de HTML apenas na visualização: protege caracteres e tags literais.
+        rotulo = "imagem" if identificador == "imagem" else "vídeo"
+        # Prévia compacta sem modificar a saída original ou os botões de copiar.
+        if len(conteudo) <= 170:
+            st.markdown(
+                '<div class="elevo-prompt-previa-v16812">'
+                + html_std.escape(conteudo) + '</div>',
+                unsafe_allow_html=True,
+            )
+            return
+        trecho = conteudo[:170]
+        pos_espaco = trecho.rfind(" ")
+        if pos_espaco >= 115:
+            trecho = trecho[:pos_espaco]
         st.markdown(
             '<div class="elevo-prompt-previa-v16812">'
-            + html_std.escape(inicio) + '</div>',
+            + html_std.escape(trecho.rstrip()) + '…</div>',
             unsafe_allow_html=True,
         )
-        rotulo = "imagem" if identificador == "imagem" else "vídeo"
-        with st.expander(f"Ver restante do prompt de {rotulo}", expanded=False):
+        with st.expander(f"▸ Ler prompt completo de {rotulo}", expanded=False):
             st.markdown(
                 '<div class="elevo-prompt-restante-v16812">'
-                + html_std.escape(restante) + '</div>',
+                + html_std.escape(conteudo) + '</div>',
                 unsafe_allow_html=True,
             )
 
@@ -6984,6 +7006,78 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
 </style>
 """,unsafe_allow_html=True)
 
+    # V16.8.23.1 — contraste VIP no modo claro: branco real + azul sóbrio.
+    # O modo escuro existente permanece sem modificações.
+    if modo_claro:
+        st.markdown("""
+<style>
+.st-key-elevo_resultado_v16812 {
+    background:#FFFFFF!important;
+    background-image:none!important;
+    border:1px solid #D7E5F5!important;
+    box-shadow:0 12px 32px rgba(15,61,111,.08),inset 0 1px 0 #FFFFFF!important;
+}
+.st-key-elevo_resultado_v16812 h1,
+.st-key-elevo_resultado_v16812 h2,
+.st-key-elevo_resultado_v16812 h3,
+.st-key-elevo_resultado_v16812 h4,
+.st-key-elevo_resultado_v16812 [data-testid="stMarkdownContainer"] p,
+.st-key-elevo_resultado_v16812 [data-testid="stMarkdownContainer"] strong {
+    color:#19324F!important;
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812,
+.st-key-elevo_resultado_v16812 .elevo-prompt-restante-v16812 {
+    color:#203B5C!important;
+    -webkit-text-fill-color:#203B5C!important;
+    line-height:1.58!important;
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812 {
+    max-height:none!important;
+    overflow:visible!important;
+    font-size:.84rem!important;
+    padding:12px 14px!important;
+    border:1px solid #DCE8F7!important;
+    border-left:3px solid #2873E5!important;
+    border-radius:12px!important;
+    background:#F3F8FF!important;
+    box-shadow:none!important;
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-restante-v16812 {
+    font-size:.84rem!important;
+    background:#FFFFFF!important;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] {
+    background:#F4F8FE!important;
+    background-image:none!important;
+    border:1px solid #D8E6F8!important;
+    box-shadow:none!important;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary,
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary *,
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary svg {
+    color:#174F91!important;
+    -webkit-text-fill-color:#174F91!important;
+    fill:currentColor!important;
+    opacity:1!important;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary:hover {
+    background:#E9F2FF!important;
+    color:#0F4180!important;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpanderDetails"] {
+    background:#FFFFFF!important;
+    color:#203B5C!important;
+}
+@media(max-width:767px) {
+  .st-key-elevo_resultado_v16812 {border-radius:17px!important;}
+  .st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812 {
+      padding:11px 12px!important;font-size:.81rem!important;line-height:1.55!important;
+  }
+  .st-key-elevo_resultado_v16812 h3 {font-size:clamp(1.16rem,5vw,1.55rem)!important;}
+}
+</style>
+""", unsafe_allow_html=True)
+
     # ==========================================================
     # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
     # ==========================================================
@@ -7017,7 +7111,8 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
             
                 # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
                 st.markdown("### 🔑 TÍTULOS SEO (Separados)")
-                st.markdown(partes_roteiro["secao_seo_texto"])
+                with st.expander("▸ Ver os 3 títulos SEO completos", expanded=False):
+                    st.markdown(partes_roteiro["secao_seo_texto"])
             
                 st.markdown("<p style='font-size: 0.85rem; color: #00E5FF; font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>📲 Cópia Rápida de Títulos (Celular/PC):</p>", unsafe_allow_html=True)
                 col_t1, col_t2, col_t3 = st.columns(3)
