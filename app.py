@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.21 — 3 opções de vídeo; logo final removida; texto V9.2 no vídeo.
 # ÉLÉVO V16.8.20 — Rascunho temporário PRIVADO por login na memória do servidor;
 # sem gravação de roteiros no Google Sheets. Blindagem visual de produto nos Blocos 17/17.2.
 # Base V16.8.19 preservada: sem mudanças de autenticação, IA, créditos, layout ou memórias 17.3.
@@ -4790,7 +4791,7 @@ def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
     }
     rotulos = {
         "prompt_imagem": "PROMPT DE IMAGEM RAW UGC em inglês: personagem, ambiente ÉLÉVO e foto externa do produto",
-        "prompt_video": "PROMPT DE VÍDEO UNIFICADO: imagem aprovada, física, áudio, fala, CTA e, se V9.2, logo final",
+        "prompt_video": "PROMPT DE VÍDEO UNIFICADO: imagem aprovada, física, áudio, fala, CTA; sem finalização de logo",
         "secao_seo_texto": "TÍTULOS SEO em português: três linhas Geral, Solução e Marca",
     }
 
@@ -4859,7 +4860,7 @@ def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
             "Preserve a identidade adulta selecionada, o cenário escolhido, a foto externa "
             "como única referência do produto e a estrutura de fala/CTA. "
             "Não reintroduza marcas ou produtos dos exemplos históricos. "
-            "Se for o vídeo V9.2, mantenha o fechamento de logo especificado no briefing. "
+            "Não gere logotipo de encerramento; finalize no próprio cenário natural. "
             "Não crie afirmações comerciais não comprovadas."
         )
         contexto = briefing
@@ -5040,15 +5041,8 @@ else:
 # Perfil ativo de texto permanece intacto; só a aparência visual vai ao prompt.
 visual_inf_isolado_v16811 = assinatura_visual_pessoa_sem_produto_v16811(desc_inf_ativa)
 
-logo_padrao_ceo = "O Achado Secreto"
-logo_salva_banco = str(inf_salva.get("Logo_Marca", "")).strip() if inf_salva else ""
-if logo_salva_banco:
-    logo_ativa_usuario = logo_salva_banco
-elif E_O_CEO:
-    logo_ativa_usuario = logo_padrao_ceo
-else:
-    logo_ativa_usuario = "Minha Marca VIP"
-
+# Dados legados de Logo_Marca continuam na planilha por compatibilidade,
+# mas não são exibidos, exigidos, atualizados nem usados na criação.
 # Acesso sem limite de criações às ferramentas JÁ PÚBLICAS, após autenticação.
 # CEO continua exclusivo dos controles administrativos e dos próprios dados.
 # O banco mestre permanece compartilhado; usuários não precisam de planilha.
@@ -5059,16 +5053,28 @@ aba_limites = None
 if "txt_diretrizes_360" not in st.session_state:
     st.session_state["txt_diretrizes_360"] = ""
 
+# V16.8.21: terceiro modo opcional, reutiliza o Bloco 17; não altera seu motor de imagem.
+st.session_state.setdefault("elevo_produto_primeiro_3s_v16821", False)
 with st.container(border=True):
-    col_sel1, col_sel2 = st.columns(2)
+    modo_3s_ativo_v16821 = bool(st.session_state["elevo_produto_primeiro_3s_v16821"])
+    col_sel1, col_sel2, col_sel3 = st.columns(3)
     with col_sel1:
-        if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_17"):
+        if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] and not modo_3s_ativo_v16821 else "secondary", use_container_width=True, key="btn_sel_17"):
             st.session_state["modo_entidade_v9"] = False
+            st.session_state["elevo_produto_primeiro_3s_v16821"] = False
             st.rerun()
     with col_sel2:
         if st.button("🧬 CRIAÇÃO V9.2 (Bloco 17.2 — Física V12)", type="primary" if st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_172"):
             st.session_state["modo_entidade_v9"] = True
+            st.session_state["elevo_produto_primeiro_3s_v16821"] = False
             st.rerun()
+    with col_sel3:
+        if st.button("🎥 PRODUTO 3S (Nova Opção)", type="primary" if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_produto_3s_v16821"):
+            st.session_state["modo_entidade_v9"] = False
+            st.session_state["elevo_produto_primeiro_3s_v16821"] = True
+            st.rerun()
+    if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"]:
+        st.caption("🎞️ Terceira opção: imagem original preservada; nos 3 primeiros segundos, vídeo focado exclusivamente no produto. Depois entra a influenciadora com o mesmo roteiro, fala e SEO.")
 
     aba_gerador_360 = st.container()
     
@@ -5110,33 +5116,14 @@ with st.container(border=True):
 
     
 # ==========================================================
-# 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17 + CAMPO DE LOGO EXCLUSIVO DA V9.2)
+# 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17; SEM CAMPO DE LOGO)
 # ==========================================================
 btn_gerar_v92 = False
 if st.session_state.get("modo_entidade_v9"):
     st.markdown("<br>", unsafe_allow_html=True)
     with st.container(border=True):
         st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina V9.2 (Imagem Original + Vídeo V12 Hiper-Realista)</h3>", unsafe_allow_html=True)
-        st.caption("Conectado à foto, à Influencer e ao Banco 17.3. V12: imagem preservada; vídeo expandido com a estrutura e os emojis originais, física viva e mínimo de 1.500 caracteres visuais.")
-        
-        if E_O_CEO:
-            logo_v92_input = st.text_input(
-                "🏷️ Nome da Marca (apenas para SEO) (Padrão CEO 'O Achado Secreto' já ativo — altere apenas se quiser outra):",
-                value=logo_ativa_usuario,
-                placeholder="O Achado Secreto",
-                key="input_logo_v92_ceo"
-            )
-        else:
-            logo_v92_input = st.text_input(
-                "🏷️ Digite o Nome da sua Logo / Empresa (para títulos e descrições, sem sobreposição no vídeo):",
-                value=logo_salva_banco,
-                placeholder="Ex: Minha Marca VIP / Achadinhos da Bia...",
-                key="input_logo_v92_user"
-            )
-        if logo_v92_input and logo_v92_input.strip():
-            logo_ativa_usuario = logo_v92_input.strip()
-            if inf_salva:
-                gerenciar_influencer_usuario("salvar", email_sessao, nome_inf_ativa, desc_inf_ativa, logo_ativa_usuario)
+        st.caption("Conectado à foto, à Influencer e ao Banco 17.3. V12: imagem preservada; vídeo expandido, física viva e mínimo de 1.500 caracteres visuais. Texto na tela incorporado ao vídeo; sem encerramento de logo.")
 
         if not pode_gerar_roteiro:
             st.error("Entre na sua conta para gerar roteiros.")
@@ -5451,12 +5438,12 @@ def _fallback_video_v12(video_original, scan, ambiente, modo):
         'No rigid mannequin pose. Keep the microphone, hairstyle and outfit unchanged. The environment remains alive in the background and nothing repeats as a mechanical loop.\n'
         '[FINAL FRAME / OPEN EDIT] Maintain the entire original scene and all source products until the last frame. '
         'Camera drifts naturally to a readable composition, while physical background motion carries on. '
-        'No fade to black, invented logo, digital glitch, floating shopping bag, platform UI, fake on-screen captions or sudden room change.\n'
+        'No fade to black, invented logo, digital glitch, floating shopping bag, platform UI, unrelated or illegible on-screen captions or sudden room change.\n'
     )
     if not audio:
         audio='🎙️ Áudio e Fala (Português): [Preserve the original voiceover and natural ambient sound.]'
     if '📝' not in audio:
-        audio+='\n📝 Texto na Tela (sugestão para edição): ⚠️ Dor real? 🛑  ✨ Solução verificável  🛒 Conheça na sacolinha 👇'
+        audio += ('\n📝 Texto na Tela (Nativo TikTok - Foco na Dor): ⚠️ Dor real? 🛑  ✨ Solução verificável  🛒 Conheça na sacolinha 👇' if modo == 'v9.2' else '\n📝 Texto na Tela (sugestão para edição): ⚠️ Dor real? 🛑  ✨ Solução verificável  🛒 Conheça na sacolinha 👇')
     return visual+enriquecimento+'\n'+audio
 
 
@@ -5594,8 +5581,8 @@ def reforcar_apenas_video_v12(conteudo, scan, modo):
 🫱 Interaction (Gesto Físico / CTA): [english, detailed]
 🛡️ [PRISTINE CANVAS LOCK — ZERO WATERMARKS]: [english, detailed]
 🎙️ Áudio (Gancho V9.2 — Português): [sound + spoken line in pt-BR]
-📝 Texto na Tela (Nativo TikTok - Foco na Dor): ⚠️ ... 🛑 / ✨ ... / 🛒 ... 👇 (notes for editing, not rendered UI)
-🎞️ Finalização P1 Blindada: [continuous authentic final image, product visible; no black screen or duplicate logo]"""
+📝 Texto na Tela (Nativo TikTok - Foco na Dor): ⚠️ ... 🛑 / ✨ ... / 🛒 ... 👇 (MUST render as short, sharp, legible PT-BR video text overlays, not merely editing notes; no platform UI or logo)
+🎞️ Finalização P1 Blindada: [continuous authentic final image, product visible; no logo, no glitch, no black screen]"""
     modelo_saida=esquema_v92 if modo=='v9.2' else esquema_360
     instrucao=(
         'TAREFA: Reescreva e amplie EXCLUSIVAMENTE o PROMPT DE VÍDEO. PRESERVE A INTENSIDADE COMERCIAL, os títulos, \u00e9mojis e as etapas do sistema anterior.\n'
@@ -5832,7 +5819,7 @@ TRAVA_FIDELIDADE_NEUTRA_V1685 = (
     "must remain unchanged. Rigid geometry, natural mass, hand contact, gravity, surface "
     "friction, depth and shadows remain coherent in every shot. The same original scene "
     "and one existing, subtly moving background animal continue without new objects. "
-    "No added logo in the still image; preserve the existing 360 or V9.2 closing rules."
+    "No extra brand logo in the still image; preserve the real-world final frame in both modes."
 )
 
 def ancora_fisica_confirmavel_v16810(scan):
@@ -5956,9 +5943,8 @@ def travar_escala_e_fisica_somente_video_v1685(conteudo):
         "For multi-item kits, preserve each unit's continuous trajectory; untouched units remain on their original supports, and moved units change location only through visible grasp, lift, lower, contact and release. "
         "Never describe or guess packaging colors, printed text, exact dimensions, volume or lot: "
         "the separately attached product reference supplies all appearance. "
-        "Preserve the original audio, on-screen-text editing notes, SEO and the already selected "
-        "V9.2 closing logo/glitch exactly as written; this change ONLY governs product size "
-        "and physical continuity during the video. \n"
+        "Preserve the original audio, approved on-screen-text instructions, SEO and the already selected "
+        "natural logo-free closing, and physical continuity during the video. \n"
     )
     # Compatibilidade: contas/provedores podem devolver o mesmo cabeçalho com
     # variações de emoji, acento, negrito ou nível de Markdown. Normalize apenas
@@ -6036,7 +6022,7 @@ DIRETRIZ_FINAL_ELEVO_V1685 = (
     "background animal from the still image, lively yet physically causal human motion. "
     "Do not introduce new objects or change references after reframing. "
     "Keep established headings, image/video/audio/CTA/SEO, minimum 1,500 ENGLISH VISUAL video "
-    "characters, no hard maximum, existing 360 clean close and V9.2 single logo-only close. "
+    "characters, no hard maximum, clean original-scene final frame for both 360 and V9.2. "
     "A feeling, health result, urgency, supply limit or discount needs verifiable source evidence; "
     "avoid guarantees or unsupported scarcity. AI-generated media requires publication disclosure "
     "where platform rules require it."
@@ -6156,6 +6142,102 @@ def elevo_mem_contextualizar_v1(email, modo, scan, foto_bytes, persona, ambiente
     retorno = elevo_mem_recuperar_relevantes_v1(email, digest, scan.get("nome_pt", ""))
     return contexto, retorno
 
+# ==========================================================
+# V16.8.21 — AJUSTES EXCLUSIVAMENTE DE VÍDEO (IMAGEM/FALA/SEO INALTERADOS)
+# ==========================================================
+def elevo_video_produto_3s_v16821(conteudo):
+    """Terceira opção: mesmo Bloco 17; adiciona apenas plano temporal ao VÍDEO."""
+    secoes = extrair_blocos_roteiro(conteudo)
+    video = secoes["prompt_video"]
+    marcador = "[ÉLÉVO PRODUCT-FIRST 3S — VIDEO-ONLY TIMING LOCK]"
+    if not video or marcador in video:
+        return conteudo
+    plano = (
+        marcador + "\n"
+        "PRIORITY OVERRIDE FOR SHOT TIMING ONLY, NOT A NEW IMAGE OR NEW PRODUCT. "
+        "00:00–00:03 (first FULL 3 seconds): camera shows ONLY the EXACT photo-referenced "
+        "product unit(s), physically supported by the same hand or the existing counter; "
+        "no presenter's face in frame yet. Use natural mid-close smartphone framing, "
+        "true 1:1 hand-to-product scale, focus, gentle parallax, original daylight, real contact "
+        "and a tiny physically justified finger movement; no zoom/macro enlargement, "
+        "no swapped object, no invented packaging details and no new prop. "
+        "Human voiceover and existing speech may start as originally scripted — do not "
+        "change the words, audio or duration. "
+        "From 00:03 onward, reveal the EXACT SAME selected influencer by a smooth tilt "
+        "or pan, retaining the same product(s), original scene, count, label integrity, "
+        "physical size, grip, gravity, focus and motion continuity. "
+        "The same scene remains alive with existing plants, animal (if any), ambient sound "
+        "and natural human reactions. Continue the original movements, CTA text instructions, "
+        "spoken words and final natural frame. NO platform UI, added logo, glitch or black tail. "
+        "If a later instruction conflicts with product-only 00:00–00:03, THIS timing wins.\n\n"
+    )
+    return _trocar_so_video_v12(conteudo, "🎬 " + plano + video)
+
+
+def elevo_v92_texto_na_tela_v16821(conteudo):
+    """Torna as três frases já existentes EXECUTÁVEIS no vídeo, sem reescrevê-las."""
+    secoes = extrair_blocos_roteiro(conteudo)
+    video = secoes["prompt_video"]
+    marcador = "[ÉLÉVO V9.2 — REAL IN-VIDEO TEXT RENDER LOCK]"
+    if not video or marcador in video:
+        return conteudo
+    parte = re.search(
+        r"(?ims)^\s*📝\s*Texto na Tela[^\n]*\n(.*?)(?=^\s*(?:🎞️|🏁|Finaliza(?:ção|cao)|###|🔑)|\Z)",
+        video,
+    )
+    frases = []
+    if parte:
+        for linha in parte.group(1).splitlines():
+            linha = linha.strip().strip('"“”`*- ')
+            if not linha or linha.startswith("[") or "RENDER" in linha.upper():
+                continue
+            if len(linha) <= 180 and len(frases) < 3:
+                frases.append(linha)
+    if not frases:
+        # Alguns provedores retornam as três frases na própria linha do título.
+        inline = re.search(r"(?im)^\s*📝\s*\*{0,2}Texto na Tela[^\n]*?:\s*(.+)$", video)
+        if inline:
+            frases = [trecho.strip().strip('"“” ') for trecho in
+                      re.split(r"\s+/\s+|\s{2,}", inline.group(1)) if trecho.strip()][:3]
+    enumeracao = " ".join(f"Caption {n}: {frase!r}." for n, frase in enumerate(frases, 1))
+    reforco = (
+        marcador + "\n"
+        "BURN THE EXACT approved Portuguese on-screen captions INTO THE GENERATED VIDEO "
+        "ITSELF; do not merely suggest adding them later in an editor. "
+        "Show the first caption at approximately 00:03–00:05, the second at 00:05–00:07, "
+        "and the third at 00:07–00:09, in sequential, readable, high-contrast native-style "
+        "sans-serif text with safe margins; clear them before the natural final shot. "
+        "Never cover the product, presenter face or critical hand contact. "
+        "These three approved captions are the ONLY allowed video text overlays: "
+        "no TikTok interface, floating CTA graphic, watermark, appended brand name or end logo. "
+        "Product package printing itself remains exactly as in the photo reference. "
+        "Keep the original 📝 Texto na Tela lines, speech, audio, image and SEO unchanged. "
+        "This explicit instruction takes precedence over OLD 'editing notes', 'no overlays' "
+        "and historical logo-finalization rules; it does NOT authorize any other overlays. "
+        + enumeracao + "\n\n"
+    )
+    return _trocar_so_video_v12(conteudo, "🎬 " + reforco + video)
+
+
+def elevo_v92_limpar_fecho_logo_v16821(conteudo):
+    """Remove apenas eventual finalização artificial legado do vídeo V9.2."""
+    secoes = extrair_blocos_roteiro(conteudo)
+    video = secoes["prompt_video"]
+    if not video:
+        return conteudo
+    # Remove SOMENTE parágrafos específicos de fechamento com logo, não marcas da embalagem.
+    video = re.sub(
+        r"(?ims)^\s*(?:🎞️\s*|🏁\s*)?(?:finaliza(?:ção|cao)\s*(?:p1\s*)?(?:blindada)?|closing\s*(?:logo|brand))[\s:—-]*\n?"
+        r"(?:(?!^\s*(?:🎙️|📝|🔑|###)).)*?(?=^\s*(?:🎙️|📝|🔑|###)|\Z)",
+        lambda m: (
+            "🎞️ Finalização P1 Blindada: Complete the final frame naturally with the original "
+            "presenter, scene and exactly the same photo-referenced product(s), intact; "
+            "no added logo, brand card, glitch or fade to black.\n"
+        ) if re.search(r"(?i)\b(?:logo|logotipo|glitch|marca personalizada)\b", m.group(0)) else m.group(0),
+        video,
+    )
+    return _trocar_so_video_v12(conteudo, video)
+
 # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -6263,6 +6345,9 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
             conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, visual_inf_isolado_v16811)
             conteudo_texto = neutralizar_descricao_variavel_do_produto_v16811(conteudo_texto)
+            if st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
+                # A imagem/fala/SEO do Bloco 17 permanecem literalmente intactos.
+                conteudo_texto = elevo_video_produto_3s_v16821(conteudo_texto)
             st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
@@ -6284,13 +6369,13 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             mostrar_erro_criacao_v1686(e, "Bloco 17 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
 # ==========================================================
-# MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 COM LOGO GLITCH FINAL P1 + MEMÓRIA 17.3 + DOR & SOLUÇÃO)
+# MOTOR DE EXECUÇÃO DO BLOCO 17.2 (CRIAÇÃO V9.2 SEM LOGO + TEXTO NA TELA + MEMÓRIA 17.3)
 # ==========================================================
 if btn_gerar_v92 and pode_gerar_roteiro:
     if not img_produto:
         st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro!")
     else:
-        with st.spinner(f"🧬 Escaneando Dor & Solução e forjando Criação V9.2 com Logo '{logo_ativa_usuario}'..."):
+        with st.spinner("🧬 Escaneando Dor & Solução e forjando Criação V9.2 sem logo de encerramento..."):
             _debito_v92_v16813 = None
             try:
                 _debito_v92_v16813 = elevo_credito_reservar_v16813(
@@ -6322,8 +6407,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 2. Preserve exatamente o AMBIENTE ELEVO escolhido (ou sorteado), com planta, baguncinha e um animal ao fundo; a FOTO anexada é referência exclusiva para o PRODUTO, nunca para o cenário. NÃO descreva fisicamente o produto em texto.
                 3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: no PROMPT DE IMAGEM e no PROMPT DE VÍDEO, mencione apenas 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
                 4. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha quantidade e identidade; apoio manual apenas se o tamanho real permitir, demais na bancada; nenhuma pode desaparecer ao mudar enquadramento.
-                5. EXCEÇÃO EXCLUSIVA DA V9.2: a marca personalizada '{logo_ativa_usuario}' DEVE aparecer somente na FINALIZAÇÃO P1 do vídeo, de forma curta e objetiva. Não faça uma descrição longa da logo. Use apenas um logo textual limpo com o nome exato '{logo_ativa_usuario}', centralizado, com glitch digital vermelho rápido no final. Nunca inserir a logo durante o vídeo inteiro, apenas no fechamento.
-                6. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. A marca original da embalagem deve permanecer intacta e não pode ser substituída pela logo da marca personalizada.
+                5. FINALIZAÇÃO P1 NATURAL: a V9.2 termina com a MESMA cena real, influencer e produtos originais visíveis. Não inserir logo de encerramento, glitch, tela preta ou cartões de marca. O usuário adicionará a logo manualmente depois da edição.
+                6. Mantenha produto, apresentadora e ambiente fisicamente consistentes até o último frame. A marca ORIGINAL IMPRESSA NA EMBALAGEM deve permanecer intacta, sem sobreposição de marca adicional. O TEXTO NA TELA precisa aparecer DENTRO do vídeo, não apenas como nota editorial.
 
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
@@ -6331,7 +6416,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 RAW photography, cinematic mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, authentic lighting matching the chosen ÉLÉVO environment, NO artificial flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {visual_inf_isolado_v16811}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She occupies EXACTLY the selected 22-environment preset, preserving its actual geometry, decorations, lived-in objects, single background animal and plants; do not replace it with a generic tropical room. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic source-photo proportions and human-hand-relative scale, never forcibly oversized or artificially compact; no product appearance descriptors]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Describe ONLY the real plant(s) defined by the selected environment, correctly lit and positioned]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Describe the selected environment original lived-in everyday clutter with plausible contact and inertia]. [ANIMAL FACTOR (STORYTELLING V9)]: [Include ONLY the single cat or dog defined by the selected environment in an unobtrusive background position]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry from the selected ÉLÉVO preset; only scene-defined objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({visual_inf_isolado_v16811}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, no overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — execute a fast clean red digital glitch and reveal exactly one centered text logo reading '{logo_ativa_usuario}'. Keep the logo simple, short, legible and medium-sized; no slogan, no paragraph, no extra decorative description, no duplicate logos. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
+                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({visual_inf_isolado_v16811}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, only the approved native PT-BR caption overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — keep the real presenter, exact product reference and original environment naturally visible through the FINAL FRAME; no artificial logo, glitch, brand card or black frame. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
@@ -6341,9 +6426,10 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
                 "[SENSAÇÃO / RESULTADO IMEDIATO] ✨"
                 "CORRE NA SACOLINHA 🛒👇"
+                [RENDERIZAR ESTAS TRÊS FRASES DIRETAMENTE NO VÍDEO GERADO; tipografia legível, em português, sem cobrir o produto nem introduzir interface TikTok ou marca d’água. NÃO são apenas anotações para edição.]
 
                 Finalização P1 Blindada:
-                Último quadro natural com produto, mãos e cenário preservados até o fechamento. No milésimo final, aplicar glitch digital vermelho curto e limpo, revelando UMA ÚNICA logo textual central com o nome exato '{logo_ativa_usuario}'. Sem slogan, sem descrição longa, sem duplicação de logo e sem tela preta.
+                Último quadro natural com produto, mãos e cenário preservados até o fechamento, sem logo, glitch digital, cartão de marca ou tela preta.
 
                 ### 🔑 TÍTULOS SEO (Separados)
                 **🔍 Geral (Dor):** [Título SEO Geral em português focado na dor '{scan_v92.get('dor_pt')}']
@@ -6371,7 +6457,12 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                                         "Use exactly this set for the still image and video, never replace it with "
                                         "generic ferns, a waterfall, a kitchen or an animal that was not selected.")
                 instrucao_v92 += "\n\nREGRA FINAL INEGOCIÁVEL: " + PROTOCOLO_FISICO_17 + "\n\n" + DIRETRIZES_VIDA_REAL_V1682 + "\n\n" + TRAVA_PRODUTO_FOTO_V1682
-                instrucao_v92 += f"\n\n[OVERRIDE ESPECÍFICO DA LOGO V9.2 — TEM PRIORIDADE SOBRE REGRAS HISTÓRICAS ANTI-LOGO]\nNo BLOCO 17.2 / V9.2, é OBRIGATÓRIO incluir uma única finalização de logo com o nome exato '{logo_ativa_usuario}'. Essa finalização ocorre somente no fechamento do vídeo, em um glitch digital vermelho rápido, com logo textual curta, limpa, centralizada e legível. Não escrever descrições longas da logo, não criar slogan, não repetir a logo e não substituir a marca impressa na embalagem."
+                instrucao_v92 += ("\n\n[PRIORIDADE V16.8.21 — V9.2 SEM LOGO + TEXTO NA TELA REAL]\n" 
+                                  "Ignore qualquer modelo histórico com logo ou glitch de encerramento. "
+                                  "Termine com a cena real contínua e o produto íntegro. "
+                                  "Renderize as TRÊS frases de 📝 Texto na Tela no próprio vídeo, legíveis e sincronizadas; "
+                                  "o encerramento não deve conter logotipo extra, interface ou marca d'água. "
+                                  "Nunca modifique texto falado, SEO, fotografia inicial ou embalagem.")
                 instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                 if licoes_mem_92:
                     instrucao_v92 += "\n\n" + licoes_mem_92
@@ -6397,6 +6488,9 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
                 conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, visual_inf_isolado_v16811)
                 conteudo_v92 = neutralizar_descricao_variavel_do_produto_v16811(conteudo_v92)
+                # Os filtros abaixo atingem só o VÍDEO; a IMAGEM e SEO não mudam.
+                conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
+                conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
@@ -6406,7 +6500,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
-                st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
+                st.success("🔥 Pacote Criação V9.2 sem logo, com texto na tela, forjado com sucesso!")
                 time.sleep(1)
                 st.rerun()
             except ElevoCreditoErroV16813 as exc:
