@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.22.2 — padrão inicial claro no celular, escuro no PC; botão manual preservado.
 # ÉLÉVO V16.8.22.1 — abertura de login com video PC + celular; codigo V16.8.22 intacto.
 # ÉLÉVO V16.8.22 — trava pontual de identidade entre unidades e influenciadoras; estrutura V16.8.21 mantida.
 # ÉLÉVO V16.8.21 — 3 opções de vídeo; logo final removida; texto V9.2 no vídeo.
@@ -1290,8 +1291,24 @@ if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
 # ==========================================================
+# V16.8.22.2 — APENAS PADRÃO INICIAL DO TEMA: celular claro, computador escuro.
+# O mesmo botão continua tendo prioridade após a escolha manual durante a sessão.
+def elevo_tema_padrao_celular_v168222():
+    try:
+        cabecalhos = st.context.headers
+        indicador_mobile = str(cabecalhos.get("Sec-CH-UA-Mobile", "")).strip()
+        if indicador_mobile in ("?1", "1"):
+            return True
+        if indicador_mobile in ("?0", "0"):
+            return False
+        navegador = str(cabecalhos.get("User-Agent", "")).lower()
+        return (any(termo in navegador for termo in ("iphone", "ipod", "windows phone"))
+                or ("android" in navegador and "mobile" in navegador))
+    except (AttributeError, TypeError, ValueError):
+        return False  # Se não for possível identificar, conserva o padrão desktop.
+
 col_vazia, col_tema = st.columns([8, 2])
-with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=False, key="toggle_tema_principal_unico")
+with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=elevo_tema_padrao_celular_v168222(), key="toggle_tema_principal_unico")
 
 if modo_claro:
     bg_color = "linear-gradient(180deg, #F4F6F9 0%, #E2E8F0 100%)"
