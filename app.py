@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.22.1 — abertura de login com video PC + celular; codigo V16.8.22 intacto.
 # ÉLÉVO V16.8.22 — trava pontual de identidade entre unidades e influenciadoras; estrutura V16.8.21 mantida.
 # ÉLÉVO V16.8.21 — 3 opções de vídeo; logo final removida; texto V9.2 no vídeo.
 # ÉLÉVO V16.8.20 — Rascunho temporário PRIVADO por login na memória do servidor;
@@ -627,6 +628,49 @@ if (not st.session_state["usuario_logado"]
 if not st.session_state["usuario_logado"]:
     if ELEVO_MOSTRAR_LOGIN:
         st.success("✅ Você saiu da conta. Entre com outra conta ou crie uma nova.")
+    # V16.8.22.1 — APENAS TELA DE LOGIN: dois videos MP4 fornecidos pelo usuario.
+    # Ficam fora do painel autenticado. Nenhum fluxo de cadastro e alterado.
+    from pathlib import Path as _ElevoIntroPath
+    _elevo_intro_dir = _ElevoIntroPath(__file__).resolve().parent / "assets"
+    _elevo_intro_pc = _elevo_intro_dir / "elevo_intro_pc.mp4"
+    _elevo_intro_cel = _elevo_intro_dir / "elevo_intro_celular.mp4"
+    st.markdown("""
+    <style>
+      .st-key-elevo_intro_video_pc {
+        max-width: 720px; margin: 0 auto 1.1rem;
+      }
+      .st-key-elevo_intro_video_cel { display: none !important; }
+      .st-key-elevo_intro_video_pc video,
+      .st-key-elevo_intro_video_cel video {
+        border: 1px solid rgba(0,229,255,.36);
+        border-radius: 17px;
+        box-shadow: 0 8px 36px rgba(0,229,255,.12), 0 16px 36px rgba(0,0,0,.46);
+        background: #080D18;
+      }
+      @media (max-width: 750px) {
+        .st-key-elevo_intro_video_pc { display: none !important; }
+        .st-key-elevo_intro_video_cel {
+          display: block !important; max-width: 260px;
+          margin: 0 auto 0.9rem;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .st-key-elevo_intro_video_pc video,
+        .st-key-elevo_intro_video_cel video { box-shadow: none; }
+      }
+    </style>
+    """, unsafe_allow_html=True)
+    # Autoplay sem som e aceito pelos navegadores; usuario pode usar os controles.
+    # Apenas o arquivo correspondente a tela fica visivel (desktop ou celular).
+    if _elevo_intro_pc.is_file():
+        with st.container(key="elevo_intro_video_pc"):
+            st.video(_elevo_intro_pc, autoplay=True, muted=True, loop=True,
+                     alt="Abertura cinematografica horizontal do portal ELEVO")
+    if _elevo_intro_cel.is_file():
+        with st.container(key="elevo_intro_video_cel"):
+            st.video(_elevo_intro_cel, autoplay=True, muted=True, loop=True,
+                     alt="Abertura cinematografica vertical do portal ELEVO")
+
     # Visual V13: somente apresentação; nenhuma mudança na lógica de credenciais/cookies.
     st.markdown("""
     <style>
