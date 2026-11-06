@@ -7390,6 +7390,156 @@ st.markdown("""
 """,unsafe_allow_html=True)
 
 # ==========================================================
+# ÉLÉVO V16.8.23.2 — REFINO FINAL DO MODO CLARO VIP
+# Apenas acabamento visual nas áreas que ainda herdavam textura escura.
+# Não altera lógica, IA, fluxo de cadastro ou permissões.
+# ==========================================================
+if modo_claro:
+    st.markdown("""
+    <style>
+    /* Alertas e caixas informativas no claro */
+    div[data-testid="stAlert"],
+    div[data-testid="stAlert"] > div,
+    div[data-testid="stAlert"] [data-baseweb="notification"],
+    div[data-testid="stToast"],
+    div[data-testid="stToast"] > div {
+      background:#FFFFFF!important;
+      background-image:linear-gradient(145deg,#FFFFFF 0%,#F3F8FF 100%)!important;
+      border:1px solid #D7E5F5!important;
+      border-left:4px solid #2873E5!important;
+      box-shadow:0 10px 26px rgba(15,61,111,.08), inset 0 1px 0 rgba(255,255,255,.85)!important;
+      border-radius:18px!important;
+      color:#19324F!important;
+    }
+    div[data-testid="stAlert"] *,
+    div[data-testid="stToast"] * {
+      color:#19324F!important;
+      -webkit-text-fill-color:#19324F!important;
+    }
+
+    /* Upload e preview do arquivo no claro */
+    [data-testid="stFileUploader"] > div > section,
+    [data-testid="stFileUploadDropzone"],
+    [data-testid="stFileUploader"] section [data-testid="stFileUploaderDropzoneInstructions"],
+    [data-testid="stFileUploader"] section small {
+      background:#FFFFFF!important;
+      background-image:linear-gradient(145deg,#FFFFFF 0%,#F4F8FE 100%)!important;
+      border-color:#D7E5F5!important;
+      box-shadow:0 8px 22px rgba(15,61,111,.07), inset 0 1px 0 rgba(255,255,255,.9)!important;
+      color:#203B5C!important;
+      -webkit-text-fill-color:#203B5C!important;
+    }
+    [data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"] button,
+    [data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+      background:#F8FBFF!important;
+      color:#174F91!important;
+      border:1px solid #CFE0F4!important;
+      box-shadow:none!important;
+    }
+
+    /* Cabeçalho e cartões administrativos */
+    .elevo-admin-header-v16813 {
+      background:linear-gradient(145deg,#FFFFFF 0%,#F1F6FF 62%,#EEF4FF 100%)!important;
+      border:1px solid #D7E5F5!important;
+      box-shadow:0 10px 28px rgba(15,61,111,.08), inset 0 1px 0 rgba(255,255,255,.9)!important;
+    }
+    .elevo-admin-header-v16813 h3,
+    .elevo-admin-header-v16813 p {
+      color:#19324F!important;
+    }
+    .elevo-admin-header-v16813 p:first-child {
+      color:#40658F!important;
+      font-weight:700!important;
+    }
+
+    .elevo-conta-vip-v16813 {
+      background:linear-gradient(145deg,#FFFFFF 0%,#F7FAFF 60%,#F1F6FF 100%)!important;
+      border:1px solid #D7E5F5!important;
+      box-shadow:0 10px 28px rgba(15,61,111,.08), inset 0 1px 0 rgba(255,255,255,.92)!important;
+      color:#19324F!important;
+    }
+    .elevo-conta-vip-v16813 .eyebrow {color:#40658F!important;}
+    .elevo-conta-vip-v16813 .person {color:#19324F!important;}
+    .elevo-conta-vip-v16813 .mail,
+    .elevo-conta-vip-v16813 .small {color:#6A7F98!important;}
+    .elevo-conta-vip-v16813 .balance {color:#144F9C!important;}
+
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-admin-item-v16813) {
+      background:linear-gradient(145deg,#FFFFFF 0%,#F7FAFF 58%,#F1F6FF 100%)!important;
+      border:1px solid #D7E5F5!important;
+      box-shadow:0 9px 24px rgba(15,61,111,.07), inset 0 1px 0 rgba(255,255,255,.88)!important;
+    }
+    div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-admin-item-v16813):hover {
+      border-color:#9FC2EE!important;
+      box-shadow:0 12px 28px rgba(15,61,111,.10), inset 0 1px 0 rgba(255,255,255,.92)!important;
+    }
+    .elevo-admin-item-v16813 {color:#3E6B98!important;}
+
+    /* Popovers no claro: editar créditos / remover conta */
+    body div[data-baseweb="popover"],
+    body div[data-baseweb="popover"] > div,
+    body div[data-baseweb="popover"] > div > div,
+    body [data-testid="stPopoverBody"],
+    body [data-testid="stPopoverBody"] > div,
+    body div[role="dialog"]:has([data-testid="stNumberInput"]) {
+      background:#FFFFFF!important;
+      background-image:linear-gradient(145deg,#FFFFFF 0%,#F4F8FE 100%)!important;
+      box-shadow:0 14px 34px rgba(15,61,111,.12), inset 0 1px 0 rgba(255,255,255,.95)!important;
+      color:#19324F!important;
+      border:1px solid #D7E5F5!important;
+    }
+    body [data-testid="stPopoverBody"] [data-testid="stVerticalBlock"],
+    body [data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"],
+    body [data-testid="stPopoverBody"] [data-testid="stHorizontalBlock"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInput"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInput"] > div,
+    body [data-testid="stPopoverBody"] [data-baseweb="input"],
+    body [data-testid="stPopoverBody"] [data-baseweb="input"] > div {
+      background:#FFFFFF!important;
+      color:#19324F!important;
+    }
+    body [data-testid="stPopoverBody"] p,
+    body [data-testid="stPopoverBody"] label,
+    body [data-testid="stPopoverBody"] span,
+    body [data-testid="stPopoverBody"] small,
+    body [data-testid="stPopoverBody"] input,
+    body [data-testid="stPopoverBody"] textarea,
+    body div[data-baseweb="popover"] p,
+    body div[data-baseweb="popover"] label,
+    body div[data-baseweb="popover"] span,
+    body div[data-baseweb="popover"] small {
+      color:#19324F!important;
+      -webkit-text-fill-color:#19324F!important;
+      opacity:1!important;
+    }
+    body [data-testid="stPopoverBody"] button,
+    body div[data-baseweb="popover"] button,
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInputStepUp"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInputStepDown"] {
+      background:#F8FBFF!important;
+      color:#174F91!important;
+      -webkit-text-fill-color:#174F91!important;
+      border:1px solid #CFE0F4!important;
+      border-radius:10px!important;
+      box-shadow:none!important;
+    }
+    body [data-testid="stPopoverBody"] button[kind="primary"] {
+      background:linear-gradient(110deg,#1F6FE5,#3A86F6)!important;
+      color:#FFF!important;
+      -webkit-text-fill-color:#FFF!important;
+      border-color:#69B3FF!important;
+    }
+
+    /* Pequeno refinamento geral de leitura em áreas CEO */
+    [data-testid="stMetric"] {
+      background-image:linear-gradient(145deg,#FFFFFF 0%,#F5F9FF 100%)!important;
+      border-color:#D7E5F5!important;
+      box-shadow:0 8px 20px rgba(15,61,111,.06), inset 0 1px 0 rgba(255,255,255,.88)!important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
 # ÉLÉVO V16.8.16 — HARDENING DO TEMA VIP ESCURO
 # Aplicado no final para ter precedência sobre CSS nativo tardio.
 # ==========================================================
