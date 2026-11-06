@@ -1,8 +1,9 @@
-# ÉLÉVO V16.8.15 — Correção visual dark + saudação Aurora única permanente (base V16.8.14).
+# ÉLÉVO V16.8.17 — Histórico temporário + lixeira persistente (base intacta V16.8.16).
+# ÉLÉVO V16.8.16 — Aurora primeiro cadastro + recuperação de crédito + dark VIP (base V16.8.14).
 # Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
-# Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
+# Preserva arquitetura, autenticação, motores criativos e moldes 17.3; corrige CSS VIP, créditos e boas-vindas.
 
 import base64
 import requests
@@ -31,6 +32,7 @@ import secrets
 from streamlit_cookies_manager import EncryptedCookieManager
 import io
 import json
+import logging
 import html as html_std
 from zoneinfo import ZoneInfo
 from gtts import gTTS
@@ -319,19 +321,102 @@ def senha_confere(senha, armazenada):
     # Compatibilidade temporária com cadastros antigos: migrar na primeira autenticação.
     return hmac.compare_digest(armazenada.encode(), senha.encode())
 
+# ==========================================================
+# V16.8.16 — Conexão estável: evitar abrir a MESMA planilha a cada rerun.
+# O cache guarda somente os objetos de conexão/metadados de abas,
+# NUNCA resultado de débitos, permissões ou senhas.
+# ==========================================================
+@st.cache_resource(show_spinner=False)
+def elevo_pasta_principal_v16816():
+    if robo_sheets is None:
+        raise RuntimeError("Conexão de serviço com Google Sheets não configurada")
+    chave = re.search(r"/d/([a-zA-Z0-9-_]+)", LINK_BANCO_MESTRE).group(1)
+    return robo_sheets.open_by_key(chave)
+
+@st.cache_resource(show_spinner=False)
+def elevo_aba_principal_v16816(nome):
+    return elevo_pasta_principal_v16816().worksheet(nome)
+
+# Apenas contas efetivamente CADASTRADAS a partir desta versão são
+# elegíveis à saudação. Contas anteriores não são reativadas.
+ELEVO_AURORA_COLS_V16816 = ["Email", "Estado", "CriadoEm", "ConsumidoEm"]
+
+def elevo_aba_aurora_v16816():
+    try:
+        return elevo_aba_principal_v16816("Elevo_Aurora_Primeiro_Acesso_V1")
+    except gspread.exceptions.WorksheetNotFound:
+        try:
+            aba = elevo_pasta_principal_v16816().add_worksheet(
+                title="Elevo_Aurora_Primeiro_Acesso_V1", rows=1500, cols=4)
+            aba.append_row(ELEVO_AURORA_COLS_V16816)
+        except Exception:
+            aba = elevo_pasta_principal_v16816().worksheet("Elevo_Aurora_Primeiro_Acesso_V1")
+        elevo_aba_principal_v16816.clear()
+        return aba
+
+def elevo_aurora_cadastrar_primeiro_acesso_v16816(email):
+    """Marca conta nova; falha de TTS/Sheet não altera cadastro/login."""
+    try:
+        aba = elevo_aba_aurora_v16816()
+        aba.append_row([str(email).strip().lower(), "PENDENTE",
+                        datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(), ""])
+        return True
+    except Exception:
+        return False  # Não habilitar saudação sem confirmação persistente.
+
+def elevo_aurora_consumir_primeiro_acesso_v16816(email):
+    """Autoriza áudio APENAS no primeiro login da nova conta.
+    Consome ANTES de gerar áudio: F5, logout e nova sessão não reativam.
+    Se o Sheets falhar, não toca e não interrompe o acesso.
+    """
+    email = str(email).strip().lower()
+    if not email or email == str(EMAIL_MESTRE).strip().lower():
+        return False
+    try:
+        # A trava sincroniza abas quando o app roda em uma única instância.
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_aurora_v16816()
+            for indice, registro in enumerate(aba.get_all_records(), start=2):
+                if str(registro.get("Email", "")).strip().lower() != email:
+                    continue
+                if str(registro.get("Estado", "")).strip().upper() == "PENDENTE":
+                    aba.update_cell(indice, 2, "CONSUMIDO")
+                    aba.update_cell(indice, 4, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat())
+                    return True
+                return False
+    except Exception:
+        return False
+    return False
+
 def conectar_banco_usuarios(acao, email="", nome="", senha=""):
     if not robo_sheets: return None
     try:
         match = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        planilha = robo_sheets.open_by_key(match.group(1))
+        planilha = elevo_pasta_principal_v16816()
         try:
-            aba = planilha.worksheet("Banco_Usuarios")
+            aba = elevo_aba_principal_v16816("Banco_Usuarios")
         except gspread.exceptions.WorksheetNotFound:
             aba = planilha.add_worksheet(title="Banco_Usuarios", rows="1000", cols="3")
             aba.append_row(["Email", "Nome", "Senha"])
-        if acao == "ler": return aba.get_all_records()
+            elevo_aba_principal_v16816.clear()
+        if acao == "ler":
+            try:
+                return aba.get_all_records()
+            except gspread.exceptions.APIError as erro_sheets:
+                # Somente falhas transitórias recebem uma única tentativa curta.
+                codigo = getattr(getattr(erro_sheets, "response", None), "status_code", 0)
+                if codigo not in (429, 500, 502, 503, 504):
+                    raise
+                time.sleep(0.25)
+                return aba.get_all_records()
+            except (requests.exceptions.Timeout, requests.exceptions.ConnectionError):
+                time.sleep(0.25)
+                return aba.get_all_records()
         if acao == "salvar":
             aba.append_row([email, nome, senha_hash(senha)])
+            # Saudação VIP somente para cadastros efetivamente novos.
+            # A falha nesta etapa opcional nunca impede o cadastro.
+            elevo_aurora_cadastrar_primeiro_acesso_v16816(email)
             return True
         if acao == "migrar":
             rows = aba.get_all_records()
@@ -339,7 +424,8 @@ def conectar_banco_usuarios(acao, email="", nome="", senha=""):
                 if str(row.get("Email", "")).strip().lower() == email.lower():
                     aba.update_cell(i, 3, senha_hash(senha))
                     return True
-    except Exception:
+    except Exception as exc:
+        logging.warning("ELEVO_USUARIOS_GOOGLE_SHEETS: %s", type(exc).__name__)
         return None
 
 def criar_token(email):
@@ -801,7 +887,7 @@ def validar_cota_ia():
     email = str(st.session_state.get("email_usuario", "")).strip().lower()
     if not email or not st.session_state.get("usuario_logado"):
         raise RuntimeError("Faça login para usar a inteligência artificial.")
-    if email != EMAIL_MESTRE.strip().lower() and elevo_status_v16813(email) != "ATIVO":
+    if email != EMAIL_MESTRE.strip().lower() and elevo_status_v16813(email, fresco=True) != "ATIVO":
         raise RuntimeError("Conta bloqueada ou desativada.")
     return
 
@@ -831,23 +917,26 @@ def elevo_credito_lock_v16813():
 
 def elevo_aba_v16813(nome, colunas):
     if not robo_sheets:
-        raise ElevoCreditoErroV16813("O Google Sheets está indisponível. Créditos não podem ser verificados.")
+        raise ElevoCreditoErroV16813("Google Sheets indisponível. Créditos não podem ser verificados.")
     try:
-        pasta = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
         try:
-            aba = pasta.worksheet(nome)
+            return elevo_aba_principal_v16816(nome)
         except gspread.exceptions.WorksheetNotFound:
+            # Criação apenas na primeira utilização; outras sessões podem
+            # ter criado a aba em paralelo.
             try:
-                aba = pasta.add_worksheet(title=nome, rows=1500, cols=max(8, len(colunas)))
+                aba = elevo_pasta_principal_v16816().add_worksheet(
+                    title=nome, rows=1500, cols=max(8, len(colunas)))
                 aba.append_row(colunas)
             except Exception:
-                # Outra sessão pode ter criado a aba enquanto esta carregava.
-                aba = pasta.worksheet(nome)
-        return aba
+                aba = elevo_pasta_principal_v16816().worksheet(nome)
+            elevo_aba_principal_v16816.clear()
+            return aba
     except ElevoCreditoErroV16813:
         raise
     except Exception as exc:
-        raise ElevoCreditoErroV16813("Não foi possível consultar o banco de créditos.") from exc
+        logging.warning("ELEVO_CREDITOS_GOOGLE_SHEETS: %s", type(exc).__name__)
+        raise ElevoCreditoErroV16813("Banco de créditos temporariamente indisponível.") from exc
 
 def elevo_agora_v16813():
     return datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M:%S")
@@ -858,14 +947,29 @@ def elevo_email_v16813():
 def elevo_admin_v16813():
     return bool(st.session_state.get("usuario_logado") and elevo_email_v16813() == EMAIL_MESTRE.strip().lower())
 
-def elevo_perfil_registro_v16813(email, criar=False):
+@st.cache_data(ttl=6, show_spinner=False)
+def elevo_perfis_ler_cache_v16816():
+    return elevo_aba_v16813("Elevo_Perfis_V1", ELEVO_PERFIL_COLS_V16813).get_all_records()
+
+@st.cache_data(ttl=6, show_spinner=False)
+def elevo_creditos_ler_cache_v16816():
+    return elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813).get_all_records()
+
+def elevo_invalidar_leituras_v16816():
+    elevo_perfis_ler_cache_v16816.clear()
+    elevo_creditos_ler_cache_v16816.clear()
+
+def elevo_perfil_registro_v16813(email, criar=False, fresco=False):
     email = str(email).strip().lower()
     aba = elevo_aba_v16813("Elevo_Perfis_V1", ELEVO_PERFIL_COLS_V16813)
-    for indice, registro in enumerate(aba.get_all_records(), start=2):
+    registros = (aba.get_all_records() if (criar or fresco)
+                 else elevo_perfis_ler_cache_v16816())
+    for indice, registro in enumerate(registros, start=2):
         if str(registro.get("Email", "")).strip().lower() == email:
             return aba, indice, registro
     if criar:
         aba.append_row([email, "ATIVO", "", elevo_agora_v16813()])
+        elevo_invalidar_leituras_v16816()
         registros = aba.get_all_records()
         for indice, registro in enumerate(registros, start=2):
             if str(registro.get("Email", "")).strip().lower() == email:
@@ -873,10 +977,10 @@ def elevo_perfil_registro_v16813(email, criar=False):
         raise ElevoCreditoErroV16813("O perfil não foi confirmado no banco.")
     return aba, 0, {"Email":email, "Status":"ATIVO", "AvatarB64":""}
 
-def elevo_status_v16813(email):
+def elevo_status_v16813(email, fresco=False):
     if email.strip().lower() == EMAIL_MESTRE.strip().lower():
         return "ATIVO"
-    return str(elevo_perfil_registro_v16813(email)[2].get("Status", "ATIVO")).upper().strip() or "ATIVO"
+    return str(elevo_perfil_registro_v16813(email, fresco=fresco)[2].get("Status", "ATIVO")).upper().strip() or "ATIVO"
 
 def elevo_perfil_atualizar_v16813(email, *, status=None, avatar=None):
     if not elevo_admin_v16813() and elevo_email_v16813() != email.strip().lower():
@@ -894,6 +998,7 @@ def elevo_perfil_atualizar_v16813(email, *, status=None, avatar=None):
                 raise ValueError("Imagem compactada excedeu o limite.")
             aba.update_cell(indice, 3, avatar)
         aba.update_cell(indice, 4, elevo_agora_v16813())
+        elevo_invalidar_leituras_v16816()
 
 def elevo_creditos_apurar_v16813(registros, email):
     """Livro imutável. Débitos simultâneos são aceitos na ordem das linhas do Sheets.
@@ -902,6 +1007,7 @@ def elevo_creditos_apurar_v16813(registros, email):
     """
     saldo = 0
     iniciada = False
+    possui_registros = False
     ids = set()
     aceitos = set()
     estornos = set()
@@ -914,6 +1020,7 @@ def elevo_creditos_apurar_v16813(registros, email):
         if not ident or ident in ids:
             continue
         ids.add(ident)
+        possui_registros = True
         tipo = str(linha.get("Tipo", "")).strip().upper()
         try:
             valor = int(linha.get("Valor", 0) or 0)
@@ -937,26 +1044,32 @@ def elevo_creditos_apurar_v16813(registros, email):
                 saldo += valor
                 estornos.add(origem)
                 usos = max(0, usos - 1)
-    return {"saldo": max(0, saldo), "iniciada":iniciada, "aceitos":aceitos,
-            "estornos":estornos, "usos":usos}
+    return {"saldo": max(0, saldo), "iniciada":iniciada,
+            "possui_registros": possui_registros,
+            "aceitos":aceitos, "estornos":estornos, "usos":usos}
 
 def elevo_credito_eventos_v16813():
     return elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813).get_all_records()
 
-def elevo_credito_saldo_v16813(email=None):
+def elevo_credito_saldo_v16813(email=None, fresco=False):
     email = (email or elevo_email_v16813()).strip().lower()
     if email == EMAIL_MESTRE.strip().lower():
         return None  # CEO ilimitado
     if not elevo_admin_v16813() and email != elevo_email_v16813():
         raise PermissionError("Saldo de outro usuário não é público.")
-    if elevo_status_v16813(email) != "ATIVO":
+    if elevo_status_v16813(email, fresco=fresco) != "ATIVO":
         raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
     with elevo_credito_lock_v16813():
         aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
-        resultado = elevo_creditos_apurar_v16813(aba.get_all_records(), email)
-        if not resultado["iniciada"]:
+        linhas = (aba.get_all_records() if fresco
+                  else elevo_creditos_ler_cache_v16816())
+        resultado = elevo_creditos_apurar_v16813(linhas, email)
+        # Não conceder 100 CR novamente se já existir SET 0 ou outra operação.
+        # Inicializar SOMENTE conta que realmente não tem qualquer lançamento.
+        if not resultado["possui_registros"]:
             aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(), "INIT",
                             ELEVO_CREDITOS_INICIAIS_V16813, "", "SISTEMA"])
+            elevo_creditos_ler_cache_v16816.clear()
             resultado = elevo_creditos_apurar_v16813(aba.get_all_records(), email)
             if not resultado["iniciada"]:
                 raise ElevoCreditoErroV16813("Saldo inicial não pôde ser confirmado.")
@@ -972,7 +1085,7 @@ def elevo_credito_reservar_v16813(custo, finalidade):
     if custo <= 0:
         raise ValueError("Custo inválido")
     with elevo_credito_lock_v16813():
-        saldo = elevo_credito_saldo_v16813(email)
+        saldo = elevo_credito_saldo_v16813(email, fresco=True)
         if saldo < custo:
             raise ElevoCreditoErroV16813(
                 f"Saldo insuficiente: {saldo} crédito(s). Esta operação custa {custo}. "
@@ -984,6 +1097,7 @@ def elevo_credito_reservar_v16813(custo, finalidade):
         livro = elevo_creditos_apurar_v16813(aba.get_all_records(), email)
         if ident not in livro["aceitos"]:
             raise ElevoCreditoErroV16813("Não foi possível reservar créditos. Atualize o saldo.")
+        elevo_creditos_ler_cache_v16816.clear()
         return ident
 
 def elevo_credito_estornar_v16813(ident, custo):
@@ -996,6 +1110,7 @@ def elevo_credito_estornar_v16813(ident, custo):
         if ident in livro["aceitos"] and ident not in livro["estornos"]:
             aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(), "REFUND",
                             int(custo), ident, "SISTEMA"])
+            elevo_creditos_ler_cache_v16816.clear()
 
 def elevo_credito_admin_v16813(email, valor, modo="SET", referencia=""):
     if not elevo_admin_v16813():
@@ -1007,15 +1122,16 @@ def elevo_credito_admin_v16813(email, valor, modo="SET", referencia=""):
         raise ValueError("Operação ou valor inválido.")
     with elevo_credito_lock_v16813():
         # Impedir que operações administrativas afetem contas removidas.
-        if elevo_status_v16813(email) == "REMOVIDO":
+        if elevo_status_v16813(email, fresco=True) == "REMOVIDO":
             raise ValueError("Conta removida.")
-        elevo_credito_saldo_v16813(email)  # assegura INIT antes de qualquer SET/ADD
+        elevo_credito_saldo_v16813(email, fresco=True)  # assegura INIT antes de qualquer SET/ADD
         aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
         linhas = aba.get_all_records()
         if referencia and any(str(r.get("Referencia", "")) == referencia for r in linhas):
             return elevo_creditos_apurar_v16813(linhas, email)["saldo"]
         aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(),
                         modo, int(valor), referencia, elevo_email_v16813()])
+        elevo_creditos_ler_cache_v16816.clear()
         return elevo_creditos_apurar_v16813(aba.get_all_records(), email)["saldo"]
 
 def elevo_pedidos_v16813():
@@ -1091,25 +1207,33 @@ def elevo_excluir_conta_v16813(email):
         # O histórico financeiro permanece para auditoria; demais dados pessoais
         # de influenciadoras e memórias não são excluídos automaticamente.
 
-# Verificação de status a cada renderização, além da guarda das operações de IA.
+# V16.8.16 — Verificação sem bloquear o login por oscilação do Sheets.
+# Saldo e permissões de geração continuam fail-closed nas operações cobradas.
 if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
+    _email_credito_atual = elevo_email_v16813()
+    st.session_state["elevo_banco_indisponivel_v16816"] = False
     try:
-        _email_credito_atual = elevo_email_v16813()
-        if elevo_status_v16813(_email_credito_atual) != "ATIVO":
+        _status_atual_v16816 = elevo_status_v16813(_email_credito_atual)
+        if _status_atual_v16816 != "ATIVO":
             cookies.pop("login", None)
             cookies.save()
             limpar_sessao_ao_sair()
             st.error("Sua conta está bloqueada ou foi removida. Contate o administrador.")
             st.stop()
+        # Na interface, uma leitura curta em cache é suficiente; reserva de
+        # créditos executa uma leitura nova e valida o banco novamente.
         elevo_credito_saldo_v16813(_email_credito_atual)
-        elevo_registrar_acesso_v16813(_email_credito_atual,
-                                     str(st.session_state.get("auth_metodo", "senha")))
-    except ElevoCreditoErroV16813 as _exc_elevo:
-        st.error(str(_exc_elevo) + " Não é possível liberar ferramentas cobradas sem validação.")
-        st.stop()
+    except ElevoCreditoErroV16813:
+        st.session_state["elevo_banco_indisponivel_v16816"] = True
     except Exception:
-        st.error("A conexão com o banco de créditos falhou. Não é possível cobrar ou liberar novas gerações com segurança.")
-        st.stop()
+        st.session_state["elevo_banco_indisponivel_v16816"] = True
+    # Históricos são auxiliares; não fazem a conta cair quando a API oscila.
+    if not st.session_state["elevo_banco_indisponivel_v16816"]:
+        try:
+            elevo_registrar_acesso_v16813(_email_credito_atual,
+                          str(st.session_state.get("auth_metodo", "senha")))
+        except Exception:
+            pass
 
 # ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
@@ -1674,7 +1798,10 @@ if (st.session_state.get("usuario_logado") and email_logado_agora
     st.session_state["erro_audio_bv"] = ""
     chave_bv_v16814 = elevo_chave_boas_vindas_v16814(email_logado_agora)
     st.session_state["elevo_bv_chave_v16814"] = chave_bv_v16814
-    ja_ouvida = str(cookies.get("elevo_bv_ouvida_v16814", "") or "") == chave_bv_v16814
+    # A V16.8.15 usava só cookie/LocalStorage: não identifica primeiro cadastro.
+    # Agora a elegibilidade é persistida no Google Sheets no momento do cadastro.
+    # Antigos usuários nunca recebem nova saudação retroativamente.
+    ja_ouvida = not elevo_aurora_consumir_primeiro_acesso_v16816(email_logado_agora)
     if not ja_ouvida:
         texto_cinematico = (
             f"Protocolo de inteligência ativado. Identidade reconhecida. "
@@ -1930,11 +2057,16 @@ if not E_O_CEO:
     try:
         _elevo_avatar_b64_v16813 = str(elevo_perfil_registro_v16813(_elevo_email_painel_v16813)[2].get("AvatarB64", ""))
         _elevo_saldo_v16813 = elevo_credito_saldo_v16813()
-    except ElevoCreditoErroV16813 as _exc_saldo:
-        st.error(str(_exc_saldo))
-        st.stop()
+    except Exception:
+        _elevo_saldo_v16813 = None
+        st.session_state["elevo_banco_indisponivel_v16816"] = True
 else:
     _elevo_saldo_v16813 = None
+
+if st.session_state.get("elevo_banco_indisponivel_v16816"):
+    st.warning("Sua conta está autenticada, mas o banco de créditos está oscilando. "
+               "O saldo fica indisponível e nenhuma nova geração será cobrada ou liberada "
+               "sem confirmação. Use 'Atualizar saldo' quando o serviço voltar.")
 
 with st.container(border=False):
     col_avatar_v16813, col_info_v16813, col_saldo_v16813 = st.columns([.65,2.5,1.35], gap="small", vertical_alignment="center")
@@ -1964,7 +2096,7 @@ with st.container(border=False):
                         unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='elevo-conta-vip-v16813'><div class='eyebrow'>💎 MEU SALDO</div>"
-                        f"<div class='balance'>{int(_elevo_saldo_v16813)}<span style='font-size:12px'> CR</span></div>"
+                        f"<div class='balance'>{int(_elevo_saldo_v16813) if _elevo_saldo_v16813 is not None else '—'}<span style='font-size:12px'> CR</span></div>"
                         "<div class='small'>Prompts: 10 CR • IA/Radar: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
@@ -1987,6 +2119,7 @@ if not E_O_CEO:
                                "O pedido não foi enviado. Verifique a conexão do banco.")
     with col_atualizar_v16813:
         if st.button("↻ Atualizar saldo", key="elevo_saldo_refresh_v16813", use_container_width=True):
+            elevo_invalidar_leituras_v16816()
             st.rerun()
     with st.expander("🖼️ Minha foto de perfil", expanded=False):
         st.caption("Opcional: foto quadrada JPG/PNG. É guardada de forma compacta na sua conta.")
@@ -3890,175 +4023,177 @@ if E_O_CEO:
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
                 "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
                 unsafe_allow_html=True)
-    with st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS • V16.8.14", expanded=False):
-        _forcar_painel_v16814 = st.button("↻ Atualizar informações", key="elevo_admin_recarregar_v16814",
-                                           use_container_width=True)
-        try:
-            _snapshot_v16814, _painel_leitura_apenas_v16814 = elevo_ler_painel_v16814(_forcar_painel_v16814)
-            if _painel_leitura_apenas_v16814:
-                ultima_v16814 = elevo_cache_painel_v16814().get("horario", "horário não informado")
-                st.warning(f"Conexão oscilando. Última atualização: {ultima_v16814}. "
-                           "Exibindo os últimos dados confirmados, somente para consulta. "
-                           "Ações bloqueadas até a conexão voltar. Clique em Atualizar informações.")
-            _usuarios_v16813 = _snapshot_v16814["usuarios"]
-            _ledger_v16813 = _snapshot_v16814["creditos"]
-            _perfis_v16813 = _snapshot_v16814["perfis"]
-            _acessos_v16813 = _snapshot_v16814["acessos"]
-            _pedidos_v16813 = _snapshot_v16814["pedidos"]
-            _perfis_por_email_v16813 = {str(r.get("Email", "")).strip().lower():r for r in _perfis_v16813}
-            _pedidos_pendentes_v16813 = [r for r in _pedidos_v16813
-                                         if str(r.get("Status", "")).strip().upper() == "PENDENTE"]
-            _acessos_por_email_v16813 = {}
-            for acesso in _acessos_v16813:
-                chave = str(acesso.get("Email", "")).strip().lower()
-                if chave and chave not in _acessos_por_email_v16813:
-                    _acessos_por_email_v16813[chave] = []
-                if chave:
-                    _acessos_por_email_v16813[chave].append(acesso)
-            _consumo_v16813 = sum(1 for r in _ledger_v16813 if str(r.get("Tipo", "")).upper() == "DEBIT")
-            _m1, _m2, _m3, _m4 = st.columns(4, gap="small")
-            _m1.metric("👥 Usuários", len(_usuarios_v16813))
-            _m2.metric("📮 Pedidos pendentes", len(_pedidos_pendentes_v16813))
-            _m3.metric("🔑 Acessos registrados", len(_acessos_v16813))
-            _m4.metric("⚡ Gerações cobradas", _consumo_v16813)
-            if _pedidos_pendentes_v16813:
-                with st.container(border=True):
-                    st.markdown("#### 📮 Pedidos para sua aprovação")
-                    for _req_v16813 in _pedidos_pendentes_v16813[:20]:
-                        _id_req = str(_req_v16813.get("Id", ""))
-                        _email_req = str(_req_v16813.get("Email", "")).strip().lower()
-                        _qtd_req = max(10, min(10000, int(_req_v16813.get("Quantidade", 100) or 100)))
-                        with st.container(border=True):
-                            st.markdown(f"**{html_std.escape(_email_req)}** • "
-                                        f"{html_std.escape(str(_req_v16813.get('Data', '')))}")
-                            st.caption(f"Solicitação: {_qtd_req} créditos. "
-                                       f"{str(_req_v16813.get('Mensagem', ''))[:250]}")
-                            _qr, _qa, _qn = st.columns([1.1,1,1])
-                            with _qr:
-                                _lib_req = st.number_input("Liberar", 10, 10000, _qtd_req,
-                                                           key="elevo_qtd_req_"+_id_req)
-                            with _qa:
-                                if st.button("✅ Aprovar", key="elevo_approve_"+_id_req, use_container_width=True,
+    _gestao_painel_v16816 = st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS • V16.8.16", expanded=False, on_change="rerun")
+    with _gestao_painel_v16816:
+        if _gestao_painel_v16816.open:
+            _forcar_painel_v16814 = st.button("↻ Atualizar informações", key="elevo_admin_recarregar_v16814",
+                                               use_container_width=True)
+            try:
+                _snapshot_v16814, _painel_leitura_apenas_v16814 = elevo_ler_painel_v16814(_forcar_painel_v16814)
+                if _painel_leitura_apenas_v16814:
+                    ultima_v16814 = elevo_cache_painel_v16814().get("horario", "horário não informado")
+                    st.warning(f"Conexão oscilando. Última atualização: {ultima_v16814}. "
+                               "Exibindo os últimos dados confirmados, somente para consulta. "
+                               "Ações bloqueadas até a conexão voltar. Clique em Atualizar informações.")
+                _usuarios_v16813 = _snapshot_v16814["usuarios"]
+                _ledger_v16813 = _snapshot_v16814["creditos"]
+                _perfis_v16813 = _snapshot_v16814["perfis"]
+                _acessos_v16813 = _snapshot_v16814["acessos"]
+                _pedidos_v16813 = _snapshot_v16814["pedidos"]
+                _perfis_por_email_v16813 = {str(r.get("Email", "")).strip().lower():r for r in _perfis_v16813}
+                _pedidos_pendentes_v16813 = [r for r in _pedidos_v16813
+                                             if str(r.get("Status", "")).strip().upper() == "PENDENTE"]
+                _acessos_por_email_v16813 = {}
+                for acesso in _acessos_v16813:
+                    chave = str(acesso.get("Email", "")).strip().lower()
+                    if chave and chave not in _acessos_por_email_v16813:
+                        _acessos_por_email_v16813[chave] = []
+                    if chave:
+                        _acessos_por_email_v16813[chave].append(acesso)
+                _consumo_v16813 = sum(1 for r in _ledger_v16813 if str(r.get("Tipo", "")).upper() == "DEBIT")
+                _m1, _m2, _m3, _m4 = st.columns(4, gap="small")
+                _m1.metric("👥 Usuários", len(_usuarios_v16813))
+                _m2.metric("📮 Pedidos pendentes", len(_pedidos_pendentes_v16813))
+                _m3.metric("🔑 Acessos registrados", len(_acessos_v16813))
+                _m4.metric("⚡ Gerações cobradas", _consumo_v16813)
+                if _pedidos_pendentes_v16813:
+                    with st.container(border=True):
+                        st.markdown("#### 📮 Pedidos para sua aprovação")
+                        for _req_v16813 in _pedidos_pendentes_v16813[:20]:
+                            _id_req = str(_req_v16813.get("Id", ""))
+                            _email_req = str(_req_v16813.get("Email", "")).strip().lower()
+                            _qtd_req = max(10, min(10000, int(_req_v16813.get("Quantidade", 100) or 100)))
+                            with st.container(border=True):
+                                st.markdown(f"**{html_std.escape(_email_req)}** • "
+                                            f"{html_std.escape(str(_req_v16813.get('Data', '')))}")
+                                st.caption(f"Solicitação: {_qtd_req} créditos. "
+                                           f"{str(_req_v16813.get('Mensagem', ''))[:250]}")
+                                _qr, _qa, _qn = st.columns([1.1,1,1])
+                                with _qr:
+                                    _lib_req = st.number_input("Liberar", 10, 10000, _qtd_req,
+                                                               key="elevo_qtd_req_"+_id_req)
+                                with _qa:
+                                    if st.button("✅ Aprovar", key="elevo_approve_"+_id_req, use_container_width=True,
+                                                 disabled=_painel_leitura_apenas_v16814):
+                                        try:
+                                            elevo_pedido_decidir_v16813(_id_req, _email_req, "APROVADO", _lib_req)
+                                            elevo_invalidar_painel_v16814()
+                                            st.success("Créditos liberados no saldo do usuário!")
+                                            st.rerun()
+                                        except Exception:
+                                            st.error("Não foi possível aprovar. Consulte o Google Sheets.")
+                                with _qn:
+                                    if st.button("✖ Recusar", key="elevo_deny_"+_id_req, use_container_width=True,
+                                                 disabled=_painel_leitura_apenas_v16814):
+                                        try:
+                                            elevo_pedido_decidir_v16813(_id_req, _email_req, "RECUSADO")
+                                            elevo_invalidar_painel_v16814()
+                                            st.rerun()
+                                        except Exception:
+                                            st.error("Falha ao recusar solicitação.")
+                _busca_admin_v16813 = st.text_input("🔍 Localizar conta (nome ou e-mail)",
+                                                    placeholder="Filtrar seus usuários...", key="elevo_admin_search_v16813")
+                _usuarios_filtrados_v16813 = [u for u in _usuarios_v16813
+                                             if _busca_admin_v16813.strip().lower() in
+                                             (str(u.get("Nome", ""))+" "+str(u.get("Email", ""))).lower()]
+                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: 100 • "
+                           "360º e V9.2: 10 • Radar/outras solicitações de IA: 3.")
+                for _u_v16813 in _usuarios_filtrados_v16813[:100]:
+                    _email_u_v16813 = str(_u_v16813.get("Email", "")).strip().lower()
+                    if not _email_u_v16813 or _email_u_v16813 == EMAIL_MESTRE.strip().lower():
+                        continue
+                    _nome_u_v16813 = str(_u_v16813.get("Nome", "Usuário"))
+                    _perfil_u_v16813 = _perfis_por_email_v16813.get(_email_u_v16813, {})
+                    _status_u_v16813 = str(_perfil_u_v16813.get("Status", "ATIVO")).upper()
+                    _calc_u_v16813 = elevo_creditos_apurar_v16813(_ledger_v16813, _email_u_v16813)
+                    _saldo_u_v16813 = (_calc_u_v16813["saldo"] if _calc_u_v16813["iniciada"]
+                                       else ELEVO_CREDITOS_INICIAIS_V16813)
+                    _his_u_v16813 = _acessos_por_email_v16813.get(_email_u_v16813, [])
+                    _total_u_v16813 = len({str(r.get("Id")) for r in _his_u_v16813})
+                    _ultimo_u_v16813 = str(_his_u_v16813[-1].get("Data", "")) if _his_u_v16813 else "Sem acesso registrado"
+                    _primeiro_u_v16813 = str(_his_u_v16813[0].get("Data", "")) if _his_u_v16813 else "Sem acesso registrado"
+                    with st.container(border=True):
+                        st.markdown("<span class='elevo-admin-item-v16813'>✦ PERFIL VIP • CONTA DE USUÁRIO</span>",
+                                    unsafe_allow_html=True)
+                        _row1, _row2, _row3 = st.columns([2.4,1,1], vertical_alignment="center")
+                        with _row1:
+                            st.markdown(f"**👤 {html_std.escape(_nome_u_v16813)}**")
+                            st.caption(_email_u_v16813)
+                        with _row2:
+                            st.metric("💎 Saldo", int(_saldo_u_v16813))
+                        with _row3:
+                            st.metric("🔑 Logins", _total_u_v16813)
+                        st.caption(f"Status: {'🟢 Ativa' if _status_u_v16813 == 'ATIVO' else '🔴 Bloqueada'} • "
+                                   f"Primeiro acesso: {_primeiro_u_v16813} • "
+                                   f"Último acesso: {_ultimo_u_v16813} • "
+                                   f"Usos cobrados: {_calc_u_v16813['usos']}")
+                        _acao1, _acao2, _acao3 = st.columns(3, gap="small")
+                        with _acao1:
+                            with st.popover("💎 Editar créditos", use_container_width=True):
+                                st.caption(f"Saldo atual: {_saldo_u_v16813} créditos")
+                                _valor_admin_v16813 = st.number_input("Novo saldo", min_value=0,
+                                                                      max_value=1000000,
+                                                                      value=int(_saldo_u_v16813), step=10,
+                                                                      key="elevo_set_"+_email_u_v16813)
+                                if st.button("✅ Aplicar saldo", key="elevo_aplica_"+_email_u_v16813,
+                                             type="primary", use_container_width=True,
                                              disabled=_painel_leitura_apenas_v16814):
                                     try:
-                                        elevo_pedido_decidir_v16813(_id_req, _email_req, "APROVADO", _lib_req)
+                                        elevo_credito_admin_v16813(_email_u_v16813, _valor_admin_v16813, "SET")
                                         elevo_invalidar_painel_v16814()
-                                        st.success("Créditos liberados no saldo do usuário!")
+                                        st.success("Saldo atualizado e disponível.")
                                         st.rerun()
                                     except Exception:
-                                        st.error("Não foi possível aprovar. Consulte o Google Sheets.")
-                            with _qn:
-                                if st.button("✖ Recusar", key="elevo_deny_"+_id_req, use_container_width=True,
-                                             disabled=_painel_leitura_apenas_v16814):
-                                    try:
-                                        elevo_pedido_decidir_v16813(_id_req, _email_req, "RECUSADO")
-                                        elevo_invalidar_painel_v16814()
-                                        st.rerun()
-                                    except Exception:
-                                        st.error("Falha ao recusar solicitação.")
-            _busca_admin_v16813 = st.text_input("🔍 Localizar conta (nome ou e-mail)",
-                                                placeholder="Filtrar seus usuários...", key="elevo_admin_search_v16813")
-            _usuarios_filtrados_v16813 = [u for u in _usuarios_v16813
-                                         if _busca_admin_v16813.strip().lower() in
-                                         (str(u.get("Nome", ""))+" "+str(u.get("Email", ""))).lower()]
-            st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: 100 • "
-                       "360º e V9.2: 10 • Radar/outras solicitações de IA: 3.")
-            for _u_v16813 in _usuarios_filtrados_v16813[:100]:
-                _email_u_v16813 = str(_u_v16813.get("Email", "")).strip().lower()
-                if not _email_u_v16813 or _email_u_v16813 == EMAIL_MESTRE.strip().lower():
-                    continue
-                _nome_u_v16813 = str(_u_v16813.get("Nome", "Usuário"))
-                _perfil_u_v16813 = _perfis_por_email_v16813.get(_email_u_v16813, {})
-                _status_u_v16813 = str(_perfil_u_v16813.get("Status", "ATIVO")).upper()
-                _calc_u_v16813 = elevo_creditos_apurar_v16813(_ledger_v16813, _email_u_v16813)
-                _saldo_u_v16813 = (_calc_u_v16813["saldo"] if _calc_u_v16813["iniciada"]
-                                   else ELEVO_CREDITOS_INICIAIS_V16813)
-                _his_u_v16813 = _acessos_por_email_v16813.get(_email_u_v16813, [])
-                _total_u_v16813 = len({str(r.get("Id")) for r in _his_u_v16813})
-                _ultimo_u_v16813 = str(_his_u_v16813[-1].get("Data", "")) if _his_u_v16813 else "Sem acesso registrado"
-                _primeiro_u_v16813 = str(_his_u_v16813[0].get("Data", "")) if _his_u_v16813 else "Sem acesso registrado"
-                with st.container(border=True):
-                    st.markdown("<span class='elevo-admin-item-v16813'>✦ PERFIL VIP • CONTA DE USUÁRIO</span>",
-                                unsafe_allow_html=True)
-                    _row1, _row2, _row3 = st.columns([2.4,1,1], vertical_alignment="center")
-                    with _row1:
-                        st.markdown(f"**👤 {html_std.escape(_nome_u_v16813)}**")
-                        st.caption(_email_u_v16813)
-                    with _row2:
-                        st.metric("💎 Saldo", int(_saldo_u_v16813))
-                    with _row3:
-                        st.metric("🔑 Logins", _total_u_v16813)
-                    st.caption(f"Status: {'🟢 Ativa' if _status_u_v16813 == 'ATIVO' else '🔴 Bloqueada'} • "
-                               f"Primeiro acesso: {_primeiro_u_v16813} • "
-                               f"Último acesso: {_ultimo_u_v16813} • "
-                               f"Usos cobrados: {_calc_u_v16813['usos']}")
-                    _acao1, _acao2, _acao3 = st.columns(3, gap="small")
-                    with _acao1:
-                        with st.popover("💎 Editar créditos", use_container_width=True):
-                            st.caption(f"Saldo atual: {_saldo_u_v16813} créditos")
-                            _valor_admin_v16813 = st.number_input("Novo saldo", min_value=0,
-                                                                  max_value=1000000,
-                                                                  value=int(_saldo_u_v16813), step=10,
-                                                                  key="elevo_set_"+_email_u_v16813)
-                            if st.button("✅ Aplicar saldo", key="elevo_aplica_"+_email_u_v16813,
-                                         type="primary", use_container_width=True,
+                                        st.error("Não foi possível atualizar o saldo.")
+                                for _add_val in (50,100,200):
+                                    if st.button(f"➕ Acrescentar {_add_val}", key=f"elevo_add_{_add_val}_"+_email_u_v16813,
+                                                 use_container_width=True,
+                                                 disabled=_painel_leitura_apenas_v16814):
+                                        try:
+                                            elevo_credito_admin_v16813(_email_u_v16813, _add_val, "ADD")
+                                            elevo_invalidar_painel_v16814()
+                                            st.rerun()
+                                        except Exception:
+                                            st.error("Falha ao adicionar créditos.")
+                        with _acao2:
+                            if st.button("✅ Reativar" if _status_u_v16813 == "BLOQUEADO" else "⛔ Bloquear",
+                                         key="elevo_block_"+_email_u_v16813, use_container_width=True,
                                          disabled=_painel_leitura_apenas_v16814):
                                 try:
-                                    elevo_credito_admin_v16813(_email_u_v16813, _valor_admin_v16813, "SET")
+                                    elevo_perfil_atualizar_v16813(_email_u_v16813,
+                                        status="ATIVO" if _status_u_v16813 == "BLOQUEADO" else "BLOQUEADO")
                                     elevo_invalidar_painel_v16814()
-                                    st.success("Saldo atualizado e disponível.")
                                     st.rerun()
                                 except Exception:
-                                    st.error("Não foi possível atualizar o saldo.")
-                            for _add_val in (50,100,200):
-                                if st.button(f"➕ Acrescentar {_add_val}", key=f"elevo_add_{_add_val}_"+_email_u_v16813,
-                                             use_container_width=True,
+                                    st.error("Não foi possível alterar o acesso.")
+                        with _acao3:
+                            with st.popover("🗑️ Remover conta", use_container_width=True):
+                                st.warning("Esta ação remove o cadastro, revoga o acesso e não pode ser desfeita aqui. "
+                                           "Os registros financeiros permanecem para auditoria.")
+                                st.caption(f"Conta selecionada: {_email_u_v16813}")
+                                if st.button("🚨 Confirmar remoção", key="elevo_remove_"+_email_u_v16813,
+                                             type="primary", use_container_width=True,
                                              disabled=_painel_leitura_apenas_v16814):
                                     try:
-                                        elevo_credito_admin_v16813(_email_u_v16813, _add_val, "ADD")
+                                        elevo_excluir_conta_v16813(_email_u_v16813)
                                         elevo_invalidar_painel_v16814()
+                                        st.success("Conta removida.")
                                         st.rerun()
                                     except Exception:
-                                        st.error("Falha ao adicionar créditos.")
-                    with _acao2:
-                        if st.button("✅ Reativar" if _status_u_v16813 == "BLOQUEADO" else "⛔ Bloquear",
-                                     key="elevo_block_"+_email_u_v16813, use_container_width=True,
-                                     disabled=_painel_leitura_apenas_v16814):
-                            try:
-                                elevo_perfil_atualizar_v16813(_email_u_v16813,
-                                    status="ATIVO" if _status_u_v16813 == "BLOQUEADO" else "BLOQUEADO")
-                                elevo_invalidar_painel_v16814()
-                                st.rerun()
-                            except Exception:
-                                st.error("Não foi possível alterar o acesso.")
-                    with _acao3:
-                        with st.popover("🗑️ Remover conta", use_container_width=True):
-                            st.warning("Esta ação remove o cadastro, revoga o acesso e não pode ser desfeita aqui. "
-                                       "Os registros financeiros permanecem para auditoria.")
-                            st.caption(f"Conta selecionada: {_email_u_v16813}")
-                            if st.button("🚨 Confirmar remoção", key="elevo_remove_"+_email_u_v16813,
-                                         type="primary", use_container_width=True,
-                                         disabled=_painel_leitura_apenas_v16814):
-                                try:
-                                    elevo_excluir_conta_v16813(_email_u_v16813)
-                                    elevo_invalidar_painel_v16814()
-                                    st.success("Conta removida.")
-                                    st.rerun()
-                                except Exception:
-                                    st.error("Falha na remoção. Verifique o Google Sheets.")
-            if len(_usuarios_filtrados_v16813) > 100:
-                st.info("Mostrando as primeiras 100 contas. Use o campo de pesquisa para localizar outras.")
-            with st.expander("🕘 Histórico recente de acessos", expanded=False):
-                if _acessos_v16813:
-                    df_acesso_v16813 = pd.DataFrame(_acessos_v16813[-200:])
-                    st.dataframe(df_acesso_v16813[[c for c in ("Email", "Data", "Origem")
-                                                  if c in df_acesso_v16813.columns]],
-                                 use_container_width=True, hide_index=True)
-                else:
-                    st.caption("O histórico começa a ser registrado após esta atualização.")
-        except Exception:
-            st.error("Painel temporariamente sem conexão. Use Atualizar informações. "
-                     "Nenhum cadastro ou crédito foi alterado.")
+                                        st.error("Falha na remoção. Verifique o Google Sheets.")
+                if len(_usuarios_filtrados_v16813) > 100:
+                    st.info("Mostrando as primeiras 100 contas. Use o campo de pesquisa para localizar outras.")
+                with st.expander("🕘 Histórico recente de acessos", expanded=False):
+                    if _acessos_v16813:
+                        df_acesso_v16813 = pd.DataFrame(_acessos_v16813[-200:])
+                        st.dataframe(df_acesso_v16813[[c for c in ("Email", "Data", "Origem")
+                                                      if c in df_acesso_v16813.columns]],
+                                     use_container_width=True, hide_index=True)
+                    else:
+                        st.caption("O histórico começa a ser registrado após esta atualização.")
+            except Exception:
+                st.error("Painel temporariamente sem conexão. Use Atualizar informações. "
+                         "Nenhum cadastro ou crédito foi alterado.")
 
 st.markdown('<div id="criacao"></div>', unsafe_allow_html=True)
 
@@ -4073,33 +4208,125 @@ if "roteiro_temporario" not in st.session_state:
 if "modo_entidade_v9" not in st.session_state:
     st.session_state["modo_entidade_v9"] = False
 
-def carregar_ultimo_roteiro_salvo(email_usr):
-    if not robo_sheets: return None
+# V16.8.17 — Histórico de roteiros TEMPORÁRIOS (somente aba Historico_Roteiros).
+# A aba Memoria_Elevo_V1 / feedback 17.3 e os outros bancos não são alterados.
+ELEVO_HISTORICO_COLUNAS_V16817 = ["Email", "DataHora", "JsonRoteiro"]
+
+
+def _elevo_historico_aba_v16817(criar=False):
+    """Abre APENAS a aba de roteiros; nunca cria outra aba por erro transitório."""
+    if robo_sheets is None:
+        raise ConnectionError("Google Sheets indisponível para o histórico de roteiros.")
+    match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
+    if not match_id:
+        raise ValueError("Planilha mestre não configurada para o histórico.")
+    livro = robo_sheets.open_by_key(match_id.group(1))
     try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if match_id:
-            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-            try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
-            except Exception: return None
-            registros = aba_hist.get_all_records()
-            usuario_regs = [r for r in registros if str(r.get("Email","")).strip().lower() == email_usr.strip().lower()]
-            if usuario_regs: return usuario_regs[-1].get("JsonRoteiro", None)
-    except Exception: pass
+        aba = livro.worksheet("Historico_Roteiros")
+    except gspread.exceptions.WorksheetNotFound:
+        if not criar:
+            return livro, None
+        aba = livro.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
+        aba.append_row(ELEVO_HISTORICO_COLUNAS_V16817, value_input_option="RAW")
+    return livro, aba
+
+
+def _elevo_historico_linhas_v16817(aba, email_usr):
+    """Consulta somente a coluna Email, SEM baixar todos os prompts anteriores."""
+    email = str(email_usr or "").strip().lower()
+    if not email or email == "anonimo":
+        raise ValueError("É necessário estar autenticado para salvar ou excluir roteiros.")
+    if aba is None:
+        return []
+    coluna_emails = aba.col_values(1)
+    if coluna_emails and str(coluna_emails[0]).strip().lower() != "email":
+        raise RuntimeError("Cabeçalho inesperado em Historico_Roteiros; operação cancelada.")
+    return [linha for linha, valor in enumerate(coluna_emails, start=1)
+            if linha > 1 and str(valor).strip().lower() == email]
+
+
+def _elevo_historico_excluir_linhas_v16817(livro, aba, linhas):
+    """Remove as linhas reais do Sheets em lotes, sempre de baixo para cima."""
+    linhas = sorted({int(n) for n in linhas if int(n) > 1})
+    if not linhas:
+        return 0
+    grupos = []
+    inicio = fim = linhas[0]
+    for linha in linhas[1:]:
+        if linha == fim + 1:
+            fim = linha
+        else:
+            grupos.append((inicio, fim))
+            inicio = fim = linha
+    grupos.append((inicio, fim))
+    # Índices da API Google Sheets são baseados em 0; endIndex é exclusivo.
+    requests = [{"deleteDimension": {"range": {
+        "sheetId": aba.id, "dimension": "ROWS",
+        "startIndex": inicio - 1, "endIndex": fim,
+    }}} for inicio, fim in reversed(grupos)]
+    for i in range(0, len(requests), 75):
+        livro.batch_update({"requests": requests[i:i + 75]})
+    return len(linhas)
+
+
+def carregar_ultimo_roteiro_salvo(email_usr):
+    """Continua restaurando o último rascunho, sem ler todo o histórico em memória."""
+    try:
+        _, aba = _elevo_historico_aba_v16817(criar=False)
+        linhas = _elevo_historico_linhas_v16817(aba, email_usr)
+        if linhas:
+            return aba.acell(f"C{linhas[-1]}").value or None
+    except Exception as exc:
+        logging.warning("ELEVO_HISTORICO_LEITURA: %s", type(exc).__name__)
     return None
 
+
 def salvar_roteiro_no_drive(email_usr, texto_str):
-    if not robo_sheets: return
+    """Um único rascunho por login: atualiza o existente e elimina duplicatas antigas."""
     try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if match_id:
-            planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-            try: aba_hist = planilha_mestre.worksheet("Historico_Roteiros")
-            except Exception:
-                aba_hist = planilha_mestre.add_worksheet(title="Historico_Roteiros", rows="1000", cols="3")
-                aba_hist.append_row(["Email", "DataHora", "JsonRoteiro"])
-            agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            aba_hist.append_row([email_usr, agora_str, texto_str])
-    except Exception: pass
+        livro, aba = _elevo_historico_aba_v16817(criar=True)
+        linhas = _elevo_historico_linhas_v16817(aba, email_usr)
+        email = str(email_usr).strip().lower()
+        agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
+        valores = [email, agora_str, texto_str]
+        if linhas:
+            # Mantém a PRIMEIRA linha do usuário. Deletar as posteriores não muda seu índice.
+            aba.update(range_name=f"A{linhas[0]}:C{linhas[0]}",
+                       values=[valores], value_input_option="RAW")
+            _elevo_historico_excluir_linhas_v16817(livro, aba, linhas[1:])
+        else:
+            aba.append_row(valores, value_input_option="RAW")
+        return True
+    except Exception as exc:
+        logging.warning("ELEVO_HISTORICO_GRAVACAO: %s", type(exc).__name__)
+        return False
+
+
+def excluir_todos_roteiros_do_usuario_v16817(email_usr):
+    """Lixeira: remove TODOS os roteiros históricos somente da conta autenticada."""
+    livro, aba = _elevo_historico_aba_v16817(criar=False)
+    linhas = _elevo_historico_linhas_v16817(aba, email_usr)
+    if not linhas:
+        return 0
+    return _elevo_historico_excluir_linhas_v16817(livro, aba, linhas)
+
+
+def excluir_todo_historico_roteiros_ceo_v16817():
+    """Manutenção explícita do CEO: limpa dados A2:C sem tocar no cabeçalho."""
+    if not E_O_CEO or str(st.session_state.get("email_usuario", "")).strip().lower() != str(EMAIL_MESTRE).strip().lower():
+        raise PermissionError("Limpeza geral restrita ao CEO.")
+    _, aba = _elevo_historico_aba_v16817(criar=False)
+    if aba is None:
+        return 0
+    # Somente a coluna Email para contar; nenhuma leitura dos prompts.
+    emails = aba.col_values(1)
+    if emails and str(emails[0]).strip().lower() != "email":
+        raise RuntimeError("Cabeçalho inesperado; limpeza geral cancelada.")
+    total = sum(bool(str(v).strip()) for v in emails[1:])
+    if total:
+        # Uma só chamada, mantendo formatação e cabeçalho; não toca outras abas.
+        aba.batch_clear(["A2:C"])
+    return total
 
 def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
     if not texto_para_copiar:
@@ -4639,8 +4866,8 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     }
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
-# Não restaurar do Google Sheets após o usuário limpar deliberadamente a tela.
-# O histórico no Sheets permanece íntegro; esta trava só vale para a sessão atual.
+# Não restaurar automaticamente após a exclusão; a lixeira agora apaga o Sheets.
+# Um único rascunho por login permanece recuperável até o usuário descartá-lo.
 if (not st.session_state["roteiro_temporario"]
         and not st.session_state.get("elevo_roteiro_limpo_sessao_v1688", False)):
     roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
@@ -5897,7 +6124,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
             st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
-            salvar_roteiro_no_drive(email_sessao, conteudo_texto)
+            st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_texto)
             
                 
             st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
@@ -6027,7 +6254,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
-                salvar_roteiro_no_drive(email_sessao, conteudo_v92)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_v92)
 
 
                 st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
@@ -6153,6 +6380,9 @@ st.markdown("""
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
 # ==========================================================
 if st.session_state["roteiro_temporario"]:
+    if st.session_state.get("elevo_hist_erro_gravacao_v16817", False):
+        st.warning("⚠️ Seu roteiro foi gerado, mas o Google Sheets não confirmou o salvamento temporário. "
+                   "Copie o conteúdo antes de fechar; verifique a conexão com a planilha.")
     with st.container(border=True, key="elevo_resultado_v16812"):
         partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
         
@@ -6229,13 +6459,60 @@ if st.session_state["roteiro_temporario"]:
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"):
-            # Primeiro bloquear a recarga automática do último histórico salvo.
-            # Em seguida, limpar o roteiro e o feedback temporário, sem apagar Sheets.
-            st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
-            st.session_state["roteiro_temporario"] = None
-            st.session_state.pop("elevo_mem_v1_contexto", None)
-            st.session_state.pop("elevo_mem_v1_nota", None)
-            st.rerun()
+            try:
+                removidos_v16817 = excluir_todos_roteiros_do_usuario_v16817(email_sessao)
+            except Exception as exc:
+                logging.warning("ELEVO_HISTORICO_LIXEIRA: %s", type(exc).__name__)
+                st.error("⚠️ Não foi possível apagar o histórico na planilha. "
+                         "O roteiro continua na tela para evitar perda acidental. "
+                         "Verifique a conexão Google Sheets e tente novamente.")
+            else:
+                # Só confirmar a limpeza visual depois que a exclusão em Sheets terminar.
+                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
+                st.session_state["roteiro_temporario"] = None
+                st.session_state.pop("elevo_mem_v1_contexto", None)
+                st.session_state.pop("elevo_mem_v1_nota", None)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+                st.session_state["elevo_hist_mensagem_v16817"] = (
+                    f"🗑️ Roteiro removido da tela e {removidos_v16817} registro(s) antigo(s) "
+                    "excluído(s) da aba Historico_Roteiros da sua conta. Banco 17.3 preservado."
+                )
+                st.rerun()
+
+# Manutenção separada: o CEO pode eliminar os roteiros antigos de TODAS as contas,
+# mas somente mediante confirmação explícita. Outros dados de planilha não são tocados.
+if E_O_CEO:
+    with st.expander("🧹 CEO • Limpeza geral dos roteiros antigos (Google Sheets)", expanded=False):
+        st.caption("Apaga apenas os dados da aba Historico_Roteiros de todas as contas. "
+                   "Mantém o cabeçalho, o Banco 17.3, usuários, créditos e demais abas.")
+        confirmou_geral_v16817 = st.checkbox(
+            "Confirmo que desejo excluir TODOS os roteiros históricos de todas as contas",
+            key="elevo_confirmar_limpeza_geral_v16817")
+        if st.button("🗑️ Excluir histórico geral de roteiros", type="secondary",
+                     disabled=not confirmou_geral_v16817,
+                     key="elevo_limpar_hist_geral_v16817", use_container_width=True):
+            try:
+                total_geral_v16817 = excluir_todo_historico_roteiros_ceo_v16817()
+            except Exception as exc:
+                logging.warning("ELEVO_HISTORICO_LIMPEZA_CEO: %s", type(exc).__name__)
+                st.error("Falha ao excluir o histórico geral. Nenhuma limpeza foi confirmada; "
+                         "verifique o Sheets antes de tentar novamente.")
+            else:
+                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
+                st.session_state["roteiro_temporario"] = None
+                st.session_state.pop("elevo_mem_v1_contexto", None)
+                st.session_state.pop("elevo_mem_v1_nota", None)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+                st.session_state["elevo_hist_mensagem_v16817"] = (
+                    f"🧹 Limpeza geral concluída: {total_geral_v16817} roteiro(s) antigo(s) "
+                    "eliminado(s) do Historico_Roteiros. Memória 17.3 e demais dados preservados."
+                )
+                st.rerun()
+
+mensagem_historico_v16817 = st.session_state.pop("elevo_hist_mensagem_v16817", "")
+if mensagem_historico_v16817:
+    # O aviso é emitido após o rerun sem manter o texto na tela indefinidamente.
+    st.success(mensagem_historico_v16817)
 
 st.markdown('<div id="academia"></div>', unsafe_allow_html=True)
 
@@ -6417,3 +6694,83 @@ st.markdown("""
 }
 </style>
 """,unsafe_allow_html=True)
+
+# ==========================================================
+# ÉLÉVO V16.8.16 — HARDENING DO TEMA VIP ESCURO
+# Aplicado no final para ter precedência sobre CSS nativo tardio.
+# ==========================================================
+if not modo_claro:
+    st.markdown("""
+    <style>
+    :root { color-scheme: dark; }
+    /* Camada de portal usada por Popover e editores do Streamlit. */
+    body div[data-baseweb="popover"],
+    body div[data-baseweb="popover"] > div,
+    body div[data-baseweb="popover"] > div > div,
+    body [data-testid="stPopoverBody"],
+    body [data-testid="stPopoverBody"] > div,
+    body div[role="dialog"]:has([data-testid="stNumberInput"]) {
+      background-color:#0C192D!important;
+      background-image:linear-gradient(145deg,#10233A 0%,#0B1528 75%,#071321 100%)!important;
+      box-shadow:0 14px 38px rgba(0,0,0,.50),inset 0 1px 0 rgba(255,255,255,.04)!important;
+      color:#F0F7FF!important;
+      border-color:rgba(41,195,228,.35)!important;
+    }
+    body [data-testid="stPopoverBody"] [data-testid="stVerticalBlock"],
+    body [data-testid="stPopoverBody"] [data-testid="stMarkdownContainer"],
+    body [data-testid="stPopoverBody"] [data-testid="stHorizontalBlock"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInput"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInput"] > div,
+    body [data-testid="stPopoverBody"] [data-baseweb="input"],
+    body [data-testid="stPopoverBody"] [data-baseweb="input"] > div {
+      background:#0F2035!important;
+      color:#F0F7FF!important;
+    }
+    body [data-testid="stPopoverBody"] p,
+    body [data-testid="stPopoverBody"] label,
+    body [data-testid="stPopoverBody"] span,
+    body [data-testid="stPopoverBody"] small,
+    body [data-testid="stPopoverBody"] input,
+    body [data-testid="stPopoverBody"] textarea,
+    body div[data-baseweb="popover"] p,
+    body div[data-baseweb="popover"] label,
+    body div[data-baseweb="popover"] span,
+    body div[data-baseweb="popover"] small {
+      color:#EAF6FF!important;-webkit-text-fill-color:#EAF6FF!important;opacity:1!important;
+    }
+    body [data-testid="stPopoverBody"] button,
+    body div[data-baseweb="popover"] button,
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInputStepUp"],
+    body [data-testid="stPopoverBody"] [data-testid="stNumberInputStepDown"] {
+      background:#112941!important;
+      color:#EAF6FF!important;-webkit-text-fill-color:#EAF6FF!important;
+      border:1px solid rgba(0,214,255,.4)!important;
+      border-radius:9px!important;
+    }
+    body [data-testid="stPopoverBody"] button[kind="primary"] {
+      background:linear-gradient(110deg,#125CBF,#267BF3)!important;
+      color:#FFF!important;-webkit-text-fill-color:#FFF!important;
+    }
+    body [data-testid="stAlert"], body [data-testid="stAlert"] > div,
+    body [data-testid="stAlert"] [data-baseweb="notification"],
+    body [data-testid="stToast"], body [data-testid="stToast"] > div {
+      background:#12233B!important;
+      background-image:linear-gradient(110deg,#142945,#101D33)!important;
+      color:#EDF7FF!important;-webkit-text-fill-color:#EDF7FF!important;
+      border-color:rgba(80,191,241,.34)!important;
+    }
+    body [data-testid="stAlert"] *, body [data-testid="stToast"] * {
+      color:#EDF7FF!important;-webkit-text-fill-color:#EDF7FF!important;
+    }
+    /* Cartões de gestão e seus botões secundários (não afeta o modo claro). */
+    body [data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-admin-item-v16813) {
+      background:linear-gradient(140deg,#10243D,#0B182B)!important;
+      border:1px solid rgba(74,166,218,.26)!important;
+    }
+    body [data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-admin-item-v16813) button[kind="secondary"] {
+      background:#102842!important;color:#EAF6FF!important;
+      -webkit-text-fill-color:#EAF6FF!important;
+      border:1px solid rgba(64,178,222,.4)!important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
