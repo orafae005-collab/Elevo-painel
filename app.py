@@ -4723,8 +4723,8 @@ def sanitizar_descricao_produto_visual_v1684(conteudo):
 
     def repl(match):
         if match.group(1) is not None:
-            return match.group(1) + _limpar_bloco(match.group(2))
-        return match.group(3) + _limpar_bloco(match.group(4))
+            return match.group(1) + _limpar_bloco(match.group(2)) + "\n\n"
+        return match.group(3) + _limpar_bloco(match.group(4)) + "\n\n"
 
     return re.sub(pattern, repl, conteudo, flags=re.DOTALL | re.IGNORECASE)
 
