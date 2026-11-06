@@ -3514,6 +3514,98 @@ def extrair_blocos_roteiro(md_texto):
 # V16.8.3 — IDENTIDADE VISUAL IDÊNTICA NA FOTO E NO VÍDEO
 # Pós-processamento aditivo: não altera a organização dos três blocos.
 # ==========================================================
+# ==========================================================
+# ÉLÉVO V16.8.11 — INFLUENCIADORA ≠ PRODUTO
+# Isolamento somente no texto dos Blocos 17/17.2; não altera perfis salvos.
+# ==========================================================
+def assinatura_visual_pessoa_sem_produto_v16811(descricao):
+    """Extrai apenas a aparência da pessoa; remove notas sobre objetos/produtos.
+
+    Dados persistidos, voz, nomes e cards não são alterados.
+    """
+    texto = str(descricao or "").strip()
+    # Perfis do catálogo contêm nicho, abordagem comercial, produto e referência
+    # de roupa. Essas seções não são uma descrição física da influenciadora.
+    marcador = "LOCKED PHYSICAL APPEARANCE AND PHOTO REFERENCE:"
+    if marcador in texto:
+        texto = texto.split(marcador, 1)[1]
+        texto = texto.split("PERSONALITY AND COMMERCIAL APPROACH", 1)[0]
+    # Fotos de referência de uma influenciadora podem mostrar roupas ou um item
+    # vendido em OUTRO criativo. Nunca importar esse item como produto atual.
+    texto = re.sub(
+        r"(?i)\bthe photographed [^.]{0,260}?(?:REFERENCE OUTFIT|not a fixed costume)[^.]*\.",
+        "", texto,
+    )
+    texto = re.sub(
+        r"(?i)[,;]?\s*\b(?:holding|carrying|displaying|presenting)\s+(?:an? |the |one |two |three )?"
+        r"[^.;,]{0,110}\b(?:product|jar|tub|bottle|pot|packaging|kit|container|frasco|pote)\b[^.;,]{0,80}",
+        "", texto,
+    )
+    # Rejeita frases de embalagem ou comando comercial; preserva cabelo, pele,
+    # rosto e vestimenta normal da apresentadora.
+    frases = re.split(r"(?<=[.!?])\s+", texto)
+    frases = [f for f in frases if not re.search(
+        r"(?i)\b(?:product|packaging|container|branded|brand logo|reference outfit|"
+        r"cosmetic jar|cosmetic tub|bottle|pote|frasco|embalagem|produto|garrafa|"
+        r"sales pitch|advertising claim|shopping offer)\b", f)]
+    texto = " ".join(frases).strip(" ;.\n\t")
+    if not texto:
+        texto = "Photorealistic adult Brazilian presenter with natural facial expression and realistic skin texture"
+    return texto[:1400]
+
+
+def neutralizar_descricao_variavel_do_produto_v16811(conteudo):
+    """Neutraliza cores/formatos inventados pela IA só na direção visual.
+
+    A FALA e o SEO continuam literalmente iguais. A cor do cabelo, roupa,
+    cenário, natureza e animais NÃO são afetados. Não mexe na física V10.
+    """
+    if not isinstance(conteudo, str) or not conteudo:
+        return conteudo
+    # A extração das seções já é usada pela ÉLÉVO, sem alterar validadores.
+    secoes = extrair_blocos_roteiro(conteudo)
+    if not all(secoes.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+        return conteudo
+
+    cores = (r"purple|violet|pink|magenta|blue|green|red|yellow|gold|golden|"
+             r"silver|white|black|orange|teal|lilac|turquoise|beige|brown|"
+             r"roxo|rosa|azul|verde|vermelho|amarelo|dourado|branco|preto")
+    embalagem = (r"jar|jars|tub|tubs|bottle|bottles|pot|pots|container|containers|"
+                 r"packaging|package|packages|box|boxes|tube|tubes|lid|lids|"
+                 r"label|labels|pote|potes|frasco|frascos|embalagem|embalagens|"
+                 r"rótulo|rótulos|tampa|tampas")
+    padrao = re.compile(
+        rf"(?i)\b(?:a|an|the|one|two|three|exact|original|small|large|compact|"
+        rf"matching|identical|photo-referenced|reference)\s+"
+        rf"(?:(?:{cores})[ -]?)+(?:\s+[a-z-]+){{0,3}}\s+(?:{embalagem})\b"
+        rf"|\b(?:{cores})(?:\s+(?:and|with)\s+(?:{cores}))?"
+        rf"(?:\s+[a-z-]+){{0,2}}\s+(?:{embalagem})\b",
+        re.IGNORECASE,
+    )
+    substituto = "the exact photo-referenced product"
+
+    def limpar(texto):
+        # Nunca incluir uma suposição textual que possa sobrescrever o produto
+        # verdadeiramente anexado ao gerador. Mantém a ação, mas não a descrição.
+        texto = padrao.sub(substituto, texto)
+        # Os rótulos não devem ser reescritos por texto, mesmo se o modelo tentar
+        # especificar nomes e números em vez de obedecer à foto original.
+        texto = re.sub(
+            r"(?i)\b(?:a|the)\s+(?:label|rótulo)\s+(?:reading|saying|marked|marked with)\s+"
+            r"[\"'“”]?[^\n.;]{1,85}[\"'“”]?",
+            "the untouched source-reference label", texto,
+        )
+        return texto
+
+    # Proteger script de áudio e editoriais dentro da seção de vídeo.
+    m = re.search(r"(?m)^\s*(?:🎙️|🎧|📝|🏁|🔑|Áudio\b|Fala\b|Texto na Tela\b|Finalização\b)",
+                  secoes["prompt_video"], re.IGNORECASE)
+    inicio_video, final_video = (secoes["prompt_video"][:m.start()], secoes["prompt_video"][m.start():]) if m else (secoes["prompt_video"], "")
+    return ("### 📸 PROMPT DE IMAGEM\n" + limpar(secoes["prompt_imagem"]) +
+            "\n\n### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" +
+            limpar(inicio_video) + final_video +
+            "\n\n### 🔑 TÍTULOS SEO (Separados)\n" + secoes["secao_seo_texto"])
+
 def sincronizar_persona_imagem_video_v1683(roteiro, nome, assinatura_visual):
     """Injeta exatamente a mesma assinatura em ambas as saídas, sem tocar no produto."""
     if not isinstance(roteiro, str) or not assinatura_visual:
@@ -3521,7 +3613,8 @@ def sincronizar_persona_imagem_video_v1683(roteiro, nome, assinatura_visual):
     trechos = extrair_blocos_roteiro(roteiro)
     if not all(trechos.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
         return roteiro
-    # Imagem e vídeo recebem LITERALMENTE o mesmo bloco de aparência.
+    # Imagem e vídeo recebem apenas a assinatura da PESSOA, nunca seus produtos.
+    assinatura_visual = assinatura_visual_pessoa_sem_produto_v16811(assinatura_visual)
     trava = ("[ÉLÉVO SELECTED PERSON — IDENTICAL VISUAL SIGNATURE FOR IMAGE AND VIDEO: "
              + str(nome).strip() + ". " + str(assinatura_visual).strip()
               + " Keep the same face shape, eyes and skin appearance; keep hair and outfit identical "
@@ -3869,6 +3962,9 @@ else:
         nome_inf_ativa = "Aurora"
         desc_inf_ativa = "Fictional adult Brazilian virtual presenter, natural appearance, realistic skin texture, conversational Brazilian Portuguese voice, expressions and body language adapted to the product without exaggerated acting; maintain consistent identity throughout image and video."
         eh_customizada = False
+
+# Perfil ativo de texto permanece intacto; só a aparência visual vai ao prompt.
+visual_inf_isolado_v16811 = assinatura_visual_pessoa_sem_produto_v16811(desc_inf_ativa)
 
 logo_padrao_ceo = "O Achado Secreto"
 logo_salva_banco = str(inf_salva.get("Logo_Marca", "")).strip() if inf_salva else ""
@@ -4635,7 +4731,8 @@ TRAVA_PRODUTO_FOTO_V1682 = (
     'product appearance, packaging, labels, graphics, colors, brand, surface, volume and exact shape. '
     'DO NOT describe, translate, reconstruct, recolor, redesign or invent the product in this text prompt. '
     'NEVER import a bottle, pot, cap, label color, lot number, or product name from historical templates '
-    'or from the selected influencer persona. Changes of influencer affect ONLY the person and voice, '
+    'or from the selected influencer persona. Treat the influencer photo, clothes and niche as PERSON-ONLY, '
+    'never as a source of any product attribute. Changes of influencer affect ONLY the person and voice, '
     'not this photo-referenced product. Maintain physical proportions relative to the real human hand '
     'and furniture: small goods must remain small, large goods must stay realistically large, '
     'without forced universal hand-held size, false giant scale or dramatic near-lens enlargement. '
@@ -5044,7 +5141,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             """
             
             instrucao_ouro += (f"\n\n[PERSONA LOCK — OBRIGATÓRIO EM IMAGEM E VÍDEO] "
-                               f"Apresentadora escolhida: {nome_inf_ativa}. {desc_inf_ativa} "
+                               f"Apresentadora escolhida: {nome_inf_ativa}. {visual_inf_isolado_v16811} "
                                "Aplicar idade, aparência, cabelo, rosto, jeito de falar, emoção, "
                                "linguagem corporal e personalidade da mesma mulher nos dois prompts. "
                                "Não substituir por Aurora ou outra personagem genérica.")
@@ -5085,7 +5182,8 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             conteudo_texto = aplicar_fidelidade_neutra_v1685(conteudo_texto, scan_17)
             etapa_formato_elevo = "fisica_video"
             conteudo_texto = travar_escala_e_fisica_somente_video_v1685(conteudo_texto)
-            conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, desc_inf_ativa)
+            conteudo_texto = sincronizar_persona_imagem_video_v1683(conteudo_texto, nome_inf_ativa, visual_inf_isolado_v16811)
+            conteudo_texto = neutralizar_descricao_variavel_do_produto_v16811(conteudo_texto)
             st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
@@ -5141,10 +5239,10 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 ENTREGUE EXATAMENTE NESTE FORMATO EM 3 SEÇÕES:
 
                 ### 📸 PROMPT DE IMAGEM
-                RAW photography, cinematic mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, authentic lighting matching the chosen ÉLÉVO environment, NO artificial flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {desc_inf_ativa}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She occupies EXACTLY the selected 22-environment preset, preserving its actual geometry, decorations, lived-in objects, single background animal and plants; do not replace it with a generic tropical room. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic source-photo proportions and human-hand-relative scale, never forcibly oversized or artificially compact; no product appearance descriptors]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Describe ONLY the real plant(s) defined by the selected environment, correctly lit and positioned]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Describe the selected environment original lived-in everyday clutter with plausible contact and inertia]. [ANIMAL FACTOR (STORYTELLING V9)]: [Include ONLY the single cat or dog defined by the selected environment in an unobtrusive background position]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry from the selected ÉLÉVO preset; only scene-defined objects, realistic contact shadow.
+                RAW photography, cinematic mid-shot POV erratic handheld mobile phone selfie, framing from chest up. Extreme V9 hyper-realism: microscopic visible peach fuzz, heavily dilated pupils, visceral breathing with chest slightly heaving, natural glowing micro-sweat on the collarbone, advanced subsurface scattering, authentic lighting matching the chosen ÉLÉVO environment, NO artificial flash. The photorealistic adult Brazilian woman ({nome_inf_ativa}: {visual_inf_isolado_v16811}) with a natural expression appropriate to her selected persona, performing believable everyday UGC delivery. [SELECTED PERSONA LOCK: keep the selected adult influencer's precise hairstyle, age, face, skin tone, wardrobe and emotional style; DO NOT impose bangs or different facial features. If a microphone is present it must look plausible]. Hair and skin retain believable natural texture, consistent with the chosen profile; don't change their appearance as a fake proof of the product. She occupies EXACTLY the selected 22-environment preset, preserving its actual geometry, decorations, lived-in objects, single background animal and plants; do not replace it with a generic tropical room. [CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]: [CRITICAL: 1:1 real-world scale, strictly realistic source-photo proportions and human-hand-relative scale, never forcibly oversized or artificially compact; no product appearance descriptors]. {scan_v92.get('regra_pos_img')} [BRANDING INTEGRITY LOCK]: All text and graphics preserved accurately. [ABSOLUTE UI LOCK]: ABSOLUTE ZERO watermarks, ABSOLUTE ZERO social media interface, ABSOLUTE ZERO platform logos, ABSOLUTE ZERO floating usernames anywhere in the frame. [NATURE MATRIX ACTIVE (DENSE)]: [Describe ONLY the real plant(s) defined by the selected environment, correctly lit and positioned]. [BAGUNCINHA TEMÁTICA (CHAOS V9)]: [Describe the selected environment original lived-in everyday clutter with plausible contact and inertia]. [ANIMAL FACTOR (STORYTELLING V9)]: [Include ONLY the single cat or dog defined by the selected environment in an unobtrusive background position]. High-contrast, cinematic atmospheric shadows, natural phone-sensor grain, true-to-reference material texture and original scene geometry from the selected ÉLÉVO preset; only scene-defined objects, realistic contact shadow.
 
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
-                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({desc_inf_ativa}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, no overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — execute a fast clean red digital glitch and reveal exactly one centered text logo reading '{logo_ativa_usuario}'. Keep the logo simple, short, legible and medium-sized; no slogan, no paragraph, no extra decorative description, no duplicate logos. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
+                [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({visual_inf_isolado_v16811}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, no overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — execute a fast clean red digital glitch and reveal exactly one centered text logo reading '{logo_ativa_usuario}'. Keep the logo simple, short, legible and medium-sized; no slogan, no paragraph, no extra decorative description, no duplicate logos. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
 
                 🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
@@ -5165,7 +5263,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 """
 
                 instrucao_v92 += (f"\n\n[SELECTED PERSONA LOCK — IMAGEM, VÍDEO E VOZ] "
-                                  f"{nome_inf_ativa}: {desc_inf_ativa}. "
+                                  f"{nome_inf_ativa}: {visual_inf_isolado_v16811}. "
                                   "Reproduza a MESMA identidade adulta no prompt de imagem, "
                                   "vídeo, emoção, expressão, voz e gestos. Nunca trocar de apresentadora.")
                 if explicacao_video_usuario and explicacao_video_usuario.strip():
@@ -5206,7 +5304,8 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = aplicar_fidelidade_neutra_v1685(conteudo_v92, scan_v92)
                 etapa_formato_elevo = "fisica_video"
                 conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
-                conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, desc_inf_ativa)
+                conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, visual_inf_isolado_v16811)
+                conteudo_v92 = neutralizar_descricao_variavel_do_produto_v16811(conteudo_v92)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
