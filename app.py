@@ -1,4 +1,5 @@
-# ÉLÉVO V16.8.10 — Precisão física 1:1: patch mínimo sobre V16.8.9, sem reconstrução.
+# ÉLÉVO V16.8.12 — Lapidação VIP visual sobre a base funcional V16.8.11, sem reconstrução.
+# Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
 # Não altera arquitetura, visual, autenticação, motor criativo ou moldes 17.3.
@@ -3429,6 +3430,18 @@ def render_botao_copiar_vip(texto_para_copiar, label_botao, id_unico):
             text-align: center;
         ">{label_botao}</button>
     </div>
+    <style>
+      #btn_{id_unico}:hover {{
+        transform: translateY(-2px);
+        filter: brightness(1.12);
+        box-shadow: 0 5px 18px rgba(0, 229, 255, 0.34);
+      }}
+      #btn_{id_unico}:active {{ transform: scale(0.985); }}
+      #btn_{id_unico}:focus-visible {{ outline: 2px solid #91F4FF; outline-offset: 2px; }}
+      @media (prefers-reduced-motion: reduce) {{
+        #btn_{id_unico} {{ transition: none !important; }}
+      }}
+    </style>
     <script>
     function copiarTexto_{id_unico}() {{
         const b64 = "{b64_txt}";
@@ -5320,10 +5333,118 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 mostrar_erro_criacao_v1686(e, "Bloco 17.2 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
 # ==========================================================
+# V16.8.12 — LAPIDAÇÃO VISUAL VIP (EXCLUSIVAMENTE CAMADA DE EXIBIÇÃO)
+# Os textos gerados, validadores, fotos, cópias e modelos de IA ficam intocados.
+# A prévia e a parte recolhida, concatenadas, são idênticas ao prompt integral.
+# ==========================================================
+def dividir_prompt_previa_v16812(texto, max_chars=1050):
+    """Recorta somente a visualização; jamais reescreve o prompt gerado."""
+    conteudo = str(texto or "")
+    if len(conteudo) <= max_chars + 100:
+        return conteudo, ""
+    alvo = min(max_chars, max(450, len(conteudo) // 2))
+    corte = conteudo.rfind(" ", max(1, alvo - 75), alvo + 1)
+    corte = (corte + 1) if corte >= 0 else alvo
+    return conteudo[:corte], conteudo[corte:]
+
+
+def mostrar_prompt_recolhivel_v16812(prompt, identificador):
+    """Mostra uma prévia reduzida e uma seta nativa para revelar todo o restante."""
+    inicio, restante = dividir_prompt_previa_v16812(prompt)
+    if not restante:
+        st.markdown(prompt)
+        return
+    # Escape de HTML apenas na visualização: protege caracteres e tags literais.
+    st.markdown(
+        '<div class="elevo-prompt-previa-v16812">'
+        + html_std.escape(inicio) + '</div>',
+        unsafe_allow_html=True,
+    )
+    rotulo = "imagem" if identificador == "imagem" else "vídeo"
+    with st.expander(f"Ver restante do prompt de {rotulo}", expanded=False):
+        st.markdown(
+            '<div class="elevo-prompt-restante-v16812">'
+            + html_std.escape(restante) + '</div>',
+            unsafe_allow_html=True,
+        )
+
+
+# Acabamento aplicado APENAS ao painel que mostra a criação concluída.
+# Preserva a paleta VIP escura original e a acessibilidade para motion reduzido.
+st.markdown("""
+<style>
+.st-key-elevo_resultado_v16812 {
+    background:
+      radial-gradient(circle at 1px 1px, rgba(117,184,239,.035) 1px, transparent 1px) 0 0 / 18px 18px,
+      linear-gradient(155deg,rgba(10,26,53,.52),rgba(8,14,32,.62));
+    border:1px solid rgba(67,148,231,.30) !important;
+    border-radius:18px !important;
+    box-shadow:0 14px 36px rgba(0,0,0,.14),inset 0 1px 0 rgba(135,205,255,.05);
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812,
+.st-key-elevo_resultado_v16812 .elevo-prompt-restante-v16812 {
+    white-space:pre-wrap;
+    overflow-wrap:anywhere;
+    font-size:.87rem;
+    line-height:1.72;
+    font-weight:450;
+    color:#E5F1FF !important;
+    letter-spacing:.005em;
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812 {
+    max-height:310px;
+    overflow-y:auto;
+    padding:15px 16px;
+    border:1px solid rgba(67,163,233,.28);
+    border-radius:12px;
+    background:linear-gradient(135deg,rgba(19,37,66,.64),rgba(9,19,39,.56));
+    scrollbar-color:#336c9d transparent;
+    scrollbar-width:thin;
+}
+.st-key-elevo_resultado_v16812 .elevo-prompt-restante-v16812 {
+    padding:4px 2px 7px;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] {
+    background:rgba(15,31,54,.82) !important;
+    border:1px solid rgba(50,150,218,.42) !important;
+    border-radius:11px !important;
+    box-shadow:inset 0 1px 0 rgba(117,203,255,.055) !important;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary {
+    color:#8BDDF8 !important;
+    font-weight:650 !important;
+    transition:background .18s ease,color .18s ease;
+}
+.st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary:hover {
+    background:rgba(33,105,155,.16) !important;
+    color:#D1F7FF !important;
+}
+.st-key-elevo_resultado_v16812 .stButton > button {
+    transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease !important;
+}
+.st-key-elevo_resultado_v16812 .stButton > button:hover {
+    transform:translateY(-2px);
+    box-shadow:0 4px 18px rgba(0,185,237,.23) !important;
+}
+.st-key-elevo_resultado_v16812 .stButton > button:active {transform:scale(.985);}
+@media(max-width:767px) {
+  .st-key-elevo_resultado_v16812 .elevo-prompt-previa-v16812 {
+      padding:11px 12px;max-height:230px;font-size:.81rem;line-height:1.6;
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  .st-key-elevo_resultado_v16812 .stButton > button,
+  .st-key-elevo_resultado_v16812 [data-testid="stExpander"] summary {transition:none !important;}
+  .st-key-elevo_resultado_v16812 .stButton > button:hover {transform:none;}
+}
+</style>
+""",unsafe_allow_html=True)
+
+# ==========================================================
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
 # ==========================================================
 if st.session_state["roteiro_temporario"]:
-    with st.container(border=True):
+    with st.container(border=True, key="elevo_resultado_v16812"):
         partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
         
         if partes_roteiro["prompt_imagem"] and partes_roteiro["prompt_video"]:
@@ -5334,7 +5455,7 @@ if st.session_state["roteiro_temporario"]:
             with col_btn_img:
                 render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
-            st.markdown(partes_roteiro["prompt_imagem"])
+            mostrar_prompt_recolhivel_v16812(partes_roteiro["prompt_imagem"], "imagem")
             st.divider()
             
             # 2. SEÇÃO PROMPT DE VÍDEO (ATÉ TEXTO NA TELA) + BOTÃO À DIREITA
@@ -5347,7 +5468,7 @@ if st.session_state["roteiro_temporario"]:
             qtd_caracteres_video = len(partes_roteiro["prompt_video"])
             qtd_caracteres_visuais = _direcao_visual_caracteres_v12(partes_roteiro["prompt_video"])
             st.caption(f"🎞️ Vídeo V14: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada | ecossistema vivo".replace(",", "."))
-            st.markdown(partes_roteiro["prompt_video"], unsafe_allow_html=False)
+            mostrar_prompt_recolhivel_v16812(partes_roteiro["prompt_video"], "video")
             st.divider()
             
             # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
