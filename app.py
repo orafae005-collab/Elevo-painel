@@ -5070,6 +5070,17 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     3) A DOR REAL que o produto resolve + o DESEJO/SENSAÇÃO escrita no rótulo (ex: 'cabelo elástico de química, pontas espigadas, falta de massa' -> 'efeito ampola, reconstrução de salão no chuveiro, desmaia o fio').
     4) A regra universal de referência externa do produto e posicionamento fisicamente plausível.
     """
+    # V16.8.24: mesma foto + mesmo login = mesma contagem/diagnóstico durante
+    # a sessão. Trocar a influenciadora jamais reinterpreta o kit de referência.
+    # Nenhuma imagem ou segredo é persistido no Google Sheets por esse cache.
+    _foto_chave_v16824 = hashlib.sha256(str(img_b64).encode('ascii')).hexdigest()
+    _usuario_chave_v16824 = str(st.session_state.get('email_usuario', '')).strip().lower()
+    _cache_v16824 = st.session_state.get('elevo_scan_foto_unica_v16824') or {}
+    if (_cache_v16824.get('foto') == _foto_chave_v16824
+            and _cache_v16824.get('usuario') == _usuario_chave_v16824
+            and isinstance(_cache_v16824.get('dados'), dict)):
+        return dict(_cache_v16824['dados'])
+    _scan_sucesso_v16824 = False
     try:
         validar_cota_ia()
         resp_s = elevo_chat_create_v1685(
@@ -5097,6 +5108,7 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
         dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade verificável no rótulo"))
         solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício documentado na embalagem"))
+        _scan_sucesso_v16824 = True
     except RuntimeError:
         # Uma falha conhecida de cota deve chegar ao botão; não mascarar como scanner genérico.
         raise
@@ -5144,7 +5156,7 @@ def escanear_dor_e_contagem_da_foto(img_b64):
             "no swapping positions, none disappearing from 0:00 to the last frame. " + regra_escala
         )
 
-    return {
+    _resultado_scan_v16824 = {
         "nome_pt": nome_pt,
         "qtd": qtd,
         "tipo_embalagem": tipo_emb,
@@ -5153,6 +5165,13 @@ def escanear_dor_e_contagem_da_foto(img_b64):
         "regra_pos_img": regra_pos_img,
         "regra_pos_vid": regra_pos_vid
     }
+    if _scan_sucesso_v16824:
+        st.session_state['elevo_scan_foto_unica_v16824'] = {
+            'foto': _foto_chave_v16824,
+            'usuario': _usuario_chave_v16824,
+            'dados': dict(_resultado_scan_v16824),
+        }
+    return _resultado_scan_v16824
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
 # V16.8.20: ao mudar de login, limpar IMEDIATAMENTE o roteiro do usuário
@@ -6397,6 +6416,212 @@ def elevo_v92_limpar_fecho_logo_v16821(conteudo):
     )
     return _trocar_so_video_v12(conteudo, video)
 
+# ==========================================================
+# ÉLÉVO V16.8.24 — RESTAURAÇÃO V9 DAS TRÊS CRIAÇÕES
+# 1) 360º, 2) V9.2, 3) 360º com produto em destaque nos 3s iniciais.
+# CORREÇÃO SOMENTE NA DIREÇÃO VISUAL FINAL. O mesmo gabarito V9 é aplicado
+# a qualquer influencer; nunca se importa descrição de produto do perfil,
+# exemplos antigos, scanner ou rodada extra de IA.
+# Mantém áudio, texto da tela, SEO, login, interface, créditos e memória.
+# ==========================================================
+def restaurar_matriz_v9_tres_criacoes_v16824(
+    roteiro, scan, nome_influencia, visual_influencia, ambiente_id,
+    modo='360', produto_primeiro_3s=False, observacao_ambiente='',
+):
+    """Matriz V9 de direção visual imutável por produto e independente da pessoa.
+
+    Não depende do texto livre gerado pela IA para imaginar a mercadoria.
+    A fonte visual exclusiva é a FOTO anexada pelo usuário ao gerador externo.
+    """
+    sec = extrair_blocos_roteiro(roteiro)
+    if not all(sec.get(k) for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
+        raise ValueError('O roteiro não contém os três blocos válidos da ÉLÉVO.')
+
+    try:
+        qtd = max(1, min(30, int((scan or {}).get('qtd', 1))))
+    except (ValueError, TypeError):
+        qtd = 1
+    nome = str(nome_influencia or 'apresentadora selecionada').strip()[:100]
+    pessoa = assinatura_visual_pessoa_sem_produto_v16811(visual_influencia)
+    # O ambiente já foi selecionado uma única vez pelo motor existente.
+    # Não sortear um segundo cenário, nem inventar animal ou decoração.
+    cena = AMBIENTES_ELEVO_V165.get(str(ambiente_id or ''))
+    if not cena or str(ambiente_id) == 'infinito':
+        raise ValueError('Ambiente original não confirmado: preservar o cenário escolhido.')
+    local = str(cena['elementos'])
+    obs = str(observacao_ambiente or '').strip()[:450]
+    # Observação do cenário sim; detalhes físicos da mercadoria nunca.
+    if obs and not re.search(r'(?i)\b(?:produto|product|packaging|embalagem|rótulo|rotulo|\d+\s*(?:g|ml|kg)|jar|bottle|frasco|pote)\b', obs):
+        local += '. User-approved scene detail: ' + obs
+    iluminacao = str(cena['luz'])
+    fisica_ambiente = str(cena['fisica'])
+    animal = str(cena['animal'])
+    som = str(cena['som'])
+
+    qtd_str = str(qtd)
+    inventario_imagem = (
+        'Exactly ONE original referenced unit is shown, in a natural grip only if its '
+        'actual size permits; otherwise it rests firmly on the existing stable surface.'
+        if qtd == 1 else
+        f'Exactly {qtd_str} original referenced units are shown, individually distinguishable. '
+        f'Only ONE may be held naturally if physically feasible; the remaining {qtd - 1} '
+        'rest on an existing stable support. If holding is not practical, all remain supported.'
+    )
+    # É proposital não interpolar scan[nome_pt]/tipo_embalagem e não repetir
+    # nenhum produto histórico. Apenas a QUANTIDADE verificada entra na cena.
+    produto_comum = (
+        '[CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING] '
+        '[CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, '
+        'exact match to reference, do not oversize] '
+        'The SEPARATELY ATTACHED ORIGINAL PRODUCT PHOTO is the sole and absolute visual '
+        'authority for every unit. Preserve the original identity, geometry, physical '
+        'proportions and printed artwork exactly as photographed. Do not generate a new '
+        'package design or describe the item in text: no invented color, material, shape, '
+        'capacity, label, logo, brand, closure or surface details. All units must be '
+        'copied faithfully from their respective source reference, including distinct '
+        'variants if the original kit contains them. The actual item may be small or '
+        'large: NEVER enforce a universal hand-sized product. Natural hand-to-object, '
+        'forearm-to-object and table-to-object relative scale, not an oversized hero prop; '
+        'no forced near-lens enlargement. '
+    )
+    
+    imagem = (
+        'RAW photography, cinematic mid-shot POV handheld mobile phone selfie, '
+        'vertical 9:16, chest-to-waist framing, authentic Brazilian UGC V9 visual signature. '
+        'Extreme photographic realism: microscopic visible peach fuzz, natural human '
+        'skin pores, individual hair strands, subtle moisture where plausible, genuine '
+        'facial asymmetry, restrained spontaneous micro-expression, softly responsive '
+        'breathing, advanced subsurface scattering, light smartphone sensor grain, NO flash. '
+        f'The sole adult Brazilian presenter is {nome}. PERSON-ONLY VISUAL REFERENCE: '
+        f'{pessoa}. Preserve her selected face, exact hair, skin, eyes and everyday '
+        'wardrobe; spontaneous intimate friend-to-friend energy, believable body balance '
+        'and anatomically correct fingers. The same woman remains in the final video. '
+        f'[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. '
+        f'[NATURAL LIGHT GRADIENT]: {iluminacao}. '
+        f'[MULTI-PRODUCT KIT LOCK — {qtd_str} UNIT(S) TOTAL]: {inventario_imagem} '
+        + produto_comum +
+        '[BRANDING INTEGRITY LOCK]: Match the actual photographed product reference, '
+        'never type a replacement design or produce different labels. Physically '
+        'correct grip, weight, gravity, true support and small contact shadows. '
+        '[NATURE MATRIX ACTIVE — V9]: Use the authentic existing plants and foliage '
+        'of this selected Brazilian scene, never insert unrelated plants. '
+        '[BAGUNCINHA TEMÁTICA — V9]: Natural everyday clutter comes ONLY from '
+        'the exact listed environmental objects, casually arranged with realistic '
+        'surface contact, never masking the referenced items. '
+        f'[ANIMAL FACTOR — V9]: {animal}; include no extra animal. '
+        '[REALISTIC CAMERA LOCK]: True smartphone perspective, modest depth of field, '
+        'natural lens distortions without enlarging the product, organic texture, '
+        'cinematic atmospheric shadows coherent with the same real light source, '
+        'unfiltered phone-camera imperfections. The product and presenter are both '
+        'recognizable, naturally framed, never distorted. '
+        '[ABSOLUTE UI LOCK]: Zero watermarks, zero platform interface, zero floating '
+        'usernames, no graphic CTA or newly added logo in the still image.'
+    )
+
+    # The first part is ALWAYS the same V9 scene and product lock. The third
+    # creation changes ONLY the video shot timing, as already approved.
+    if produto_primeiro_3s:
+        shot1 = (
+            'Shot 1 (00:00–00:03, PRODUCT FIRST): For the first FULL three seconds, '
+            'keep the exact existing photo-referenced unit(s) in a natural product-led '
+            'shot with unchanged 1:1 proportions. The face stays outside the frame; '
+            'hands, if already present, must belong to the same selected presenter. '
+            'Camera and original supports stay physically grounded; no macro crop, '
+            'digital zoom, artificial enlargement, package reconstruction or hidden '
+            'change of item. Start the spoken hook on schedule without changing its words.'
+        )
+    else:
+        shot1 = (
+            'Shot 1 (00:00–00:03, NATURAL V9 HOOK): A candid smartphone medium shot '
+            'includes the original reference units with the selected presenter or '
+            'her supporting hand in the same real environment. One authentic glance '
+            'or small hand adjustment may happen; keep the exact 1:1 physical size, '
+            'actual source inventory, realistic focus, existing supports and reflections. '
+            'No product hero enlargement, extreme macro or artificial showcase angle.'
+        )
+    video_visual = (
+        '🎬 [ÉLÉVO V9 REALITY ENGINE — FINAL VISUAL DIRECTION / ONE SOURCE OF TRUTH]\n'
+        + produto_comum + '\n'
+        + f'[KIT INVENTORY — {qtd_str} ORIGINAL UNIT(S)]: {inventario_imagem} '
+        'Maintain every ORIGINAL unit as a distinct rigid object from 00:00 to the final frame. '
+        'No disappearance, duplicate, morph, relabeling, change of geometry or extra hand.\n'
+        + f'[IMAGE-TO-VIDEO SCENE LOCK — {ambiente_id}]: Exactly the same '
+        f'V9 still environment: {local}. Natural light: {iluminacao}. '
+        f'Existing atmospheric motion only: {fisica_ambiente}. '
+        f'Existing animal policy: {animal}. Existing sound: {som}. '
+        'No new room, chair, pet, plant, rain, steam, background objects or weather; '
+        'keep one continuous set and its original natural light gradient.\n'
+        + f'[SELECTED HUMAN ONLY]: {nome}: {pessoa}. Same face, hair, outfit, '
+        'voice and natural mannerisms as the still. Changing her identity must NEVER '
+        'change any source-referenced product unit, label or scale.\n'
+        + shot1 + '\n'
+        + '🎥 Shot 2 (00:03–00:06, THE GOSSIP LEAN): Gently reframe to the SAME '
+        'selected presenter’s face, not a jump cut or different character; a brief '
+        'natural smartphone autofocus settle follows a small real camera tilt. '
+        'Authentic eye contact, a tiny expressive eyebrow movement, imperfect '
+        'breath timing and plausible hair drift; real skin pores and minor sensor '
+        'noise stay intact. Keep every referenced unit in its physically continuous '
+        'location or trace its visible trajectory if the framing changes.\n'
+        + '🫱 Interaction (00:06–00:08, NATURAL PHYSICAL ACTION): One subtle human '
+        'gesture appropriate to the actual object and supported by the image. '
+        'Before any lift, the same anatomically correct fingers visibly establish '
+        'a secure grip; wrist and forearm compensate naturally for real mass and '
+        'inertia. Only physically permitted motion occurs; gravity, friction, '
+        'contact compression and nearby contact shadows react continuously. '
+        'Before releasing, set down on the original support, establish physical '
+        'contact, then open the fingers. Unmoved units never travel, swap or vanish. '
+        'Existing leaves and fabric respond independently only to a believable '
+        'breeze; if an animal already exists in this approved scene, only it makes '
+        'a discreet natural living micro-motion.\n'
+        + '🎞️ Closing (00:08–end, ORIGINAL REAL SCENE): The same real presenter, '
+        'same product reference units, exact original layout, greenery and natural '
+        'lighting remain continuously visible through the last frame. Human movement, '
+        'background sound and believable environmental microphysics continue without '
+        'loops or freeze. Never fade to black, insert glitch, floating shopping bag, '
+        'platform UI, new logo, invented graphics or product replacements. '
+        'Handheld UGC realism rather than advertising CGI.\n'
+        + '🛡️ [PRISTINE CANVAS LOCK]: Preserve the separately uploaded PRODUCT '
+        'REFERENCE exactly. No watermark, username, social-media chrome, additional '
+        'packaging text or fabricated commercial offer. '
+        + ('In V9.2 only, render the existing approved Portuguese on-screen '
+           'captions from the unchanged text section at readable size and timing; '
+           'they must not cover product or face. Do not generate any other overlay. '
+           if str(modo) == 'v9.2' else
+           'Keep raw footage clean; existing CTA editing instructions remain unchanged. ')
+    )
+    # Keep editorial/audio text BYTE FOR BYTE from the last approved video.
+    # The video engine may have rephrased product descriptions while producing
+    # its visual paragraphs; none of those paragraphs survive this final step.
+    video_velho = sec['prompt_video']
+    dividir = re.search(
+        r'(?m)^(?:\s*🎙️|\s*🎧|\s*🔊|\s*Áudio\b|\s*Fala\b|\s*📝\s*Texto na Tela\b)',
+        video_velho,
+    )
+    if not dividir:
+        raise ValueError('Bloco editorial original não identificado; não alterar a fala aprovada.')
+    editorial = video_velho[dividir.start():]
+    if str(modo) == 'v9.2':
+        # V16.8.21 already rendered and locked three texts. Preserve this
+        # approved instruction intact rather than replacing it with shorthand.
+        marcador_caption = '[ÉLÉVO V9.2 — REAL IN-VIDEO TEXT RENDER LOCK]'
+        ix = video_velho.find(marcador_caption)
+        if ix >= 0:
+            fim = video_velho.find('\n\n', ix)
+            original_render = video_velho[ix:fim if fim >= 0 else len(video_velho)].strip()
+            if 'BURN THE EXACT approved Portuguese' in original_render:
+                video_visual += '\n' + original_render + '\n'
+    video_novo = video_visual.rstrip() + '\n\n' + editorial
+    # O vídeo nunca começa vazio e continua acima do mínimo aprovado.
+    visual_len = len(video_visual)
+    if visual_len < MIN_CARACTERES_PROMPT_VIDEO:
+        raise ValueError(f'Direção V9 incompleta: apenas {visual_len} caracteres.')
+    novo = (
+        '### 📸 PROMPT DE IMAGEM\n' + imagem + '\n\n'
+        '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + video_novo + '\n\n'
+        '### 🔑 TÍTULOS SEO (Separados)\n' + sec['secao_seo_texto']
+    )
+    return novo
+
 # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
 # ==========================================================
 if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -6509,7 +6734,12 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
                 # A imagem/fala/SEO do Bloco 17 permanecem literalmente intactos.
                 conteudo_texto = elevo_video_produto_3s_v16821(conteudo_texto)
             # Última etapa universal: nenhuma influenciadora transfere atributos ao produto.
-            conteudo_texto = blindar_saida_visual_final_v16823(conteudo_texto, scan_17)
+            conteudo_texto = restaurar_matriz_v9_tres_criacoes_v16824(
+                conteudo_texto, scan_17, nome_inf_ativa, visual_inf_isolado_v16811,
+                direcao_v11_17.get('escolhido', ''), modo='360',
+                produto_primeiro_3s=bool(st.session_state.get('elevo_produto_primeiro_3s_v16821', False)),
+                observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
+            )
             st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
@@ -6655,7 +6885,11 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
                 conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
                 # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
-                conteudo_v92 = blindar_saida_visual_final_v16823(conteudo_v92, scan_v92)
+                conteudo_v92 = restaurar_matriz_v9_tres_criacoes_v16824(
+                    conteudo_v92, scan_v92, nome_inf_ativa, visual_inf_isolado_v16811,
+                    direcao_v11_92.get('escolhido', ''), modo='v9.2',
+                    observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
+                )
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
