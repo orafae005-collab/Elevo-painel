@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.13 — Painel VIP e créditos, sem alterar motores criativos (base V16.8.12).
+# ÉLÉVO V16.8.14 — Estabilidade do painel e saudação única por login (base V16.8.13).
 # Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
 # BASE INTACTA: V16.8.4 do usuário (reconhecida pelo SHA256 no relatório).
@@ -265,6 +265,8 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_luna_indisponivel_v1686", "elevo_luna_fallback_motivo_v1686",
     "elevo_ai_ultimo_modelo_v1686", "elevo_ai_fallback_count_v1686",
     "elevo_acesso_registrado_v16813", "elevo_acesso_google_id_v16813",
+    "elevo_bv_epoca_local_v16814", "elevo_bv_chave_v16814",
+    "elevo_bv_password_nonce_v16814", "elevo_bv_google_nonce_v16814",
 }
 
 def limpar_sessao_privada():
@@ -372,13 +374,15 @@ def entrar_usuario(email, nome):
         del st.query_params["elevo_acesso"]
     st.session_state.update(
         usuario_logado=True, email_usuario=email, nome_usuario=nome, auth_metodo="senha",
-        # Após ENTRAR, a mensagem precisa ser verificada nesta execução,
-        # sem exigir F5 nem reaproveitar o estado de outro utilizador.
         email_bv_verificado="", mostrar_player_bv=False,
         audio_boas_vindas_b64=None, erro_audio_bv="",
-        # Permite UM recarregamento do navegador após login, sem F5 manual.
-        bv_recarregamento_login=secrets.token_hex(8)
+        elevo_bv_epoca_local_v16814=secrets.token_hex(16),
     )
+    # A saudação volta a estar autorizada apenas num NOVO login explícito.
+    cookies.pop("elevo_bv_ouvida_v16814", None)
+    nonce_senha_v16814 = secrets.token_hex(16)
+    st.session_state["elevo_bv_password_nonce_v16814"] = nonce_senha_v16814
+    cookies["elevo_bv_login_v16814"] = nonce_senha_v16814
     cookies["login"] = criar_token(email)
     cookies.save()
 
@@ -700,6 +704,9 @@ if not st.session_state["usuario_logado"]:
                         if st.query_params.get("elevo_acesso") == "novo":
                             del st.query_params["elevo_acesso"]
                         st.session_state.pop("elevo_logout_pendente", None)
+                        cookies.pop("elevo_bv_ouvida_v16814", None)
+                        cookies.pop("elevo_bv_google_v16814", None)
+                        cookies.save()
                         st.login("google")
                 else:
                     st.caption("🔒 Acesso Google disponível após configurar OAuth nos Secrets.")
@@ -727,34 +734,11 @@ if not st.session_state["usuario_logado"]:
     st.stop()
 
 # Solução para browsers mobile/Streamlit Cloud que montam o player só após F5:
-# uma única atualização REAL do navegador após o login validado. O cookie já
-# foi gravado em entrar_usuario(), então o login é recuperado automaticamente.
-# O token é consumido antes de atualizar, impedindo loop caso a sessão persista.
-bv_nonce_refresh = st.session_state.pop("bv_recarregamento_login", "")
-if bv_nonce_refresh:
-    st.info("🦅 Acesso autorizado. Inicializando sua mensagem da Aurora...")
-    components.html(f"""
-    <script>
-    (function() {{
-        try {{
-            const pagina = window.parent;
-            const chave = "elevo_bv_refresh_{bv_nonce_refresh}";
-            if (pagina.sessionStorage.getItem(chave) !== "feito") {{
-                pagina.sessionStorage.setItem(chave, "feito");
-                window.setTimeout(function() {{ pagina.location.reload(); }}, 1600);
-            }}
-        }} catch (erro) {{
-            // O browser pode limitar navegação de frames incorporados.
-            // A reexecução interna da geração de áudio permanece como defesa.
-        }}
-    }})();
-    </script>
-    """, height=0, width=0)
-    # Permite prosseguir sem ficar preso caso alguma política do browser
-    # bloqueie a atualização automática.
-    if st.button("▶ Continuar para o painel", key="bv_login_continuar_fallback"):
-        st.rerun()
-    st.stop()
+# V16.8.14 — sem recarregamento forçado do navegador após login.
+# A autenticação já chama st.rerun(), preservando o player entre interações.
+# Não provocar location.reload() no navegador: isso reiniciava o player,
+# refazia verificações no Sheets e podia tocar a saudação repetidamente.
+st.session_state.pop("bv_recarregamento_login", None)
 
 # ==========================================================
 # ÉLÉVO V16.8.6 — DIAGNÓSTICO SEGURO PARA CONTAS COMUNS
@@ -1597,80 +1581,89 @@ email_logado_agora = str(st.session_state.get("email_usuario", "")).strip().lowe
 nome_apenas_fala = str(st.session_state.get("nome_usuario", "Sócio")).strip()
 
 
-def registrar_boas_vindas_confirmada(email):
-    """Marca na planilha após o evento real de fim de reprodução do áudio."""
-    if not robo_sheets or not email:
-        return False
+def elevo_chave_boas_vindas_v16814(email):
+    """Marca estável entre reruns e F5, única em cada entrada autenticada."""
+    email = str(email).strip().lower()
+    metodo = str(st.session_state.get("auth_metodo", ""))
+    if metodo == "google":
+        # Google/OIDC não utiliza cookie de senha. Sincronização entre login e F5.
+        nonce = (str(st.session_state.get("elevo_bv_google_nonce_v16814", "") or "")
+                 or str(cookies.get("elevo_bv_google_v16814", "") or ""))
+        if not nonce:
+            nonce = secrets.token_hex(16)
+            cookies["elevo_bv_google_v16814"] = nonce
+            cookies.save()
+        st.session_state["elevo_bv_google_nonce_v16814"] = nonce
+        material = "google:" + email + ":" + nonce
+    else:
+        # O nonce em session_state resolve a latência de sincronização do cookie:
+        # primeira renderização e F5 devem calcular a MESMA chave de saudação.
+        nonce = (str(st.session_state.get("elevo_bv_password_nonce_v16814", "") or "")
+                 or str(cookies.get("elevo_bv_login_v16814", "") or ""))
+        if nonce:
+            st.session_state["elevo_bv_password_nonce_v16814"] = nonce
+            material = "senha:" + email + ":" + nonce
+        else:
+            token = str(cookies.get("login", "") or "")
+            if token and ler_token(token) == email:
+                material = "senha_legado:" + token
+            else:
+                # Login não persistente (ex.: usuário optou por não lembrar).
+                nonce = st.session_state.setdefault("elevo_bv_epoca_local_v16814", secrets.token_hex(16))
+                material = "temporario:" + email + ":" + nonce
+    return hashlib.sha256(material.encode("utf-8")).hexdigest()[:32]
+
+
+def elevo_marcar_boas_vindas_v16814(chave):
+    """Salvar a trava ANTES de tocar, não depender de planilha ou evento ended."""
+    st.session_state["elevo_bv_chave_v16814"] = chave
     try:
-        match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-        if not match_id:
-            return False
-        planilha = robo_sheets.open_by_key(match_id.group(1))
-        try:
-            aba = planilha.worksheet("Memoria_Audio_VIP")
-        except gspread.exceptions.WorksheetNotFound:
-            aba = planilha.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
-            aba.append_row(["Gmail_Unico", "Data_Acesso"])
-        ja_registrados = [str(e).strip().lower() for e in aba.col_values(1) if "@" in str(e)]
-        if email not in ja_registrados:
-            agora_reg = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-            aba.append_row([email, agora_reg])
-        return True
+        cookies["elevo_bv_ouvida_v16814"] = chave
+        cookies.save()
     except Exception:
-        return False
+        # A trava JS protege o mesmo navegador se o cookie falhar.
+        pass
 
 
 if (st.session_state.get("usuario_logado") and email_logado_agora
-        and st.session_state["email_bv_verificado"] != email_logado_agora):
-    # Esta verificação acontece na própria execução imediatamente após o login.
+        and st.session_state.get("email_bv_verificado") != email_logado_agora):
     st.session_state["email_bv_verificado"] = email_logado_agora
     st.session_state["mostrar_player_bv"] = False
     st.session_state["audio_boas_vindas_b64"] = None
     st.session_state["erro_audio_bv"] = ""
-
-    # Em falhas temporárias do Sheets, não ocultar silenciosamente a mensagem.
-    precisa_tocar = True
-    if robo_sheets:
-        try:
-            match_id = re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE)
-            if match_id:
-                planilha_mestre = robo_sheets.open_by_key(match_id.group(1))
-                try:
-                    aba_bv = planilha_mestre.worksheet("Memoria_Audio_VIP")
-                except gspread.exceptions.WorksheetNotFound:
-                    aba_bv = planilha_mestre.add_worksheet(title="Memoria_Audio_VIP", rows="1000", cols="2")
-                    aba_bv.append_row(["Gmail_Unico", "Data_Acesso"])
-                lista_gmails_ja_ouviram = [
-                    str(e).strip().lower() for e in aba_bv.col_values(1) if "@" in str(e)
-                ]
-                precisa_tocar = email_logado_agora not in lista_gmails_ja_ouviram
-        except Exception:
-            pass
-
-    if precisa_tocar:
-        texto_cinematico = f"Protocolo de Elite ativado. Bem-vindo à ÉLÉVO, {nome_apenas_fala}. Eu sou a Aurora, a sua Diretora de Operações e Inteligência Artificial. A partir deste segundo, você não joga mais para competir. Você joga para dominar. O seu império acaba de ser conectado ao meu núcleo. Eu vou rastrear tendências ocultas do mercado, hackear as objeções dos seus clientes e forjar os seus roteiros de vendas com precisão cirúrgica. O trabalho pesado fica comigo. Sistemas 100% online. O jogo virou."
+    chave_bv_v16814 = elevo_chave_boas_vindas_v16814(email_logado_agora)
+    st.session_state["elevo_bv_chave_v16814"] = chave_bv_v16814
+    ja_ouvida = str(cookies.get("elevo_bv_ouvida_v16814", "") or "") == chave_bv_v16814
+    if not ja_ouvida:
+        texto_cinematico = (
+            f"Protocolo de inteligência ativado. Identidade reconhecida. "
+            f"Bem-vindo à ÉLÉVO, {nome_apenas_fala}. Aqui é Aurora. "
+            "Enquanto o mercado segue o movimento, nós transformamos sinais em estratégia. "
+            "Problemas se tornam soluções. Ideias ganham direção. Criações ganham vida. "
+            "Sua central está conectada. Sua visão está no comando. "
+            "O futuro não espera ser descoberto. Ele começa quando você decide construir. "
+            "ÉLÉVO online. Bem-vindo ao próximo nível."
+        )
         audio_bytes = None
-
-        # O espaço é mostrado enquanto a voz é preparada; não é preciso recarregar.
         aviso_audio_bv = st.empty()
-        aviso_audio_bv.info("🦅 Aurora está preparando sua primeira mensagem de boas-vindas...")
+        aviso_audio_bv.info("🦅 Aurora está iniciando seu acesso VIP...")
         try:
             CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
             if CHAVE_ELEVEN:
                 try:
                     resp_voz = requests.post(
                         "https://api.elevenlabs.io/v1/text-to-speech/MLAEAegxkMReslK34j8T",
-                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5", "voice_settings": {"stability": 0.50, "similarity_boost": 0.85, "style": 0.40, "use_speaker_boost": True}},
-                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json", "xi-api-key": CHAVE_ELEVEN},
-                        timeout=10
-                    )
+                        json={"text": texto_cinematico, "model_id": "eleven_turbo_v2_5",
+                              "voice_settings": {"stability": 0.50, "similarity_boost": 0.85,
+                                                 "style": 0.40, "use_speaker_boost": True}},
+                        headers={"Accept": "audio/mpeg", "Content-Type": "application/json",
+                                 "xi-api-key": CHAVE_ELEVEN}, timeout=10)
                     if resp_voz.status_code == 200 and resp_voz.content:
                         audio_bytes = resp_voz.content
                 except Exception:
                     pass
-
             if not audio_bytes:
-                tts = gTTS(text=texto_cinematico, lang='pt', tld='com.br')
+                tts = gTTS(text=texto_cinematico, lang="pt", tld="com.br")
                 fp = io.BytesIO()
                 tts.write_to_fp(fp)
                 audio_bytes = fp.getvalue()
@@ -1678,56 +1671,30 @@ if (st.session_state.get("usuario_logado") and email_logado_agora
             st.session_state["erro_audio_bv"] = "Não foi possível carregar a voz da Aurora neste momento."
         finally:
             aviso_audio_bv.empty()
-
         if audio_bytes:
-            st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode('utf-8')
+            st.session_state["audio_boas_vindas_b64"] = base64.b64encode(audio_bytes).decode("utf-8")
             st.session_state["mostrar_player_bv"] = True
-            # Registrar o Gmail apenas quando o áudio terminar (evento ended).
-            # Streamlit precisa de uma execução nova para montar o componente
-            # de voz depois da chamada de TTS/cookies. Na primeira tentativa
-            # o painel abria, mas o iframe do áudio só aparecia após F5.
-            # Esta segunda execução é automática, uma única vez por geração;
-            # na próxima o email já foi verificado e o MP3 é reaproveitado.
+            # A marca é persistida ANTES do player. F5 não deve tocar outra vez.
+            elevo_marcar_boas_vindas_v16814(chave_bv_v16814)
             st.rerun()
 
 if st.session_state.get("erro_audio_bv"):
     st.warning(st.session_state["erro_audio_bv"])
-    if st.button("🔄 TENTAR CARREGAR ÁUDIO NOVAMENTE", key="btn_repetir_bv"):
+    if st.button("🔄 Tentar mensagem novamente", key="btn_repetir_bv"):
         st.session_state["email_bv_verificado"] = ""
         st.rerun()
 
-# A execução do MP3 ocorre no navegador, então a confirmação deve vir do
-# evento "ended" via componente Streamlit V2 (conexão JS -> Python). O iframe
-# anterior só escondia a caixa e não gravava a confirmação no Google Sheets.
-if "bv_conclusao_pendente" not in st.session_state:
-    st.session_state["bv_conclusao_pendente"] = ""
-
 
 def concluir_audio_aurora():
-    """Chamado SOMENTE pelo evento JS 'ended', após reprodução completa."""
+    """Encerra o player. Não grava em Sheets nem reinicia no próximo rerun."""
     email = str(st.session_state.get("email_usuario", "")).strip().lower()
     if not email or not st.session_state.get("usuario_logado"):
         return
-    if not st.session_state.get("mostrar_player_bv"):
-        return
-    # O áudio acabou: não reabrir/reexecutar durante os reruns da sessão.
     st.session_state["email_bv_verificado"] = email
     st.session_state["mostrar_player_bv"] = False
     st.session_state["audio_boas_vindas_b64"] = None
-    # Se o Sheets ficar indisponível, manter a pendência para nova tentativa.
-    st.session_state["bv_conclusao_pendente"] = email
-    if registrar_boas_vindas_confirmada(email):
-        st.session_state["bv_conclusao_pendente"] = ""
+    st.session_state["erro_audio_bv"] = ""
 
-
-# Tenta sincronizar uma confirmação pendente, sem reproduzir a voz outra vez.
-if (st.session_state.get("bv_conclusao_pendente")
-        and st.session_state["bv_conclusao_pendente"] == email_logado_agora):
-    if registrar_boas_vindas_confirmada(email_logado_agora):
-        st.session_state["bv_conclusao_pendente"] = ""
-    else:
-        st.warning("A Aurora terminou a mensagem, mas a confirmação ainda não foi salva. "
-                   "O sistema tentará sincronizar novamente na próxima interação.")
 
 if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boas_vindas_b64"):
     # V2 permite receber um evento do navegador no Python sem recarregar a
@@ -1799,6 +1766,15 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
             if (!container || !btn || !aud || !data?.audio) return;
             // A conta e os bytes são dados, nunca HTML executável.
             email.textContent = data.email || '';
+            const idSessao = String(data.visitKey || '');
+            const chaveNavegador = 'elevo_bv_unica_v16814_' + idSessao;
+            let ouvidoNoNavegador = false;
+            try { ouvidoNoNavegador = window.sessionStorage.getItem(chaveNavegador) === 'iniciado'; }
+            catch (_) {}
+            if (ouvidoNoNavegador) {
+                container.style.display = 'none';
+                return;
+            }
             aud.src = 'data:audio/mpeg;base64,' + data.audio;
             let concluido = false;
 
@@ -1818,6 +1794,8 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
                 }
             }
             const onPlaying = () => {
+                try { window.sessionStorage.setItem(chaveNavegador, 'iniciado'); }
+                catch (_) {}
                 btn.style.display = 'none';
                 vis.style.display = 'flex';
                 status.textContent = 'Mensagem da Aurora em reprodução.';
@@ -1839,8 +1817,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
                 btn.style.display = 'none';
                 vis.style.display = 'none';
                 status.textContent = 'Mensagem concluída. Registrando automaticamente...';
-                // Aciona o callback Python que salva o Gmail em Memoria_Audio_VIP.
-                // Não aciona a confirmação em "play", "pause" ou carregamento.
+                // Confirma apenas o fim do player; não depende do Google Sheets.
                 setTriggerValue('concluido', true);
             };
             btn.addEventListener('click', reproduzir);
@@ -1861,7 +1838,9 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
     )
     aurora_player(
         key="elevo_aurora_audio_atual",
-        data={"email": email_logado_agora, "audio": st.session_state["audio_boas_vindas_b64"]},
+        data={"email": email_logado_agora,
+              "audio": st.session_state["audio_boas_vindas_b64"],
+              "visitKey": st.session_state.get("elevo_bv_chave_v16814", "")},
         on_concluido_change=concluir_audio_aurora,
     )
 
@@ -2047,6 +2026,9 @@ if st.button("Sair da Conta (Logout)", key="btn_logout"):
     # componente acontece no navegador, por isso o bloqueio de restauração.
     sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
     cookies.pop("login", None)
+    cookies.pop("elevo_bv_ouvida_v16814", None)
+    cookies.pop("elevo_bv_google_v16814", None)
+    cookies.pop("elevo_bv_login_v16814", None)
     cookies.save()
     # 2) Forçar explicitamente a tela de login, mesmo que o cookie antigo
     # ainda esteja no browser por alguns instantes. Não contém e-mail/token.
@@ -3807,6 +3789,56 @@ if st.session_state.pop('elevo_ambiente_aviso', ''):
 
 
 # ==========================================================
+# V16.8.14 — SNAPSHOT DE LEITURA RESILIENTE DO PAINEL CEO.
+# Somente para o CEO autenticado; NÃO usa cache para validar login/permissões.
+# Conexão falha -> dados anteriores visíveis em modo SOMENTE LEITURA.
+# ==========================================================
+@st.cache_resource
+def elevo_cache_painel_v16814():
+    return {"lock": RLock(), "salvo_em": 0.0, "horario": "", "dados": None}
+
+
+def elevo_invalidar_painel_v16814():
+    cache = elevo_cache_painel_v16814()
+    with cache["lock"]:
+        cache["salvo_em"] = 0.0
+
+
+def elevo_ler_painel_v16814(forcar=False):
+    if not elevo_admin_v16813():
+        raise PermissionError("Gestão exclusiva do CEO.")
+    cache = elevo_cache_painel_v16814()
+    with cache["lock"]:
+        anterior = cache["dados"]
+        atual = (time.monotonic() - cache["salvo_em"]) < 35
+        if anterior is not None and atual and not forcar:
+            return anterior, False
+    for tentativa in range(2):
+        try:
+            usuarios = conectar_banco_usuarios("ler")
+            if usuarios is None:
+                raise ElevoCreditoErroV16813("Cadastro de usuários sem conexão")
+            dados = {
+                "usuarios": usuarios,
+                "creditos": elevo_credito_eventos_v16813(),
+                "perfis": elevo_aba_v16813("Elevo_Perfis_V1", ELEVO_PERFIL_COLS_V16813).get_all_records(),
+                "acessos": elevo_aba_v16813("Elevo_Acessos_V1", ELEVO_ACESSOS_COLS_V16813).get_all_records(),
+                "pedidos": elevo_pedidos_v16813(),
+            }
+            with cache["lock"]:
+                cache["dados"] = dados
+                cache["salvo_em"] = time.monotonic()
+                cache["horario"] = elevo_agora_v16813()
+            return dados, False
+        except Exception:
+            if tentativa == 0:
+                time.sleep(0.35)  # somente leitura: retry curto, sem chamadas de escrita
+    if anterior is not None:
+        return anterior, True
+    raise ElevoCreditoErroV16813("O Google Sheets está temporariamente indisponível.")
+
+
+# ==========================================================
 # 16. PAINEL DE CONTROLE DO CEO
 # ==========================================================
 # ==========================================================
@@ -3818,15 +3850,21 @@ if E_O_CEO:
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
                 "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
                 unsafe_allow_html=True)
-    with st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS • V16.8.13", expanded=False):
+    with st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS • V16.8.14", expanded=False):
+        _forcar_painel_v16814 = st.button("↻ Atualizar informações", key="elevo_admin_recarregar_v16814",
+                                           use_container_width=True)
         try:
-            _usuarios_v16813 = conectar_banco_usuarios("ler")
-            if _usuarios_v16813 is None:
-                raise ElevoCreditoErroV16813("Não foi possível consultar o cadastro de usuários.")
-            _ledger_v16813 = elevo_credito_eventos_v16813()
-            _perfis_v16813 = elevo_aba_v16813("Elevo_Perfis_V1", ELEVO_PERFIL_COLS_V16813).get_all_records()
-            _acessos_v16813 = elevo_aba_v16813("Elevo_Acessos_V1", ELEVO_ACESSOS_COLS_V16813).get_all_records()
-            _pedidos_v16813 = elevo_pedidos_v16813()
+            _snapshot_v16814, _painel_leitura_apenas_v16814 = elevo_ler_painel_v16814(_forcar_painel_v16814)
+            if _painel_leitura_apenas_v16814:
+                ultima_v16814 = elevo_cache_painel_v16814().get("horario", "horário não informado")
+                st.warning(f"Conexão oscilando. Última atualização: {ultima_v16814}. "
+                           "Exibindo os últimos dados confirmados, somente para consulta. "
+                           "Ações bloqueadas até a conexão voltar. Clique em Atualizar informações.")
+            _usuarios_v16813 = _snapshot_v16814["usuarios"]
+            _ledger_v16813 = _snapshot_v16814["creditos"]
+            _perfis_v16813 = _snapshot_v16814["perfis"]
+            _acessos_v16813 = _snapshot_v16814["acessos"]
+            _pedidos_v16813 = _snapshot_v16814["pedidos"]
             _perfis_por_email_v16813 = {str(r.get("Email", "")).strip().lower():r for r in _perfis_v16813}
             _pedidos_pendentes_v16813 = [r for r in _pedidos_v16813
                                          if str(r.get("Status", "")).strip().upper() == "PENDENTE"]
@@ -3860,17 +3898,21 @@ if E_O_CEO:
                                 _lib_req = st.number_input("Liberar", 10, 10000, _qtd_req,
                                                            key="elevo_qtd_req_"+_id_req)
                             with _qa:
-                                if st.button("✅ Aprovar", key="elevo_approve_"+_id_req, use_container_width=True):
+                                if st.button("✅ Aprovar", key="elevo_approve_"+_id_req, use_container_width=True,
+                                             disabled=_painel_leitura_apenas_v16814):
                                     try:
                                         elevo_pedido_decidir_v16813(_id_req, _email_req, "APROVADO", _lib_req)
+                                        elevo_invalidar_painel_v16814()
                                         st.success("Créditos liberados no saldo do usuário!")
                                         st.rerun()
                                     except Exception:
                                         st.error("Não foi possível aprovar. Consulte o Google Sheets.")
                             with _qn:
-                                if st.button("✖ Recusar", key="elevo_deny_"+_id_req, use_container_width=True):
+                                if st.button("✖ Recusar", key="elevo_deny_"+_id_req, use_container_width=True,
+                                             disabled=_painel_leitura_apenas_v16814):
                                     try:
                                         elevo_pedido_decidir_v16813(_id_req, _email_req, "RECUSADO")
+                                        elevo_invalidar_painel_v16814()
                                         st.rerun()
                                     except Exception:
                                         st.error("Falha ao recusar solicitação.")
@@ -3919,27 +3961,33 @@ if E_O_CEO:
                                                                   value=int(_saldo_u_v16813), step=10,
                                                                   key="elevo_set_"+_email_u_v16813)
                             if st.button("✅ Aplicar saldo", key="elevo_aplica_"+_email_u_v16813,
-                                         type="primary", use_container_width=True):
+                                         type="primary", use_container_width=True,
+                                         disabled=_painel_leitura_apenas_v16814):
                                 try:
                                     elevo_credito_admin_v16813(_email_u_v16813, _valor_admin_v16813, "SET")
+                                    elevo_invalidar_painel_v16814()
                                     st.success("Saldo atualizado e disponível.")
                                     st.rerun()
                                 except Exception:
                                     st.error("Não foi possível atualizar o saldo.")
                             for _add_val in (50,100,200):
                                 if st.button(f"➕ Acrescentar {_add_val}", key=f"elevo_add_{_add_val}_"+_email_u_v16813,
-                                             use_container_width=True):
+                                             use_container_width=True,
+                                             disabled=_painel_leitura_apenas_v16814):
                                     try:
                                         elevo_credito_admin_v16813(_email_u_v16813, _add_val, "ADD")
+                                        elevo_invalidar_painel_v16814()
                                         st.rerun()
                                     except Exception:
                                         st.error("Falha ao adicionar créditos.")
                     with _acao2:
                         if st.button("✅ Reativar" if _status_u_v16813 == "BLOQUEADO" else "⛔ Bloquear",
-                                     key="elevo_block_"+_email_u_v16813, use_container_width=True):
+                                     key="elevo_block_"+_email_u_v16813, use_container_width=True,
+                                     disabled=_painel_leitura_apenas_v16814):
                             try:
                                 elevo_perfil_atualizar_v16813(_email_u_v16813,
                                     status="ATIVO" if _status_u_v16813 == "BLOQUEADO" else "BLOQUEADO")
+                                elevo_invalidar_painel_v16814()
                                 st.rerun()
                             except Exception:
                                 st.error("Não foi possível alterar o acesso.")
@@ -3949,9 +3997,11 @@ if E_O_CEO:
                                        "Os registros financeiros permanecem para auditoria.")
                             st.caption(f"Conta selecionada: {_email_u_v16813}")
                             if st.button("🚨 Confirmar remoção", key="elevo_remove_"+_email_u_v16813,
-                                         type="primary", use_container_width=True):
+                                         type="primary", use_container_width=True,
+                                         disabled=_painel_leitura_apenas_v16814):
                                 try:
                                     elevo_excluir_conta_v16813(_email_u_v16813)
+                                    elevo_invalidar_painel_v16814()
                                     st.success("Conta removida.")
                                     st.rerun()
                                 except Exception:
@@ -3967,7 +4017,8 @@ if E_O_CEO:
                 else:
                     st.caption("O histórico começa a ser registrado após esta atualização.")
         except Exception:
-            st.error("Painel temporariamente indisponível. As contas existentes não foram modificadas.")
+            st.error("Painel temporariamente sem conexão. Use Atualizar informações. "
+                     "Nenhum cadastro ou crédito foi alterado.")
 
 st.markdown('<div id="criacao"></div>', unsafe_allow_html=True)
 
