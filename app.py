@@ -1,4 +1,5 @@
-# ÉLÉVO V16.8.17 — Histórico temporário + lixeira persistente (base intacta V16.8.16).
+# ÉLÉVO V16.8.18 — Roteiro apenas na sessão; nenhum prompt enviado a Historico_Roteiros.
+# Base V16.8.17 preservada; somente o mecanismo de histórico e lixeira foi ajustado.
 # ÉLÉVO V16.8.16 — Aurora primeiro cadastro + recuperação de crédito + dark VIP (base V16.8.14).
 # Base anterior: V16.8.11 (produto imutável entre influenciadoras).
 # ÉLÉVO V16.8.7 — Correção global de contraste VIP em avisos, baseada na V16.8.6.
@@ -4270,36 +4271,13 @@ def _elevo_historico_excluir_linhas_v16817(livro, aba, linhas):
 
 
 def carregar_ultimo_roteiro_salvo(email_usr):
-    """Continua restaurando o último rascunho, sem ler todo o histórico em memória."""
-    try:
-        _, aba = _elevo_historico_aba_v16817(criar=False)
-        linhas = _elevo_historico_linhas_v16817(aba, email_usr)
-        if linhas:
-            return aba.acell(f"C{linhas[-1]}").value or None
-    except Exception as exc:
-        logging.warning("ELEVO_HISTORICO_LEITURA: %s", type(exc).__name__)
+    """Compatibilidade: roteiros não são mais restaurados do Google Sheets."""
     return None
 
 
 def salvar_roteiro_no_drive(email_usr, texto_str):
-    """Um único rascunho por login: atualiza o existente e elimina duplicatas antigas."""
-    try:
-        livro, aba = _elevo_historico_aba_v16817(criar=True)
-        linhas = _elevo_historico_linhas_v16817(aba, email_usr)
-        email = str(email_usr).strip().lower()
-        agora_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y %H:%M")
-        valores = [email, agora_str, texto_str]
-        if linhas:
-            # Mantém a PRIMEIRA linha do usuário. Deletar as posteriores não muda seu índice.
-            aba.update(range_name=f"A{linhas[0]}:C{linhas[0]}",
-                       values=[valores], value_input_option="RAW")
-            _elevo_historico_excluir_linhas_v16817(livro, aba, linhas[1:])
-        else:
-            aba.append_row(valores, value_input_option="RAW")
-        return True
-    except Exception as exc:
-        logging.warning("ELEVO_HISTORICO_GRAVACAO: %s", type(exc).__name__)
-        return False
+    """Compatibilidade: roteiros NÃO são persistidos no Google Sheets."""
+    return False
 
 
 def excluir_todos_roteiros_do_usuario_v16817(email_usr):
@@ -4866,13 +4844,8 @@ def escanear_dor_e_contagem_da_foto(img_b64):
     }
 
 email_sessao = st.session_state.get("email_usuario", "anonimo")
-# Não restaurar automaticamente após a exclusão; a lixeira agora apaga o Sheets.
-# Um único rascunho por login permanece recuperável até o usuário descartá-lo.
-if (not st.session_state["roteiro_temporario"]
-        and not st.session_state.get("elevo_roteiro_limpo_sessao_v1688", False)):
-    roteiro_salvo_nuvem = carregar_ultimo_roteiro_salvo(email_sessao)
-    if roteiro_salvo_nuvem and "can't assist" not in roteiro_salvo_nuvem.lower():
-        st.session_state["roteiro_temporario"] = roteiro_salvo_nuvem
+# V16.8.18: a criação existe somente em st.session_state até substituição ou lixeira.
+# Sem leitura/restauração de Historico_Roteiros a cada rerun ou login.
 
 if "influencer_atual" not in st.session_state or st.session_state.get("email_inf_carregado") != email_sessao:
     st.session_state["influencer_atual"] = gerenciar_influencer_usuario("ler", email_sessao)
@@ -6124,7 +6097,7 @@ if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
             st.session_state["roteiro_temporario"] = conteudo_texto
             contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
             st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
-            st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_texto)
+            # Roteiro 360º mantido somente em memoria da sessao; sem envio a planilha.
             
                 
             st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
@@ -6254,7 +6227,7 @@ if btn_gerar_v92 and pode_gerar_roteiro:
                 st.session_state["roteiro_temporario"] = conteudo_v92
                 contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
-                st.session_state["elevo_hist_erro_gravacao_v16817"] = not salvar_roteiro_no_drive(email_sessao, conteudo_v92)
+                # Roteiro V9.2 mantido somente em memoria da sessao; sem envio a planilha.
 
 
                 st.success(f"🔥 Pacote Criação V9.2 (Gancho Dor & Solução + Logo '{logo_ativa_usuario}') Forjado com Sucesso!")
@@ -6380,9 +6353,6 @@ st.markdown("""
 # EXIBIÇÃO UNIFICADA DO ROTEIRO (COM TODOS OS 5 BOTÕES DE CÓPIA ORIGINAIS)
 # ==========================================================
 if st.session_state["roteiro_temporario"]:
-    if st.session_state.get("elevo_hist_erro_gravacao_v16817", False):
-        st.warning("⚠️ Seu roteiro foi gerado, mas o Google Sheets não confirmou o salvamento temporário. "
-                   "Copie o conteúdo antes de fechar; verifique a conexão com a planilha.")
     with st.container(border=True, key="elevo_resultado_v16812"):
         partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
         
@@ -6459,25 +6429,32 @@ if st.session_state["roteiro_temporario"]:
 
         st.markdown("<br>", unsafe_allow_html=True)
         if st.button("🗑️ Limpar Roteiro Atual", use_container_width=True, key="btn_limpar_roteiro_360"):
+            # A limpeza visual nunca depende da conexão Sheets.
+            # A exclusão no legado é uma ação de manutenção de dados antigos,
+            # não a gravação de um roteiro novo.
+            removidos_v16818 = None
             try:
-                removidos_v16817 = excluir_todos_roteiros_do_usuario_v16817(email_sessao)
+                removidos_v16818 = excluir_todos_roteiros_do_usuario_v16817(email_sessao)
             except Exception as exc:
                 logging.warning("ELEVO_HISTORICO_LIXEIRA: %s", type(exc).__name__)
-                st.error("⚠️ Não foi possível apagar o histórico na planilha. "
-                         "O roteiro continua na tela para evitar perda acidental. "
-                         "Verifique a conexão Google Sheets e tente novamente.")
-            else:
-                # Só confirmar a limpeza visual depois que a exclusão em Sheets terminar.
-                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
-                st.session_state["roteiro_temporario"] = None
-                st.session_state.pop("elevo_mem_v1_contexto", None)
-                st.session_state.pop("elevo_mem_v1_nota", None)
-                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
-                st.session_state["elevo_hist_mensagem_v16817"] = (
-                    f"🗑️ Roteiro removido da tela e {removidos_v16817} registro(s) antigo(s) "
-                    "excluído(s) da aba Historico_Roteiros da sua conta. Banco 17.3 preservado."
+            st.session_state["elevo_roteiro_limpo_sessao_v1688"] = True
+            st.session_state["roteiro_temporario"] = None
+            st.session_state.pop("elevo_mem_v1_contexto", None)
+            st.session_state.pop("elevo_mem_v1_nota", None)
+            st.session_state.pop("elevo_hist_erro_gravacao_v16817", None)
+            if removidos_v16818 is None:
+                st.session_state["elevo_hist_mensagem_aviso_v16818"] = (
+                    "Roteiro removido da tela. Não foi possível confirmar a exclusão "
+                    "dos registros ANTIGOS no Google Sheets. Tente novamente após "
+                    "restabelecer a conexão; nenhuma nova criação será gravada lá."
                 )
-                st.rerun()
+            else:
+                st.session_state["elevo_hist_mensagem_v16817"] = (
+                    f"🗑️ Roteiro removido da tela; {removidos_v16818} registro(s) antigo(s) "
+                    "excluído(s) da aba Historico_Roteiros da sua conta. "
+                    "Novos roteiros não são salvos no Sheets. Banco 17.3 preservado."
+                )
+            st.rerun()
 
 # Manutenção separada: o CEO pode eliminar os roteiros antigos de TODAS as contas,
 # mas somente mediante confirmação explícita. Outros dados de planilha não são tocados.
@@ -6513,6 +6490,9 @@ mensagem_historico_v16817 = st.session_state.pop("elevo_hist_mensagem_v16817", "
 if mensagem_historico_v16817:
     # O aviso é emitido após o rerun sem manter o texto na tela indefinidamente.
     st.success(mensagem_historico_v16817)
+mensagem_aviso_v16818 = st.session_state.pop("elevo_hist_mensagem_aviso_v16818", "")
+if mensagem_aviso_v16818:
+    st.warning(mensagem_aviso_v16818)
 
 st.markdown('<div id="academia"></div>', unsafe_allow_html=True)
 
