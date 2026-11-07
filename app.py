@@ -1,3 +1,9 @@
+# ÉLÉVO V16.8.25 — DIAMANTE VIP, atualização real da plataforma.
+# Removed tools (UI and handlers): Radar de Tendências da Aurora e Academia ÉLÉVO.
+# Paleta azul-branco diamante estendida a todos os módulos, desktop e mobile.
+# Nenhuma modificação nos motores 360/V9.2, títulos SEO dos geradores,
+# cálculos de créditos, login, proteção de sessão ou Google Sheets.
+# BASE: versão V16.8.24 recebida do usuário em 07/11/2026.
 # ÉLÉVO V16.8.24 — LAPIDAÇÃO VISUAL VIP (referência aprovada 07/11/2026).
 # Exclusivamente apresentação: cards, contraste, navegação, área de pedidos e ícones.
 # Base V16.8.23.2 preservada: IA, prompts, créditos, segurança, banco e autenticação.
@@ -1760,7 +1766,7 @@ st.markdown(f"""
   .elevo-v13-panel-title {{color:{'#1262BC' if modo_claro else '#8CBFFF'}!important;}}
   .elevo-v13-led {{background:#4DB4FF;box-shadow:0 0 10px rgba(63,156,255,.34);}}
   div[data-testid="stPlotlyChart"] {{border-radius:14px;overflow:hidden;}}
-  #elevo-dashboard-top,#painel,#missoes,#radar,#aurora,#criacao,#academia {{scroll-margin-top:75px;}}
+  #elevo-dashboard-top,#painel,#missoes,#aurora,#criacao {{scroll-margin-top:75px;}}
   @media(min-width:1000px) {{
     [data-testid="stMainBlockContainer"],.block-container {{margin-left:224px!important;
       width:calc(100% - 224px)!important;max-width:calc(1480px - 224px)!important;}}
@@ -1784,39 +1790,13 @@ st.markdown(f"""
   <div class="secao">WORKSPACE</div>
   <a class="principal" href="#painel">▦ Visão geral</a>
   <a href="#missoes">◷ Missões</a>
-  <a href="#radar">◈ Insights e tendências</a>
   <a href="#ambientes">🌍 Ambientes</a>
   <div class="secao">CRIATIVIDADE</div>
   <a href="#elenco-elevo">◈ Elenco de influenciadoras</a>
   <a href="#criacao">▣ Criação de prompts</a>
-  <a href="#academia">◉ Academia</a>
 </aside>
 """, unsafe_allow_html=True)
 # ==========================================================
-js_moeda = """
-<script>
-    const parent = window.parent.document;
-    if (!parent.getElementById("moeda-aguia-vip")) {
-        const btn = parent.createElement("div");
-        btn.id = "moeda-aguia-vip";
-        btn.innerHTML = "💎";
-        btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00FF9D; box-shadow: 0px 0px 20px rgba(0,255,157,0.4); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
-        parent.body.appendChild(btn);
-        let isDragging = false, startX, startY, initialLeft, initialTop;
-        function onTouchStart(e) { isDragging = false; startX = e.touches[0].clientX; startY = e.touches[0].clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)'; }
-        function onTouchMove(e) { let dx = e.touches[0].clientX - startX; let dy = e.touches[0].clientY - startY; if (Math.abs(dx)>12 || Math.abs(dy)>12) { isDragging = true; e.preventDefault(); btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
-        function onTouchEnd(e) { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; if (!isDragging) { const topo = parent.getElementById("ancora-topo"); if(topo) topo.scrollIntoView({behavior: "smooth", block: "start"}); else parent.querySelector('.main').scrollTo({top: 0, behavior: 'smooth'}); } isDragging = false; }
-        btn.addEventListener('touchstart', onTouchStart, {passive: false}); btn.addEventListener('touchmove', onTouchMove, {passive: false}); btn.addEventListener('touchend', onTouchEnd);
-        btn.addEventListener('mousedown', function(e) {
-            isDragging = false; startX = e.clientX; startY = e.clientY; initialLeft = btn.offsetLeft; initialTop = btn.offsetTop; btn.style.opacity = '0.7'; btn.style.transform = 'scale(0.9)';
-            function onMouseMove(moveE) { let dx = moveE.clientX - startX; let dy = moveE.clientY - startY; if (Math.abs(dx)>8 || Math.abs(dy)>8) { isDragging = true; btn.style.left = (initialLeft + dx) + "px"; btn.style.top = (initialTop + dy) + "px"; } }
-            function onMouseUp() { btn.style.opacity = '1'; btn.style.transform = 'scale(1)'; parent.removeEventListener('mousemove', onMouseMove); parent.removeEventListener('mouseup', onMouseUp); if (!isDragging) { const topo = parent.getElementById("ancora-topo"); if(topo) topo.scrollIntoView({behavior: "smooth", block: "start"}); else parent.querySelector('.main').scrollTo({top: 0, behavior: 'smooth'}); } isDragging = false; }
-            parent.addEventListener('mousemove', onMouseMove); parent.addEventListener('mouseup', onMouseUp);
-        });
-    }
-</script>
-"""
-components.html(js_moeda, height=0, width=0)
 st.markdown('<div id="ancora-topo"></div><div id="painel"></div>', unsafe_allow_html=True)
 nome_cabecalho = html_std.escape(str(st.session_state.get("nome_usuario", "Sócio")))
 st.markdown(f"""
@@ -2149,10 +2129,18 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
     with col_info_v16813:
         st.markdown(
             f"<div class='elevo-conta-vip-v16813 elevo-vip-perfil-v16824'>"
-            f"<div class='eyebrow'>💎 ÉLÉVO • CONTA VIP</div>"
+            "<div class='elevo-identidade-v16825'>"
+            "<span class='elevo-avatar-joia-v16825' aria-hidden='true'>"
+            "<svg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'>"
+            "<circle cx='16' cy='10' r='5' stroke='currentColor' stroke-width='2.4'/>"
+            "<path d='M5 28v-3c0-5.4 4.9-9 11-9s11 3.6 11 9v3H5Z' stroke='currentColor' stroke-width='2.4' stroke-linejoin='round'/>"
+            "</svg></span>"
+            "<div class='elevo-identidade-texto-v16825'>"
+            f"<div class='eyebrow'>♛ ÉLÉVO • CONTA VIP</div>"
             f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
             f"<div class='mail'>{html_std.escape(_elevo_email_painel_v16813)}</div>"
-            "<div class='elevo-medalha-v16824' aria-hidden='true'><span>◇</span><strong>VIP</strong></div>"
+            "</div></div>"
+            "<div class='elevo-medalha-v16824' aria-hidden='true'><span>💎</span><strong>VIP</strong></div>"
             "</div>", unsafe_allow_html=True)
     with col_saldo_v16813:
         if E_O_CEO:
@@ -2162,9 +2150,9 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
                         unsafe_allow_html=True)
         else:
             st.markdown(f"<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
-                        f"<div class='eyebrow'>💎 MEU SALDO</div>"
+                        f"<div class='eyebrow'>◇ MEU SALDO</div>"
                         f"<div class='balance'>{int(_elevo_saldo_v16813) if _elevo_saldo_v16813 is not None else '—'}<span style='font-size:12px'> CR</span></div>"
-                        "<div class='small'>Prompts: 10 CR • IA/Radar: 3 CR</div></div>", unsafe_allow_html=True)
+                        "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
     # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
@@ -2892,43 +2880,6 @@ if robo_sheets and (not E_O_CEO or link_planilha_ativa):
         st.caption("🟢 Concluída   ·   ◼ Pendente   ·   🟨 Contorno dourado: hoje")
     else:
         st.info("Nenhum histórico de missões ainda.")
-
-st.markdown('<div id="radar"></div>', unsafe_allow_html=True)
-
-# ==========================================================
-# 11. RADAR DE TENDÊNCIAS DA AURORA
-# ==========================================================
-st.divider()
-st.markdown("<h3 style='text-align: center; color: #00E5FF;'>🔮 Radar de Tendências da Aurora</h3>", unsafe_allow_html=True)
-
-historico_radar = []
-aba_radar = None
-hoje_str_radar = agora_brasil.strftime("%d/%m/%Y")
-
-if E_O_CEO and link_planilha_ativa and robo_sheets:
-    try:
-        planilha = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa))
-        try:
-            aba_radar = planilha.worksheet("Memoria_Radar")
-        except gspread.exceptions.WorksheetNotFound:
-            aba_radar = planilha.add_worksheet(title="Memoria_Radar", rows="1000", cols="2")
-            aba_radar.append_row(["Data", "Conteudo"])
-        historico_radar = aba_radar.get_all_records()
-    except Exception: pass
-
-if st.button("🔍 Buscar Tendência Oculta de Beleza (TikTok Shop)", type="primary", use_container_width=True, key="btn_radar_tendencia"):
-    with st.spinner("Minerando produtos ocultos com a Aurora..."):
-        try:
-            res_rad = chamar_ia_global("Recomende 3 produtos de beleza/cabelo com potencial de viralização. Para cada um dê: 1. Nome do Produto, 2. Por que está bombando, 3. Ideia de Roteiro Rápido sensorial (sem falar cura/elimina), 4. 3 Palavras-chave. Feche com: 'Já garanti o meu, corre no carrinho!'", "Você é Aurora, especialista fofoqueira do bem em TikTok Shop (Beleza).")
-            if res_rad.startswith(("ERRO_API:", "ERRO_CREDITOS:")):
-                st.warning("O Radar não concluiu a consulta. Nenhum resultado foi salvo.")
-            else:
-                if E_O_CEO and aba_radar is not None:
-                    try: aba_radar.append_row([hoje_str_radar, res_rad])
-                    except Exception: pass
-                st.success("✨ Radar captou sinal!")
-                st.markdown(res_rad)
-        except Exception: st.error("Erro no Radar.")
 
 # ==========================================================
 def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo_marca=""):
@@ -7212,78 +7163,6 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
         # O aviso é emitido após o rerun sem manter o texto na tela indefinidamente.
         st.success(mensagem_historico_v16817)
 
-st.markdown('<div id="academia"></div>', unsafe_allow_html=True)
-
-# ==========================================================
-# 18. ACADEMIA ÉLÉVO (ESCOLA DE CEOS & GESTÃO DE IMPÉRIO)
-# ==========================================================
-st.divider()
-st.markdown("<h3 style='text-align: center; color: #D4AF37;'>🏛️ Academia ÉLÉVO: Gestão & Mentalidade de CEO</h3>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #A0A0A0;'>O manual definitivo para deixar de ser um afiliado comum e construir um império milionário.</p>", unsafe_allow_html=True)
-
-with st.container(border=True):
-    aba_mindset, aba_gestao, aba_escala, aba_mentoria = st.tabs([
-        "🧠 A Mente do Sócio", 
-        "💰 Gestão de Caixa", 
-        "🚀 O Mapa da Escala", 
-        "💎 Mentoria Executiva"
-    ])
-    
-    with aba_mindset:
-        st.markdown("<h4 style='color: #00BFA5;'>1. A Regra de Ouro das Vendas</h4>", unsafe_allow_html=True)
-        st.info("💡 **'Eu não vendo produtos. Eu vendo decisões.'**\n\nNinguém compra pelo que o produto é... compra pelo que acredita que aquilo vai fazer com a própria vida. Enquanto você tenta convencer, o mestre faz a pessoa se convencer sozinha. Mostre o problema que ela não consegue ignorar e deixe a mente dela completar o caminho.")
-        st.markdown("""
-        **Princípios do CEO de Elite:**
-        * **Frieza Emocional:** Um vídeo flopou? Não é pessoal, é apenas um dado. Analise a taxa de retenção, mude o gancho (Whip Pan) e teste de novo.
-        * **Consistência > Motivação:** Motivação acaba no 3º dia. Disciplina é o que constrói o faturamento no 30º dia.
-        * **Foco no 'Quem':** Você não está a vender para toda a gente. Está a vender para a 'Buscadora de Atalhos' que quer luxo pagando pouco.
-        """)
-        
-    with aba_gestao:
-        st.markdown("<h4 style='color: #00BFA5;'>2. Como Blindar a Empresa da Falência</h4>", unsafe_allow_html=True)
-        st.warning("🚨 O maior erro do iniciante é achar que todo o lucro que cai no painel é salário. Se gastar tudo o que entra, o seu negócio morre no próximo mês.")
-        st.markdown("""
-        **A Divisão de Ouro (Regra 50/30/20):**
-        1. **50% (Reinvestimento da Máquina):** Este dinheiro não é seu, é da ÉLÉVO. Use para comprar produtos de review, melhorar a iluminação, pagar plataformas de IA ou testar tráfego pago.
-        2. **30% (O seu Pró-Labore/Salário):** Este é o dinheiro que vai para o seu bolso. Use para viver, comemorar as metas batidas e pagar as suas contas pessoais.
-        3. **20% (Caixa de Guerra):** O fundo de emergência. Se as redes sociais mudarem o algoritmo amanhã ou uma conta cair, você tem caixa para sobreviver meses sem vender uma única unidade.
-        """)
-        
-    with aba_escala:
-        st.markdown("<h4 style='color: #00BFA5;'>3. O Passo a Passo para o Oceano Azul</h4>", unsafe_allow_html=True)
-        st.success("✨ Escalar não é trabalhar mais horas. É fazer a máquina trabalhar por si.")
-        st.markdown("""
-        **Fase 1: O Laboratório (Onde a mágica nasce)**
-        * Você é o roteirista, o editor e o gestor.
-        * O objetivo aqui NÃO é ficar rico. É achar **1 Produto Campeão e 1 Criativo Validado** (Conversão > 1.5%).
-        
-        **Fase 2: A Multiplicação (A Força Bruta)**
-        * Pegar no Produto Campeão e espalhar o mesmo vídeo em todas as frentes (Shopee Video, YouTube Shorts, Pinterest).
-        * Criar contas satélites vendendo ângulos diferentes da mesma solução.
-        
-        **Fase 3: O Verdadeiro CEO (Delegação Total)**
-        * Você para de editar vídeos. Contrata freelancers e entrega-lhes a *Máquina de Criação 360º* para eles executarem.
-        * O seu único trabalho passa a ser: **Analisar dados no Dashboard, gerir a equipa e usar o Radar para achar novas tendências.**
-        """)
-        
-    with aba_mentoria:
-        st.markdown("<h4 style='color: #00BFA5;'>🗣️ Consultoria de Gestão Direta com a COO</h4>", unsafe_allow_html=True)
-        st.write("Dúvidas sobre como dividir o seu tempo? Não sabe como investir o lucro? Pergunte à Aurora.")
-        
-        duvida_gestao = st.text_input("Qual é o seu maior desafio de gestão ou rotina hoje?", placeholder="Ex: Como divido o meu tempo entre gravar vídeos e pesquisar produtos novos?", key="input_duvida_gestao")
-        if st.button("Pedir Conselho de Gestão", use_container_width=True, key="btn_conselho_gestao"):
-            if not duvida_gestao:
-                st.warning("⚠️ Escreva a sua dúvida para a Diretoria analisar.")
-            else:
-                with st.spinner("💎 A Aurora está a calcular a estratégia do seu império..."):
-                    sys_gestao = "Você é Aurora, COO (Diretora de Operações) da ÉLÉVO e mentora de negócios do CEO. Seu tom é de estrategista implacável, focada em gestão de tempo, finanças e mentalidade milionária. Não use palavras clichês de autoajuda."
-                    prompt_gestao = f"O nosso CEO está com o seguinte desafio de gestão na empresa: '{duvida_gestao}'. \nDê um conselho de negócio frio, direto e baseado em números. Forneça 3 passos de ação executáveis."
-                    
-                    resposta_mentoria = chamar_ia_global(prompt_gestao, sys_gestao)
-                    
-                    st.info("💡 **Parecer Executivo da Aurora:**")
-                    st.markdown(resposta_mentoria)
-
 # ==========================================================
 # V16.8.3 — DITADO PT-BR EM CAMPOS DE ESCRITA (NAVEGADOR)
 # Um microfone discreto ao lado de cada campo livre, sem tocar em senhas.
@@ -7872,5 +7751,313 @@ else:
   }
   .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {display:none!important;}
   .elevo-vip-perfil-v16824 {padding-right:20px!important;}
+</style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
+# ÉLÉVO V16.8.25 — DESIGN SYSTEM DIAMANTE VIP (SOMENTE CSS)
+# Referência visual: branco gelo, navy royal, LED ciano, ondas e sombras.
+# Afeta apresentação de TODOS OS MÓDULOS, sem controles nem lógica novos.
+# ==========================================================
+st.markdown("""
+<style>
+  /* Elementos em todas as telas: brilho fino e estados de interação. */
+  .elevo-sidebar a,
+  .elevo-shortcut-grid a,
+  [data-testid="stExpander"] summary,
+  [data-testid="stTabs"] button,
+  .stButton>button,
+  [data-testid="stFormSubmitButton"] button {
+    transition:transform .18s ease, box-shadow .20s ease, border-color .20s ease,
+               background-color .20s ease !important;
+  }
+  .elevo-sidebar a:focus-visible,
+  [data-testid="stExpander"] summary:focus-visible,
+  [data-testid="stTabs"] button:focus-visible,
+  .stButton>button:focus-visible,
+  [data-testid="stFormSubmitButton"] button:focus-visible,
+  .elevo-shortcut-grid a:focus-visible {
+    outline:2px solid #53B6FF !important; outline-offset:3px !important;
+  }
+  .elevo-sidebar .marca {white-space:nowrap !important;}
+  .elevo-identidade-v16825 {position:relative;z-index:2;display:flex;
+    align-items:center;gap:15px;min-width:0;}
+  .elevo-identidade-texto-v16825 {min-width:0;flex:1 1 auto;}
+  .elevo-avatar-joia-v16825 {display:grid;place-items:center;flex:0 0 64px;
+    width:64px;height:64px;border-radius:50%;color:#E8F5FF !important;
+    background:radial-gradient(circle at 36% 23%,#2E9CFF 0%,#004A9D 43%,#092751 90%);
+    border:3px solid rgba(255,255,255,.93);
+    box-shadow:0 0 0 2px #66B8FF,0 7px 17px rgba(9,77,164,.25),inset 0 0 15px rgba(8,188,255,.35);}
+  .elevo-avatar-joia-v16825 svg {filter:drop-shadow(0 0 4px rgba(218,245,255,.35));}
+  .elevo-medalha-v16824 span {filter:drop-shadow(0 0 10px rgba(127,220,255,.72));}
+  .elevo-medalha-v16824 strong {letter-spacing:.28em !important;color:#FFFFFF!important;
+    text-shadow:0 0 8px rgba(179,223,255,.55);}
+  .elevo-medalha-v16824:after {content:"";width:67%;height:1px;
+    background:linear-gradient(90deg,transparent,#F9D786,transparent);
+    order:1;margin-top:4px;}
+  .elevo-sidebar .marca::first-letter {color:#1595F2;}
+  /* Evita que componentes de entrada ultrapassem seus cartões no mobile. */
+  [data-testid="stVerticalBlockBorderWrapper"],
+  [data-testid="stExpander"],
+  [data-testid="stForm"],
+  [data-testid="stFileUploader"],
+  [data-testid="stPlotlyChart"] {min-width:0;max-width:100%;}
+  [data-testid="stExpanderDetails"] {min-width:0;}
+  [data-testid="stNumberInput"] input,
+  [data-testid="stTextInput"] input,
+  [data-testid="stTextArea"] textarea {min-width:0;}
+  [data-testid="stTabs"] [data-baseweb="tab-list"] {scrollbar-width:thin;overflow-x:auto;}
+  @media (max-width:650px) {
+    .elevo-sidebar {scroll-snap-type:x proximity !important;}
+    .elevo-sidebar a {scroll-snap-align:start;}
+    .elevo-identidade-v16825 {gap:12px;}
+    .elevo-avatar-joia-v16825 {width:48px;height:48px;flex-basis:48px;}
+    .elevo-avatar-joia-v16825 svg {width:25px;height:25px;}
+    .elevo-vip-perfil-v16824 .person {font-size:1.26rem !important;}
+    .elevo-vip-perfil-v16824 .eyebrow {font-size:.64rem !important;letter-spacing:.11em !important;}
+    .elevo-medalha-v16824 span {font-size:2.2rem !important;}
+    [data-testid="stHorizontalBlock"] {gap:.55rem !important;}
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .elevo-sidebar a,.elevo-shortcut-grid a,[data-testid="stExpander"] summary,
+    [data-testid="stTabs"] button,.stButton>button,[data-testid="stFormSubmitButton"] button
+    {transition:none !important;}
+  }
+</style>
+""", unsafe_allow_html=True)
+
+if modo_claro:
+    st.markdown("""
+<style>
+  /* Fundo branco gelo e luz de estúdio, conforme referência da ÉLÉVO VIP. */
+  [data-testid="stAppViewContainer"] {
+    background:radial-gradient(ellipse 65% 30% at 100% 13%,rgba(181,215,255,.33),transparent 80%),
+      radial-gradient(ellipse 78% 40% at 0% 76%,rgba(193,222,255,.24),transparent 83%),
+      linear-gradient(160deg,#F8FBFF 0%,#EDF4FF 48%,#F7FAFF 100%) !important;
+  }
+  .elevo-sidebar {
+    background:linear-gradient(109deg,#FFFFFF 0%,#E9F3FF 63%,#DFEDFF 100%)!important;
+    border-bottom:1px solid rgba(66,159,255,.30)!important;
+    box-shadow:0 10px 27px rgba(17,81,169,.14),inset 0 -2px 0 rgba(129,203,255,.25)!important;
+    border-radius:0 0 24px 24px;
+  }
+  .elevo-sidebar .marca {font-weight:900!important;color:#071E4A!important;
+    text-shadow:0 1px 0 #FFFFFF;}
+  .elevo-sidebar a {border:1px solid transparent!important;border-radius:15px!important;
+    font-weight:740!important;color:#3F587A!important;}
+  .elevo-sidebar a.principal {
+    background:linear-gradient(135deg,#0953CB 0%,#1285FF 49%,#0043B8 100%)!important;
+    border:1px solid #76C9FF!important;color:#FFFFFF!important;
+    box-shadow:0 7px 19px rgba(1,84,202,.28),0 0 0 2px rgba(91,184,255,.14),
+      inset 0 1px 0 rgba(255,255,255,.42)!important;
+  }
+  .elevo-sidebar a:not(.principal):hover {background:rgba(255,255,255,.76)!important;
+    color:#074C9C!important;box-shadow:0 3px 12px rgba(33,93,166,.11)!important;}
+  /* Cards comuns: face brilhante, profundidade delicada e microondas azuis. */
+  [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stForm"],
+  [data-testid="stExpander"],[data-testid="stMetric"] {
+    background:radial-gradient(ellipse 58% 70% at 106% 103%,rgba(90,164,253,.15),transparent 77%),
+      linear-gradient(151deg,#FFFFFF 0%,#FAFCFF 48%,#F1F7FF 100%)!important;
+    background-image:radial-gradient(ellipse 58% 70% at 106% 103%,rgba(90,164,253,.15),transparent 77%),
+      linear-gradient(151deg,#FFFFFF 0%,#FAFCFF 48%,#F1F7FF 100%)!important;
+    border:1px solid rgba(129,174,230,.38)!important;
+    border-radius:22px!important;
+    box-shadow:0 13px 27px rgba(17,71,148,.10),0 3px 7px rgba(11,47,108,.04),
+      inset 0 1px 0 rgba(255,255,255,.96)!important;
+  }
+  [data-testid="stVerticalBlockBorderWrapper"]:hover,
+  [data-testid="stExpander"]:hover {border-color:rgba(90,165,250,.5)!important;}
+  [data-testid="stMetric"] [data-testid="stMetricValue"] * {color:#075BC6!important;}
+  /* Topo: conta com faixa azul, curva branca e joia à direita. */
+  .elevo-conta-vip-v16813 {position:relative;isolation:isolate;overflow:hidden;
+    background:radial-gradient(ellipse 67% 99% at 98% 110%,rgba(96,170,254,.17),transparent 78%),
+      linear-gradient(137deg,#FFFFFF 0%,#FBFDFF 49%,#EBF4FF 100%)!important;
+    border:1px solid rgba(146,191,244,.58)!important;border-radius:25px!important;
+    box-shadow:0 16px 30px rgba(23,82,155,.12),inset 0 1px 0 #FFFFFF!important;
+    min-height:139px;
+  }
+  .elevo-vip-perfil-v16824 {padding:22px 117px 21px 19px!important;}
+  .elevo-vip-perfil-v16824::after {content:"";z-index:0;position:absolute;right:-6%;top:-61%;
+    width:58%;height:220%;transform:rotate(23deg);border-radius:48% 0 0 44%;
+    background:linear-gradient(145deg,#80BDFF 0%,#1463B9 48%,#02316E 96%)!important;
+    box-shadow:-2px 0 0 rgba(250,219,136,.85),inset 18px 0 30px rgba(210,239,255,.3)!important;}
+  .elevo-vip-perfil-v16824::before {content:"";z-index:1;position:absolute;
+    right:22%;top:53%;width:39%;height:92%;transform:rotate(-32deg);
+    border-radius:0 0 100% 15%;border-top:1px solid rgba(255,255,255,.84);
+    pointer-events:none;background:linear-gradient(170deg,rgba(255,255,255,.75),rgba(207,230,255,.12));}
+  .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {z-index:3!important;right:9px!important;
+    width:82px!important;}
+  .elevo-vip-perfil-v16824 .person {color:#0A2451!important;font-size:1.45rem!important;
+    letter-spacing:-.015em!important;}
+  .elevo-vip-perfil-v16824 .eyebrow {color:#174B8C!important;}
+  .elevo-vip-perfil-v16824 .mail {color:#526A8C!important;font-size:.78rem!important;}
+  /* Saldo com curva luminosa — o valor vem do banco e não é alterado. */
+  .elevo-vip-saldo-v16824 {min-height:139px!important;}
+  .elevo-vip-saldo-v16824:before {content:"";position:absolute;z-index:0;
+    right:-6%;bottom:-59%;width:91%;height:93%;border-radius:100% 0 0 0;
+    transform:rotate(-12deg);background:linear-gradient(130deg,rgba(198,224,255,.13),rgba(65,146,247,.20));
+    border-top:1px solid rgba(255,255,255,.9);}
+  .elevo-vip-saldo-v16824:after {content:"";position:absolute;z-index:0;
+    right:-29%;bottom:-74%;width:84%;height:135%;transform:rotate(-25deg);
+    border-radius:100% 0 0 0;box-shadow:-1px -1px 0 rgba(134,198,255,.45);}
+  .elevo-vip-saldo-v16824 .balance {font-size:2.58rem!important;color:#0756C1!important;
+    line-height:1.2!important;text-shadow:0 1px 0 #fff;}
+  .elevo-vip-saldo-v16824 .eyebrow {color:#24588C!important;}
+  .elevo-vip-saldo-v16824 .small {color:#657994!important;}
+  /* Expander do CEO como o botão LED azul na referência; labels legíveis. */
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] {
+    overflow:hidden!important;border:1px solid #91C8FF!important;
+    box-shadow:0 11px 24px rgba(15,83,181,.16)!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {
+    background:linear-gradient(110deg,#06265B 0%,#0956AD 55%,#063F94 100%)!important;
+    border-bottom:2px solid #45D5FF!important;min-height:62px!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.25),inset 0 -3px 8px rgba(29,167,255,.34)!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary *,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary p,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary svg {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;font-weight:800!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpanderDetails"] {
+    background:linear-gradient(150deg,#FFFFFF 0%,#F1F7FF 100%)!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stCaptionContainer"] {
+    background:linear-gradient(95deg,#E5F2FF,#D7E9FF)!important;
+    border:1px solid rgba(124,176,238,.22)!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stCaptionContainer"] p {
+    color:#344B6E!important;-webkit-text-fill-color:#344B6E!important;}
+  /* CTA com texto branco absoluto: impede borrão ou texto apagado. */
+  .stButton>button[kind="primary"],
+  [data-testid="stFormSubmitButton"] button[kind="primary"],
+  .st-key-elevo_painel_creditos_v16824 button[kind="primary"] {
+    background:linear-gradient(110deg,#0061D4,#087CFF 50%,#064BD2)!important;
+    border:1px solid #90D7FF!important;border-bottom:2px solid #40D9FF!important;
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    box-shadow:0 8px 19px rgba(4,88,206,.25),inset 0 1px 0 rgba(255,255,255,.37),
+      0 0 0 1px rgba(61,188,255,.15)!important;
+    text-shadow:0 1px 1px rgba(2,26,87,.23)!important;opacity:1!important;
+  }
+  .stButton>button[kind="primary"] *,
+  [data-testid="stFormSubmitButton"] button[kind="primary"] *,
+  .st-key-elevo_painel_creditos_v16824 button[kind="primary"] * {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    opacity:1!important;filter:none!important;}
+  .stButton>button:not([kind="primary"]),
+  [data-testid="stFormSubmitButton"] button:not([kind="primary"]) {
+    background:linear-gradient(160deg,#FFFFFF,#F2F8FF)!important;
+    color:#14345D!important;-webkit-text-fill-color:#14345D!important;
+    border:1px solid #CBDCF3!important;
+    box-shadow:0 6px 15px rgba(21,76,145,.10),inset 0 1px 0 #FFFFFF!important;}
+  [data-testid="stTextInput"] input,[data-testid="stNumberInput"] input,
+  [data-testid="stTextArea"] textarea,[data-baseweb="select"]>div {
+    background:#FFFFFF!important;border:1px solid #B8CBE6!important;
+    border-radius:14px!important;color:#102B52!important;
+    -webkit-text-fill-color:#102B52!important;
+    box-shadow:0 3px 9px rgba(25,73,142,.055)!important;}
+  [data-testid="stTextInput"] input:focus,[data-testid="stTextArea"] textarea:focus {
+    outline:2px solid rgba(50,153,255,.29)!important;outline-offset:0!important;}
+  /* Atalhos: o de Criação 360º recebe a faceta-joia do exemplo. */
+  .elevo-shortcut-grid a {position:relative;overflow:hidden;
+    background:linear-gradient(145deg,#FFFFFF 0%,#F9FCFF 51%,#EAF4FF 100%)!important;
+    border:1px solid rgba(137,178,230,.43)!important;border-radius:20px!important;
+    box-shadow:0 10px 22px rgba(21,77,156,.105),inset 0 1px 0 #FFFFFF!important;
+    padding:17px 17px!important;}
+  .elevo-shortcut-grid a[href="#criacao"] {padding-right:68px!important;
+    background:linear-gradient(149deg,#FFFFFF 0%,#F8FBFF 49%,#D5EAFF 100%)!important;}
+  .elevo-shortcut-grid a[href="#criacao"]::after {
+    content:"💎";position:absolute;right:14px;top:50%;transform:translateY(-50%);
+    font-size:31px;filter:drop-shadow(0 0 6px rgba(24,137,242,.46));
+    text-shadow:0 0 12px rgba(107,213,255,.42);pointer-events:none;}
+  .elevo-shortcut-grid a:hover {border-color:#71B8FF!important;
+    box-shadow:0 12px 25px rgba(15,87,185,.14)!important;}
+  .elevo-shortcut-grid span {color:#566F90!important;}
+  /* Boas-vindas e avisos usam a mesma onda clara, sem ícone ocultando texto. */
+  .st-key-elevo_boas_vindas_v16824 [data-testid="stAlert"] {
+    background:radial-gradient(ellipse 55% 100% at 100% 115%,rgba(77,163,255,.17),transparent 74%),
+      linear-gradient(128deg,#FFFFFF,#EEF7FF)!important;
+    border:1px solid #CCE4FF!important;border-left:5px solid #1488FA!important;
+    box-shadow:0 12px 27px rgba(20,88,168,.115),inset 0 1px 0 #fff!important;
+    border-radius:23px!important;}
+  .st-key-elevo_boas_vindas_v16824 [data-testid="stAlert"] p,
+  .st-key-elevo_boas_vindas_v16824 [data-testid="stAlert"] * {
+    color:#13315B!important;-webkit-text-fill-color:#13315B!important;}
+  .elevo-dash-header {border-radius:24px!important;
+    background:linear-gradient(118deg,#FFFFFF,#F3F9FF 70%,#E3F1FF)!important;
+    border-color:#CADDF5!important;box-shadow:0 13px 25px rgba(22,77,147,.09)!important;}
+  .elevo-dash-header h1 {color:#092853!important;}
+  .elevo-v13-panel-title {color:#1457A1!important;}
+  .elevo-v13-led {background:#00BFFF!important;box-shadow:0 0 0 3px #D9F3FF,0 0 9px #40B6FF!important;}
+  h1,h2,h3,h4 {letter-spacing:-.025em;}
+  [data-testid="stMarkdownContainer"] h3 {color:#15345F!important;}
+  [data-testid="stFileUploader"] section {background:linear-gradient(130deg,#FFFFFF,#F1F8FF)!important;
+    border-radius:18px!important;border:1px dashed #9BCBFF!important;}
+  [data-testid="stPlotlyChart"] {border-radius:18px!important;
+    filter:drop-shadow(0 5px 13px rgba(16,79,157,.05));}
+  [data-baseweb="tab"] {color:#174577!important;}
+  [aria-selected="true"][data-baseweb="tab"] {color:#0969D6!important;
+    background:linear-gradient(180deg,#FFFFFF,#EAF4FF)!important;
+    box-shadow:0 3px 8px rgba(13,95,198,.10)!important;}
+  @media(max-width:650px) {
+    .elevo-vip-perfil-v16824 {padding:16px 91px 16px 14px!important;}
+    .elevo-vip-perfil-v16824::after {right:-9%;top:-50%;width:47%;}
+    .elevo-vip-perfil-v16824::before {right:18%;width:30%;}
+    .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {right:5px!important;width:65px!important;}
+    .elevo-vip-perfil-v16824 .person {font-size:1.19rem!important;}
+    .elevo-vip-perfil-v16824 .mail {font-size:.7rem!important;}
+    .elevo-vip-saldo-v16824 {min-height:120px!important;}
+    .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {min-height:58px!important;}
+  }
+</style>
+    """, unsafe_allow_html=True)
+else:
+    # Desktop mantém o padrão escuro, com as mesmas facetas, LED e hierarquia.
+    st.markdown("""
+<style>
+  [data-testid="stAppViewContainer"] {
+    background:radial-gradient(ellipse 55% 33% at 100% 0%,rgba(22,92,180,.18),transparent 75%),
+      linear-gradient(155deg,#081426,#0C1C32 57%,#091426)!important;}
+  .elevo-sidebar {background:linear-gradient(145deg,#0D2442,#09182E)!important;
+    box-shadow:0 12px 29px rgba(0,0,0,.28),inset 0 -2px rgba(56,160,255,.20)!important;}
+  .elevo-sidebar a.principal {background:linear-gradient(112deg,#06418F,#0B70DF)!important;
+    border:1px solid rgba(105,196,255,.57)!important;
+    box-shadow:0 8px 21px rgba(0,95,214,.26),inset 0 1px rgba(255,255,255,.27)!important;}
+  [data-testid="stVerticalBlockBorderWrapper"], [data-testid="stForm"],
+  [data-testid="stMetric"], [data-testid="stExpander"] {
+    background:radial-gradient(ellipse 56% 72% at 100% 112%,rgba(42,113,212,.16),transparent 77%),
+      linear-gradient(145deg,#10243F 0%,#0B1C32 100%)!important;
+    border:1px solid rgba(80,152,232,.33)!important;border-radius:22px!important;
+    box-shadow:0 14px 30px rgba(0,0,0,.23),inset 0 1px rgba(255,255,255,.04)!important;}
+  .elevo-conta-vip-v16813 {background:linear-gradient(142deg,#122E51,#0A2340)!important;
+    border:1px solid rgba(80,174,254,.43)!important;border-radius:24px!important;
+    box-shadow:0 15px 31px rgba(0,0,0,.25),inset 0 1px rgba(255,255,255,.07)!important;}
+  .elevo-vip-perfil-v16824 {padding-right:112px!important;}
+  .elevo-vip-perfil-v16824:after {background:linear-gradient(145deg,#237FC9,#053B87,#021E44)!important;
+    right:-7%;top:-26%;width:47%;height:162%;box-shadow:-2px 0 rgba(251,217,126,.66)!important;}
+  .elevo-vip-perfil-v16824 .eyebrow,.elevo-vip-saldo-v16824 .eyebrow {color:#B9DEFF!important;}
+  .elevo-vip-perfil-v16824 .person {color:#FFFFFF!important;}
+  .elevo-vip-perfil-v16824 .mail,.elevo-vip-saldo-v16824 .small {color:#BAD0EC!important;}
+  .elevo-vip-saldo-v16824 .balance {color:#83C6FF!important;}
+  .stButton>button[kind="primary"], [data-testid="stFormSubmitButton"] button[kind="primary"] {
+    background:linear-gradient(110deg,#0640A5,#0870E0,#0A459A)!important;
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    border:1px solid #63C8FF!important;
+    box-shadow:0 8px 23px rgba(2,111,222,.22),inset 0 1px rgba(255,255,255,.25)!important;}
+  .stButton>button[kind="primary"] *, [data-testid="stFormSubmitButton"] button[kind="primary"] * {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;opacity:1!important;}
+  .elevo-shortcut-grid a {border-radius:21px!important;
+    background:linear-gradient(140deg,#102C4C,#0E2039)!important;
+    border:1px solid rgba(104,164,245,.34)!important;
+    box-shadow:0 9px 22px rgba(0,0,0,.18)!important;}
+  .elevo-shortcut-grid a[href="#criacao"] {position:relative;padding-right:64px!important;}
+  .elevo-shortcut-grid a[href="#criacao"]:after {content:"💎";position:absolute;
+    right:12px;top:50%;transform:translateY(-50%);font-size:28px;pointer-events:none;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {
+    background:linear-gradient(116deg,#08265A,#0A468F)!important;
+    border-bottom:2px solid #1B9DE9!important;}
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary *,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary svg {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;}
+  .st-key-elevo_boas_vindas_v16824 [data-testid="stAlert"] {
+    background:linear-gradient(115deg,#102D4D,#11263F)!important;
+    border:1px solid rgba(73,173,243,.42)!important;border-left:4px solid #25A0FF!important;
+    box-shadow:0 11px 25px rgba(0,0,0,.22)!important;}
+  @media(max-width:650px) {.elevo-vip-perfil-v16824 {padding-right:90px!important;}}
 </style>
     """, unsafe_allow_html=True)
