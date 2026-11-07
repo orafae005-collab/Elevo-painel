@@ -1,3 +1,8 @@
+# ÉLÉVO V16.8.27 — POLIMENTO PONTUAL DE PERFIL / ELENCO (07/11/2026)
+# Foto do perfil no avatar circular (inclusive CEO), salvamento no upload,
+# controles CEO em popover sem deslocar cartões, textura e alinhamento uniforme.
+# Criações particulares restritas ao login; apenas perfis adicionados pelo CEO
+# podem ser tornados públicos. Motores, prompts, créditos e login preservados.
 # ÉLÉVO V16.8.26 — FICHA AUTOMÁTICA + GALERIA PRÓPRIA + CONTROLE CEO
 # Base V16.8.25 preservada; alterações restritas ao elenco de influenciadoras.
 # ÉLÉVO V16.8.25 — DIAMANTE VIP, atualização real da plataforma.
@@ -283,7 +288,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
     "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
     "elevo_propria_analise", "elevo_propria_foto_hash", "elevo_propria_erro_analise",
-    "elevo_propria_autofoco",
+    "elevo_propria_autofoco", "elevo_avatar_upload_tentado_v16827",
     "elevo_mem_v1_contexto", "elevo_mem_v1_feedback_ultimo", "elevo_mem_v1_nota",
     "elevo_ai_est_usd_v1", "elevo_ai_tokens_v1", "elevo_ai_chamadas_v1",
     "elevo_modelos_acesso_v1", "elevo_modelo_comparativo_v1",
@@ -2109,15 +2114,39 @@ border-color:rgba(39,222,238,.65)!important;box-shadow:0 4px 20px rgba(0,184,221
 _elevo_email_painel_v16813 = elevo_email_v16813()
 _elevo_nome_painel_v16813 = html_std.escape(str(st.session_state.get("nome_usuario", "Usuário")))
 _elevo_avatar_b64_v16813 = ""
+# O avatar é um dado de perfil, não depende do saldo e também serve para o CEO.
+try:
+    _elevo_avatar_b64_v16813 = str(
+        elevo_perfil_registro_v16813(_elevo_email_painel_v16813)[2].get("AvatarB64") or ""
+    )
+except Exception:
+    pass  # Foto ausente/banco em oscilação: apresenta o ícone padrão.
 if not E_O_CEO:
     try:
-        _elevo_avatar_b64_v16813 = str(elevo_perfil_registro_v16813(_elevo_email_painel_v16813)[2].get("AvatarB64", ""))
         _elevo_saldo_v16813 = elevo_credito_saldo_v16813()
     except Exception:
         _elevo_saldo_v16813 = None
         st.session_state["elevo_banco_indisponivel_v16816"] = True
 else:
     _elevo_saldo_v16813 = None
+
+# Usar dados já persistidos na ÉLÉVO; sem URL de foto externa ou compartilhamento.
+if (_elevo_avatar_b64_v16813 and len(_elevo_avatar_b64_v16813) <= 40000
+        and re.fullmatch(r"[A-Za-z0-9+/=]+", _elevo_avatar_b64_v16813)):
+    _elevo_avatar_miolo_v16827 = (
+        f'<img class="elevo-foto-avatar-v16827" '
+        f'src="data:image/jpeg;base64,{_elevo_avatar_b64_v16813}" '
+        'alt="Foto de perfil da conta" />'
+    )
+else:
+    _elevo_avatar_miolo_v16827 = (
+        '<svg width="32" height="32" viewBox="0 0 32 32" fill="none" '
+        'xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+        '<circle cx="16" cy="10" r="5" stroke="currentColor" stroke-width="2.4"/>'
+        '<path d="M5 28v-3c0-5.4 4.9-9 11-9s11 3.6 11 9v3H5Z" '
+        'stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>'
+        '</svg>'
+    )
 
 if st.session_state.get("elevo_banco_indisponivel_v16816"):
     st.warning("Sua conta está autenticada, mas o banco de créditos está oscilando. "
@@ -2132,11 +2161,7 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
         st.markdown(
             f"<div class='elevo-conta-vip-v16813 elevo-vip-perfil-v16824'>"
             "<div class='elevo-identidade-v16825'>"
-            "<span class='elevo-avatar-joia-v16825' aria-hidden='true'>"
-            "<svg width='32' height='32' viewBox='0 0 32 32' fill='none' xmlns='http://www.w3.org/2000/svg'>"
-            "<circle cx='16' cy='10' r='5' stroke='currentColor' stroke-width='2.4'/>"
-            "<path d='M5 28v-3c0-5.4 4.9-9 11-9s11 3.6 11 9v3H5Z' stroke='currentColor' stroke-width='2.4' stroke-linejoin='round'/>"
-            "</svg></span>"
+            f"<span class='elevo-avatar-joia-v16825'>{_elevo_avatar_miolo_v16827}</span>"
             "<div class='elevo-identidade-texto-v16825'>"
             f"<div class='eyebrow'>♛ ÉLÉVO • CONTA VIP</div>"
             f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
@@ -2177,35 +2202,6 @@ if not E_O_CEO:
         if st.button("↻ Atualizar saldo", key="elevo_saldo_refresh_v16813", use_container_width=True):
             elevo_invalidar_leituras_v16816()
             st.rerun()
-    with st.expander("🖼️ Minha foto de perfil", expanded=False):
-        # A imagem anterior continua preservada e pode ser visualizada somente aqui.
-        # Não é mais usada como mascote na barra de navegação.
-        if _elevo_avatar_b64_v16813:
-            try:
-                st.caption("Foto atual salva na conta (você pode substituí-la):")
-                st.image(base64.b64decode(_elevo_avatar_b64_v16813), width=86)
-            except Exception:
-                pass
-        st.caption("Opcional: foto quadrada JPG/PNG. É guardada de forma compacta na sua conta.")
-        foto_perfil_v16813 = st.file_uploader("Escolha uma foto de perfil", type=["png","jpg","jpeg"],
-                                               key="elevo_avatar_upload_v16813")
-        if foto_perfil_v16813 is not None and st.button("💾 Salvar foto do perfil", key="elevo_avatar_save_v16813"):
-            try:
-                from PIL import Image, ImageOps
-                with Image.open(io.BytesIO(foto_perfil_v16813.getvalue())) as imagem:
-                    imagem = ImageOps.exif_transpose(imagem)
-                    if imagem.width * imagem.height > 25000000:
-                        raise ValueError("Imagem muito grande.")
-                    imagem = imagem.convert("RGB")
-                    imagem.thumbnail((144,144))
-                    memoria = io.BytesIO()
-                    imagem.save(memoria, format="JPEG", quality=62, optimize=True)
-                    avatar_codificado = base64.b64encode(memoria.getvalue()).decode("ascii")
-                elevo_perfil_atualizar_v16813(_elevo_email_painel_v16813, avatar=avatar_codificado)
-                st.success("Foto salva!")
-                st.rerun()
-            except Exception:
-                st.error("Não foi possível compactar ou salvar a imagem. Envie outra foto JPG/PNG.")
     try:
         _pedidos_usuario_v16813 = [r for r in elevo_pedidos_v16813()
                                    if str(r.get("Email", "")).strip().lower() == _elevo_email_painel_v16813]
@@ -2215,6 +2211,60 @@ if not E_O_CEO:
             st.caption("⏳ Você tem um pedido de créditos aguardando o CEO.")
     except ElevoCreditoErroV16813:
         pass
+
+
+# V16.8.27 — Foto do perfil independente do saldo. O CEO e os usuários têm
+# a mesma experiência: o upload salva e reflete no círculo sem clique extra.
+with st.container(key="elevo_foto_perfil_v16827"):
+    with st.expander("🖼️ Minha foto de perfil", expanded=False):
+        st.caption("Sua foto aparece no círculo da sua conta VIP. Ao escolher uma imagem, ela é salva automaticamente.")
+        if (_elevo_avatar_b64_v16813 and len(_elevo_avatar_b64_v16813) <= 40000
+                and re.fullmatch(r"[A-Za-z0-9+/=]+", _elevo_avatar_b64_v16813)):
+            st.markdown(
+                '<div class="elevo-foto-preview-v16827">'
+                f'<img src="data:image/jpeg;base64,{_elevo_avatar_b64_v16813}" '
+                'alt="Foto atual do perfil" />'
+                '<div><strong>Foto atual da sua conta</strong>'
+                '<span>Visível no avatar circular do painel. Envie outra imagem para substituir.</span>'
+                '</div></div>', unsafe_allow_html=True)
+        foto_perfil_v16813 = st.file_uploader(
+            "Escolha sua foto de perfil · JPG ou PNG",
+            type=["png", "jpg", "jpeg"],
+            key="elevo_avatar_upload_v16813",
+            help="Apenas sua conta utiliza esta foto. A imagem é reduzida antes do armazenamento.")
+        if foto_perfil_v16813 is not None:
+            dados_avatar_v16827 = foto_perfil_v16813.getvalue()
+            hash_avatar_v16827 = (
+                _elevo_email_painel_v16813 + ":" + hashlib.sha256(dados_avatar_v16827).hexdigest())
+            if st.session_state.get("elevo_avatar_upload_tentado_v16827") != hash_avatar_v16827:
+                st.session_state["elevo_avatar_upload_tentado_v16827"] = hash_avatar_v16827
+                try:
+                    from PIL import Image, ImageOps
+                    if len(dados_avatar_v16827) > 12 * 1024 * 1024:
+                        raise ValueError("Envie uma foto de até 12 MB.")
+                    with Image.open(io.BytesIO(dados_avatar_v16827)) as imagem:
+                        imagem = ImageOps.exif_transpose(imagem)
+                        if imagem.width * imagem.height > 25000000:
+                            raise ValueError("Imagem muito grande.")
+                        imagem = imagem.convert("RGB")
+                        imagem.thumbnail((144, 144))
+                        memoria = io.BytesIO()
+                        imagem.save(memoria, format="JPEG", quality=62, optimize=True)
+                        avatar_codificado = base64.b64encode(memoria.getvalue()).decode("ascii")
+                    elevo_perfil_atualizar_v16813(_elevo_email_painel_v16813, avatar=avatar_codificado)
+                    st.session_state.pop("elevo_avatar_upload_erro_v16827", None)
+                    st.rerun()  # Refaz o cabeçalho com a foto já salva.
+                except Exception as erro:
+                    st.session_state["elevo_avatar_upload_erro_v16827"] = (
+                        str(erro) if isinstance(erro, ValueError) else
+                        "Não foi possível salvar a foto. Verifique a imagem ou o banco de dados.")
+            if st.session_state.get("elevo_avatar_upload_erro_v16827"):
+                st.error(st.session_state["elevo_avatar_upload_erro_v16827"])
+                if st.button("↻ Tentar salvar novamente", key="elevo_avatar_tentar_v16827"):
+                    st.session_state.pop("elevo_avatar_upload_tentado_v16827", None)
+                    st.session_state.pop("elevo_avatar_upload_erro_v16827", None)
+                    st.rerun()
+
 
 nome_canal_ativo = "Conta Geral"
 link_planilha_ativa = ""
@@ -3213,7 +3263,7 @@ def elevo_permissoes_presets_v16826(acao="listar", item_id="", publico=None):
 
 
 def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=None):
-    """Só o CEO publica; um usuário só envia seu próprio retrato com autorização."""
+    """Só o CEO pode incluir ou publicar perfis na galeria compartilhada."""
     autor = str(st.session_state.get("email_usuario") or "").strip().lower()
     ceo = autor == str(EMAIL_MESTRE).strip().lower() and bool(st.session_state.get("usuario_logado"))
     if not autor or not st.session_state.get("usuario_logado"):
@@ -3222,8 +3272,7 @@ def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=
         if acao in ("visibilidade", "criar_ceo") and not ceo:
             raise PermissionError("Operação exclusiva do CEO")
         if acao == "submeter":
-            if not isinstance(perfil, dict) or perfil.get("Proprietario") != autor or perfil.get("Autorizado_Publicar") != "SIM":
-                raise PermissionError("Publicação depende de autorização do dono")
+            return False  # A criação particular não entra mais no catálogo coletivo.
         if acao not in ("listar", "visibilidade", "criar_ceo", "submeter", "revogar"):
             return None
         aba = elevo_aba_catalogo_v16826(
@@ -3239,12 +3288,16 @@ def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=
                                 (linha + [""] * len(ELEVO_CATALOGO_COLUNAS_V16826))[:len(ELEVO_CATALOGO_COLUNAS_V16826)]))
                 registros[linha[0]] = (i, dado)
         if acao == "listar":
-            return [d for _, d in registros.values() if ceo or
-                    (d["Visibilidade"] == "PUBLICO" and d["Autorizado_Publicar"] == "SIM")]
+            return [d for _, d in registros.values()
+                    if d["Origem"] == "ceo" and
+                    (ceo or (d["Visibilidade"] == "PUBLICO" and
+                             d["Autorizado_Publicar"] == "SIM"))]
         if acao == "visibilidade":
             if item_id not in registros or publico is None:
                 return False
             linha, dado = registros[item_id]
+            if dado["Origem"] != "ceo":
+                return False  # Fotos de usuários nunca podem ser publicadas.
             if publico and dado["Autorizado_Publicar"] != "SIM":
                 return False
             aba.update_cell(linha, 10, "PUBLICO" if publico else "PRIVADO")
@@ -3293,7 +3346,7 @@ with _elevo_area_criacao_v16823:
     st.divider()
     st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
     st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
-    st.caption("Oito influenciadoras oficiais e a identidade do CEO, além das criações autorizadas. Foto e ficha técnica seguem juntas para os Blocos 17 e 17.2; suas criações pessoais começam privadas.")
+    st.caption("Oito influenciadoras oficiais e a identidade do CEO, mais os perfis adicionados pelo administrador. Suas próprias criações ficam visíveis só no seu login; a ficha segue com a foto para os Blocos 17 e 17.2.")
 
     INFLUENCIADORAS_ELEVO_V164 = {
         'ana': {
@@ -3721,32 +3774,45 @@ with _elevo_area_criacao_v16823:
     with st.container(horizontal=True, wrap=False, gap="small", key="elevo_carrossel_influenciadoras"):
         for card in cards_galeria_v164:
             with st.container(width=226):
-                # Ações de publicação somente no servidor para o CEO; não usar HTML clicável.
+                # Cabeçalho de altura idêntica em TODOS os cards.
+                # Popover nativo: o menu não empurra a foto ou o botão Selecionar.
+                if card["tipo"] == "propria":
+                    _estado_txt_v16827, _estado_classe_v16827 = "🔒 Só minha conta", "privado"
+                elif card["publico"]:
+                    _estado_txt_v16827, _estado_classe_v16827 = "🌐 Público", "publico"
+                else:
+                    _estado_txt_v16827, _estado_classe_v16827 = "🔒 Somente CEO", "privado"
+                _selo_html_v16827 = (
+                    f'<div class="elevo-card-topo-v16827"><span class="elevo-visib-selo-v16827 '
+                    f'{_estado_classe_v16827}">{_estado_txt_v16827}</span></div>'
+                )
                 if E_O_CEO and card["tipo"] != "propria":
-                    col_rotulo, col_dots = st.columns([4.4, 1], vertical_alignment="center")
-                    with col_rotulo:
-                        st.caption("🌐 Público" if card["publico"] else "🔒 Somente CEO")
-                    with col_dots:
-                        if st.button("⋯", key="elenco_opcoes_" + card["id"], help="Visibilidade deste card"):
-                            chave_aberta = "elevo_menu_card_v16826"
-                            st.session_state[chave_aberta] = ("" if st.session_state.get(chave_aberta) == card["id"] else card["id"])
-                    if st.session_state.get("elevo_menu_card_v16826") == card["id"]:
-                        with st.container(border=True):
+                    _c_status_v16827, _c_menu_v16827 = st.columns(
+                        [3.5, 1], gap="small", vertical_alignment="center")
+                    with _c_status_v16827:
+                        st.markdown(_selo_html_v16827, unsafe_allow_html=True)
+                    with _c_menu_v16827:
+                        with st.popover("⋯", help="Configurar público / somente CEO"):
+                            st.markdown("**Visibilidade da influenciadora**")
                             publicacao_nova = st.radio(
                                 "Quem pode ver?", ["Público", "Somente CEO"],
                                 index=0 if card["publico"] else 1,
                                 key="elevo_visib_escolha_" + card["id"])
-                            if st.button("Salvar visibilidade", key="elevo_visib_salvar_" + card["id"], use_container_width=True):
+                            if st.button("💾 Salvar visibilidade", type="primary",
+                                         key="elevo_visib_salvar_" + card["id"], use_container_width=True):
                                 quer_publico = publicacao_nova == "Público"
                                 if card["tipo"] == "catalogo":
-                                    ok = elevo_catalogo_extra_v16826("visibilidade", item_id=card["registro"]["Id"], publico=quer_publico)
+                                    ok = elevo_catalogo_extra_v16826(
+                                        "visibilidade", item_id=card["registro"]["Id"], publico=quer_publico)
                                 else:
-                                    ok = elevo_permissoes_presets_v16826("alterar", item_id=card["id"], publico=quer_publico)
+                                    ok = elevo_permissoes_presets_v16826(
+                                        "alterar", item_id=card["id"], publico=quer_publico)
                                 if ok:
-                                    st.session_state["elevo_menu_card_v16826"] = ""
                                     st.rerun()
                                 else:
                                     st.error("Não foi possível salvar a visibilidade no banco.")
+                else:
+                    st.markdown(_selo_html_v16827, unsafe_allow_html=True)
                 ativo = st.session_state.get("elevo_inf_preset_id", "") == card["id"]
                 classe_ativo = " ativo" if ativo else ""
                 selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
@@ -3881,14 +3947,7 @@ with _elevo_area_criacao_v16823:
             if propria_salva and propria_salva.get("Descricao_Visual"):
                 st.success("✅ Você já tem uma identidade própria salva neste login.")
                 if not E_O_CEO:
-                    with st.expander("🔒 Privacidade da minha foto", expanded=False):
-                        st.caption("Você pode retirar a autorização de publicação sem apagar sua identidade privada.")
-                        if st.button("Revogar acesso ao catálogo público", key="elevo_revogar_envio_v16826"):
-                            if elevo_catalogo_extra_v16826("revogar"):
-                                st.success("Autorização de compartilhamento retirada. Sua identidade privada continua salva.")
-                                st.rerun()
-                            else:
-                                st.error("Não foi possível revogar agora. Tente novamente.")
+                    st.caption("🔒 Essa influenciadora é pessoal e ficará visível apenas na sua conta.")
                 if st.button("▶ Ativar minha identidade salva", key="elevo_restaurar_propria", use_container_width=True):
                     ativar_identidade_propria_v1683(propria_salva, email_elenco_v164)
                     st.session_state["elevo_propria_estudio_aberto"] = False
@@ -3918,17 +3977,12 @@ with _elevo_area_criacao_v16823:
                 height=105, key="elevo_notas_propria_v1683")
             if E_O_CEO:
                 incluir_no_catalogo_ceo = st.checkbox(
-                    "💎 Também adicionar este perfil ao elenco administrado pelo CEO (começa privado)",
-                    value=True, key="elevo_ceo_add_catalogo_v16826")
-                autorizar_avaliacao_publica = False
+                    "💎 Adicionar também à galeria da plataforma (inicia Somente CEO)",
+                    value=True, key="elevo_ceo_add_catalogo_v16826",
+                    help="Depois de adicionar, use o menu ⋯ do card para tornar público ou privado.")
             else:
                 incluir_no_catalogo_ceo = False
-                autorizar_avaliacao_publica = st.checkbox(
-                    "🌐 Autorizo o CEO a avaliar esta foto e ficha para eventual publicação no catálogo",
-                    value=False, key="elevo_propria_autorizar_publicacao_v16826",
-                    help="Opcional. Sem marcar, a foto fica só na sua conta. Ao marcar, o CEO pode optar entre público e privado.")
-                if not autorizar_avaliacao_publica:
-                    st.caption("🔒 Privado: nenhum outro usuário verá sua foto ou ficha. A escolha de publicar nunca é automática.")
+                st.caption("🔒 Sua criação será exclusiva deste login. Somente o CEO pode adicionar perfis públicos à plataforma.")
             if foto_propria is not None:
                 tamanho_foto = foto_propria.size
                 if tamanho_foto > 12 * 1024 * 1024:
@@ -3999,14 +4053,12 @@ with _elevo_area_criacao_v16823:
                                     "Ficha_Tecnica": analise.get("ficha", "")}
                                 ativar_identidade_propria_v1683(perfil_salvo, email_elenco_v164)
                                 st.session_state["elevo_inf_preset_id"] = "minha_propria"
-                                if incluir_no_catalogo_ceo:
+                                if E_O_CEO and incluir_no_catalogo_ceo:
                                     if not elevo_catalogo_extra_v16826("criar_ceo", perfil=perfil_salvo):
                                         st.warning("Perfil salvo na sua conta, mas não foi possível adicioná-lo ao catálogo do CEO.")
-                                elif autorizar_avaliacao_publica:
-                                    submissao = {**perfil_salvo, "Proprietario": email_elenco_v164, "Autorizado_Publicar": "SIM"}
-                                    if not elevo_catalogo_extra_v16826("submeter", perfil=submissao):
-                                        st.warning("Perfil salvo privadamente; o envio para avaliação do CEO falhou.")
-                                else:
+                                elif not E_O_CEO:
+                                    # Apaga eventual autorização de versões antigas;
+                                    # identidade privada continua no banco pessoal.
                                     elevo_catalogo_extra_v16826("revogar")
                                 st.session_state["elevo_propria_estudio_aberto"] = False
                                 st.rerun()
@@ -8377,4 +8429,121 @@ else:
     box-shadow:0 11px 25px rgba(0,0,0,.22)!important;}
   @media(max-width:650px) {.elevo-vip-perfil-v16824 {padding-right:90px!important;}}
 </style>
+    """, unsafe_allow_html=True)
+
+# ===========================================================
+# V16.8.27 — CAPA DO PERFIL + CARROSSEL COM LED/PUBLICAÇÃO
+# Regras específicas ao avatar e aos cards, sem afetar o restante da UI.
+# ===========================================================
+st.markdown("""
+<style>
+  /* Foto salva dentro da bolinha original, preservando borda e sombra VIP. */
+  .elevo-avatar-joia-v16825 {overflow:hidden!important;padding:0!important;position:relative;isolation:isolate;}
+  .elevo-avatar-joia-v16825 .elevo-foto-avatar-v16827 {
+    width:100%;height:100%;display:block;object-fit:cover;object-position:center 29%;
+    border-radius:50%;filter:none!important;position:relative;z-index:2;
+  }
+  .st-key-elevo_foto_perfil_v16827 [data-testid="stExpander"] {
+    border:1px solid rgba(82,161,246,.48)!important;border-radius:20px!important;
+    box-shadow:0 10px 25px rgba(13,82,169,.13),inset 0 1px rgba(255,255,255,.22)!important;
+  }
+  .st-key-elevo_foto_perfil_v16827 [data-testid="stFileUploader"] {
+    border:1px solid rgba(83,164,255,.36);border-radius:15px;padding:8px;
+    background:linear-gradient(130deg,rgba(19,106,226,.08),rgba(53,187,255,.035));
+    box-shadow:inset 0 1px rgba(255,255,255,.14);
+  }
+  .st-key-elevo_foto_perfil_v16827 [data-testid="stFileUploader"] button,
+  .st-key-elevo_foto_perfil_v16827 [data-testid="stFileUploaderDropzone"] button {
+    background:linear-gradient(115deg,#0054C5,#148BFA)!important;
+    color:#FFF!important;-webkit-text-fill-color:#FFF!important;
+    border:1px solid #75C9FF!important;border-radius:12px!important;
+    box-shadow:0 5px 17px rgba(0,115,222,.23),inset 0 1px rgba(255,255,255,.34)!important;
+  }
+  .elevo-foto-preview-v16827 {display:flex;align-items:center;gap:15px;
+    margin:10px 0 15px;padding:12px 14px;border-radius:18px;
+    border:1px solid rgba(94,163,238,.35);
+    background:linear-gradient(116deg,rgba(26,107,214,.11),rgba(42,160,255,.035));
+    box-shadow:0 6px 16px rgba(14,75,169,.08);}
+  .elevo-foto-preview-v16827 img {width:76px;height:76px;flex:0 0 76px;
+    border-radius:50%;object-fit:cover;object-position:center 29%;
+    border:3px solid #F7FCFF;box-shadow:0 0 0 2px #4AB6FF,0 6px 15px rgba(0,102,200,.22);}
+  .elevo-foto-preview-v16827 strong {display:block;color:#67C0FF;font-weight:800;font-size:.9rem;}
+  .elevo-foto-preview-v16827 span {display:block;color:#9CB6D7;font-size:.76rem;margin-top:4px;line-height:1.4;}
+  /* Cada card ocupa a mesma altura; a barra de visibilidade não muda entre perfis. */
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stHorizontalBlock"] {align-items:flex-start!important;}
+  .st-key-elevo_carrossel_influenciadoras .elevo-card-topo-v16827 {
+    height:40px;display:flex;align-items:center;margin:0;padding:0 1px;
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-visib-selo-v16827 {
+    display:inline-flex;align-items:center;justify-content:center;max-width:100%;
+    padding:6px 9px;border-radius:999px;white-space:nowrap;
+    letter-spacing:.015em;font-size:.64rem;line-height:1.2;font-weight:850;
+    text-shadow:0 1px 4px rgba(4,20,49,.26);
+    border:1px solid rgba(108,174,251,.35);box-shadow:0 5px 11px rgba(0,62,140,.12),inset 0 1px rgba(255,255,255,.23);
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-visib-selo-v16827.publico {
+    color:#E9F9FF;background:linear-gradient(112deg,#125DBA,#087EC8,#139BC9);
+    border-color:rgba(117,213,255,.72);
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-visib-selo-v16827.privado {
+    color:#F2F7FF;background:linear-gradient(112deg,#233C64,#324E83,#385DA1);
+    border-color:rgba(154,183,235,.55);
+  }
+  /* Três pontos realmente visíveis e clicáveis: joia azul escura com foco. */
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button,
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] > button {
+    min-height:37px!important;height:37px!important;min-width:37px!important;width:37px!important;
+    padding:2px!important;border-radius:12px!important;
+    background:linear-gradient(130deg,#0D3377 0%,#075ED1 55%,#084093 100%)!important;
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    border:1px solid #6ABFFF!important;font-size:1.42rem!important;line-height:1!important;
+    box-shadow:0 5px 15px rgba(4,87,190,.25),inset 0 1px rgba(255,255,255,.3)!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button * {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button:hover {
+    filter:brightness(1.11);box-shadow:0 7px 17px rgba(6,117,255,.35)!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button:focus-visible {
+    outline:2px solid #80D9FF!important;outline-offset:3px!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-elenco-card {
+    height:322px!important;display:flex;flex-direction:column;overflow:hidden;
+    background:radial-gradient(ellipse 95% 52% at 100% 0%,rgba(42,126,218,.19),transparent 76%),
+      linear-gradient(149deg,#142D51,#0A1931 75%)!important;
+    border:1px solid rgba(110,175,255,.43)!important;
+    border-radius:17px!important;
+    box-shadow:0 11px 22px rgba(4,30,77,.18),inset 0 1px rgba(220,244,255,.14)!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-elenco-card.ativo {
+    border-color:#50D7FF!important;box-shadow:0 0 0 1px rgba(76,215,255,.50),
+      0 12px 25px rgba(9,107,213,.24),inset 0 1px rgba(255,255,255,.24)!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras .elevo-elenco-foto {height:150px!important;flex:0 0 150px;}
+  .st-key-elevo_carrossel_influenciadoras .elevo-elenco-nome {margin-top:9px!important;}
+  .st-key-elevo_carrossel_influenciadoras .elevo-elenco-desc {max-height:62px;}
+  .st-key-elevo_carrossel_influenciadoras .stButton>button {border-radius:13px!important;
+    border:1px solid rgba(112,174,237,.58)!important;box-shadow:0 6px 13px rgba(0,65,139,.15)!important;}
+  @media(max-width:767px) {
+    .elevo-avatar-joia-v16825 {flex:0 0 48px!important;width:48px!important;height:48px!important;}
+    .st-key-elevo_carrossel_influenciadoras .elevo-elenco-card {height:322px!important;}
+  }
+  @media(prefers-reduced-motion:reduce) {
+    .st-key-elevo_carrossel_influenciadoras .elevo-elenco-card,
+    .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button {transition:none!important;}
+  }
+</style>
+""", unsafe_allow_html=True)
+
+# Corrige a cor da foto atual na variante clara; o escuro mantém cor azul suave.
+if modo_claro:
+    st.markdown("""
+    <style>
+    .elevo-foto-preview-v16827 strong {color:#1055AA!important;}
+    .elevo-foto-preview-v16827 span {color:#415C7C!important;}
+    .st-key-elevo_foto_perfil_v16827 [data-testid="stFileUploader"] {
+        background:linear-gradient(125deg,#EDF6FF,#F9FCFF)!important;
+    }
+    </style>
     """, unsafe_allow_html=True)
