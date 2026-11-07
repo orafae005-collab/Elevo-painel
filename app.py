@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.26 — FICHA AUTOMÁTICA + GALERIA PRÓPRIA + CONTROLE CEO
+# Base V16.8.25 preservada; alterações restritas ao elenco de influenciadoras.
 # ÉLÉVO V16.8.25 — DIAMANTE VIP, atualização real da plataforma.
 # Removed tools (UI and handlers): Radar de Tendências da Aurora e Academia ÉLÉVO.
 # Paleta azul-branco diamante estendida a todos os módulos, desktop e mobile.
@@ -3009,7 +3011,7 @@ def gerenciar_influencer_usuario(acao, email_usr, nome_inf="", desc_inf="", logo
 # Guardada em aba adicional; nunca sobrescrita ao testar os oito presets.
 # O rosto vem da FOTO, não de descrições inventadas pela IA.
 # ==========================================================
-def gerenciar_identidade_propria_v1683(acao, email, nome="", descricao="", notas="", foto_b64=""):
+def gerenciar_identidade_propria_v1683(acao, email, nome="", descricao="", notas="", foto_b64="", faixa_etaria="", ficha_tecnica=""):
     """Leitura/gravação por e-mail autenticado, em aba separada do elenco ativo."""
     email = str(email or "").strip().lower()
     if not email or not robo_sheets:
@@ -3022,25 +3024,30 @@ def gerenciar_identidade_propria_v1683(acao, email, nome="", descricao="", notas
         except gspread.exceptions.WorksheetNotFound:
             if acao == "ler":
                 return None
-            aba = planilha.add_worksheet(title="Banco_Influencias_Proprias", rows="1000", cols="6")
-            aba.append_row(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em"])
+            aba = planilha.add_worksheet(title="Banco_Influencias_Proprias", rows="1000", cols="8")
+            aba.append_row(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em", "Faixa_Etaria_Aparente", "Ficha_Tecnica"])
         if acao == "ler":
             valores = aba.get_all_values()
             for linha in reversed(valores[1:]):
                 if linha and str(linha[0]).strip().lower() == email:
-                    linha = (linha + [""] * 6)[:6]
-                    return dict(zip(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em"], linha))
+                    linha = (linha + [""] * 8)[:8]
+                    return dict(zip(["Email", "Nome", "Descricao_Visual", "Observacoes", "Foto_JPEG_B64", "Atualizado_Em", "Faixa_Etaria_Aparente", "Ficha_Tecnica"], linha))
             return None
         if acao == "salvar":
-            if aba.col_count < 6:
-                aba.resize(cols=6)
+            if aba.col_count < 8:
+                aba.resize(cols=8)
+            cabecalho = aba.row_values(1)
+            if len(cabecalho) < 7:
+                aba.update_cell(1, 7, "Faixa_Etaria_Aparente")
+            if len(cabecalho) < 8:
+                aba.update_cell(1, 8, "Ficha_Tecnica")
             if len(foto_b64) > 42000:
                 raise ValueError("Imagem acima do limite de persistência segura")
             agora = datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")
-            valores = [nome.strip(), descricao.strip(), notas.strip(), foto_b64.strip(), agora]
+            valores = [nome.strip(), descricao.strip(), notas.strip(), foto_b64.strip(), agora, faixa_etaria.strip(), ficha_tecnica.strip()]
             indices = [i for i, v in enumerate(aba.col_values(1), 1) if i > 1 and v.strip().lower() == email]
             if indices:
-                aba.update(f"B{indices[-1]}:F{indices[-1]}", [valores])
+                aba.update(f"B{indices[-1]}:H{indices[-1]}", [valores])
             else:
                 aba.append_row([email] + valores)
             return True
@@ -3079,36 +3086,49 @@ def otimizar_foto_influencia_v1683(arquivo_bytes, limite_b64=42000):
 
 
 def analisar_referencia_influencia_v1683(foto_b64):
-    """Extrai assinatura VISUAL de um retrato. Não analisa produto nem muda cenário."""
+    """Uma análise automática da foto: visual estável, faixa etária apenas aparente e ficha PT-BR.
+
+    A idade exata não pode ser extraída de um retrato. Não inventa idade,
+    identidade real, profissão, saúde, etnia ou características não visíveis.
+    """
     validar_cota_ia()
     pedido = (
-        "Analyze the attached portrait as a VISUAL character reference for future photorealistic "
-        "still-image and video prompts. Return valid JSON with one string key named "
-        "'visual_signature_en', and another boolean key 'valid_single_subject'. "
-        "Set valid_single_subject to false when the photo does not clearly show exactly one person. "
-        "Describe ONLY directly observable stable appearance: "
-        "face shape, eyes, hair length/style/color, skin tone as seen, eyebrows, body posture when visible, "
-        "and the photographed outfit when visible. Never invent invisible details, age, profession, "
-        "race, identity, health or other sensitive traits. Never describe a product, brand, "
-        "background product or item for sale. Do not invent a specific person name. "
-        "Use ~90-170 precise English words, one coherent third-person description. "
-        "Keep the SAME person and physical features in image and every video frame."
+        "Analyze a portrait as a reference for ONE fictional ADULT digital influencer. "
+        "Respond ONLY with JSON: visual_signature_en (string of 90-170 words), "
+        "valid_single_subject (boolean), apparent_age_range_pt (short string), "
+        "technical_profile_pt (80-130 Portuguese words). "
+        "Set valid_single_subject false if not exactly one clearly visible adult. "
+        "Describe visually observable facial proportions, hair, eyes, skin appearance, "
+        "posture and clothes where visible. Estimate a broad apparent ADULT age band "
+        "only if visually supportable, prefaced 'aparência aproximada'; otherwise "
+        "say 'idade não determinável pela foto'. NEVER give an exact age from the image. "
+        "In technical_profile_pt describe visible physical identity, styling, visual "
+        "continuity directives for still/video, and conservative default expression/voice "
+        "direction as a creative suggestion, not as a fact deduced from the photo. "
+        "Do not infer name, occupation, nationality, personality, ethnicity, religion, "
+        "health, a product, or other sensitive traits. "
+        "Make it useful for photorealistic image and video continuity and avoid descriptions "
+        "of products, logos and unrelated background."
     )
     resposta = elevo_chat_create_v1685(
-        model=ELEVO_MODELO_PRODUCAO_V1685, response_format={"type":"json_object"},
-        messages=[{"role":"system","content":pedido},
-                  {"role":"user","content":[{"type":"text", "text":"Produce the visible-person signature only."},
-                   {"type":"image_url", "image_url":{"url":"data:image/jpeg;base64," + foto_b64,
-                                                             "detail":"high"}}]}],
-        max_tokens=520, temperature=0.15)
-    conteudo = resposta.choices[0].message.content or "{}"
-    resultado = json.loads(conteudo)
-    if resultado.get("valid_single_subject") is False:
-        raise ValueError("Envie uma foto com uma única pessoa visível")
-    descricao = str(resultado.get("visual_signature_en", "")).strip()
-    if not (80 <= len(descricao) <= 1800):
-        raise ValueError("A IA não devolveu uma análise visual válida da foto")
-    return descricao
+        model=ELEVO_MODELO_PRODUCAO_V1685, response_format={"type": "json_object"},
+        messages=[{"role": "system", "content": pedido},
+                  {"role": "user", "content": [
+                      {"type": "text", "text": "Provide a consistent technical identity from this portrait."},
+                      {"type": "image_url", "image_url": {
+                          "url": "data:image/jpeg;base64," + foto_b64, "detail": "high"}}]}],
+        max_tokens=850, temperature=0.15)
+    resultado = json.loads(resposta.choices[0].message.content or "{}")
+    if resultado.get("valid_single_subject") is not True:
+        raise ValueError("Envie um retrato nítido de uma única pessoa adulta")
+    assinatura = str(resultado.get("visual_signature_en") or "").strip()
+    tecnico = str(resultado.get("technical_profile_pt") or "").strip()
+    faixa = str(resultado.get("apparent_age_range_pt") or "").strip()
+    if not 80 <= len(assinatura) <= 1800 or not 60 <= len(tecnico) <= 1800:
+        raise ValueError("A IA não devolveu uma ficha visual completa")
+    if not faixa:
+        faixa = "Idade não determinável pela foto"
+    return {"visual": assinatura, "ficha": tecnico[:1800], "faixa": faixa[:110]}
 
 
 def ativar_identidade_propria_v1683(perfil, email):
@@ -3128,6 +3148,144 @@ def ativar_identidade_propria_v1683(perfil, email):
     return salvo
 
 # ==========================================================
+# ÉLÉVO V16.8.26 — GOVERNANÇA DE ELENCO / PRIVACIDADE
+# São oito presets + perfil original do CEO. Perfis pessoais têm isolamento por login.
+# Público só depois de opt-in do proprietário E de aprovação explícita do CEO.
+# ==========================================================
+ELEVO_CATALOGO_COLUNAS_V16826 = [
+    "Id", "Origem", "Proprietario", "Nome", "Descricao_Visual", "Observacoes",
+    "Foto_JPEG_B64", "Faixa_Etaria_Aparente", "Ficha_Tecnica",
+    "Visibilidade", "Autorizado_Publicar", "Atualizado_Em"
+]
+
+
+def elevo_id_submissao_v16826(email):
+    return "usuario_" + hashlib.sha256(str(email).strip().lower().encode("utf-8")).hexdigest()[:22]
+
+
+def elevo_aba_catalogo_v16826(nome, colunas, criar=False):
+    if robo_sheets is None:
+        raise RuntimeError("Banco de dados indisponível")
+    try:
+        return elevo_aba_principal_v16816(nome)
+    except gspread.exceptions.WorksheetNotFound:
+        if not criar:
+            return None
+        try:
+            aba = elevo_pasta_principal_v16816().add_worksheet(
+                title=nome, rows=1300, cols=len(colunas))
+            aba.append_row(colunas)
+        except Exception:
+            aba = elevo_pasta_principal_v16816().worksheet(nome)
+        elevo_aba_principal_v16816.clear()
+        return aba
+
+
+def elevo_permissoes_presets_v16826(acao="listar", item_id="", publico=None):
+    """Retorna None se a consulta falhou: falha fechada para o visitante."""
+    permitidos = {'valentina_tropical', 'juliana', 'ceo_original', 'mariana', 'isabela_tropical', 'camila', 'bruna', 'julia_tropical', 'ana'}
+    defaults = {k: (k != "ceo_original") for k in permitidos}
+    try:
+        if acao == "alterar":
+            if not E_O_CEO or item_id not in permitidos or publico is None:
+                raise PermissionError("Somente CEO controla visibilidade")
+        aba = elevo_aba_catalogo_v16826("Elevo_Visibilidade_Presets_V1", ["Id", "Publico", "Atualizado_Em"], criar=(acao == "alterar"))
+        if aba is None:
+            return defaults if acao == "listar" else False
+        linhas = aba.get_all_values()
+        vistos = {}
+        for i, linha in enumerate(linhas[1:], start=2):
+            if len(linha) >= 2 and linha[0] in permitidos:
+                vistos[linha[0]] = (i, str(linha[1]).upper() == "SIM")
+        if acao == "alterar":
+            agora = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+            dados = [item_id, "SIM" if publico else "NAO", agora]
+            if item_id in vistos:
+                aba.update(f"A{vistos[item_id][0]}:C{vistos[item_id][0]}", [dados])
+            else:
+                aba.append_row(dados)
+            return True
+        defaults.update({k: v[1] for k, v in vistos.items()})
+        return defaults
+    except Exception as erro:
+        logging.getLogger("elevo.influencer").warning("Visibilidade presets: %s", type(erro).__name__)
+        return None if acao == "listar" else False
+
+
+def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=None):
+    """Só o CEO publica; um usuário só envia seu próprio retrato com autorização."""
+    autor = str(st.session_state.get("email_usuario") or "").strip().lower()
+    ceo = autor == str(EMAIL_MESTRE).strip().lower() and bool(st.session_state.get("usuario_logado"))
+    if not autor or not st.session_state.get("usuario_logado"):
+        return None
+    try:
+        if acao in ("visibilidade", "criar_ceo") and not ceo:
+            raise PermissionError("Operação exclusiva do CEO")
+        if acao == "submeter":
+            if not isinstance(perfil, dict) or perfil.get("Proprietario") != autor or perfil.get("Autorizado_Publicar") != "SIM":
+                raise PermissionError("Publicação depende de autorização do dono")
+        if acao not in ("listar", "visibilidade", "criar_ceo", "submeter", "revogar"):
+            return None
+        aba = elevo_aba_catalogo_v16826(
+            "Elevo_Influencias_Catalogo_V1", ELEVO_CATALOGO_COLUNAS_V16826,
+            criar=(acao in ("criar_ceo", "submeter")))
+        if aba is None:
+            return [] if acao == "listar" else (True if acao == "revogar" else False)
+        linhas = aba.get_all_values()
+        registros = {}
+        for i, linha in enumerate(linhas[1:], start=2):
+            if linha and linha[0]:
+                dado = dict(zip(ELEVO_CATALOGO_COLUNAS_V16826,
+                                (linha + [""] * len(ELEVO_CATALOGO_COLUNAS_V16826))[:len(ELEVO_CATALOGO_COLUNAS_V16826)]))
+                registros[linha[0]] = (i, dado)
+        if acao == "listar":
+            return [d for _, d in registros.values() if ceo or
+                    (d["Visibilidade"] == "PUBLICO" and d["Autorizado_Publicar"] == "SIM")]
+        if acao == "visibilidade":
+            if item_id not in registros or publico is None:
+                return False
+            linha, dado = registros[item_id]
+            if publico and dado["Autorizado_Publicar"] != "SIM":
+                return False
+            aba.update_cell(linha, 10, "PUBLICO" if publico else "PRIVADO")
+            return True
+        if acao == "revogar":
+            alvo = elevo_id_submissao_v16826(autor)
+            if alvo in registros and registros[alvo][1]["Proprietario"] == autor:
+                aba.delete_rows(registros[alvo][0])
+            return True
+        if acao in ("submeter", "criar_ceo"):
+            if not isinstance(perfil, dict):
+                return False
+            ident = (elevo_id_submissao_v16826(autor) if acao == "submeter"
+                     else "ceo_" + secrets.token_hex(9))
+            origem = "usuario" if acao == "submeter" else "ceo"
+            foto = str(perfil.get("Foto_JPEG_B64") or "")
+            if len(foto) > 42000 or len(foto) < 100 or not re.fullmatch(r"[a-zA-Z0-9+/=]+", foto):
+                return False
+            agora = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+            valores = [ident, origem, autor, str(perfil.get("Nome") or "Minha Influência")[:90],
+                       str(perfil.get("Descricao_Visual") or "")[:3500], str(perfil.get("Observacoes") or "")[:1200],
+                       foto, str(perfil.get("Faixa_Etaria_Aparente") or "")[:110],
+                       str(perfil.get("Ficha_Tecnica") or "")[:1800],
+                       "PRIVADO", "SIM", agora]
+            if acao == "submeter" and ident in registros:
+                row = registros[ident][0]
+                aba.update(f"A{row}:L{row}", [valores])
+            elif acao == "criar_ceo" and any(
+                    d["Origem"] == "ceo" and d["Proprietario"] == autor
+                    and d["Nome"] == valores[3] and d["Foto_JPEG_B64"] == foto
+                    for _, d in registros.values()):
+                return True  # Repetir clique não duplica um mesmo card do CEO.
+            else:
+                aba.append_row(valores)
+            return True
+    except Exception as erro:
+        logging.getLogger("elevo.influencer").warning("Catálogo influências %s: %s", acao, type(erro).__name__)
+        return None if acao == "listar" else False
+
+
+# ==========================================================
 # ÉLÉVO V16.4 — ELENCO DIGITAL (substitui SOMENTE Laboratório + 9s)
 # Retratos originais embarcados no app.py; não necessita upload de imagens.
 # ==========================================================
@@ -3135,7 +3293,7 @@ with _elevo_area_criacao_v16823:
     st.divider()
     st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
     st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
-    st.caption("Oito influenciadoras fictícias adultas com identidade, aparência, personalidade, voz e emoção já definidas. Basta selecionar: a ficha completa será aplicada automaticamente aos Blocos 17 e 17.2.")
+    st.caption("Oito influenciadoras oficiais e a identidade do CEO, além das criações autorizadas. Foto e ficha técnica seguem juntas para os Blocos 17 e 17.2; suas criações pessoais começam privadas.")
 
     INFLUENCIADORAS_ELEVO_V164 = {
         'ana': {
@@ -3404,6 +3562,8 @@ with _elevo_area_criacao_v16823:
 .elevo-elenco-desc {color:#B6C4D9;font-size:.71rem;line-height:1.45;display:-webkit-box;
     -webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;}
 .elevo-elenco-status {font-size:.68rem;color:#75F2CF;font-weight:700;margin:0 0 5px;}
+.elevo-card-admin {display:flex;justify-content:flex-end;align-items:center;min-height:28px;}
+.elevo-elenco-publicacao {font-size:.68rem;color:#2471bd;font-weight:750;margin-top:3px;}
 @media (max-width:900px) {.elevo-elenco-card {height:322px}}
 </style>
 """, unsafe_allow_html=True)
@@ -3440,26 +3600,69 @@ with _elevo_area_criacao_v16823:
     else:
         st.caption("🎯 Nenhum cartão foi escolhido ainda. Se não salvar um perfil, o sistema usa uma persona neutra apenas como fallback técnico.")
 
+    # Acesso público é definido pelo CEO; uma falha no banco oculta os perfis
+    # controlados por visibilidade para evitar mostrar uma ficha privada.
+    permissoes_v16826 = elevo_permissoes_presets_v16826()
+    extras_v16826 = elevo_catalogo_extra_v16826("listar")
+    if permissoes_v16826 is None:
+        permissoes_v16826 = {}
+        st.warning("Não foi possível confirmar a visibilidade do catálogo agora. Alguns perfis foram ocultados por segurança.")
+    if extras_v16826 is None:
+        extras_v16826 = []
+        st.warning("Catálogo de influenciadoras temporariamente indisponível. Seu perfil privado continua salvo.")
     cards_galeria_v164 = []
-    if E_O_CEO:
+    if E_O_CEO or permissoes_v16826.get("ceo_original", False):
         cards_galeria_v164.append({
-            "id": "ceo_original",
-            "nome": nome_ceo_galeria,
-            "idade": "CEO",
+            "id": "ceo_original", "nome": nome_ceo_galeria, "idade": "CEO",
             "nicho": "Influência original do CEO",
-            "resumo": "Sua personagem principal. Mantém a identidade já usada nos Blocos 17 e 17.2, sem precisar digitar tudo de novo.",
-            "foto": FOTO_CEO_REFERENCIA_1,
-            "tipo": "ceo"
+            "resumo": "A identidade original do CEO para os Blocos 17 e 17.2.",
+            "foto": FOTO_CEO_REFERENCIA_1, "mime": "image/webp", "tipo": "ceo",
+            "publico": permissoes_v16826.get("ceo_original", False),
         })
     for chave_perfil, perfil in INFLUENCIADORAS_ELEVO_V164.items():
+        if E_O_CEO or permissoes_v16826.get(chave_perfil, False):
+            cards_galeria_v164.append({
+                "id": chave_perfil, "nome": perfil["nome"], "idade": perfil["idade"],
+                "nicho": perfil["nicho"], "resumo": perfil["resumo"],
+                "foto": perfil["foto"], "mime": "image/webp", "tipo": "preset",
+                "publico": permissoes_v16826.get(chave_perfil, False),
+            })
+    minha_propria_v16826 = obter_identidade_propria_v1683(email_elenco_v164)
+    propria_ja_no_catalogo_ceo_v16826 = (
+        E_O_CEO and minha_propria_v16826 and any(
+            extra.get("Origem") == "ceo"
+            and extra.get("Proprietario") == email_elenco_v164
+            and extra.get("Descricao_Visual") == minha_propria_v16826.get("Descricao_Visual")
+            for extra in extras_v16826
+        )
+    )
+    if propria_ja_no_catalogo_ceo_v16826 and st.session_state.get("elevo_inf_preset_id") == "minha_propria":
+        correspondente = next(
+            (extra for extra in reversed(extras_v16826)
+             if extra.get("Origem") == "ceo"
+             and extra.get("Proprietario") == email_elenco_v164
+             and extra.get("Descricao_Visual") == minha_propria_v16826.get("Descricao_Visual")), None)
+        if correspondente:
+            st.session_state["elevo_inf_preset_id"] = "catalogo:" + correspondente["Id"]
+    if (minha_propria_v16826 and minha_propria_v16826.get("Descricao_Visual")
+            and not propria_ja_no_catalogo_ceo_v16826):
         cards_galeria_v164.append({
-            "id": chave_perfil,
-            "nome": perfil["nome"],
-            "idade": perfil["idade"],
-            "nicho": perfil["nicho"],
-            "resumo": perfil["resumo"],
-            "foto": perfil["foto"],
-            "tipo": "preset"
+            "id": "minha_propria", "nome": minha_propria_v16826.get("Nome") or "Minha Influência",
+            "idade": minha_propria_v16826.get("Faixa_Etaria_Aparente") or "Adulta · idade não informada",
+            "nicho": "Minha criação · privada", "resumo": minha_propria_v16826.get("Observacoes") or "Ficha visual analisada automaticamente pela IA.",
+            "foto": minha_propria_v16826.get("Foto_JPEG_B64") or "", "mime": "image/jpeg", "tipo": "propria",
+            "publico": False,
+        })
+    for extra in extras_v16826:
+        if extra.get("Origem") == "usuario" and extra.get("Proprietario") == email_elenco_v164:
+            continue  # Já aparece no card pessoal, nunca duplicar.
+        cards_galeria_v164.append({
+            "id": "catalogo:" + extra["Id"], "nome": extra.get("Nome") or "Influência",
+            "idade": extra.get("Faixa_Etaria_Aparente") or "Adulta",
+            "nicho": "Galeria ÉLÉVO" if extra["Visibilidade"] == "PUBLICO" else "Aguardando liberação CEO",
+            "resumo": extra.get("Observacoes") or extra.get("Ficha_Tecnica") or "Ficha técnica da influência",
+            "foto": extra.get("Foto_JPEG_B64") or "", "mime": "image/jpeg", "tipo": "catalogo",
+            "publico": extra["Visibilidade"] == "PUBLICO", "registro": extra,
         })
 
     def aplicar_cartao_influencia_v164(card_id):
@@ -3474,9 +3677,24 @@ with _elevo_area_criacao_v16823:
             if gerenciar_identidade_propria_v1683("salvar", email_elenco_v164, backup_nome, backup_desc):
                 st.session_state["elevo_propria_cache"] = gerenciar_identidade_propria_v1683("ler", email_elenco_v164)
         marca = str((st.session_state.get("influencer_atual") or {}).get("Logo_Marca", "")).strip()
+        card_visivel = next((c for c in cards_galeria_v164 if c["id"] == card_id), None)
+        if card_visivel is None:
+            raise PermissionError("Influência não disponível para esta conta")
         if card_id == "ceo_original":
             nome_aplicado = nome_ceo_galeria
             descricao_aplicada = descricao_ceo_galeria
+        elif card_id == "minha_propria":
+            if not minha_propria_v16826:
+                return
+            ativar_identidade_propria_v1683(minha_propria_v16826, email_elenco_v164)
+            st.session_state["elevo_inf_preset_id"] = card_id
+            return
+        elif card_id.startswith("catalogo:"):
+            registro = card_visivel.get("registro", {})
+            nome_aplicado = str(registro.get("Nome") or "Influência")
+            descricao_aplicada = str(registro.get("Descricao_Visual") or "")
+            if not descricao_aplicada:
+                raise ValueError("Ficha incompleta")
         else:
             perfil = INFLUENCIADORAS_ELEVO_V164[card_id]
             nome_aplicado = perfil["nome"]
@@ -3503,19 +3721,52 @@ with _elevo_area_criacao_v16823:
     with st.container(horizontal=True, wrap=False, gap="small", key="elevo_carrossel_influenciadoras"):
         for card in cards_galeria_v164:
             with st.container(width=226):
+                # Ações de publicação somente no servidor para o CEO; não usar HTML clicável.
+                if E_O_CEO and card["tipo"] != "propria":
+                    col_rotulo, col_dots = st.columns([4.4, 1], vertical_alignment="center")
+                    with col_rotulo:
+                        st.caption("🌐 Público" if card["publico"] else "🔒 Somente CEO")
+                    with col_dots:
+                        if st.button("⋯", key="elenco_opcoes_" + card["id"], help="Visibilidade deste card"):
+                            chave_aberta = "elevo_menu_card_v16826"
+                            st.session_state[chave_aberta] = ("" if st.session_state.get(chave_aberta) == card["id"] else card["id"])
+                    if st.session_state.get("elevo_menu_card_v16826") == card["id"]:
+                        with st.container(border=True):
+                            publicacao_nova = st.radio(
+                                "Quem pode ver?", ["Público", "Somente CEO"],
+                                index=0 if card["publico"] else 1,
+                                key="elevo_visib_escolha_" + card["id"])
+                            if st.button("Salvar visibilidade", key="elevo_visib_salvar_" + card["id"], use_container_width=True):
+                                quer_publico = publicacao_nova == "Público"
+                                if card["tipo"] == "catalogo":
+                                    ok = elevo_catalogo_extra_v16826("visibilidade", item_id=card["registro"]["Id"], publico=quer_publico)
+                                else:
+                                    ok = elevo_permissoes_presets_v16826("alterar", item_id=card["id"], publico=quer_publico)
+                                if ok:
+                                    st.session_state["elevo_menu_card_v16826"] = ""
+                                    st.rerun()
+                                else:
+                                    st.error("Não foi possível salvar a visibilidade no banco.")
                 ativo = st.session_state.get("elevo_inf_preset_id", "") == card["id"]
                 classe_ativo = " ativo" if ativo else ""
                 selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
-                idade_txt = f"{card['idade']}" + (" anos" if str(card['idade']).isdigit() else "")
+                idade_valor = str(card["idade"])
+                idade_txt = idade_valor + (" anos" if idade_valor.isdigit() else "")
+                foto_card = str(card.get("foto") or "")
+                mime_card = card.get("mime", "image/jpeg")
+                imagem_html = (
+                    f'<img class="elevo-elenco-foto" src="data:{mime_card};base64,{foto_card}" alt="Retrato de {html_std.escape(card["nome"], quote=True)}" />'
+                    if foto_card and re.fullmatch(r"[A-Za-z0-9+/=]+", foto_card)
+                    else '<div class="elevo-elenco-foto" style="display:grid;place-items:center;background:#dceaff;color:#183b71">📷 Foto não disponível</div>'
+                )
                 st.markdown(
                     f'<div class="elevo-elenco-card{classe_ativo}">'
-                f'<img class="elevo-elenco-foto" src="data:image/webp;base64,{card["foto"]}" alt="Retrato de {card["nome"]}" />'
-                f'<div class="elevo-elenco-nome">{card["nome"]}</div>'
-                f'<div class="elevo-elenco-idade">{idade_txt}</div>'
-                f'<div class="elevo-elenco-nicho">{card["nicho"]}</div>'
-                f'<div class="elevo-elenco-desc">{card["resumo"]}</div>'
-                f'{selo_ativo}</div>',
-                    unsafe_allow_html=True
+                    f'{imagem_html}'
+                    f'<div class="elevo-elenco-nome">{html_std.escape(str(card["nome"]))}</div>'
+                    f'<div class="elevo-elenco-idade">{html_std.escape(idade_txt)}</div>'
+                    f'<div class="elevo-elenco-nicho">{html_std.escape(str(card["nicho"]))}</div>'
+                    f'<div class="elevo-elenco-desc">{html_std.escape(str(card["resumo"]))}</div>'
+                    f'{selo_ativo}</div>', unsafe_allow_html=True
                 )
                 if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{card['id']}",
                              type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
@@ -3577,6 +3828,25 @@ with _elevo_area_criacao_v16823:
                 "Logo_Marca": str(perfil_em_sessao.get("Logo_Marca", ""))
             }
             st.caption(f"✅ {perfil_ativo['nome']} está ativa automaticamente nos prompts de imagem, vídeo e fala dos Blocos 17 e 17.2.")
+        elif chave_ativa == "minha_propria" and minha_propria_v16826:
+            with st.container(border=True):
+                st.markdown("#### 🧾 Minha ficha técnica automática")
+                st.caption(minha_propria_v16826.get("Faixa_Etaria_Aparente") or "Idade não informada")
+                st.write(minha_propria_v16826.get("Ficha_Tecnica") or "Identidade visual salva para imagem e vídeo.")
+                if minha_propria_v16826.get("Observacoes"):
+                    st.markdown("**Meus detalhes adicionais:**")
+                    st.write(minha_propria_v16826["Observacoes"])
+                st.caption("Esta influência é privada por padrão.")
+        elif chave_ativa.startswith("catalogo:"):
+            registro_ativo = next((c.get("registro") for c in cards_galeria_v164 if c["id"] == chave_ativa), None)
+            if registro_ativo:
+                with st.container(border=True):
+                    st.markdown("#### 🧾 Ficha técnica da influenciadora")
+                    st.caption(registro_ativo.get("Faixa_Etaria_Aparente") or "Idade não informada")
+                    st.write(registro_ativo.get("Ficha_Tecnica") or "Ficha pronta para usar nos geradores.")
+                    if registro_ativo.get("Observacoes"):
+                        st.markdown("**Detalhes do criador:**")
+                        st.write(registro_ativo["Observacoes"])
     else:
         if perfil_sessao_atual.get("Nome_Influencer"):
             st.info("Sua influência salva continua ativa normalmente. Os cartões acima só serão marcados quando você clicar em um deles.")
@@ -3602,7 +3872,7 @@ with _elevo_area_criacao_v16823:
             cab1, cab2 = st.columns([5, 1])
             with cab1:
                 st.markdown("#### 📸 Minha Influência · Estúdio Visual")
-                st.caption("Envie um retrato. A IA reconhece os detalhes visíveis; a descrição técnica fica nos bastidores.")
+                st.caption("Envie a foto e, se quiser, escreva detalhes. A IA cria automaticamente a ficha visual e uma faixa de idade apenas aparente. O card aparecerá junto às demais influenciadoras.")
             with cab2:
                 if st.button("✕ Fechar", key="elevo_fechar_propria", use_container_width=True):
                     st.session_state["elevo_propria_estudio_aberto"] = False
@@ -3610,6 +3880,15 @@ with _elevo_area_criacao_v16823:
             propria_salva = obter_identidade_propria_v1683(email_elenco_v164)
             if propria_salva and propria_salva.get("Descricao_Visual"):
                 st.success("✅ Você já tem uma identidade própria salva neste login.")
+                if not E_O_CEO:
+                    with st.expander("🔒 Privacidade da minha foto", expanded=False):
+                        st.caption("Você pode retirar a autorização de publicação sem apagar sua identidade privada.")
+                        if st.button("Revogar acesso ao catálogo público", key="elevo_revogar_envio_v16826"):
+                            if elevo_catalogo_extra_v16826("revogar"):
+                                st.success("Autorização de compartilhamento retirada. Sua identidade privada continua salva.")
+                                st.rerun()
+                            else:
+                                st.error("Não foi possível revogar agora. Tente novamente.")
                 if st.button("▶ Ativar minha identidade salva", key="elevo_restaurar_propria", use_container_width=True):
                     ativar_identidade_propria_v1683(propria_salva, email_elenco_v164)
                     st.session_state["elevo_propria_estudio_aberto"] = False
@@ -3637,6 +3916,19 @@ with _elevo_area_criacao_v16823:
                 placeholder="Ex.: usar camiseta preta; cabelo preso; expressão acolhedora. A aparência real da foto tem prioridade.",
                 value=propria_salva.get("Observacoes", "") if propria_salva else "",
                 height=105, key="elevo_notas_propria_v1683")
+            if E_O_CEO:
+                incluir_no_catalogo_ceo = st.checkbox(
+                    "💎 Também adicionar este perfil ao elenco administrado pelo CEO (começa privado)",
+                    value=True, key="elevo_ceo_add_catalogo_v16826")
+                autorizar_avaliacao_publica = False
+            else:
+                incluir_no_catalogo_ceo = False
+                autorizar_avaliacao_publica = st.checkbox(
+                    "🌐 Autorizo o CEO a avaliar esta foto e ficha para eventual publicação no catálogo",
+                    value=False, key="elevo_propria_autorizar_publicacao_v16826",
+                    help="Opcional. Sem marcar, a foto fica só na sua conta. Ao marcar, o CEO pode optar entre público e privado.")
+                if not autorizar_avaliacao_publica:
+                    st.caption("🔒 Privado: nenhum outro usuário verá sua foto ou ficha. A escolha de publicar nunca é automática.")
             if foto_propria is not None:
                 tamanho_foto = foto_propria.size
                 if tamanho_foto > 12 * 1024 * 1024:
@@ -3652,13 +3944,13 @@ with _elevo_area_criacao_v16823:
                                 _debito_foto_v16813 = elevo_credito_reservar_v16813(
                                     ELEVO_CUSTO_FERRAMENTA_V16813, "ANALISE_FOTO_INFLUENCIA")
                                 try:
-                                    descricao_ia = analisar_referencia_influencia_v1683(foto_compacta)
+                                    ficha_ia = analisar_referencia_influencia_v1683(foto_compacta)
                                 except Exception:
                                     elevo_credito_estornar_v16813(
                                         _debito_foto_v16813, ELEVO_CUSTO_FERRAMENTA_V16813)
                                     raise
                                 st.session_state["elevo_propria_analise"] = {
-                                    "foto": foto_compacta, "visual": descricao_ia}
+                                    "foto": foto_compacta, **ficha_ia}
                                 st.session_state["elevo_propria_foto_hash"] = assinatura
                                 st.session_state.pop("elevo_propria_erro_analise", None)
                         except Exception as erro:
@@ -3675,27 +3967,52 @@ with _elevo_area_criacao_v16823:
                             st.rerun()
                     if (st.session_state.get("elevo_propria_analise") and
                             assinatura == st.session_state.get("elevo_propria_foto_hash")):
-                        st.caption("✅ Aparência identificada automaticamente. Não precisa escrever descrição física.")
-                        if st.button("✅ Aplicar esta foto à minha influência", type="primary",
+                        ficha_preview = st.session_state["elevo_propria_analise"]
+                        with st.expander("🧾 Ficha técnica produzida automaticamente", expanded=True):
+                            st.caption(ficha_preview.get("faixa", "Idade não determinável pela foto"))
+                            st.write(ficha_preview.get("ficha", ""))
+                            if notas_proprias.strip():
+                                st.markdown("**Detalhes escritos por você (complementares):**")
+                                st.write(notas_proprias.strip())
+                        if st.button("✅ Salvar e adicionar à galeria", type="primary",
                                      use_container_width=True, key="elevo_aplicar_foto_v1683"):
                             analise = st.session_state["elevo_propria_analise"]
                             visual_base = analise["visual"]
                             extras = notas_proprias.strip()
                             # Notas sobre figurino são separadas da assinatura permanente.
-                            descricao_final = visual_base + (" [OPTIONAL DIRECTION, keep the face identity; allow explicitly requested hair or outfit changes consistently]: " + extras if extras else "")
-                            nome_final = nome_propria.strip() or "Minha Influência"
+                            descricao_final = (
+                                visual_base
+                                + " [TECHNICAL CONTINUITY PROFILE / PHOTO-BASED, NO PRODUCT ATTRIBUTES]: " + analise.get("ficha", "")
+                                + " [APPARENT ADULT AGE BAND, NOT VERIFIED]: " + analise.get("faixa", "")
+                                + (" [OPTIONAL CREATOR DIRECTION, preserve core facial identity]: " + extras if extras else "")
+                            )
+                            nome_final = (nome_propria.strip() or "Minha Influência")[:90]
                             salvo = gerenciar_identidade_propria_v1683(
-                                "salvar", email_elenco_v164, nome_final, descricao_final, extras, analise["foto"])
+                                "salvar", email_elenco_v164, nome_final, descricao_final, extras, analise["foto"],
+                                analise.get("faixa", ""), analise.get("ficha", ""))
                             if salvo:
                                 st.session_state["elevo_propria_cache"] = gerenciar_identidade_propria_v1683("ler", email_elenco_v164)
-                                ativar_identidade_propria_v1683(
-                                    st.session_state["elevo_propria_cache"] or {
-                                        "Nome": nome_final, "Descricao_Visual": descricao_final}, email_elenco_v164)
+                                perfil_salvo = st.session_state["elevo_propria_cache"] or {
+                                    "Nome": nome_final, "Descricao_Visual": descricao_final,
+                                    "Foto_JPEG_B64": analise["foto"], "Observacoes": extras,
+                                    "Faixa_Etaria_Aparente": analise.get("faixa", ""),
+                                    "Ficha_Tecnica": analise.get("ficha", "")}
+                                ativar_identidade_propria_v1683(perfil_salvo, email_elenco_v164)
+                                st.session_state["elevo_inf_preset_id"] = "minha_propria"
+                                if incluir_no_catalogo_ceo:
+                                    if not elevo_catalogo_extra_v16826("criar_ceo", perfil=perfil_salvo):
+                                        st.warning("Perfil salvo na sua conta, mas não foi possível adicioná-lo ao catálogo do CEO.")
+                                elif autorizar_avaliacao_publica:
+                                    submissao = {**perfil_salvo, "Proprietario": email_elenco_v164, "Autorizado_Publicar": "SIM"}
+                                    if not elevo_catalogo_extra_v16826("submeter", perfil=submissao):
+                                        st.warning("Perfil salvo privadamente; o envio para avaliação do CEO falhou.")
+                                else:
+                                    elevo_catalogo_extra_v16826("revogar")
                                 st.session_state["elevo_propria_estudio_aberto"] = False
                                 st.rerun()
                             else:
                                 st.error("Não foi possível salvar a foto e identidade no Google Sheets. "
-                                     "Nenhuma identidade anterior foi apagada.")
+                                         "Nenhuma identidade anterior foi apagada.")
             elif not propria_salva:
                 st.info("Envie a foto acima para criar sua personagem. Nome e observações são opcionais.")
 
