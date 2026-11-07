@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.28 — clique direto no status de TODOS os cards.
+# Preserva a V16.8.27 e toda a lógica de geradores, login e créditos.
 # ÉLÉVO V16.8.27 — POLIMENTO PONTUAL DE PERFIL / ELENCO (07/11/2026)
 # Foto do perfil no avatar circular (inclusive CEO), salvamento no upload,
 # controles CEO em popover sem deslocar cartões, textura e alinhamento uniforme.
@@ -3782,37 +3784,76 @@ with _elevo_area_criacao_v16823:
                     _estado_txt_v16827, _estado_classe_v16827 = "🌐 Público", "publico"
                 else:
                     _estado_txt_v16827, _estado_classe_v16827 = "🔒 Somente CEO", "privado"
-                _selo_html_v16827 = (
-                    f'<div class="elevo-card-topo-v16827"><span class="elevo-visib-selo-v16827 '
-                    f'{_estado_classe_v16827}">{_estado_txt_v16827}</span></div>'
-                )
-                if E_O_CEO and card["tipo"] != "propria":
-                    _c_status_v16827, _c_menu_v16827 = st.columns(
-                        [3.5, 1], gap="small", vertical_alignment="center")
-                    with _c_status_v16827:
-                        st.markdown(_selo_html_v16827, unsafe_allow_html=True)
-                    with _c_menu_v16827:
-                        with st.popover("⋯", help="Configurar público / somente CEO"):
-                            st.markdown("**Visibilidade da influenciadora**")
-                            publicacao_nova = st.radio(
-                                "Quem pode ver?", ["Público", "Somente CEO"],
-                                index=0 if card["publico"] else 1,
-                                key="elevo_visib_escolha_" + card["id"])
-                            if st.button("💾 Salvar visibilidade", type="primary",
-                                         key="elevo_visib_salvar_" + card["id"], use_container_width=True):
-                                quer_publico = publicacao_nova == "Público"
-                                if card["tipo"] == "catalogo":
-                                    ok = elevo_catalogo_extra_v16826(
-                                        "visibilidade", item_id=card["registro"]["Id"], publico=quer_publico)
+                # V16.8.28: o SELO e o MENU sao agora UM UNICO controle nativo.
+                # Antes, o selo era HTML inerte e os tres pontos ficavam numa
+                # coluna estreita: era preciso arrastar para achar o clique.
+                # O botao ocupa o topo inteiro de CADA card, sem coluna lateral.
+                _rotulo_visib_v16828 = _estado_txt_v16827 + "  ⋯"
+                with st.popover(
+                    _rotulo_visib_v16828,
+                    help="Clique aqui para ver a visibilidade desta influenciadora",
+                    use_container_width=True,
+                    key="elevo_visib_menu_v16828_" + card["id"],
+                ):
+                    st.markdown("**Visibilidade · " + html_std.escape(str(card["nome"])) + "**")
+                    if E_O_CEO and card["tipo"] in ("ceo", "preset", "catalogo"):
+                        # Vale para as nove oficiais E para todas adicionadas
+                        # pelo CEO, inclusive registros ja existentes no Sheets.
+                        publicacao_nova = st.radio(
+                            "Quem pode ver?", ["Público", "Somente CEO"],
+                            index=0 if card["publico"] else 1,
+                            key="elevo_visib_escolha_" + card["id"])
+                        if st.button("💾 Salvar visibilidade", type="primary",
+                                     key="elevo_visib_salvar_" + card["id"], use_container_width=True):
+                            quer_publico = publicacao_nova == "Público"
+                            if card["tipo"] == "catalogo":
+                                ok = elevo_catalogo_extra_v16826(
+                                    "visibilidade", item_id=card["registro"]["Id"], publico=quer_publico)
+                            else:
+                                ok = elevo_permissoes_presets_v16826(
+                                    "alterar", item_id=card["id"], publico=quer_publico)
+                            if ok:
+                                st.rerun()
+                            else:
+                                st.error("Não foi possível salvar a visibilidade no banco.")
+                    elif E_O_CEO and card["tipo"] == "propria":
+                        # Uma criacao pessoal so vira perfil compartilhado
+                        # por acao explicita do seu proprio CEO-proprietario.
+                        st.caption("Esta influência pertence à sua conta. Você pode adicioná-la "
+                                   "à galeria administrada pelo CEO para controlar a publicação.")
+                        destino_propria_v16828 = st.radio(
+                            "Adicionar à galeria como", ["Somente CEO", "Público"],
+                            key="elevo_propria_destino_v16828_" + card["id"])
+                        if st.button("➕ Adicionar à galeria", type="primary",
+                                     key="elevo_propria_para_galeria_v16828_" + card["id"],
+                                     use_container_width=True):
+                            if not minha_propria_v16826:
+                                st.error("Ficha pessoal não encontrada. Atualize a galeria.")
+                            elif not elevo_catalogo_extra_v16826("criar_ceo", perfil=minha_propria_v16826):
+                                st.error("Não foi possível adicionar à galeria. Tente novamente.")
+                            else:
+                                if destino_propria_v16828 == "Público":
+                                    _adicionados_v16828 = elevo_catalogo_extra_v16826("listar") or []
+                                    _novo_v16828 = next((d for d in reversed(_adicionados_v16828)
+                                        if d.get("Origem") == "ceo"
+                                        and d.get("Proprietario") == email_elenco_v164
+                                        and d.get("Foto_JPEG_B64") == minha_propria_v16826.get("Foto_JPEG_B64")
+                                        and d.get("Descricao_Visual") == minha_propria_v16826.get("Descricao_Visual")), None)
+                                    if not _novo_v16828 or not elevo_catalogo_extra_v16826(
+                                            "visibilidade", item_id=_novo_v16828["Id"], publico=True):
+                                        st.warning("Adicionada como Somente CEO; não foi possível ativar Público. "
+                                                   "Use o botão de visibilidade do novo card.")
+                                    else:
+                                        st.rerun()
                                 else:
-                                    ok = elevo_permissoes_presets_v16826(
-                                        "alterar", item_id=card["id"], publico=quer_publico)
-                                if ok:
                                     st.rerun()
-                                else:
-                                    st.error("Não foi possível salvar a visibilidade no banco.")
-                else:
-                    st.markdown(_selo_html_v16827, unsafe_allow_html=True)
+                    else:
+                        # Os usuarios comuns podem consultar o estado, mas nao
+                        # recebem controles administrativos sobre a galeria.
+                        if card["tipo"] == "propria":
+                            st.info("🔒 Esta criação é privada e exclusiva da sua conta.")
+                        else:
+                            st.info("O CEO administra a visibilidade desta influenciadora.")
                 ativo = st.session_state.get("elevo_inf_preset_id", "") == card["id"]
                 classe_ativo = " ativo" if ativo else ""
                 selo_ativo = '<div class="elevo-elenco-status">● SELECIONADA</div>' if ativo else ''
@@ -8489,21 +8530,33 @@ st.markdown("""
     color:#F2F7FF;background:linear-gradient(112deg,#233C64,#324E83,#385DA1);
     border-color:rgba(154,183,235,.55);
   }
-  /* Três pontos realmente visíveis e clicáveis: joia azul escura com foco. */
-  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button,
-  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] > button {
-    min-height:37px!important;height:37px!important;min-width:37px!important;width:37px!important;
-    padding:2px!important;border-radius:12px!important;
-    background:linear-gradient(130deg,#0D3377 0%,#075ED1 55%,#084093 100%)!important;
+  /* V16.8.28: o status inteiro E um botao, sem coluna de tres pontos escondida.
+     Nao desenhar um selo HTML encima do alvo de clique. */
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] {
+    width:100%!important;min-width:0!important;position:relative;z-index:1;
+    margin:0 0 4px!important;
+  }
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] > button,
+  .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button {
+    display:flex!important;align-items:center!important;justify-content:center!important;
+    width:100%!important;max-width:100%!important;
+    min-height:39px!important;height:39px!important;
+    padding:5px 9px!important;border-radius:13px!important;
+    background:linear-gradient(116deg,#0A377B 0%,#0870CC 55%,#0B83CF 100%)!important;
     color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
-    border:1px solid #6ABFFF!important;font-size:1.42rem!important;line-height:1!important;
-    box-shadow:0 5px 15px rgba(4,87,190,.25),inset 0 1px rgba(255,255,255,.3)!important;
+    border:1px solid rgba(124,220,255,.82)!important;
+    font-size:.78rem!important;font-weight:800!important;line-height:1.2!important;
+    white-space:nowrap!important;
+    box-shadow:0 6px 14px rgba(4,84,179,.24),inset 0 1px rgba(255,255,255,.32)!important;
+    cursor:pointer!important;touch-action:manipulation;
   }
   .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button * {
     color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    font-size:inherit!important;font-weight:inherit!important;
   }
   .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button:hover {
-    filter:brightness(1.11);box-shadow:0 7px 17px rgba(6,117,255,.35)!important;
+    filter:brightness(1.12)!important;
+    box-shadow:0 7px 17px rgba(6,117,255,.35)!important;
   }
   .st-key-elevo_carrossel_influenciadoras [data-testid="stPopover"] button:focus-visible {
     outline:2px solid #80D9FF!important;outline-offset:3px!important;
