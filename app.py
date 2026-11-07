@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.24 — LAPIDAÇÃO VISUAL VIP (referência aprovada 07/11/2026).
+# Exclusivamente apresentação: cards, contraste, navegação, área de pedidos e ícones.
+# Base V16.8.23.2 preservada: IA, prompts, créditos, segurança, banco e autenticação.
 # ÉLÉVO V16.8.23.1 — modo claro VIP e detalhes extensos recolhíveis (somente apresentação).
 # Base V16.8.23 intacta: mesmos geradores, prompts, autenticação, dados e cobrança.
 # ÉLÉVO V16.8.22.2 — padrão inicial claro no celular, escuro no PC; botão manual preservado.
@@ -49,7 +52,7 @@ from gtts import gTTS
 # ==========================================================
 # 1. CONFIGURAÇÃO DA CHAVE DA IA E DO APP (🔥 V6.0 - SaaS VIP)
 # ==========================================================
-st.set_page_config(page_title="ÉLÉVO | Intelligence Studio", page_icon="🦅", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="ÉLÉVO | Intelligence Studio", page_icon="💎", layout="wide", initial_sidebar_state="collapsed")
 
 try:
     CHAVE_OPENAI_VIP = st.secrets["OPENAI_API_KEY"]
@@ -745,7 +748,7 @@ if not st.session_state["usuario_logado"]:
       }
     </style>
     <section class="elevo-login-hero" aria-label="Portal ÉLÉVO">
-      <div class="elevo-login-eagle" aria-hidden="true"><span>🦅</span></div>
+      <div class="elevo-login-eagle" aria-hidden="true"><span>💎</span></div>
       <h1 class="elevo-login-brand">ÉLÉVO</h1>
       <p class="elevo-login-kicker">Inteligência • Vendas • Criação</p>
       <div class="elevo-login-chip"><span class="elevo-login-dot"></span> PORTAL DE ACESSO VIP</div>
@@ -1796,7 +1799,7 @@ js_moeda = """
     if (!parent.getElementById("moeda-aguia-vip")) {
         const btn = parent.createElement("div");
         btn.id = "moeda-aguia-vip";
-        btn.innerHTML = "🦅";
+        btn.innerHTML = "💎";
         btn.style.cssText = "position: fixed; top: 15px; left: 15px; z-index: 999999; font-size: 24px; background: linear-gradient(145deg, #1e2229, #121519); width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 2px solid #00FF9D; box-shadow: 0px 0px 20px rgba(0,255,157,0.4); cursor: pointer; user-select: none; transition: transform 0.1s ease;";
         parent.body.appendChild(btn);
         let isDragging = false, startX, startY, initialLeft, initialTop;
@@ -1885,7 +1888,7 @@ if (st.session_state.get("usuario_logado") and email_logado_agora
         )
         audio_bytes = None
         aviso_audio_bv = st.empty()
-        aviso_audio_bv.info("🦅 Aurora está iniciando seu acesso VIP...")
+        aviso_audio_bv.info("💎 Aurora está iniciando seu acesso VIP...")
         try:
             CHAVE_ELEVEN = st.secrets.get("ELEVENLABS_API_KEY", "")
             if CHAVE_ELEVEN:
@@ -1942,7 +1945,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
         name="elevo_aurora_player_termino_v15",
         html="""
         <div id="caixa-intro">
-            <h3>🦅 MENSAGEM DA DIRETORIA</h3>
+            <h3>💎 MENSAGEM DA DIRETORIA</h3>
             <p id="identificacao-intro">Conta autenticada: <b id="email-intro"></b></p>
             <p id="status-intro" role="status" aria-live="polite">
                 A Aurora tentará iniciar a mensagem automaticamente.
@@ -2139,48 +2142,41 @@ if st.session_state.get("elevo_banco_indisponivel_v16816"):
                "O saldo fica indisponível e nenhuma nova geração será cobrada ou liberada "
                "sem confirmação. Use 'Atualizar saldo' quando o serviço voltar.")
 
-with st.container(border=False):
-    col_avatar_v16813, col_info_v16813, col_saldo_v16813 = st.columns([.65,2.5,1.35], gap="small", vertical_alignment="center")
-    with col_avatar_v16813:
-        _foto_google_v16813 = None
-        if GOOGLE_ATIVO and getattr(st.user, "is_logged_in", False):
-            _foto_google_v16813 = str(getattr(st.user, "picture", "") or "")
-        try:
-            if _elevo_avatar_b64_v16813:
-                st.image(base64.b64decode(_elevo_avatar_b64_v16813), width=75)
-            elif _foto_google_v16813 and _foto_google_v16813.startswith("https://"):
-                st.image(_foto_google_v16813, width=75)
-            else:
-                st.markdown("<div style='font-size:43px;text-align:center'>👑</div>" if E_O_CEO else
-                            "<div style='font-size:43px;text-align:center'>👤</div>", unsafe_allow_html=True)
-        except Exception:
-            st.markdown("👤")
+with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
+    # V16.8.24: dados originais e saldos intactos; dois cards responsivos.
+    # A foto já salva permanece disponível na conta. Não será usada como mascote flutuante.
+    col_info_v16813, col_saldo_v16813 = st.columns([2.5, 1.35], gap="small", vertical_alignment="center")
     with col_info_v16813:
-        st.markdown(f"<div class='elevo-conta-vip-v16813'><div class='eyebrow'>🦅 ÉLÉVO • CONTA VIP</div>"
-                    f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
-                    f"<div class='mail'>{html_std.escape(_elevo_email_painel_v16813)}</div></div>",
-                    unsafe_allow_html=True)
+        st.markdown(
+            f"<div class='elevo-conta-vip-v16813 elevo-vip-perfil-v16824'>"
+            f"<div class='eyebrow'>💎 ÉLÉVO • CONTA VIP</div>"
+            f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
+            f"<div class='mail'>{html_std.escape(_elevo_email_painel_v16813)}</div>"
+            "<div class='elevo-medalha-v16824' aria-hidden='true'><span>◇</span><strong>VIP</strong></div>"
+            "</div>", unsafe_allow_html=True)
     with col_saldo_v16813:
         if E_O_CEO:
-            st.markdown("<div class='elevo-conta-vip-v16813'><div class='eyebrow'>👑 CEO</div>"
+            st.markdown("<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
+                        "<div class='eyebrow'>👑 CEO</div>"
                         "<div class='balance'>∞</div><div class='small'>Criações ilimitadas</div></div>",
                         unsafe_allow_html=True)
         else:
-            st.markdown(f"<div class='elevo-conta-vip-v16813'><div class='eyebrow'>💎 MEU SALDO</div>"
+            st.markdown(f"<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
+                        f"<div class='eyebrow'>💎 MEU SALDO</div>"
                         f"<div class='balance'>{int(_elevo_saldo_v16813) if _elevo_saldo_v16813 is not None else '—'}<span style='font-size:12px'> CR</span></div>"
                         "<div class='small'>Prompts: 10 CR • IA/Radar: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
-    col_pedir_v16813, col_atualizar_v16813 = st.columns([2.2,1], gap="small")
-    with col_pedir_v16813:
-        with st.popover("📮 Pedir créditos ao CEO", use_container_width=True):
+    # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
+    with st.container(key="elevo_painel_creditos_v16824"):
+        with st.expander("▤ Pedir créditos ao CEO", expanded=False):
             st.caption("Seu pedido será exibido no painel do CEO. Não há recarga automática.")
             qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
                                                 value=100, step=10, key="elevo_pedido_qtd_v16813")
             msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
                                              placeholder="Quero criar mais roteiros neste mês.",
                                              key="elevo_pedido_msg_v16813")
-            if st.button("📨 Enviar pedido", key="elevo_pedido_enviar_v16813", type="primary",
+            if st.button("✈ Enviar pedido ao CEO", key="elevo_pedido_enviar_v16813", type="primary",
                          use_container_width=True):
                 try:
                     elevo_pedir_creditos_v16813(int(qtd_pedido_v16813), msg_pedido_v16813)
@@ -2188,11 +2184,18 @@ if not E_O_CEO:
                 except Exception as exc:
                     st.warning(str(exc) if isinstance(exc, (ElevoCreditoErroV16813, ValueError)) else
                                "O pedido não foi enviado. Verifique a conexão do banco.")
-    with col_atualizar_v16813:
         if st.button("↻ Atualizar saldo", key="elevo_saldo_refresh_v16813", use_container_width=True):
             elevo_invalidar_leituras_v16816()
             st.rerun()
     with st.expander("🖼️ Minha foto de perfil", expanded=False):
+        # A imagem anterior continua preservada e pode ser visualizada somente aqui.
+        # Não é mais usada como mascote na barra de navegação.
+        if _elevo_avatar_b64_v16813:
+            try:
+                st.caption("Foto atual salva na conta (você pode substituí-la):")
+                st.image(base64.b64decode(_elevo_avatar_b64_v16813), width=86)
+            except Exception:
+                pass
         st.caption("Opcional: foto quadrada JPG/PNG. É guardada de forma compacta na sua conta.")
         foto_perfil_v16813 = st.file_uploader("Escolha uma foto de perfil", type=["png","jpg","jpeg"],
                                                key="elevo_avatar_upload_v16813")
@@ -2229,7 +2232,7 @@ link_planilha_ativa = ""
 if E_O_CEO:
     COFRE_DE_LINKS = {"O Achado Secreto": "https://docs.google.com/spreadsheets/d/1J5UYfLCQ5rXUmUzxnE5hyG4AYtJEnXlJnN8jAEbH34Y/edit", "O Garimpo Chic": ""}
     opcoes_canais = ["🟢 O Achado Secreto", "🟣 O Garimpo Chic", "➕ Adicionar Novo Canal"]
-    st.success("Bem-vindo de volta, Sócio! O império aguarda as suas ordens. 🦅")
+    st.success("Bem-vindo de volta, Sócio! O império aguarda as suas ordens. 💎")
     with st.container(border=True):
         col_conta, col_filtro = st.columns(2)
         with col_conta:
@@ -2246,7 +2249,8 @@ if E_O_CEO:
                 else: link_planilha_ativa = st.text_input(f"🔗 Link da Planilha ({nome_canal_ativo})", placeholder="Cole o link")
         with col_filtro: filtro_periodo = st.selectbox("📅 Filtrar Período de Vendas", ["Hoje", "Ontem", "Últimos 7 Dias", "Últimos 30 Dias", "Mês Atual", "Mês Passado", "Tudo"])
 else:
-    st.info(f"Bem-vindo(a) à ÉLÉVO, {st.session_state['nome_usuario']}! A sua máquina de vendas está pronta.")
+    with st.container(key="elevo_boas_vindas_v16824"):
+        st.info(f"Bem-vindo(a) à ÉLÉVO, {st.session_state['nome_usuario']}! A sua máquina de vendas está pronta.")
     st.markdown("""
     <nav class="elevo-shortcut-grid" aria-label="Acesso rápido às ferramentas">
       <a href="#criacao">▣ Criação 360º<span>Imagem e vídeo: gerar e copiar prompts</span></a>
@@ -2485,7 +2489,7 @@ if E_O_CEO and link_planilha_ativa:
         texto_copiado = st.text_area("Cole os dados para alimentar a planilha:", height=100)
         if st.button("🚀 Extrair Dados", type="primary", use_container_width=True):
             if texto_copiado.strip():
-                with st.spinner("🦅 Aurora organizando caixa..."):
+                with st.spinner("💎 Aurora organizando caixa..."):
                     dt_hj = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y")
                     pmt_aur = f"Extraia os valores EXATOS com ponto decimal. DATA: {dt_hj}. Canal: {nome_canal_ativo}. Texto:\n{texto_copiado}"
                     res_aur = chamar_ia_global(pmt_aur, f"Retorne APENAS dados no formato Data;Produto;{nome_canal_ativo};Aprovado;Qtd;Valor.")
@@ -2505,7 +2509,7 @@ if E_O_CEO and link_planilha_ativa:
             with c_inj2:
                 if st.button("🗑️ Limpar Lista", use_container_width=True): st.session_state["dados_prontos"] = []; st.rerun()
         st.divider()
-        if st.button("🦅 ACIONAR ÁGUIA (Apagar Vendas de Hoje)", type="secondary", use_container_width=True):
+        if st.button("💎 ACIONAR ÁGUIA (Apagar Vendas de Hoje)", type="secondary", use_container_width=True):
             aba = robo_sheets.open_by_key(extrair_id_planilha(link_planilha_ativa)).sheet1
             col_dt = aba.col_values(1)
             hj_str = (datetime.utcnow() - timedelta(hours=3)).strftime("%d/%m/%Y")
@@ -2768,7 +2772,7 @@ with col_m2:
                     st.stop()
             st.rerun()
     else:
-        st.success("Missão de Hoje Cumprida! 🦅")
+        st.success("Missão de Hoje Cumprida! 💎")
 
 if robo_sheets and (not E_O_CEO or link_planilha_ativa):
     st.markdown("#### 📊 Seu Termômetro de Execução (Janela Móvel: 30 Dias)")
@@ -2812,7 +2816,7 @@ if robo_sheets and (not E_O_CEO or link_planilha_ativa):
         col_stat2.metric("📈 Taxa de Disciplina", f"{taxa_acerto:.1f}%")
         
         if taxa_acerto >= 80:
-            col_stat3.markdown("<h1 style='text-align: center;'>😎🦅</h1>", unsafe_allow_html=True)
+            col_stat3.markdown("<h1 style='text-align: center;'>😎💎</h1>", unsafe_allow_html=True)
             st.success("STATUS ELITE: Você é uma máquina. Continue empilhando vitórias!")
         elif taxa_acerto >= 50:
             col_stat3.markdown("<h1 style='text-align: center;'>😐⚖️</h1>", unsafe_allow_html=True)
@@ -5244,7 +5248,7 @@ with _elevo_area_criacao_v16823:
                 st.caption("Identidade, voz, emoção e aparência já incluídas automaticamente no prompt.")
             else:
                 if E_O_CEO:
-                    st.caption("🦅 **Influencer Padrão do CEO Ativa:** Aurora Original (Para testar outra personagem, acesse a aba ao lado).")
+                    st.caption("💎 **Influencer Padrão do CEO Ativa:** Aurora Original (Para testar outra personagem, acesse a aba ao lado).")
                 else:
                     if isinstance(st.session_state.get("influencer_atual"), dict) and st.session_state["influencer_atual"].get("Nome_Influencer"):
                         st.caption("✅ Influenciadora selecionada no elenco ativa para esta sessão.")
@@ -6614,7 +6618,7 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-        with st.spinner("🦅 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
+        with st.spinner("💎 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
             _debito_360_v16813 = None
             try:
                 _debito_360_v16813 = elevo_credito_reservar_v16813(
@@ -7222,7 +7226,7 @@ with st.container(border=True):
         "🧠 A Mente do Sócio", 
         "💰 Gestão de Caixa", 
         "🚀 O Mapa da Escala", 
-        "🦅 Mentoria Executiva"
+        "💎 Mentoria Executiva"
     ])
     
     with aba_mindset:
@@ -7271,7 +7275,7 @@ with st.container(border=True):
             if not duvida_gestao:
                 st.warning("⚠️ Escreva a sua dúvida para a Diretoria analisar.")
             else:
-                with st.spinner("🦅 A Aurora está a calcular a estratégia do seu império..."):
+                with st.spinner("💎 A Aurora está a calcular a estratégia do seu império..."):
                     sys_gestao = "Você é Aurora, COO (Diretora de Operações) da ÉLÉVO e mentora de negócios do CEO. Seu tom é de estrategista implacável, focada em gestão de tempo, finanças e mentalidade milionária. Não use palavras clichês de autoajuda."
                     prompt_gestao = f"O nosso CEO está com o seguinte desafio de gestão na empresa: '{duvida_gestao}'. \nDê um conselho de negócio frio, direto e baseado em números. Forneça 3 passos de ação executáveis."
                     
@@ -7617,4 +7621,256 @@ if not modo_claro:
       border:1px solid rgba(64,178,222,.4)!important;
     }
     </style>
+    """, unsafe_allow_html=True)
+
+# ==========================================================
+# ÉLÉVO V16.8.24 — ACABAMENTO VIP APROVADO / SOMENTE INTERFACE
+# Regras tardias para evitar sobreposição de estilos antigos do Streamlit.
+# Não alterar o motor de geração, banco, crédito ou autenticação.
+# ==========================================================
+st.markdown("""
+<style>
+  /* A antiga águia arrastável não deve ocupar o topo nem cobrir a marca. */
+  #moeda-aguia-vip {display:none!important;}
+  .elevo-conta-vip-v16813 {position:relative;isolation:isolate;overflow:hidden;min-width:0;}
+  .elevo-conta-vip-v16813 .eyebrow,.elevo-conta-vip-v16813 .person,
+  .elevo-conta-vip-v16813 .mail,.elevo-conta-vip-v16813 .small,
+  .elevo-conta-vip-v16813 .balance {position:relative;z-index:1;}
+  .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {position:absolute;z-index:1;right:15px;top:50%;
+    transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:0;
+    width:72px;padding:6px 0;color:#fff;text-align:center;}
+  .elevo-medalha-v16824 span {font:700 2.6rem/1 Montserrat,sans-serif;color:#B8E2FF;}
+  .elevo-medalha-v16824 strong {font:800 .75rem/1.8 Montserrat,sans-serif;letter-spacing:.27em;color:#fff;}
+  .elevo-vip-perfil-v16824 {padding-right:112px!important;}
+  .elevo-vip-perfil-v16824 .person {font-size:clamp(1.12rem,2vw,1.55rem);}
+  .elevo-vip-perfil-v16824 .mail {overflow-wrap:anywhere;}
+  /* São apenas detalhes visuais: mantém clique, hover e acessibilidade. */
+  .stButton > button,[data-testid="stFormSubmitButton"] button {outline-offset:3px;}
+  .stButton > button:focus-visible,[data-testid="stFormSubmitButton"] button:focus-visible,
+  [data-testid="stExpander"] summary:focus-visible,.elevo-sidebar a:focus-visible {
+    outline:2px solid #46A9FF!important;outline-offset:3px!important;
+  }
+  @media (max-width:999px) {
+    .elevo-sidebar {height:60px!important;min-height:60px!important;gap:8px!important;
+      padding:8px 12px!important;scrollbar-width:none;}
+    .elevo-sidebar::-webkit-scrollbar {display:none;}
+    .elevo-sidebar .marca {font-weight:900!important;font-size:1rem!important;letter-spacing:.015em!important;}
+    .elevo-sidebar a {min-height:42px!important;display:inline-flex!important;align-items:center!important;
+      border-radius:15px!important;padding:9px 12px!important;}
+    [data-testid="stMainBlockContainer"],.block-container {padding:5.0rem .9rem 3rem!important;}
+    .st-key-elevo_cabecalho_vip_v16824 [data-testid="stHorizontalBlock"] {gap:10px!important;}
+    .st-key-elevo_cabecalho_vip_v16824 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"] {
+      flex:1 1 100%!important;width:100%!important;min-width:0!important;
+    }
+    .st-key-elevo_cabecalho_vip_v16824 .elevo-conta-vip-v16813 {margin:0!important;}
+  }
+  @media (max-width:480px) {
+    .elevo-vip-perfil-v16824 {padding-right:91px!important;}
+    .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {width:62px;right:10px;}
+    .elevo-medalha-v16824 span {font-size:2.15rem;}
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .elevo-sidebar a,.stButton>button,[data-testid="stExpander"] {transition:none!important;animation:none!important;}
+  }
+</style>
+""", unsafe_allow_html=True)
+
+if modo_claro:
+    st.markdown("""
+<style>
+  /* FUNDO BRANCO GELO — sombras em camadas e microtextura sutil. */
+  [data-testid="stAppViewContainer"] {
+    background:linear-gradient(158deg,#F7FAFF 0%,#ECF3FD 44%,#F8FAFE 100%)!important;
+    background-color:#F4F8FE!important;
+  }
+  [data-testid="stVerticalBlockBorderWrapper"],
+  [data-testid="stForm"],[data-testid="stMetric"],[data-testid="stExpander"] {
+    background:linear-gradient(150deg,#FFFFFF 0%,#FBFDFF 56%,#F2F7FF 100%)!important;
+    background-image:linear-gradient(150deg,#FFFFFF 0%,#FBFDFF 56%,#F2F7FF 100%)!important;
+    border:1px solid rgba(118,164,226,.25)!important;
+    border-radius:23px!important;
+    box-shadow:0 14px 32px rgba(18,67,133,.095),0 4px 9px rgba(20,62,117,.028),
+       inset 0 1px 0 rgba(255,255,255,.98)!important;
+  }
+  /* Cartões com onda elegante, não um preenchimento chamativo. */
+  .elevo-conta-vip-v16813 {
+    padding:21px 22px!important;border-radius:23px!important;
+    background:linear-gradient(148deg,#FFFFFF 2%,#F7FAFF 62%,#EAF2FF 100%)!important;
+    border:1px solid rgba(149,190,234,.36)!important;
+    box-shadow:0 17px 34px rgba(19,73,143,.11),inset 0 1px 0 #FFF!important;
+    min-height:137px;
+  }
+  .elevo-vip-perfil-v16824 {padding-right:112px!important;}
+  .elevo-vip-perfil-v16824:after {
+    content:"";position:absolute;z-index:0;right:-10px;top:-20px;width:39%;height:145%;
+    transform:rotate(18deg);border-radius:52% 12% 35% 50%;
+    background:linear-gradient(140deg,#81BCFF 0%,#2770CB 52%,#06356F 100%);
+    box-shadow:inset 15px 0 25px rgba(255,255,255,.25);
+  }
+  .elevo-vip-saldo-v16824:before {content:"";position:absolute;right:-20%;bottom:-78%;
+    width:93%;height:118%;border-radius:100%;background:rgba(37,121,245,.065);
+    border-top:1px solid rgba(90,166,249,.12);z-index:0;transform:rotate(-15deg);}
+  .elevo-vip-saldo-v16824:after {content:"";position:absolute;right:-3%;top:-50%;
+    width:45%;height:140%;background:linear-gradient(135deg,transparent,rgba(62,149,255,.075));
+    border-radius:50%;z-index:0;}
+  .elevo-conta-vip-v16813 .eyebrow {font-size:.72rem!important;font-weight:800!important;
+    letter-spacing:.16em!important;color:#2D5C95!important;margin-bottom:12px;}
+  .elevo-conta-vip-v16813 .person {color:#0D2547!important;line-height:1.35!important;}
+  .elevo-conta-vip-v16813 .mail,.elevo-conta-vip-v16813 .small {color:#617995!important;
+    font-size:.78rem!important;line-height:1.55!important;}
+  .elevo-conta-vip-v16813 .balance {color:#0955B6!important;font-size:2.45rem!important;}
+  /* Menu é leve, com aba ativa em LED azul discreto. */
+  .elevo-sidebar {background:linear-gradient(115deg,rgba(250,253,255,.98),rgba(228,239,254,.97))!important;
+    border-color:rgba(106,166,239,.25)!important;box-shadow:0 9px 27px rgba(12,56,116,.12)!important;}
+  .elevo-sidebar .marca {color:#0B2A56!important;}
+  .elevo-sidebar a {color:#486484!important;transition:background .18s,box-shadow .18s,transform .18s!important;}
+  .elevo-sidebar a.principal {color:#FFFFFF!important;background:linear-gradient(115deg,#0B61DC,#117DF0)!important;
+    border:1px solid #7FC4FF!important;box-shadow:0 5px 17px rgba(17,112,221,.25),
+      inset 0 1px 0 rgba(255,255,255,.30)!important;}
+  .elevo-sidebar a:not(.principal):hover {background:#EAF3FF!important;color:#124B8B!important;}
+  /* Botões: nunca aplicar a cor do texto escuro dentro de botões primários. */
+  .stButton>button,[data-testid="stFormSubmitButton"] button {
+    border-radius:15px!important;min-height:48px!important;border:1px solid #CCDAEE!important;
+    background:linear-gradient(160deg,#FFFFFF,#F5F9FF)!important;
+    box-shadow:0 6px 16px rgba(29,74,132,.085),inset 0 1px 0 #FFFFFF!important;
+    color:#18375B!important;-webkit-text-fill-color:#18375B!important;
+  }
+  .stButton>button :is(p,span,div),[data-testid="stFormSubmitButton"] button :is(p,span,div) {
+    color:inherit!important;-webkit-text-fill-color:currentColor!important;
+  }
+  .stButton>button[kind="primary"],
+  [data-testid="stFormSubmitButton"] button[kind="primary"],
+  .st-key-elevo_painel_creditos_v16824 button[kind="primary"] {
+    background:linear-gradient(115deg,#0865E5 0%,#137DFC 54%,#0657CC 100%)!important;
+    border:1px solid #77BCFF!important;color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+    box-shadow:0 8px 21px rgba(11,103,230,.27),inset 0 1px 0 rgba(255,255,255,.38)!important;
+    text-shadow:none!important;opacity:1!important;
+  }
+  .stButton>button[kind="primary"] *,
+  [data-testid="stFormSubmitButton"] button[kind="primary"] *,
+  .st-key-elevo_painel_creditos_v16824 button[kind="primary"] * {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;opacity:1!important;
+    background:transparent!important;text-shadow:none!important;
+  }
+  .stButton>button:hover,[data-testid="stFormSubmitButton"] button:hover {
+    border-color:#83B8F1!important;transform:translateY(-1px);
+    box-shadow:0 10px 24px rgba(22,91,183,.17)!important;
+  }
+  .stButton>button[kind="primary"]:hover,
+  .st-key-elevo_painel_creditos_v16824 button[kind="primary"]:hover {
+    box-shadow:0 9px 26px rgba(13,116,252,.34),inset 0 1px 0 rgba(255,255,255,.30)!important;
+  }
+  .stButton>button:disabled {opacity:.50!important;cursor:not-allowed!important;}
+  /* Abertura do crédito é um painel INLINE, sem janela modal sobre os campos. */
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] {
+    padding:0!important;border-radius:19px!important;overflow:hidden;
+    background:#FFFFFF!important;background-image:none!important;
+    border:1px solid #9AC9FA!important;
+    box-shadow:0 10px 26px rgba(15,67,143,.15)!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {
+    min-height:64px!important;padding:15px 19px!important;
+    background:linear-gradient(115deg,#06265B,#0B438F 55%,#062A64)!important;
+    box-shadow:inset 0 -2px 0 rgba(64,175,255,.60),0 8px 24px rgba(10,78,160,.22)!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary *,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary p,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary svg {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;opacity:1!important;
+    fill:currentColor!important;font-size:1.02rem!important;font-weight:800!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpanderDetails"] {
+    background:linear-gradient(145deg,#FFFFFF,#F5F9FF)!important;
+    padding:17px 14px 16px!important;color:#163251!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpanderDetails"] label,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpanderDetails"] p {
+    color:#193658!important;-webkit-text-fill-color:#193658!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stCaptionContainer"] {
+    background:#E7F1FF!important;border:1px solid #D5E7FD!important;
+    border-radius:13px!important;padding:10px 12px!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stCaptionContainer"] p {
+    color:#4E6380!important;-webkit-text-fill-color:#4E6380!important;line-height:1.5!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stNumberInput"] [data-baseweb="input"],
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stTextArea"] [data-baseweb="textarea"],
+  .st-key-elevo_painel_creditos_v16824 input,
+  .st-key-elevo_painel_creditos_v16824 textarea {
+    background:#FFFFFF!important;color:#1B395E!important;-webkit-text-fill-color:#1B395E!important;
+    border-color:#C9D9EC!important;border-radius:14px!important;
+    box-shadow:inset 0 1px 3px rgba(8,43,94,.05)!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 textarea::placeholder {
+    color:#8297B0!important;-webkit-text-fill-color:#8297B0!important;opacity:1!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stNumberInputStepDown"],
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stNumberInputStepUp"] {
+    background:linear-gradient(155deg,#F7FBFF,#EAF3FF)!important;
+    border:1px solid #BED6F6!important;border-radius:12px!important;
+    color:#0954AF!important;-webkit-text-fill-color:#0954AF!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stNumberInputStepDown"] *,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stNumberInputStepUp"] * {
+    color:#0954AF!important;-webkit-text-fill-color:#0954AF!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 > div > div > [data-testid="stButton"]:last-child button {
+    margin-top:5px!important;
+  }
+  /* Todos os atalhos preservam âncoras e ordem; acabamento elegante e compacto. */
+  .elevo-shortcut-grid a {
+    background:linear-gradient(150deg,#FFFFFF,#F6FAFF)!important;
+    border:1px solid #D5E2F1!important;border-radius:21px!important;
+    padding:16px 19px!important;
+    box-shadow:0 10px 24px rgba(16,66,131,.085),inset 0 1px 0 #fff!important;
+    color:#132D54!important;
+  }
+  .elevo-shortcut-grid a:hover {border-color:#91C7FF!important;
+    box-shadow:0 13px 28px rgba(16,94,192,.13)!important;}
+  .elevo-shortcut-grid span {color:#657A95!important;line-height:1.55!important;margin-top:5px!important;}
+  .elevo-dash-header {
+    background:linear-gradient(125deg,#FFFFFF,#EFF6FF)!important;
+    border:1px solid #D5E3F3!important;
+    box-shadow:0 13px 28px rgba(14,63,133,.095)!important;
+  }
+  .st-key-elevo_boas_vindas_v16824 [data-testid="stAlert"] {
+    background:linear-gradient(125deg,#FFFFFF,#E7F3FF)!important;
+    border:1px solid #D3E5FA!important;border-left:5px solid #197DFF!important;
+    box-shadow:0 10px 25px rgba(15,78,163,.10)!important;
+    border-radius:22px!important;
+  }
+  @media(max-width:999px) {
+    .elevo-shortcut-grid {gap:11px!important;}
+    .elevo-sidebar {border-bottom:1px solid #C8DCFA!important;}
+    .st-key-elevo_cabecalho_vip_v16824 .elevo-conta-vip-v16813 {min-height:120px!important;}
+  }
+  @media(max-width:480px) {
+    .elevo-conta-vip-v16813 {padding:19px 18px!important;}
+    .elevo-vip-perfil-v16824 {padding-right:91px!important;}
+    .elevo-vip-perfil-v16824:after {width:37%;}
+    .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {padding:15px!important;}
+  }
+</style>
+    """, unsafe_allow_html=True)
+else:
+    # Modo escuro do desktop: preserva cores, apenas dá acabamento ao accordion.
+    st.markdown("""
+<style>
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] {
+    overflow:hidden!important;border:1px solid rgba(66,158,255,.36)!important;
+    box-shadow:0 13px 31px rgba(0,0,0,.34)!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary {
+    background:linear-gradient(105deg,#0A284C,#11569C)!important;padding:15px 18px!important;
+    min-height:58px!important;
+  }
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary,
+  .st-key-elevo_painel_creditos_v16824 [data-testid="stExpander"] summary * {
+    color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+  }
+  .elevo-vip-perfil-v16824 .elevo-medalha-v16824 {display:none!important;}
+  .elevo-vip-perfil-v16824 {padding-right:20px!important;}
+</style>
     """, unsafe_allow_html=True)
