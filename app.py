@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.29 — duração 10/12/15 segundos e microtrava de continuidade APENAS no vídeo.
+# Preserva a base V16.8.28, imagem, SEO, elenco, permissões, segurança, cobranças e UI VIP.
 # ÉLÉVO V16.8.28 — clique direto no status de TODOS os cards.
 # Preserva a V16.8.27 e toda a lógica de geradores, login e créditos.
 # ÉLÉVO V16.8.27 — POLIMENTO PONTUAL DE PERFIL / ELENCO (07/11/2026)
@@ -291,6 +293,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
     "elevo_propria_analise", "elevo_propria_foto_hash", "elevo_propria_erro_analise",
     "elevo_propria_autofoco", "elevo_avatar_upload_tentado_v16827",
+        "elevo_ultima_duracao_gerada_v16829",
     "elevo_mem_v1_contexto", "elevo_mem_v1_feedback_ultimo", "elevo_mem_v1_nota",
     "elevo_ai_est_usd_v1", "elevo_ai_tokens_v1", "elevo_ai_chamadas_v1",
     "elevo_modelos_acesso_v1", "elevo_modelo_comparativo_v1",
@@ -5578,6 +5581,22 @@ with _elevo_area_criacao_v16823:
     if "txt_diretrizes_360" not in st.session_state:
         st.session_state["txt_diretrizes_360"] = ""
 
+    # ÉLÉVO V16.8.29 — Uma duração para as três modalidades, antes de gerar.
+    # Seletor apenas de roteiro; o vídeo final é produzido no gerador externo.
+    with st.container(border=True):
+        st.markdown("**⏱️ Duração do vídeo**")
+        segundos_video_v16829 = st.radio(
+            "Escolha a duração desejada",
+            options=[10, 12, 15],
+            format_func=lambda n: f"{n} segundos",
+            horizontal=True,
+            label_visibility="collapsed",
+            key="elevo_duracao_video_v16829",
+        )
+        st.caption("A ÉLÉVO adapta a fala e os movimentos ao tempo escolhido, sem alterar a imagem.")
+    faixas_fala_v16829 = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+    min_palavras_video_v16829, max_palavras_video_v16829 = faixas_fala_v16829[int(segundos_video_v16829)]
+
     # V16.8.21: terceiro modo opcional, reutiliza o Bloco 17; não altera seu motor de imagem.
     st.session_state.setdefault("elevo_produto_primeiro_3s_v16821", False)
     with st.container(border=True):
@@ -5930,6 +5949,80 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         return saida
 
 
+    # ÉLÉVO V16.8.29 — configuração de tempo e continuidade visual SEM mexer em imagem/SEO.
+    def elevo_tempo_roteiro_v16829(segundos):
+        duracao = int(segundos)
+        if duracao not in (10, 12, 15):
+            duracao = 10
+        faixas = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+        etapas = {
+            10: ("00:00–00:03", "00:03–00:06", "00:06–00:08", "00:08–00:10"),
+            12: ("00:00–00:03", "00:03–00:07", "00:07–00:10", "00:10–00:12"),
+            15: ("00:00–00:03", "00:03–00:08", "00:08–00:12", "00:12–00:15"),
+        }
+        return duracao, faixas[duracao], etapas[duracao]
+
+    def elevo_orientar_duracao_v16829(segundos):
+        """Diretriz de prioridade para a fala e movimento, nunca para a imagem ou títulos SEO."""
+        duracao, (inicio, fim), (e1, e2, e3, e4) = elevo_tempo_roteiro_v16829(segundos)
+        return (
+            f"[ÉLÉVO V16.8.29 — VIDEO/AUDIO DURATION OVERRIDE, {duracao} SECONDS] "
+            f"Apply this timing ONLY to the video and spoken audio, NOT to PROMPT DE IMAGEM or TÍTULOS SEO. "
+            f"The historical 9-second spoken scripts and fixed 10-second visual examples are templates, NOT the target duration. "
+            f"FINAL runtime is EXACTLY {duracao}s, no cut/black tail. "
+            f"Narration in natural Brazilian Portuguese: {inicio}–{fim} SPOKEN words (exclude ASMR cues, titles and instructions), "
+            "realistically paced with breath and no time compression; new words must add useful insight, not filler. "
+            "Keep the opening pain/hook, credible solution and natural invitation; no invented discounts, stock or claims. "
+            f"Timeline: product hook {e1}; same influencer enters {e2}; one real interaction {e3}; "
+            f"natural stable closing {e4}. If product-first-3s mode is selected, ONLY the product is on-screen for the entire first 3s. "
+            "All original kit units, backdrop, labels and influencer identity remain consistent from image to final frame."
+        )
+
+    def elevo_video_duracao_fidelidade_v16829(roteiro, segundos):
+        """Cirurgia somente no vídeo final: duração explícita + pequena trava anti-morphing.
+
+        Reaproveita o roteiro aprovado; não chama nova IA e não altera fala, imagem ou SEO.
+        """
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
+            raise ValueError('Não foi possível validar as seções antes do ajuste de duração.')
+        duracao, (minimo, maximo), (p1, p2, p3, p4) = elevo_tempo_roteiro_v16829(segundos)
+        video = sec['prompt_video']
+        # O V9 possui marcações temporais estáveis; atualizamos somente os rótulos de cada tomada.
+        video = video.replace('🎥 Shot 2 (00:03–00:06', f'🎥 Shot 2 ({p2}')
+        video = video.replace('🫱 Interaction (00:06–00:08', f'🫱 Interaction ({p3}')
+        video = video.replace('🎞️ Closing (00:08–end', f'🎞️ Closing ({p4}')
+        # Corrige eventuais cabeçalhos de áudio antigos sem reescrever a fala.
+        video = re.sub(
+            r'(?m)^(\s*🎙️[^\n]*)$',
+            lambda m: re.sub(r'(?i)(?:exatos?\s*)?9\s*segundos?', f'{duracao} segundos', m.group(1)),
+            video,
+        )
+        marcador = '[ÉLÉVO V16.8.29 — VIDEO TIMING + PRODUCT CONTINUITY]'
+        if marcador not in video:
+            plano = (
+                f'{marcador}\n'
+                f'EXACT TOTAL LENGTH: {duracao} seconds (9:16). TIMELINE: {p1} product hook, '
+                f'{p2} reveal the same presenter, {p3} one grounded hand interaction, '
+                f'{p4} natural continuous final scene. Do not end at 9 or 10 seconds when a longer duration is selected. '
+                f'Audio voiceover: {minimo}–{maximo} spoken Portuguese words, comfortable human pace, '
+                'without squeezing delivery or extending with artificial silence. '
+                'FRAME-TO-FRAME PRODUCT IDENTITY: the APPROVED IMAGE and the separately uploaded '
+                'product reference govern one unchanged physical item per original unit. '
+                'Carry forward exactly the same silhouette, material, original printed graphics, '
+                'relative hand-to-product scale and surface details; no new object interpretation '
+                'when the hand moves or camera reframes. Only perspective and illumination may '
+                'change naturally. No product redraw, shape drift, label shimmer or duplicates. '
+                'Never invent physical packaging descriptions in this prompt.\n'
+            )
+            video = plano + '\n' + video
+        resultado = _trocar_so_video_v12(roteiro, video)
+        conferido = extrair_blocos_roteiro(resultado)
+        if (conferido['prompt_imagem'] != sec['prompt_imagem'] or
+                conferido['secao_seo_texto'] != sec['secao_seo_texto']):
+            raise ValueError('Alteração de vídeo bloqueada: imagem ou SEO não preservados.')
+        return resultado
+
     def _fallback_video_v12(video_original, scan, ambiente, modo):
         """Video-only fallback: preserves original audio/CTAs and inserts visual physics BEFORE them."""
         qtd=max(1,int(scan.get('qtd',1)))
@@ -6123,6 +6216,9 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         f'\nPROMPT DE VÍDEO ORIGINAL — MANTER IDEIA, GANCHO, FALA, CTA, FORÇA E ESTILO:\n{video_original}\n'
         '\nSAÍDA: apenas o texto completo do PROMPT DE VÍDEO, sem cercas de código, sem heading principal ###, começando em 🎬. '
         )
+        # A expansão V12 também recebe o tempo real: não alongar só a cena visual.
+        instrucao += "\n\nPRIORIDADE FINAL (VIDEO/VOICE ONLY): " + elevo_orientar_duracao_v16829(
+            st.session_state.get("elevo_duracao_video_v16829", 10))
         novo_video=None
         try:
             validar_cota_ia()
@@ -7025,7 +7121,7 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
             🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
             Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da {nome_inf_ativa}:
-            "[Escreva em português uma fala visceral e magnética de 18 a 25 palavras aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha, sem inventar lote, estoque, desconto ou preço numérico]"
+            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha, sem inventar lote, estoque, desconto ou preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
             ⚠️ [PERGUNTA CURTA E FORTE SOBRE A DOR]? 🛑
             ✨ [SENSAÇÃO / SOLUÇÃO IMEDIATA]
@@ -7062,6 +7158,8 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                 instrucao_ouro += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                 if licoes_mem_17:
                     instrucao_ouro += "\n\n" + licoes_mem_17
+                # Sempre ao FINAL: prevalece sobre exemplos históricos fixados em 9/10 s.
+                instrucao_ouro += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
                 validar_cota_ia()
                 etapa_formato_elevo = "geracao_inicial_recuperacao"
                 conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
@@ -7094,6 +7192,10 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                     produto_primeiro_3s=bool(st.session_state.get('elevo_produto_primeiro_3s_v16821', False)),
                     observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
                 )
+                # Apenas vídeo: duração selecionada + continuidade do produto; imagem/SEO intocados.
+                conteudo_texto = elevo_video_duracao_fidelidade_v16829(
+                    conteudo_texto, segundos_video_v16829)
+                st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_texto
                 contexto_mem_17["roteiro_hash"] = hashlib.sha256(conteudo_texto.encode("utf-8")).hexdigest()
@@ -7164,9 +7266,9 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                 ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
                 [RAW SMARTPHONE FOOTAGE, 9:16, single continuous scene, naturally stable handheld camera, authentic texture and lighting, same original environmental colors and layout. Preserve the EXACT product photographed: {scan_v92.get('regra_pos_vid')}. Keep the original container, brand, proportions, reflections, print, label orientation and count constant through every frame. 0:00-0:03: medium-close product shot at natural scale, supported by hand or solid counter, realistic gravity, contact shadow and occlusion. One small physically plausible finger tap only if the product is touched. 0:03-0:06: smooth gentle camera reframing to {nome_inf_ativa} ({visual_inf_isolado_v16811}), with the original product remaining visible; no whip pan, no aggressive zoom, no hidden product switch. 0:06-0:08: natural speech, tiny facial movements and quiet breathing, realistic pores and individual hair strands. 0:08-0:09.4: presenter holds or displays the SAME product in stable focus, original setting visible, no cuts to black, no fade, no 3D shopping bag, only the approved native PT-BR caption overlays. 0:09.4-0:10.0: FINALIZAÇÃO P1 V9.2 — keep the real presenter, exact product reference and original environment naturally visible through the FINAL FRAME; no artificial logo, glitch, brand card or black frame. Preserve exact physics: hand-product grasp, rigid-body geometry, surface friction, gravity, stable relative coordinates, plausible light, material roughness, cast/contact shadows and depth of field. Every product stays visible until the logo beat, and the frame remains clean. NO watermarks, no platform UI. Realistic smartphone recording rather than CGI or a commercial render.]
 
-                🎙️ Áudio (Gancho V9.2 — Exatos 9 Segundos):
+                🎙️ Áudio (Gancho V9.2 — {segundos_video_v16829} Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA LETAL DE EXATOS 9 SEGUNDOS (18 A 25 PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA, SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA, SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
@@ -7213,6 +7315,7 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                     instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                     if licoes_mem_92:
                         instrucao_v92 += "\n\n" + licoes_mem_92
+                    instrucao_v92 += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
                     validar_cota_ia()
                     etapa_formato_elevo = "geracao_inicial_recuperacao"
                     conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
@@ -7244,6 +7347,9 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                         direcao_v11_92.get('escolhido', ''), modo='v9.2',
                         observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
                     )
+                    conteudo_v92 = elevo_video_duracao_fidelidade_v16829(
+                        conteudo_v92, segundos_video_v16829)
+                    st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
                     contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
@@ -7470,7 +7576,8 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                 
                 qtd_caracteres_video = len(partes_roteiro["prompt_video"])
                 qtd_caracteres_visuais = _direcao_visual_caracteres_v12(partes_roteiro["prompt_video"])
-                st.caption(f"🎞️ Vídeo V14: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada | ecossistema vivo".replace(",", "."))
+                duracao_gerada_v16829 = st.session_state.get("elevo_ultima_duracao_gerada_v16829", 10)
+                st.caption(f"🎞️ Vídeo {duracao_gerada_v16829}s · V14: {qtd_caracteres_visuais:,} caracteres de direção visual | total {qtd_caracteres_video:,} | imagem original preservada | ecossistema vivo".replace(",", "."))
                 mostrar_prompt_recolhivel_v16812(partes_roteiro["prompt_video"], "video")
                 st.divider()
             
