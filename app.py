@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.34 — proteção final da IMAGEM também na V9.2 e no Produto 3S.
+# V16.8.33 / 360º preservada integralmente; mesma blindagem validada pelo CEO.
+# Sem alterações em vídeo 10/12/15s, SEO, elenco, ambientes, 17.3, API, UI ou créditos.
 # ÉLÉVO V16.8.33 — proteção de referência, contagem e perspectiva SOMENTE na imagem 360º.
 # ÉLÉVO V16.8.32 — GABARITOS APROVADOS DE IMAGEM / ROLLBACK DA V16.8.31.
 # FONTE: padrões de imagem aprovados pelo CEO (Bruna, Babi, Aurora, Juliana, Ana).
@@ -7243,6 +7246,32 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + sec['prompt_video']
                 + '\n\n### 🔑 TÍTULOS SEO (Separados)\n' + sec['secao_seo_texto'])
 
+    # ==========================================================
+    # V16.8.34 — MESMA PROTEÇÃO APROVADA NO 360º, AGORA NOS OUTROS MODOS.
+    # Mantém a função 360º V16.8.33 literalmente intacta.
+    # Muda SOMENTE o identificador do modo dentro do prompt de IMAGEM.
+    # Nenhuma descrição textual de embalagem, rótulo ou cor é acrescentada.
+    # ==========================================================
+    def proteger_produto_imagem_outros_modos_v16834(roteiro, qtd_produtos, modo):
+        """Aplica a blindagem 360º aprovada em V9.2 e Produto 3S sem mudar vídeo/SEO."""
+        rotulos = {
+            'v9.2': '[V9.2 SOURCE-IMAGE PRODUCT IDENTITY AND PLACEMENT — IMAGE ONLY]: ',
+            'produto_3s': '[PRODUTO 3S SOURCE-IMAGE PRODUCT IDENTITY AND PLACEMENT — IMAGE ONLY]: ',
+        }
+        if modo not in rotulos:
+            raise ValueError('Proteção V16.8.34 restrita aos modos V9.2 e Produto 3S.')
+        # Reutiliza literalmente a proteção que corrigiu o 360º.
+        protegido = proteger_produto_imagem_apenas_360_v16833(roteiro, qtd_produtos)
+        secoes = extrair_blocos_roteiro(protegido)
+        origem = '[360º SOURCE-IMAGE PRODUCT IDENTITY AND PLACEMENT — IMAGE ONLY]: '
+        imagem = secoes['prompt_imagem']
+        if imagem.count(origem) != 1:
+            raise ValueError('Proteção final não encontrada uma única vez; não modificar outros blocos.')
+        imagem = imagem.replace(origem, rotulos[modo], 1)
+        return ('### 📸 PROMPT DE IMAGEM\n' + imagem + '\n\n'
+                '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + secoes['prompt_video']
+                + '\n\n### 🔑 TÍTULOS SEO (Separados)\n' + secoes['secao_seo_texto'])
+
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -7368,9 +7397,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     conteudo_texto, segundos_video_v16829,
                     modo="360",
                     produto_primeiro_3s=bool(st.session_state.get("elevo_produto_primeiro_3s_v16821", False)))
-                # Exclusivamente 360º clássico: reforço fotográfico na IMAGEM.
-                # Produto 3S e V9.2 continuam byte a byte iguais.
-                if not st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
+                # V16.8.34: mantém a blindagem 360º aprovada; Produto 3S usa a MESMA.
+                if st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
+                    conteudo_texto = proteger_produto_imagem_outros_modos_v16834(
+                        conteudo_texto, scan_17.get('qtd', 1), modo='produto_3s')
+                else:
                     conteudo_texto = proteger_produto_imagem_apenas_360_v16833(
                         conteudo_texto, scan_17.get('qtd', 1))
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
@@ -7527,6 +7558,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     )
                     conteudo_v92 = elevo_video_duracao_fidelidade_v16829(
                         conteudo_v92, segundos_video_v16829, modo="v9.2")
+                    # V16.8.34: mesma proteção aprovada da imagem 360º, sem alterar vídeo/SEO.
+                    conteudo_v92 = proteger_produto_imagem_outros_modos_v16834(
+                        conteudo_v92, scan_v92.get('qtd', 1), modo='v9.2')
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
