@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.31 — ISOLAMENTO DE RETRATO TEXTUAL NO PROMPT DE IMAGEM.
+# ALTERAÇÃO ÚNICA: a imagem não pressupõe retrato anexado da influenciadora; fotografia externa é só do produto.
+# Refino pontual de perspectiva; vídeo, SEO, 360º, V9.2, Produto 3S e demais funções preservados.
 # ÉLÉVO V16.8.30 — microajuste de ritmo e física natural APENAS nos prompts de vídeo.
 # Três modos intactos (360º, V9.2 e Produto 3S); 17.3, imagem, SEO, login, créditos e UI preservados.
 # ÉLÉVO V16.8.29 — duração 10/12/15 segundos e microtrava de continuidade APENAS no vídeo.
@@ -6943,6 +6946,21 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
             qtd = 1
         nome = str(nome_influencia or 'apresentadora selecionada').strip()[:100]
         pessoa = assinatura_visual_pessoa_sem_produto_v16811(visual_influencia)
+        # V16.8.31 — APENAS IMAGEM: a única foto anexada à geradora é a do
+        # PRODUTO. Qualquer menção a "reference portrait" na persona é textual,
+        # não uma segunda fotografia. Preserva todos os traços descritos.
+        pessoa_imagem = re.sub(
+            r'(?i)\bfrom\s+(?:the\s+)?reference\s+(?:portrait|photo|image)\b',
+            'as described here', pessoa,
+        )
+        pessoa_imagem = re.sub(
+            r'(?i)\b(?:the|her|his|a)\s+reference\s+(?:portrait|photo|image)\b',
+            'the described presenter', pessoa_imagem,
+        )
+        pessoa_imagem = re.sub(
+            r'(?i)\b(?:reference\s+portrait|portrait\s+reference|reference\s+photo)\b',
+            'described facial appearance', pessoa_imagem,
+        )
         # O ambiente já foi selecionado uma única vez pelo motor existente.
         # Não sortear um segundo cenário, nem inventar animal ou decoração.
         cena = AMBIENTES_ELEVO_V165.get(str(ambiente_id or ''))
@@ -6992,8 +7010,8 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
         'skin pores, individual hair strands, subtle moisture where plausible, genuine '
         'facial asymmetry, restrained spontaneous micro-expression, softly responsive '
         'breathing, advanced subsurface scattering, light smartphone sensor grain, NO flash. '
-        f'The sole adult Brazilian presenter is {nome}. PERSON-ONLY VISUAL REFERENCE: '
-        f'{pessoa}. Preserve her selected face, exact hair, skin, eyes and everyday '
+        f'The sole adult Brazilian presenter is {nome}. PERSON TEXT DESCRIPTION ONLY (no presenter photo attached): '
+        f'{pessoa_imagem}. Preserve her selected face, exact hair, skin, eyes and everyday '
         'wardrobe; spontaneous intimate friend-to-friend energy, believable body balance '
         'and anatomically correct fingers. The same woman remains in the final video. '
         f'[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. '
@@ -7014,6 +7032,7 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
         'cinematic atmospheric shadows coherent with the same real light source, '
         'unfiltered phone-camera imperfections. The product and presenter are both '
         'recognizable, naturally framed, never distorted. '
+        'When held, the product stays near the presenter\'s torso, not extended toward the lens. '
         '[ABSOLUTE UI LOCK]: Zero watermarks, zero platform interface, zero floating '
         'usernames, no graphic CTA or newly added logo in the still image.'
         )
