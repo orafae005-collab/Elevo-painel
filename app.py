@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
+# Somente UI/identidade da logo final V9.2 e higienização de três frases V9.2; imagem V9 e motores 360/3S intactos.
 # ÉLÉVO V16.8.37 — V9.2 logo opcional por conta, mantendo imagens V16.8.36 e física V10.
 # Sem alterações em 360º/Produto 3S, SEO, 17.3, autenticação, créditos ou escala 1:1.
 # ÉLÉVO V16.8.36 — ANTI-REGRESSÃO: UMA única blindagem final da foto nos três modos.
@@ -304,6 +306,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_roteiro_usuario_v16820",
     "elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
     "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837",
+    "elevo_v92_logo_nome_aplicado_v16838",
     "elevo_hist_mensagem_aviso_v16818",
     "influencer_atual", "email_inf_carregado", "dados_prontos",
     "ultimo_feedback_analisado", "ultima_taxa_conversao", "txt_diretrizes_360",
@@ -5558,7 +5561,8 @@ with _elevo_area_criacao_v16823:
     # anterior. Recuperar somente o rascunho volátil da conta autenticada.
     if st.session_state.get("elevo_roteiro_usuario_v16820") != email_sessao:
         for _k_v92_logo in ("elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
-                           "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837"):
+                           "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837",
+                           "elevo_v92_logo_nome_aplicado_v16838"):
             st.session_state.pop(_k_v92_logo, None)
         st.session_state["elevo_roteiro_usuario_v16820"] = email_sessao
         st.session_state["roteiro_temporario"] = None
@@ -5692,6 +5696,10 @@ with _elevo_area_criacao_v16823:
     # Configuração local à sessão da conta, não reaproveita marca de influenciadora.
     st.session_state.setdefault("elevo_v92_logo_ativo_v16837", bool(E_O_CEO))
     st.session_state.setdefault("elevo_v92_logo_efeito_v16837", "Glitch vermelho discreto" if E_O_CEO else "Aparecimento suave")
+    # Marca padrão do CEO continua preenchida, mas agora é editável como qualquer outra.
+    _marca_padrao_v16838 = "O Achado Secreto" if E_O_CEO else ""
+    st.session_state.setdefault("elevo_v92_logo_nome_v16837", _marca_padrao_v16838)
+    st.session_state.setdefault("elevo_v92_logo_nome_aplicado_v16838", _marca_padrao_v16838)
     v92_logo_ativo_v16837 = False
     v92_logo_nome_v16837 = ""
     v92_logo_arquivo_v16837 = None
@@ -5707,13 +5715,24 @@ with _elevo_area_criacao_v16823:
                     "Finalizar o vídeo com minha logo", key="elevo_v92_logo_ativo_v16837")
                 if v92_logo_ativo_v16837:
                     if E_O_CEO:
-                        v92_logo_nome_v16837 = "O Achado Secreto"
-                        st.caption("👑 Marca principal do CEO: O Achado Secreto. Pode anexar o arquivo original da logo abaixo.")
+                        st.caption("👑 Sua marca inicial é O Achado Secreto, mas você pode alterar e aplicar outro nome.")
+                    nome_digitado_v16838 = st.text_input(
+                        "✍️ Nome da logo / marca (editável também para o CEO)",
+                        placeholder="Ex.: O Achado Secreto ou Minha Loja", max_chars=70,
+                        key="elevo_v92_logo_nome_v16837",
+                        help="Edite o nome e clique Aplicar. Isso vale para seus próximos prompts desta sessão, não altera a marca de outras contas.")
+                    if st.button("✓ Aplicar nome da marca", key="elevo_v92_logo_aplicar_nome_v16838",
+                                 use_container_width=True):
+                        nome_aplicavel_v16838 = re.sub(r"\s+", " ", nome_digitado_v16838).strip()
+                        st.session_state["elevo_v92_logo_nome_aplicado_v16838"] = nome_aplicavel_v16838
+                        st.success("Nome aplicado à finalização da V9.2." if nome_aplicavel_v16838
+                                   else "Nome removido; envie uma imagem de logo para manter a finalização ativa.")
+                    v92_logo_nome_v16837 = str(st.session_state.get(
+                        "elevo_v92_logo_nome_aplicado_v16838", "")).strip()
+                    if nome_digitado_v16838.strip() != v92_logo_nome_v16837:
+                        st.info("Você editou o nome. Clique em **Aplicar nome da marca** antes de gerar.")
                     else:
-                        v92_logo_nome_v16837 = st.text_input(
-                            "Nome da sua marca (opcional se enviar imagem)",
-                            placeholder="Ex.: Minha Loja", max_chars=70,
-                            key="elevo_v92_logo_nome_v16837")
+                        st.caption("**Nome aplicado:** " + (v92_logo_nome_v16837 or "somente imagem da logo"))
                     v92_logo_arquivo_v16837 = st.file_uploader(
                         "📎 Adicionar imagem da minha logo (PNG/JPG/WEBP)",
                         type=["png", "jpg", "jpeg", "webp"],
@@ -5736,9 +5755,11 @@ with _elevo_area_criacao_v16823:
                 v92_logo_ativo_v16837 and
                 ((not v92_logo_nome_v16837.strip() and v92_logo_arquivo_v16837 is None)
                  or (v92_logo_arquivo_v16837 is not None and
-                     v92_logo_arquivo_v16837.size > 3_000_000)))
+                     v92_logo_arquivo_v16837.size > 3_000_000)
+                 or (st.session_state.get("elevo_v92_logo_nome_v16837", "").strip()
+                     != v92_logo_nome_v16837)))
             if v92_logo_invalida_v16837:
-                st.warning("Para ativar o encerramento, envie uma logo de até 3 MB ou informe o nome da marca.")
+                st.warning("Para finalizar, clique em Aplicar após editar o nome e informe uma marca ou anexe uma logo de até 3 MB.")
             if not pode_gerar_roteiro:
                 st.error("Entre na sua conta para gerar roteiros.")
                 btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
@@ -6986,48 +7007,71 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
 
 
     def elevo_v92_texto_na_tela_v16821(conteudo):
-        """Torna as três frases já existentes EXECUTÁVEIS no vídeo, sem reescrevê-las."""
+        """V16.8.38: três legendas limpas, SEM copiar instruções da IA para dentro de Caption 3.
+
+        Edita só a seção editorial de legendas do VÍDEO V9.2 e cria UMA instrução
+        pequena. Não modifica fala, imagem, SEO, identidade, tempo ou embalagem.
+        """
         secoes = extrair_blocos_roteiro(conteudo)
         video = secoes["prompt_video"]
         marcador = "[ÉLÉVO V9.2 — REAL IN-VIDEO TEXT RENDER LOCK]"
         if not video or marcador in video:
             return conteudo
-        parte = re.search(
-            r"(?ims)^\s*📝\s*Texto na Tela[^\n]*\n(.*?)(?=^\s*(?:🎞️|🏁|Finaliza(?:ção|cao)|###|🔑)|\Z)",
+
+        bloco = re.search(
+            r"(?ims)^\s*📝\s*\*{0,2}Texto na Tela[^\n]*(?:\n.*?)*?(?=^\s*(?:🎞️|🏁|Finaliza(?:ção|cao)|###|🔑)|\Z)",
             video,
         )
-        frases = []
-        if parte:
-            for linha in parte.group(1).splitlines():
-                linha = linha.strip().strip('"“”`*- ')
-                if not linha or linha.startswith("[") or "RENDER" in linha.upper():
+        if not bloco:
+            raise ValueError("V9.2: seção Texto na Tela ausente; não gerar legendas inventadas.")
+        texto = bloco.group(0).strip()
+        linhas = texto.splitlines()
+        titulo = linhas[0]
+        inicio = titulo.split(":", 1)[1].strip() if ":" in titulo else ""
+        candidatos = []
+        if inicio:
+            candidatos = re.split(r"\s+/\s+", inicio)
+        # Alguns formatos vêm como três linhas cronometradas, uma por frase.
+        if len(candidatos) < 3:
+            candidatos = []
+            for linha in linhas[1:]:
+                limpo = linha.strip()
+                if not limpo or re.search(r"(?i)^(?:render|keep typography|these are|no platform|show |burn |use only)", limpo):
                     continue
-                if len(linha) <= 180 and len(frases) < 3:
-                    frases.append(linha)
-        if not frases:
-            # Alguns provedores retornam as três frases na própria linha do título.
-            inline = re.search(r"(?im)^\s*📝\s*\*{0,2}Texto na Tela[^\n]*?:\s*(.+)$", video)
-            if inline:
-                frases = [trecho.strip().strip('"“” ') for trecho in
-                          re.split(r"\s+/\s+|\s{2,}", inline.group(1)) if trecho.strip()][:3]
-        enumeracao = " ".join(f"Caption {n}: {frase!r}." for n, frase in enumerate(frases, 1))
+                candidatos.append(limpo)
+
+        # A saída do modelo pode acrescentar prosa em inglês depois da última frase.
+        # Isolar a frase é mais seguro do que mandar toda a prosa como Caption 3.
+        stop = re.compile(r"(?i)\s+(?:Render these|Keep typography|These are rendered|No platform UI|\bThese three\b|\bUse only\b|\bDo not\b)\b")
+        frases = []
+        for candidato in candidatos[:3]:
+            c = candidato.strip()
+            c = stop.split(c, 1)[0].strip()
+            c = re.sub(r"^\s*\*{0,2}\d{1,2}:\d{2}\s*[–-]\s*\d{1,2}:\d{2}\s*:\*{0,2}\s*", "", c)
+            c = re.sub(r"^\s*\d[.)]\s*", "", c)
+            c = c.strip(" '“”\"`*- ")
+            c = re.sub(r"\s+", " ", c)
+            # 100 caracteres bastam para a legenda. Texto longo é erro, não nova legenda.
+            if not c or len(c) > 100:
+                raise ValueError("V9.2: legenda longa ou contaminada; não enviar como texto de tela.")
+            frases.append(c)
+        if len(frases) != 3:
+            raise ValueError("V9.2: esperadas três legendas; não duplicar ou inventar frases.")
+
+        # Uma única cópia dos três textos, sem instruções editoriais grudadas.
+        canonical = ("📝 Texto na Tela (Nativo TikTok - Foco na Dor):\n" +
+                     "\n".join(f"{idx}. {frase}" for idx, frase in enumerate(frases, 1)))
+        video_limpo = video[:bloco.start()] + "\n" + canonical + "\n" + video[bloco.end():]
         reforco = (
             marcador + "\n"
-        "BURN THE EXACT approved Portuguese on-screen captions INTO THE GENERATED VIDEO "
-        "ITSELF; do not merely suggest adding them later in an editor. "
-        "Show the first caption at approximately 00:03–00:05, the second at 00:05–00:07, "
-        "and the third at 00:07–00:09, in sequential, readable, high-contrast native-style "
-        "sans-serif text with safe margins; clear them before the natural final shot. "
-        "Never cover the product, presenter face or critical hand contact. "
-        "These three approved captions are the ONLY allowed video text overlays: "
-        "no TikTok interface, floating CTA graphic, watermark, appended brand name or end logo. "
-        "Product package printing itself remains exactly as in the photo reference. "
-        "Keep the original 📝 Texto na Tela lines, speech, audio, image and SEO unchanged. "
-        "This explicit instruction takes precedence over OLD 'editing notes', 'no overlays' "
-        "and historical logo-finalization rules; it does NOT authorize any other overlays. "
-            + enumeracao + "\n\n"
+            "Render ONLY the three original PT-BR caption phrases listed in '📝 Texto na Tela', "
+            "in order, at about 00:03–00:05, 00:05–00:07, and 00:07–00:09. "
+            "Use readable native-style text; keep it clear of face, hands and product. "
+            "Clear captions before the natural closing shot. "
+            "No extra narrative captions, platform UI, watermark or invented branding; "
+            "original printed package artwork remains untouched.\n\n"
         )
-        return _trocar_so_video_v12(conteudo, "🎬 " + reforco + video)
+        return _trocar_so_video_v12(conteudo, "🎬 " + reforco + video_limpo)
 
 
     def elevo_v92_limpar_fecho_logo_v16821(conteudo):
@@ -7478,12 +7522,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         # Reescreve apenas as poucas cláusulas contraditórias, sem alterar a
         # identidade do produto, o anti-morphing, textos e bloqueio de interface.
         substituicoes = (
-            ("These three approved captions are the ONLY allowed video text overlays: ",
-             "These three approved captions are the ONLY narrative text overlays before the authorized final brand beat: "),
-            ("no TikTok interface, floating CTA graphic, watermark, appended brand name or end logo.",
-             "no TikTok interface, floating CTA graphic, watermark or unauthorized branding before the final brand beat."),
+            ("No extra narrative captions, platform UI, watermark or invented branding;",
+             "No extra narrative captions, platform UI, watermark or branding except the approved final logo;"),
             ("no added logo, brand card, glitch or fade to black.",
-             "no unauthorized brand overlay before the permitted final 0.8-second brand beat and no fade to black."),
+             "no unauthorized brand overlay before the final 0.8-second logo beat; no fade to black."),
             ("platform UI, new logo, invented graphics or product replacements.",
              "platform UI, unauthorized branding, invented graphics or product replacements."),
             ("Never fade to black, insert glitch, floating shopping bag, platform UI, new logo,",
@@ -7509,18 +7551,13 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             )
         final = (
             f"\n\n{marca}\n"
-            "SCOPE: V9.2 VIDEO ENDING ONLY; never alter the product photo, printed product logo, "
-            "package color, labels, count, material or 1:1 scale. No brand overlay in the "
-            "first still or during the presenter speech. All existing on-screen captions "
-            f"finish BEFORE {inicio:.1f}s. "
-            f"At {inicio:.1f}s–{dur:.1f}s (FINAL 0.8s ONLY), reveal the selected brand "
-            "as a SMALL editorial overlay at the bottom in a clear area, without covering "
-            "the presenter, hand, or product; keep the same real scene moving beneath it. "
-            "One brand overlay only, no black card, no false product transformation, no duplicate logo. "
-            + identidade + "Final treatment: " + efeito_mapa[efeito] + ". "
-            "Earlier generic 'no logos/no glitch' prohibitions remain valid for all frames "
-            "EXCEPT this explicitly authorized ending; all anti-morphing and photo fidelity "
-            "requirements remain fully binding. Respect existing total duration and narration."
+            f"ONLY V9.2, final {inicio:.1f}s–{dur:.1f}s (last 0.8s): "
+            "show one small approved brand overlay over the same moving scene, clear of "
+            "face, hands and source-identical products. Previous captions end first. "
+            "No separate card, black frame, extra logo, duplicate brand or product changes. "
+            + identidade + "Transition: " + efeito_mapa[efeito] + ". "
+            "Earlier no-logo rules apply until this final brand beat; "
+            "preserve the existing speech, total duration and product fidelity."
         )
         video += final
         novo = ("### 📸 PROMPT DE IMAGEM\n" + sec["prompt_imagem"] + "\n\n"
@@ -7829,7 +7866,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     # V16.8.36: imagem final V34 preservada; V10 SOMENTE no vídeo V9.2.
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
-                    # V16.8.37: logo opcional SOMENTE no fim do vídeo V9.2.
+                    # V16.8.38: logo editável / nome aplicado SOMENTE no fim da V9.2.
                     if v92_logo_ativo_v16837:
                         if (v92_logo_arquivo_v16837 is not None
                                 and v92_logo_arquivo_v16837.size > 3_000_000):
