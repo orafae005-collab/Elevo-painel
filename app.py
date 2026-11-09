@@ -1,6 +1,8 @@
-# ÉLÉVO V16.8.31 — ISOLAMENTO DE RETRATO TEXTUAL NO PROMPT DE IMAGEM.
-# ALTERAÇÃO ÚNICA: a imagem não pressupõe retrato anexado da influenciadora; fotografia externa é só do produto.
-# Refino pontual de perspectiva; vídeo, SEO, 360º, V9.2, Produto 3S e demais funções preservados.
+# ÉLÉVO V16.8.32 — GABARITOS APROVADOS DE IMAGEM / ROLLBACK DA V16.8.31.
+# FONTE: padrões de imagem aprovados pelo CEO (Bruna, Babi, Aurora, Juliana, Ana).
+# Os três modos continuam a usar o mesmo molde V9 da V16.8.30 SEM alterações.
+# Memória 17.3: referências históricas somente de estrutura visual; nunca de embalagens.
+# Nenhum ajuste em vídeo 10/12/15s, SEO, UI, API, autenticação ou créditos.
 # ÉLÉVO V16.8.30 — microajuste de ritmo e física natural APENAS nos prompts de vídeo.
 # Três modos intactos (360º, V9.2 e Produto 3S); 17.3, imagem, SEO, login, créditos e UI preservados.
 # ÉLÉVO V16.8.29 — duração 10/12/15 segundos e microtrava de continuidade APENAS no vídeo.
@@ -6451,6 +6453,71 @@ lotes secretos, estoque, preços, promoções nem resultado clínico ou garantid
 Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao vídeo bruto.
 """.strip()
 
+    # V16.8.32 — GABARITOS REAIS APROVADOS: memória histórica de IMAGEM.
+    # IMPORTANTE: não acrescentar NENHUM desses produtos/quantidades/ambientes à cena
+    # corrente. A única referência de EMBALAGEM é a FOTO anexada ao gerador EXTERNO.
+    # O molde V9 compartilhado abaixo continua sendo a fonte executável principal.
+    GABARITOS_IMAGEM_APROVADOS_17_3_V16832 = {
+        "bruna_calcada": {
+            "apresentadora": "Bruna Lima", "ambiente_aprovado": "calcada", "unidades_do_exemplo": 1,
+            "referencia_humana": "Brazilian adult woman, 28 years old, light warm skin, medium-long honey-blonde wavy hair with darker roots, brown eyes, softly defined facial contours, natural makeup, black short-sleeve casual shirt; preserve the same distinct portrait identity and hairstyle.",
+            "marco_visual": "RAW photography, cinematic mid-shot POV handheld mobile phone selfie, vertical 9:16, chest-to-waist framing, authentic Brazilian UGC V9 visual signature.",
+            "regra": "Photo product identity only from original uploaded product reference; 1:1 natural scale."
+        },
+        "babi_piscina": {
+            "apresentadora": "Babi Martins", "ambiente_aprovado": "piscina", "unidades_do_exemplo": 1,
+            "referencia_humana": "One person is clearly visible, facing the camera in a relaxed, upright pose, with one arm extended toward the camera. She has a softly oval face, a light-to-medium warm skin tone as shown, dark eyes, and natural-looking, gently arched dark eyebrows. Her long, dark brown hair has a center-to-slightly-off-center part, wispy bangs across her forehead, and loose, softly wavy lengths falling over both shoulders to below her chest. She wears a plain coral-pink short-sleeved crew-neck top. Her expression is calm and friendly, with a slight smile.",
+            "marco_visual": "Keep the person entirely textual and the attached image exclusively authoritative for product artwork.",
+            "regra": "A observação pessoal é da pessoa, nunca do produto."
+        },
+        "aurora_varanda_tropical": {
+            "apresentadora": "Aurora", "ambiente_aprovado": "varanda tropical chuvosa", "unidades_do_exemplo": 3,
+            "referencia_humana": "photorealistic adult Brazilian woman Aurora, with natural dark hair and perfectly straight-cut bangs (franja reta)",
+            "marco_visual": "[CRITICAL TRUE-SCALE & PHYSICAL ANCHOR LOCK]: Only when verified for THIS example, the THREE original 400g jars were compact and naturally proportional to one adult hand, resting together on a table.",
+            "regra": "Exemplo histórico Novex 3x400g; NUNCA transferir marca, embalagem, cor, tamanho, quantidade, tampa ou grafismo para outro produto."
+        },
+        "juliana_brasil_tropical": {
+            "apresentadora": "Juliana Mendes", "ambiente_aprovado": "brasil_tropical", "unidades_do_exemplo": 2,
+            "referencia_humana": "Brazilian adult woman, 30 years old, fair skin with natural freckles, long voluminous copper-red wavy hair parted to the side, hazel eyes, softly angular face, white casual top, minimal jewelry; preserve copper hairstyle and face identity from the portrait.",
+            "marco_visual": "RAW photography, cinematic mid-shot POV handheld mobile phone selfie, vertical 9:16, chest-to-waist framing, authentic Brazilian UGC V9 visual signature.",
+            "regra": "Dois itens distintos, contagem fiel à foto e sem reconstrução do rótulo."
+        },
+        "ana_varanda": {
+            "apresentadora": "Ana Clara", "ambiente_aprovado": "varanda", "unidades_do_exemplo": 1,
+            "referencia_humana": "Brazilian adult woman, 22 years old, warm medium complexion, deep brown almond eyes, long dark brown wavy hair with a side part, softly rounded face, natural delicate makeup, hoop earrings, casual earth-toned blouse; preserve the reference portrait identity, hair part and face proportions in every scene.",
+            "marco_visual": "RAW photography, cinematic mid-shot POV handheld mobile phone selfie, vertical 9:16, chest-to-waist framing, authentic Brazilian UGC V9 visual signature.",
+            "regra": "Uma unidade única, forma natural e embalagem definida exclusivamente pela foto do produto."
+        },
+    }
+    MEMORIA_GABARITOS_APROVADOS_IMAGEM_V16832 = """
+[ÉLÉVO V16.8.32 — CINCO GABARITOS DE IMAGEM VALIDADOS PELO CEO / PRIORIDADE]
+Casos aprovados: Bruna Lima (calçada/1), Babi Martins (piscina/1),
+Aurora (varanda tropical/3 potes de 400g, SOMENTE naquele exemplo),
+Juliana Mendes (deck brasil_tropical/2) e Ana Clara (varanda/1).
+A referência principal para a IMAGEM é a estrutura V9 já implementada em
+restaurar_matriz_v9_tres_criacoes_v16824, que gerou esses exemplos aprovados:
+RAW smartphone 9:16, pele e cabelos humanos reais, pessoa descrita SOMENTE por
+texto, cenário selecionado com plantas, baguncinha, animal discreto e luz natural,
+mesmo número de itens da foto, fidelidade de embalagem referenciada externamente,
+âncora física 1:1 e fotografia realista sem gráficos adicionais.
+NUNCA herdar a marca, rótulo, cores, tipo, capacidade, quantidade, cenário ou
+influenciadora de um exemplo de sucesso para outro produto. A foto que o usuário
+anexa à GERADORA DE IMAGEM É SOMENTE A FOTO DO PRODUTO. Não pressupor retrato
+anexado da influenciadora. Descrições como 'reference portrait' dos exemplos
+aprovados são apenas nuances textuais da aparência humana e NÃO uma segunda foto.
+Preserve as expressões originais dos exemplos V9 aprovados: PERSON-ONLY VISUAL
+REFERENCE, CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING, BRANDING INTEGRITY LOCK,
+CRITICAL 1:1, REALISTIC CAMERA LOCK, ABSOLUTE UI LOCK.
+O exemplo Aurora 3x400g é um CASO ESPECÍFICO DE ÂNCORA física validada. Não
+presumir que todo produto seja um pote de 400g nem imponha tamanho universal.
+A estrutura de IMAGEM final é determinística e não deve ser ampliada com
+características de produto inferidas pelo scanner, memória histórica ou persona.
+Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
+""".strip()
+    # Banco de gabaritos arquivado no 17.3 para servir de REFERÊNCIA PRINCIPAL
+    # e testes de regressão, SEM injetar cinco produtos históricos nas chamadas
+    # da IA: a entrada ativa anterior e os VÍDEOS ficam 100% preservados.
+
     # Banco 17.3 permanece integral nos prompts dos motores 17 e 17.2.
     # Interface de código-fonte desativada: evita expor documentação técnica ao usuário.
 
@@ -6946,21 +7013,6 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
             qtd = 1
         nome = str(nome_influencia or 'apresentadora selecionada').strip()[:100]
         pessoa = assinatura_visual_pessoa_sem_produto_v16811(visual_influencia)
-        # V16.8.31 — APENAS IMAGEM: a única foto anexada à geradora é a do
-        # PRODUTO. Qualquer menção a "reference portrait" na persona é textual,
-        # não uma segunda fotografia. Preserva todos os traços descritos.
-        pessoa_imagem = re.sub(
-            r'(?i)\bfrom\s+(?:the\s+)?reference\s+(?:portrait|photo|image)\b',
-            'as described here', pessoa,
-        )
-        pessoa_imagem = re.sub(
-            r'(?i)\b(?:the|her|his|a)\s+reference\s+(?:portrait|photo|image)\b',
-            'the described presenter', pessoa_imagem,
-        )
-        pessoa_imagem = re.sub(
-            r'(?i)\b(?:reference\s+portrait|portrait\s+reference|reference\s+photo)\b',
-            'described facial appearance', pessoa_imagem,
-        )
         # O ambiente já foi selecionado uma única vez pelo motor existente.
         # Não sortear um segundo cenário, nem inventar animal ou decoração.
         cena = AMBIENTES_ELEVO_V165.get(str(ambiente_id or ''))
@@ -7010,8 +7062,8 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
         'skin pores, individual hair strands, subtle moisture where plausible, genuine '
         'facial asymmetry, restrained spontaneous micro-expression, softly responsive '
         'breathing, advanced subsurface scattering, light smartphone sensor grain, NO flash. '
-        f'The sole adult Brazilian presenter is {nome}. PERSON TEXT DESCRIPTION ONLY (no presenter photo attached): '
-        f'{pessoa_imagem}. Preserve her selected face, exact hair, skin, eyes and everyday '
+        f'The sole adult Brazilian presenter is {nome}. PERSON-ONLY VISUAL REFERENCE: '
+        f'{pessoa}. Preserve her selected face, exact hair, skin, eyes and everyday '
         'wardrobe; spontaneous intimate friend-to-friend energy, believable body balance '
         'and anatomically correct fingers. The same woman remains in the final video. '
         f'[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. '
@@ -7032,7 +7084,6 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
         'cinematic atmospheric shadows coherent with the same real light source, '
         'unfiltered phone-camera imperfections. The product and presenter are both '
         'recognizable, naturally framed, never distorted. '
-        'When held, the product stays near the presenter\'s torso, not extended toward the lens. '
         '[ABSOLUTE UI LOCK]: Zero watermarks, zero platform interface, zero floating '
         'usernames, no graphic CTA or newly added logo in the still image.'
         )
