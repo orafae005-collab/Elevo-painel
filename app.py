@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.30 — microajuste de ritmo e física natural APENAS nos prompts de vídeo.
+# Três modos intactos (360º, V9.2 e Produto 3S); 17.3, imagem, SEO, login, créditos e UI preservados.
 # ÉLÉVO V16.8.29 — duração 10/12/15 segundos e microtrava de continuidade APENAS no vídeo.
 # Preserva a base V16.8.28, imagem, SEO, elenco, permissões, segurança, cobranças e UI VIP.
 # ÉLÉVO V16.8.28 — clique direto no status de TODOS os cards.
@@ -5957,8 +5959,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         faixas = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
         etapas = {
             10: ("00:00–00:03", "00:03–00:06", "00:06–00:08", "00:08–00:10"),
-            12: ("00:00–00:03", "00:03–00:07", "00:07–00:10", "00:10–00:12"),
-            15: ("00:00–00:03", "00:03–00:08", "00:08–00:12", "00:12–00:15"),
+            12: ("00:00–00:03", "00:03–00:06", "00:06–00:09", "00:09–00:12"),
+            15: ("00:00–00:03", "00:03–00:06", "00:06–00:13", "00:13–00:15"),
         }
         return duracao, faixas[duracao], etapas[duracao]
 
@@ -5978,7 +5980,53 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
             "All original kit units, backdrop, labels and influencer identity remain consistent from image to final frame."
         )
 
-    def elevo_video_duracao_fidelidade_v16829(roteiro, segundos):
+    # V16.8.30 — camada pequena, aplicada SOMENTE ao prompt de VÍDEO final.
+    # Ritmos são sugestões naturais, não comandos rígidos ou ações extras obrigatórias.
+    def elevo_microfisica_adaptativa_v16830(segundos, modo="360", produto_primeiro_3s=False):
+        duracao = int(segundos)
+        gesto = {
+            10: ("10s: between 00:06 and 00:08, complete only ONE simple, purposeful "
+                 "contact (a light touch or small supported grip adjustment IF physically possible). "
+                 "Do not force a grab-lift-demonstrate-return sequence into two seconds."),
+            12: ("12s: use 00:06–00:09 for ONE continuous, believable hand interaction. "
+                 "Allow finger pressure, realistic object mass, a natural wrist correction "
+                 "and one modest focus adjustment; lift and return ONLY if unhurried and fully supported."),
+            15: ("15s: from 00:06–00:10, develop ONE coherent demonstration with "
+                 "natural hand contact; from 00:10–00:13, allow a small nonrepeated "
+                 "reaction from the EXISTING person or environment, then 00:13–00:15 "
+                 "close with the familiar CTA. Do not add a second demonstration or new props."),
+        }[duracao]
+        politica_texto = (
+            "V9.2: keep ONLY the already approved native PT-BR on-screen captions "
+            "and their existing placement policy; no conflicting editing-only text directions."
+            if modo == "v9.2" else
+            "360/Produto 3S: keep the already approved caption and post-production policy unchanged."
+        )
+        primeiro = (
+            "Produto 3S: the product remains the ONLY on-screen subject in the FULL "
+            "first three seconds; reveal the same presenter afterward, without enlarging the item."
+            if produto_primeiro_3s else
+            "Preserve the existing product-led opening and natural presenter reveal; "
+            "do not change this mode's approved framing."
+        )
+        return (
+            "[ÉLÉVO V16.8.30 — ADAPTIVE NATURAL PHYSICS, VIDEO ONLY] "
+            "Use the time windows as gentle pacing guides, not mechanical cuts. "
+            + gesto + " " + primeiro + " "
+            "Lived-in physics: a subtle breath, asymmetric blink, small neck or "
+            "posture adjustment and believable hair inertia ONLY where motivated. "
+            "Every existing object keeps its real weight, contact, inertia and position; "
+            "hands never merge with packaging or lose continuous grip. "
+            "Existing leaves, fabric, water, rain and environmental sound move "
+            "independently according to their actual causes; no synchronized loops. "
+            "Preserve the SAME original scene and its natural everyday clutter; "
+            "never invent extra items, pets, weather, labels or products. "
+            "Do not stretch a 10s action, freeze the final frame or rush speech. "
+            "Commercial claims require support from the real product. "
+            + politica_texto + "\n"
+        )
+
+    def elevo_video_duracao_fidelidade_v16829(roteiro, segundos, modo="360", produto_primeiro_3s=False):
         """Cirurgia somente no vídeo final: duração explícita + pequena trava anti-morphing.
 
         Reaproveita o roteiro aprovado; não chama nova IA e não altera fala, imagem ou SEO.
@@ -6014,6 +6062,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                 'when the hand moves or camera reframes. Only perspective and illumination may '
                 'change naturally. No product redraw, shape drift, label shimmer or duplicates. '
                 'Never invent physical packaging descriptions in this prompt.\n'
+                + elevo_microfisica_adaptativa_v16830(
+                    duracao, modo=modo, produto_primeiro_3s=produto_primeiro_3s)
             )
             video = plano + '\n' + video
         resultado = _trocar_so_video_v12(roteiro, video)
@@ -7194,7 +7244,9 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                 )
                 # Apenas vídeo: duração selecionada + continuidade do produto; imagem/SEO intocados.
                 conteudo_texto = elevo_video_duracao_fidelidade_v16829(
-                    conteudo_texto, segundos_video_v16829)
+                    conteudo_texto, segundos_video_v16829,
+                    modo="360",
+                    produto_primeiro_3s=bool(st.session_state.get("elevo_produto_primeiro_3s_v16821", False)))
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_texto
@@ -7348,7 +7400,7 @@ Os textos de CTA pertencem somente à edição posterior; não sobrepor UI ao v�
                         observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
                     )
                     conteudo_v92 = elevo_video_duracao_fidelidade_v16829(
-                        conteudo_v92, segundos_video_v16829)
+                        conteudo_v92, segundos_video_v16829, modo="v9.2")
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
