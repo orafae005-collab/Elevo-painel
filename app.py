@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.35 — física V10 causal e antirrepetição no VÍDEO + blindagem da FOTO na IMAGEM.
+# Os três modos (360º / V9.2 / Produto 3S) passam pelo mesmo reforço final.
+# Preservados: travas V16.8.33/34, matriz original, identidade do elenco, banco 17.3, fala, textos, SEO, áudio, UI, login e créditos.
 # ÉLÉVO V16.8.34 — proteção final da IMAGEM também na V9.2 e no Produto 3S.
 # V16.8.33 / 360º preservada integralmente; mesma blindagem validada pelo CEO.
 # Sem alterações em vídeo 10/12/15s, SEO, elenco, ambientes, 17.3, API, UI ou créditos.
@@ -7272,6 +7275,100 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + secoes['prompt_video']
                 + '\n\n### 🔑 TÍTULOS SEO (Separados)\n' + secoes['secao_seo_texto'])
 
+    # ==========================================================
+    # ÉLÉVO V16.8.35 — V10 PHYSICAL CAUSALITY + PRODUCT PHOTO IMMUTABILITY
+    # PÓS-PROCESSAMENTO FINAL DOS TRÊS MODOS: um bloco só na imagem
+    # e um bloco só na direção VISUAL do vídeo. Não toca falas, SEO,
+    # legendas V9.2, duração, perfis ou cenário aprovado.
+    # NOTA: prompt não é garantia de pixels; fidelidade depende do gerador.
+    # ==========================================================
+    def elevo_v10_fisica_e_foto_tres_modos_v16835(roteiro, modo):
+        """Dá prioridade à foto do produto e à física V10 sem reescrever o molde V9."""
+        if modo not in ('360', 'v9.2', 'produto_3s'):
+            raise ValueError('Reforço V16.8.35: modo desconhecido.')
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
+            raise ValueError('Reforço V16.8.35: roteiro incompleto.')
+        imagem = sec['prompt_imagem']
+        video = sec['prompt_video']
+        marca_img = '[ÉLÉVO V16.8.35 — ORIGINAL PRODUCT PHOTO / IMMUTABLE SOURCE]'
+        marca_video = '[ÉLÉVO V16.8.35 — V10 CAUSAL HUMAN & ENVIRONMENTAL PHYSICS]'
+        if marca_img in imagem or marca_video in video:
+            if imagem.count(marca_img) == 1 and video.count(marca_video) == 1:
+                return roteiro  # Idempotente: não acumular travas num novo processamento.
+            raise ValueError('Reforço V16.8.35 detectou aplicação incompleta.')
+        if imagem.count('[MULTI-PRODUCT KIT LOCK') != 1 or imagem.count('[BRANDING INTEGRITY LOCK]') != 1:
+            raise ValueError('Matriz V9 de imagem inesperada; preservada sem alteração.')
+        ancora_video = '🎬 [ÉLÉVO V9 REALITY ENGINE — FINAL VISUAL DIRECTION / ONE SOURCE OF TRUTH]'
+        if video.count(ancora_video) != 1:
+            raise ValueError('Matriz V9 de vídeo inesperada; preservada sem alteração.')
+
+        # A ÚNICA foto fornecida ao gerador externo é a do produto; pessoa = texto.
+        # Nenhuma aparência do produto é criada por esta função.
+        blindagem_foto = (
+            marca_img + ' '
+            'The ONLY uploaded image for IMAGE generation is the ORIGINAL PRODUCT photograph. '
+            'Use it as the sole literal product appearance source, NOT as a moodboard or an approximate example. '
+            'Do not regenerate a similar-looking product, redraw/replace graphics, alter existing hues, '
+            'rewrite or translate printed marks, invent unreadable lettering, recolor packaging, '
+            'replace the brand or create a new label. Each original unit keeps its own source artwork '
+            'and rigid silhouette at real-world 1:1 scale; only real lighting, occlusion and camera '
+            'perspective may change. The presenter is created exclusively from TEXT; switching her '
+            'appearance or the setting cannot transfer attributes to the referenced product. '
+            'No product color, label, size or packaging details may come from persona text, historical '
+            'examples or memory. If lettering cannot be reproduced faithfully, do not invent substitute text. '
+        )
+        imagem = imagem.replace('[BRANDING INTEGRITY LOCK]', blindagem_foto + '[BRANDING INTEGRITY LOCK]', 1)
+
+        # Core V10: um arco de ação (sem loops), física real e microvida causal
+        # do cenário que já existe no QUADRO ZERO. Não cria novos animais/objetos.
+        politica_modo = {
+            '360': 'Keep the 360º natural presenter-led UGC opening and the current video timing. ',
+            'v9.2': 'Keep the V9.2 existing Portuguese captions EXACTLY as supplied and their original native-video text policy. ',
+            'produto_3s': 'Keep the entire first three seconds PRODUCT-ONLY as already approved, then reveal the same presenter; do not insert a new product, face or jump cut. ',
+        }[modo]
+        direcao_v10 = (
+            marca_video + '\n'
+            'FRAME ZERO = THE APPROVED STILL IMAGE. Preserve its real room geometry, existing everyday clutter, '
+            'the same person, product-unit count, positions, lighting and all visible object identities. '
+            'ONE NON-REPEATING ACTION ARC: read the actual initial hand/product contact before moving anything; '
+            'if already holding the item, keep that SAME secure grip and allow only ONE small purposeful presentation '
+            'tilt or natural stabilization; if supported, optionally establish ONE visible grip, make ONE short '
+            'physically possible move, then settle ONCE. Never reset to the start pose, regrip without cause, '
+            'repeat a display cycle, repeatedly point/tap/wave, reverse the same move or loop facial expressions. '
+            'HUMAN MECHANICS: stable wrist-to-forearm alignment, thumb opposing fingers, continuous finger-to-surface '
+            'contact and occlusion, tiny pressure change, plausible mass and inertia, correct gravity, friction '
+            'and contact shadows. The free hand may gesture naturally ONCE only when motivated by a spoken phrase; '
+            'otherwise it relaxes. A small weight shift, unsynchronized blink and real breath follow the speech, '
+            'not robotic timed beats. Hair and fabric move only with their actual cause; no rubber hands or floating items. '
+            'LIVED-IN V10 SCENE: keep the already-photographed plant(s), everyday clutter, furniture and any visible animal. '
+            'Make ONE existing background material respond subtly to its real cause (leaf to visible airflow, '
+            'fabric settling after touch, a real water drop or reflection where water exists); add a second '
+            'independent micro-event only when plausible and already supported by the still. '
+            'One real existing background animal may make a discreet non-looping motion ONLY if already in the still. '
+            'Keep at least one existing everyday object readable in the set without shifting, duplicating '
+            'or inventing props, people, pets, water, rain or weather. '
+            'CAMERA: believable handheld microdrift and at most one motivated autofocus settle, no exaggerated '
+            'zoom or shake; product label and face remain readable without near-lens enlargement. '
+            'Do not freeze the final seconds, cut to a black card, start an extra demonstration, '
+            'synchronize the entire background, repeat spoken phrases or break spatial continuity. '
+            + politica_modo + '\n'
+        )
+        video = video.replace(ancora_video, direcao_v10 + ancora_video, 1)
+        novo = ('### 📸 PROMPT DE IMAGEM\n' + imagem + '\n\n'
+                '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + video + '\n\n'
+                '### 🔑 TÍTULOS SEO (Separados)\n' + sec['secao_seo_texto'])
+        conferido = extrair_blocos_roteiro(novo)
+        if conferido['secao_seo_texto'] != sec['secao_seo_texto']:
+            raise ValueError('Proteção SEO V16.8.35 falhou.')
+        # Conserva integralmente o conteúdo V9 e o texto editorial, acrescentando
+        # somente os dois blocos independentes no começo da geração externa.
+        if video.replace(direcao_v10, '', 1) != sec['prompt_video']:
+            raise ValueError('Proteção V16.8.35 detectou modificação do vídeo anterior.')
+        if imagem.replace(blindagem_foto, '', 1) != sec['prompt_imagem']:
+            raise ValueError('Proteção V16.8.35 detectou modificação da imagem anterior.')
+        return novo
+
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -7404,6 +7501,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 else:
                     conteudo_texto = proteger_produto_imagem_apenas_360_v16833(
                         conteudo_texto, scan_17.get('qtd', 1))
+                # V16.8.35: V10 causal + foto imutável APÓS a blindagem V16.8.33/34.
+                conteudo_texto = elevo_v10_fisica_e_foto_tres_modos_v16835(
+                    conteudo_texto,
+                    modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_texto
@@ -7561,6 +7662,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     # V16.8.34: mesma proteção aprovada da imagem 360º, sem alterar vídeo/SEO.
                     conteudo_v92 = proteger_produto_imagem_outros_modos_v16834(
                         conteudo_v92, scan_v92.get('qtd', 1), modo='v9.2')
+                    # V16.8.35: foto original + física V10 no motor V9.2.
+                    conteudo_v92 = elevo_v10_fisica_e_foto_tres_modos_v16835(
+                        conteudo_v92, modo='v9.2')
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
