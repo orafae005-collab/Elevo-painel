@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.33 — proteção de referência, contagem e perspectiva SOMENTE na imagem 360º.
 # ÉLÉVO V16.8.32 — GABARITOS APROVADOS DE IMAGEM / ROLLBACK DA V16.8.31.
 # FONTE: padrões de imagem aprovados pelo CEO (Bruna, Babi, Aurora, Juliana, Ana).
 # Os três modos continuam a usar o mesmo molde V9 da V16.8.30 SEM alterações.
@@ -7192,6 +7193,56 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         )
         return novo
 
+    # ==========================================================
+    # V16.8.33 — ISOLAMENTO DIRECIONADO DO PRODUTO APENAS NA IMAGEM 360º.
+    # Não altera o gabarito V9/V9.2, Produto 3S, vídeo, SEO ou banco 17.3.
+    # A imagem anexada ao GERADOR EXTERNO é SOMENTE a foto do produto.
+    # ==========================================================
+    def proteger_produto_imagem_apenas_360_v16833(roteiro, qtd_produtos):
+        """Especifica contagem/posição sem redescrever nem regenerar a embalagem."""
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ('prompt_imagem', 'prompt_video', 'secao_seo_texto')):
+            raise ValueError('Blocos de roteiro incompletos no 360º.')
+        imagem = sec['prompt_imagem']
+        marcador = '[MULTI-PRODUCT KIT LOCK'
+        if imagem.count(marcador) != 1:
+            raise ValueError('Matriz de imagem V9 do 360º inesperada; nenhuma troca automática.')
+        qtd = max(1, min(30, int(qtd_produtos)))
+        if qtd == 1:
+            posicao = (
+                'Inventory contains EXACTLY ONE physical original source item. '
+                'One visible item only; no duplicates or stacked copies. '
+                'If handheld, keep it naturally close to the presenter torso; '
+                'if not physically hand-holdable, rest it on the original stable support. '
+            )
+        else:
+            posicao = (
+                f'Inventory contains EXACTLY {qtd} physical original source items, no more and no less. '
+                'If physically hand-holdable, place at most ONE original item in one natural hand '
+                f'at torso depth and put the remaining {qtd - 1} original unit(s) individually '
+                'on the same existing stable support; otherwise support all items. '
+                'Never stack containers in the hand, create a third background item, '
+                'hide extra copies, merge units, or change the kit count. '
+            )
+        trava = (
+            '[360º SOURCE-IMAGE PRODUCT IDENTITY AND PLACEMENT — IMAGE ONLY]: '
+            'The ONLY photograph uploaded to the external image generator is the PRODUCT photo. '
+            'The presenter is generated from her TEXT DESCRIPTION, not another photo. '
+            'Treat the original product artwork, printed marks, silhouette and proportions as immutable '
+            'visual content from that uploaded photo, never as text to generate or reinterpret. '
+            'Changing the presenter must not affect any product identity. '
+            + posicao +
+            'Maintain true product-to-hand and product-to-furniture scale without bringing the '
+            'held item unnaturally toward the phone lens. Every instance must faithfully reproduce '
+            'its corresponding original photographed variant; do not invent an alternate label, '
+            'brand, capacity or graphic design. Keep the existing RAW UGC style and environment unchanged. ' 
+        )
+        imagem = imagem.replace(marcador, trava + marcador, 1)
+        # Reconstrói sem editar um único caractere nos textos de vídeo e SEO.
+        return ('### 📸 PROMPT DE IMAGEM\n' + imagem + '\n\n'
+                '### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n' + sec['prompt_video']
+                + '\n\n### 🔑 TÍTULOS SEO (Separados)\n' + sec['secao_seo_texto'])
+
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
@@ -7317,6 +7368,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     conteudo_texto, segundos_video_v16829,
                     modo="360",
                     produto_primeiro_3s=bool(st.session_state.get("elevo_produto_primeiro_3s_v16821", False)))
+                # Exclusivamente 360º clássico: reforço fotográfico na IMAGEM.
+                # Produto 3S e V9.2 continuam byte a byte iguais.
+                if not st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
+                    conteudo_texto = proteger_produto_imagem_apenas_360_v16833(
+                        conteudo_texto, scan_17.get('qtd', 1))
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_texto
