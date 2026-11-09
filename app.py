@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.37 — V9.2 logo opcional por conta, mantendo imagens V16.8.36 e física V10.
+# Sem alterações em 360º/Produto 3S, SEO, 17.3, autenticação, créditos ou escala 1:1.
 # ÉLÉVO V16.8.36 — ANTI-REGRESSÃO: UMA única blindagem final da foto nos três modos.
 # Restaurados os prompts de imagem V16.8.33 (360º) / V16.8.34 (V9.2 e Produto 3S).
 # V10 V16.8.35 preservada SOMENTE para vídeo; removida a blindagem adicional V16.8.35 de imagem.
@@ -300,6 +302,8 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_roteiro_limpo_sessao_v1688", "elevo_hist_restauracao_email_v16819",
     "elevo_hist_erro_gravacao_v16817", "elevo_hist_mensagem_v16817",
     "elevo_roteiro_usuario_v16820",
+    "elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
+    "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837",
     "elevo_hist_mensagem_aviso_v16818",
     "influencer_atual", "email_inf_carregado", "dados_prontos",
     "ultimo_feedback_analisado", "ultima_taxa_conversao", "txt_diretrizes_360",
@@ -5553,6 +5557,9 @@ with _elevo_area_criacao_v16823:
     # V16.8.20: ao mudar de login, limpar IMEDIATAMENTE o roteiro do usuário
     # anterior. Recuperar somente o rascunho volátil da conta autenticada.
     if st.session_state.get("elevo_roteiro_usuario_v16820") != email_sessao:
+        for _k_v92_logo in ("elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
+                           "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837"):
+            st.session_state.pop(_k_v92_logo, None)
         st.session_state["elevo_roteiro_usuario_v16820"] = email_sessao
         st.session_state["roteiro_temporario"] = None
         st.session_state.pop("elevo_mem_v1_contexto", None)
@@ -5679,21 +5686,65 @@ with _elevo_area_criacao_v16823:
 
     
     # ==========================================================
-    # 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17; SEM CAMPO DE LOGO)
+    # 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17; LOGO FINAL OPCIONAL E ISOLADA)
     # ==========================================================
     btn_gerar_v92 = False
+    # Configuração local à sessão da conta, não reaproveita marca de influenciadora.
+    st.session_state.setdefault("elevo_v92_logo_ativo_v16837", bool(E_O_CEO))
+    st.session_state.setdefault("elevo_v92_logo_efeito_v16837", "Glitch vermelho discreto" if E_O_CEO else "Aparecimento suave")
+    v92_logo_ativo_v16837 = False
+    v92_logo_nome_v16837 = ""
+    v92_logo_arquivo_v16837 = None
+    v92_logo_efeito_v16837 = "Aparecimento suave"
     if st.session_state.get("modo_entidade_v9"):
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
             st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina V9.2 (Imagem Original + Vídeo V12 Hiper-Realista)</h3>", unsafe_allow_html=True)
-            st.caption("Conectado à foto, à Influencer e ao Banco 17.3. V12: imagem preservada; vídeo expandido, física viva e mínimo de 1.500 caracteres visuais. Texto na tela incorporado ao vídeo; sem encerramento de logo.")
+            st.caption("Imagem RAW preservada, física V10, legendas nativas e finalização com logo OPCIONAL. A logo nunca entra na fotografia do produto.")
+            with st.container(border=True):
+                st.markdown("**🏷️ Logo no encerramento da V9.2 (opcional)**")
+                v92_logo_ativo_v16837 = st.checkbox(
+                    "Finalizar o vídeo com minha logo", key="elevo_v92_logo_ativo_v16837")
+                if v92_logo_ativo_v16837:
+                    if E_O_CEO:
+                        v92_logo_nome_v16837 = "O Achado Secreto"
+                        st.caption("👑 Marca principal do CEO: O Achado Secreto. Pode anexar o arquivo original da logo abaixo.")
+                    else:
+                        v92_logo_nome_v16837 = st.text_input(
+                            "Nome da sua marca (opcional se enviar imagem)",
+                            placeholder="Ex.: Minha Loja", max_chars=70,
+                            key="elevo_v92_logo_nome_v16837")
+                    v92_logo_arquivo_v16837 = st.file_uploader(
+                        "📎 Adicionar imagem da minha logo (PNG/JPG/WEBP)",
+                        type=["png", "jpg", "jpeg", "webp"],
+                        key="elevo_v92_logo_arquivo_v16837",
+                        help="Sua logo é usada somente como instrução de encerramento. O arquivo também precisará ser enviado ao editor/gerador externo para preservar o desenho original.")
+                    if v92_logo_arquivo_v16837 is not None:
+                        if v92_logo_arquivo_v16837.size > 3_000_000:
+                            st.warning("A logo deve ter até 3 MB. Use um PNG comprimido, se necessário.")
+                        else:
+                            st.image(v92_logo_arquivo_v16837, width=150, caption="Logo selecionada — uso exclusivo no final do vídeo")
+                    v92_logo_efeito_v16837 = st.selectbox(
+                        "Efeito da assinatura final",
+                        ["Aparecimento suave", "Glitch vermelho discreto", "Sem efeito"],
+                        key="elevo_v92_logo_efeito_v16837")
+                    st.caption("A ÉLÉVO cria o prompt, mas não transmite automaticamente o arquivo da logo à geradora externa. Para copiar o desenho exato, anexe a mesma logo ao editor de vídeo.")
+                else:
+                    st.caption("Desligado: encerramento natural, sem logo, exatamente como na V16.8.36.")
 
+            v92_logo_invalida_v16837 = bool(
+                v92_logo_ativo_v16837 and
+                ((not v92_logo_nome_v16837.strip() and v92_logo_arquivo_v16837 is None)
+                 or (v92_logo_arquivo_v16837 is not None and
+                     v92_logo_arquivo_v16837.size > 3_000_000)))
+            if v92_logo_invalida_v16837:
+                st.warning("Para ativar o encerramento, envie uma logo de até 3 MB ou informe o nome da marca.")
             if not pode_gerar_roteiro:
                 st.error("Entre na sua conta para gerar roteiros.")
                 btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
             else:
                 txt_btn_v92 = "🔥 LER RÓTULO E GERAR NA V9.2 (Ilimitado)" if E_O_CEO else "🔥 LER RÓTULO E GERAR NA V9.2 • 10 CR"
-                btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, key="btn_v92_ativo")
+                btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, disabled=v92_logo_invalida_v16837, key="btn_v92_ativo")
 
     # ==========================================================
 
@@ -7344,10 +7395,14 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             'tilt or natural stabilization; if supported, optionally establish ONE visible grip, make ONE short '
             'physically possible move, then settle ONCE. Never reset to the start pose, regrip without cause, '
             'repeat a display cycle, repeatedly point/tap/wave, reverse the same move or loop facial expressions. '
-            'HUMAN MECHANICS: stable wrist-to-forearm alignment, thumb opposing fingers, continuous finger-to-surface '
-            'contact and occlusion, tiny pressure change, plausible mass and inertia, correct gravity, friction '
-            'and contact shadows. The free hand may gesture naturally ONCE only when motivated by a spoken phrase; '
-            'otherwise it relaxes. A small weight shift, unsynchronized blink and real breath follow the speech, '
+            'HUMAN MECHANICS: EXACTLY two arms and two hands, with persistent left/right identity. A hand '
+            'holding a product cannot simultaneously touch hair or appear twice. Hair touch is allowed only '
+            'with a genuinely free hand; if both are occupied, omit hair touch. No hand switch without a visible '
+            'transfer or setting the item securely on its support. Stable wrist-to-forearm alignment, thumb opposing '
+            'fingers, continuous finger-to-surface contact and occlusion, tiny pressure change, plausible mass '
+            'and inertia, correct gravity, friction and contact shadows. The free hand may gesture naturally ONCE '
+            'only when motivated by a spoken phrase; otherwise it relaxes. A small weight shift, unsynchronized '
+            'blink and real breath follow the speech, '
             'not robotic timed beats. Hair and fabric move only with their actual cause; no rubber hands or floating items. '
             'LIVED-IN V10 SCENE: keep the already-photographed plant(s), everyday clutter, furniture and any visible animal. '
             'Make ONE existing background material respond subtly to its real cause (leaf to visible airflow, '
@@ -7373,6 +7428,109 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             raise ValueError('V16.8.36: alteração indevida no SEO.')
         if video.replace(direcao_v10, '', 1) != sec['prompt_video']:
             raise ValueError('V16.8.36: alteração indevida no vídeo pré-existente.')
+        return novo
+
+    # ==========================================================
+    # V16.8.37 — LOGO FINAL DA V9.2: UMA EXCEÇÃO EXPLÍCITA, NUNCA NA IMAGEM.
+    # Esta função não altera o 360º, Produto 3S, imagem, SEO ou fala.
+    # Aplicar SOMENTE depois dos reforços estáveis de imagem e vídeo.
+    # ==========================================================
+    def elevo_logo_final_video_v92_v16837(roteiro, habilitado, nome, arquivo, efeito, segundos):
+        """Encerramento por opção de conta; upload é um ASSET EXTERNO de pós-produção.
+
+        Não redesenha a logo: sem arquivo no editor externo, instruir overlay posterior.
+        """
+        if not habilitado:
+            return roteiro  # Política desligada = saída anterior byte a byte.
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+            raise ValueError("V16.8.37: faltam seções da V9.2.")
+        video = sec["prompt_video"]
+        marca = "[ÉLÉVO V16.8.37 — AUTHORIZED V9.2 END LOGO / VIDEO ONLY]"
+        if marca in video:
+            return roteiro  # Idempotência.
+        if "[ÉLÉVO V9.2 — REAL IN-VIDEO TEXT RENDER LOCK]" not in video:
+            raise ValueError("V16.8.37: legendas da V9.2 não encontradas; logo não inserida.")
+        if "[ÉLÉVO V16.8.35 — V10 CAUSAL HUMAN & ENVIRONMENTAL PHYSICS]" not in video:
+            raise ValueError("V16.8.37: física V10 ausente; logo não inserida.")
+        # Dados de texto/arquivo são tratados apenas como identidade informada, NUNCA
+        # como descrição do produto ou autorização para usar foto da logo na IMAGEM.
+        nome_limpo = re.sub(r"[\x00-\x1f\x7f]+", " ", str(nome or ""))
+        nome_limpo = re.sub(r"\s+", " ", nome_limpo).strip()[:70]
+        arquivo_limpo = re.sub(r"[^A-Za-z0-9_.-]", "_", str(arquivo or "").split("/")[-1].split("\\")[-1])[:100]
+        if not nome_limpo and not arquivo_limpo:
+            raise ValueError("Para finalizar com logo, escreva a marca ou envie a imagem da logo.")
+        if arquivo_limpo and not arquivo_limpo.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
+            raise ValueError("A logo precisa ser PNG, JPG ou WEBP.")
+        efeito_mapa = {
+            "Aparecimento suave": "a gentle 0.18-second opacity reveal, no color shift",
+            "Glitch vermelho discreto": "one restrained red glitch flicker lasting at most 0.15 seconds, then a stable original logo",
+            "Sem efeito": "a simple clean overlay, no animation",
+        }
+        if efeito not in efeito_mapa:
+            raise ValueError("Efeito de logo desconhecido.")
+        dur = int(segundos)
+        if dur not in (10, 12, 15):
+            raise ValueError("Duração de vídeo V9.2 não suportada.")
+        inicio = dur - 0.8
+
+        # Única exceção autorizada às proibições antigas de logomarca no vídeo.
+        # Reescreve apenas as poucas cláusulas contraditórias, sem alterar a
+        # identidade do produto, o anti-morphing, textos e bloqueio de interface.
+        substituicoes = (
+            ("These three approved captions are the ONLY allowed video text overlays: ",
+             "These three approved captions are the ONLY narrative text overlays before the authorized final brand beat: "),
+            ("no TikTok interface, floating CTA graphic, watermark, appended brand name or end logo.",
+             "no TikTok interface, floating CTA graphic, watermark or unauthorized branding before the final brand beat."),
+            ("no added logo, brand card, glitch or fade to black.",
+             "no unauthorized brand overlay before the permitted final 0.8-second brand beat and no fade to black."),
+            ("platform UI, new logo, invented graphics or product replacements.",
+             "platform UI, unauthorized branding, invented graphics or product replacements."),
+            ("Never fade to black, insert glitch, floating shopping bag, platform UI, new logo,",
+             "Never fade to black, insert an unapproved glitch, floating shopping bag, platform UI, unauthorized logo,"),
+        )
+        for antes, depois in substituicoes:
+            video = video.replace(antes, depois)
+        identidade = (
+            f"The creator-selected brand name is {nome_limpo!r}. " if nome_limpo else ""
+        )
+        if arquivo_limpo:
+            identidade += (
+                f"Use ONLY the original separate LOGO ASSET named {arquivo_limpo!r} "
+                "for the end overlay; it is NOT a product reference. "
+                "The user must separately supply this logo file to the external video editor. "
+                "If the video generator does not accept a separate logo layer, leave the "
+                "video ending clean for later editor compositing; NEVER invent or redraw a logo. "
+            )
+        else:
+            identidade += (
+                "No logo artwork file was supplied. Render the exact brand wording "
+                "only as an editor-made text overlay; do not fabricate a company symbol. "
+            )
+        final = (
+            f"\n\n{marca}\n"
+            "SCOPE: V9.2 VIDEO ENDING ONLY; never alter the product photo, printed product logo, "
+            "package color, labels, count, material or 1:1 scale. No brand overlay in the "
+            "first still or during the presenter speech. All existing on-screen captions "
+            f"finish BEFORE {inicio:.1f}s. "
+            f"At {inicio:.1f}s–{dur:.1f}s (FINAL 0.8s ONLY), reveal the selected brand "
+            "as a SMALL editorial overlay at the bottom in a clear area, without covering "
+            "the presenter, hand, or product; keep the same real scene moving beneath it. "
+            "One brand overlay only, no black card, no false product transformation, no duplicate logo. "
+            + identidade + "Final treatment: " + efeito_mapa[efeito] + ". "
+            "Earlier generic 'no logos/no glitch' prohibitions remain valid for all frames "
+            "EXCEPT this explicitly authorized ending; all anti-morphing and photo fidelity "
+            "requirements remain fully binding. Respect existing total duration and narration."
+        )
+        video += final
+        novo = ("### 📸 PROMPT DE IMAGEM\n" + sec["prompt_imagem"] + "\n\n"
+                "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
+                "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"])
+        conferido = extrair_blocos_roteiro(novo)
+        if conferido["prompt_imagem"] != sec["prompt_imagem"]:
+            raise ValueError("V16.8.37: imagem modificada pelo módulo de logo.")
+        if conferido["secao_seo_texto"] != sec["secao_seo_texto"]:
+            raise ValueError("V16.8.37: SEO modificado pelo módulo de logo.")
         return novo
 
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
@@ -7671,6 +7829,18 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     # V16.8.36: imagem final V34 preservada; V10 SOMENTE no vídeo V9.2.
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
+                    # V16.8.37: logo opcional SOMENTE no fim do vídeo V9.2.
+                    if v92_logo_ativo_v16837:
+                        if (v92_logo_arquivo_v16837 is not None
+                                and v92_logo_arquivo_v16837.size > 3_000_000):
+                            raise ValueError('Arquivo de logo acima do limite de 3 MB.')
+                    conteudo_v92 = elevo_logo_final_video_v92_v16837(
+                        conteudo_v92,
+                        habilitado=bool(v92_logo_ativo_v16837),
+                        nome=v92_logo_nome_v16837,
+                        arquivo=(v92_logo_arquivo_v16837.name if v92_logo_arquivo_v16837 else ''),
+                        efeito=v92_logo_efeito_v16837,
+                        segundos=segundos_video_v16829)
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
@@ -7681,7 +7851,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
-                    st.success("🔥 Pacote Criação V9.2 sem logo, com texto na tela, forjado com sucesso!")
+                    st.success("🔥 Criação V9.2 pronta, com legendas nativas e " +
+                               ("logo opcional no encerramento!" if v92_logo_ativo_v16837
+                                else "encerramento natural sem logo!"))
                     time.sleep(1)
                     st.rerun()
                 except ElevoCreditoErroV16813 as exc:
