@@ -6459,6 +6459,111 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         return "\\n".join(eventos)
 
 
+    def _elevo_video_cinematica_v1707(imagem, video, scan, modo):
+        """
+        Camada final e determinística, aplicada SOMENTE ao prompt de vídeo.
+        Prioriza escala aparente do produto e movimento ambiental causal.
+        """
+        if "[ÉLÉVO V17.0.7 — PRODUCT SCALE + ENVIRONMENT KINEMATICS]" in video:
+            return video
+        t = str(imagem or "").casefold()
+        qtd = int((scan or {}).get("qtd", 1))
+        tem_planta = any(x in t for x in ("plant", "foliage", "leaves", "leaf", "planta", "folhagem", "árvore", "arvore", "shrub"))
+        tem_animal = any(x in t for x in ("dog", "cachorro", "cat", "gato", "bird", "pássaro", "passaro", "animal"))
+        tem_piso_molhado = any(x in t for x in ("wet", "rain", "chuva", "puddle", "poça", "poca", "wet pavement", "wet sidewalk"))
+        tem_papel = any(x in t for x in ("newspaper", "jornal", "loose paper", "papel"))
+        tem_toldo = any(x in t for x in ("awning", "toldo", "loose fabric", "fabric edge"))
+        tem_rua = any(x in t for x in ("street", "sidewalk", "calçada", "calcada", "rua", "avenue", "urban"))
+        bloco = [
+            "[ÉLÉVO V17.0.7 — PRODUCT SCALE + ENVIRONMENT KINEMATICS]",
+            "FINAL VIDEO-ONLY OVERRIDE — THIS BLOCK HAS PRIORITY OVER EARLIER CAMERA, REFRAMING, "
+            "PRODUCT-HERO, ZOOM, PARALLAX AND MOTION WORDING WHEN THEY CONFLICT.",
+            "SOURCE FRAME LOCK: frame 0 is the approved still. Preserve its exact composition, "
+            "camera-to-subject distance, lens field of view, crop, horizon, perspective and framing "
+            "for the entire clip. Use a virtually locked smartphone camera; no dolly, push-in, pull-out, "
+            "digital zoom, auto-reframe, crop animation, focal-length change, perspective warp or cut. "
+            "No camera move may be used to create fake environmental motion.",
+            "PRODUCT SCREEN-SCALE LOCK: every referenced product is a rigid object with immutable "
+            "physical dimensions. Its apparent on-screen width and height must remain visually constant "
+            "relative to the presenter's torso and the same hand throughout all frames (target variation "
+            "under 2 percent; absolutely no intentional growth). Keep the exact initial camera distance "
+            "and hand-to-product distance. Never move the product toward the lens, enlarge it for emphasis, "
+            "make it a hero prop, zoom into it, or let it expand during a hand gesture. No product rotation "
+            "greater than a tiny natural stabilization (maximum about 3 degrees); no tilt-to-camera, "
+            "no label-facing showcase. If the presenter speaks or gestures, the product stays at its "
+            "original location and scale. If exact scale cannot be maintained, keep the product still.",
+            f"INVENTORY LOCK: exactly {qtd} original source unit(s), each continuously present, "
+            "separate and unchanged. Unhandled units remain fixed on their original support. "
+            "No duplication, merging, disappearance, substitution, shape drift, label shimmer or resizing.",
+            "ENVIRONMENT MOTION MUST BE VISIBLE, NOT MERELY DESCRIBED: keep the presenter and product "
+            "comparatively steady while at least two already-visible background elements perform "
+            "small, independently timed, non-looping movements. Each movement must have a visible cause, "
+            "acceleration, inertia and settling. Do not animate the whole image as one flat layer.",
+            "WIND FIELD: use one gentle, coherent outdoor breeze. Individual leaves move asynchronously; "
+            "small leaves respond first, larger stems lag, then settle with damped inertia. A few loose "
+            "hair strands and the hem/sleeve of clothing respond subtly and independently. Do not make "
+            "the entire plant sway as a rigid unit; no repetitive loop.",
+            "TEMPORAL MOTION PLAN: 0–3s, subtle first environmental movement begins in the background; "
+            "3–7s, a different visible background element responds independently while the presenter "
+            "continues naturally; 7s–end, residual movement settles gradually but does not freeze. "
+            "Do not synchronize the plant, animal, paper and water.",
+            "PHYSICAL CONSERVATION: all rigid architecture, bench, shutters and fixed furniture remain "
+            "stationary. Objects keep contact with their supports. Gravity, friction, inertia, occlusion, "
+            "contact shadows and reflections remain coherent. No object floats, slides without a cause, "
+            "teleports, duplicates or changes material.",
+        ]
+        if tem_animal:
+            bloco.append(
+                "ANIMAL CONTINUITY: the exact animal already visible in frame 0 remains the same size, "
+                "species and location. Give it one clearly perceptible but restrained non-looping action "
+                "across the clip: visible breathing plus one ear flick OR one small head adjustment, "
+                "then settle. It must not walk, approach the camera, change pose abruptly or be replaced. "
+                "Keep the animal in the background and do not animate it as a still-image dissolve."
+            )
+        if tem_planta:
+            bloco.append(
+                "PLANT MOTION REQUIREMENT: visible foliage must show real leaf-level movement from the "
+                "single breeze, with different leaves moving at different phases and stems lagging. "
+                "At least a few leaf edges must visibly change position against the background; a mere "
+                "lighting shimmer does not count as plant movement."
+            )
+        if tem_piso_molhado:
+            bloco.append(
+                "WET GROUND: retain only puddles and wet patches already visible. Allow tiny low-amplitude "
+                "ripples only if caused by an already-established breeze or visible falling droplets; "
+                "otherwise animate the existing lamp reflections with minute perspective-consistent "
+                "shimmer, not new water, rain or splashes."
+            )
+        if tem_papel:
+            bloco.append(
+                "PAPER MOTION: if the existing newspaper/paper is loose and visibly exposed, one corner "
+                "lifts a few millimeters under the same breeze, flutters once irregularly and settles "
+                "under gravity. Keep its location and printed appearance; never blow it away."
+            )
+        if tem_toldo:
+            bloco.append(
+                "AWNING MOTION: only an already-loose awning edge may respond with a tiny delayed flutter; "
+                "fixed building fabric and rigid structures remain stable."
+            )
+        if tem_rua:
+            bloco.append(
+                "DISTANT STREET: preserve the exact visible street. Do not invent vehicles, pedestrians, "
+                "lights or traffic if absent. Existing distant activity may show subtle natural motion "
+                "only when it is already visible in the approved still."
+            )
+        bloco.append(
+            "NEGATIVE MOTION RULES: no artificial global wobble, no breathing walls, no liquid buildings, "
+            "no morphing pavement, no background replacement, no new wind source, no newly created rain, "
+            "no new animals or props, no camera shake, no speed ramp, no freeze-frame ending."
+        )
+        bloco.append(
+            "FAIL-SAFE PRIORITY: when the video model cannot animate a background element without "
+            "altering product geometry, product scale, person identity or scene layout, keep the product, "
+            "person and camera fixed and animate only the safest existing background element. "
+            "Never sacrifice source-product fidelity to add motion."
+        )
+        return video.rstrip() + "\n\n" + "\n".join(bloco)
+
     def reforcar_apenas_video_v12(conteudo, scan, modo):
         """Second IA pass rewrites ONLY the video and leaves image/SEO byte-identical."""
         partes=extrair_blocos_roteiro(conteudo)
@@ -6538,8 +6643,10 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         # V17.0.5: força microeventos no ambiente já aprovado, sem inventar cenário.
         direcao_ambiente_vivo = _elevo_ambiente_vivo_v1705(imagem)
         if "[V17.0.5 — LIVING ENVIRONMENT MOTION LOCK]" not in novo_video:
-            blocos = novo_video.split("\\n", 1)
-            novo_video = (blocos[0] + "\\n" + direcao_ambiente_vivo + "\\n" + blocos[1]) if len(blocos) > 1 else (novo_video + "\\n" + direcao_ambiente_vivo)
+            blocos = novo_video.split("\n", 1)
+            novo_video = (blocos[0] + "\n\n" + direcao_ambiente_vivo + "\n\n" + blocos[1]) if len(blocos) > 1 else (novo_video + "\n\n" + direcao_ambiente_vivo)
+        # V17.0.7: prioridade final sobre escala aparente, câmera e física ambiental.
+        novo_video = _elevo_video_cinematica_v1707(imagem, novo_video, scan, modo)
         final=_trocar_so_video_v12(conteudo,novo_video)
         validado=extrair_blocos_roteiro(final)
         if validado['prompt_imagem']!=imagem or validado['secao_seo_texto']!=partes['secao_seo_texto']:
