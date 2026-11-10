@@ -5284,7 +5284,7 @@ with _elevo_area_criacao_v16823:
             "[CTA AQUI", "[INSERIR TEXTO", "[ESCREVA EM PORTUGUÊS]",
             "[NOME COMPLETO DO PRODUTO]", "[TÍTULO FOCADO",
         )
-        texto_total = (imagem + "\\n" + video + "\\n" + seo).casefold()
+        texto_total = (imagem + "\n" + video + "\n" + seo).casefold()
         for token in placeholders:
             if token.casefold() in texto_total:
                 falhas.append("placeholder editorial não resolvido")
@@ -5293,9 +5293,9 @@ with _elevo_area_criacao_v16823:
         # sem exigir uma redação ou ordem específica.
         seo_lower = seo.casefold()
         seo_checks = {
-            "geral": r"(?i)\\bgeral\\b",
-            "solução": r"(?i)\\bsolu(?:ç|c)ão\\b",
-            "marca": r"(?i)\\bmarca\\b",
+            "geral": r"(?i)\bgeral\b",
+            "solução": r"(?i)\bsolu(?:ç|c)ão\b",
+            "marca": r"(?i)\bmarca\b",
         }
         for nome, padrao in seo_checks.items():
             if not re.search(padrao, seo_lower):
@@ -5305,8 +5305,8 @@ with _elevo_area_criacao_v16823:
             # O normalizador V9.2 grava as frases em linhas numeradas.
             # Aceita variações de negrito/emoji no título e encerra no próximo heading.
             m = re.search(
-                r"(?ims)^\\s*📝\\s*\\*{0,2}Texto na Tela[^\\n]*\\n"
-                r"(.*?)(?=^\\s*(?:🎞️|🏁|🎙️|🔑|###)|\\Z)",
+                r"(?ims)^\s*📝\s*\*{0,2}Texto na Tela[^\n]*\n"
+                r"(.*?)(?=^\s*(?:🎞️|🏁|🎙️|🔑|###)|\Z)",
                 video,
             )
             corpo = m.group(1) if m else ""
@@ -5315,8 +5315,8 @@ with _elevo_area_criacao_v16823:
                 linha = linha.strip()
                 if not linha:
                     continue
-                linha = re.sub(r"^\\*{0,2}\\s*\\d+[.)]\\s*", "", linha).strip()
-                linha = linha.strip("* \\t")
+                linha = re.sub(r"^\*{0,2}\s*\d+[.)]\s*", "", linha).strip()
+                linha = linha.strip("* \t")
                 if not linha:
                     continue
                 # Instruções técnicas não são legendas.
