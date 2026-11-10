@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.39 — MOTOR PRINCIPAL GPT-6.1 TERRA | BASE V16.8.38 PRESERVADA
+# Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
 # Somente UI/identidade da logo final V9.2 e higienização de três frases V9.2; imagem V9 e motores 360/3S intactos.
 # ÉLÉVO V16.8.37 — V9.2 logo opcional por conta, mantendo imagens V16.8.36 e física V10.
@@ -103,41 +105,38 @@ except KeyError:
 
 
 # ==========================================================
-# V16.8.6 — TROCA CONTROLADA PARA GPT-6 LUNA, SEM ALTERAR OS OITO PROMPTS.
+# V16.8.39 — GPT-6.1 TERRA COMO MOTOR PRINCIPAL, SEM ALTERAR OS OITO PROMPTS.
 # O fluxo Chat Completions permanece; GPT-4o mini é fallback.
 # Reversão instantânea opcional nos Secrets: ELEVO_AI_MODEL = "gpt-4o-mini"
 # ==========================================================
 ELEVO_MODELO_FALLBACK_V1686 = "gpt-4o-mini"
-ELEVO_MODELO_PRETENDIDO_V1686 = str(st.secrets.get("ELEVO_AI_MODEL", "gpt-6-luna")).strip()
-if ELEVO_MODELO_PRETENDIDO_V1686 not in {"gpt-6-luna", "gpt-4o-mini"}:
+ELEVO_MODELO_PRETENDIDO_V1686 = str(st.secrets.get("ELEVO_AI_MODEL", "gpt-6.1-terra")).strip()
+if ELEVO_MODELO_PRETENDIDO_V1686 not in {"gpt-6.1-terra", "gpt-4o-mini"}:
     ELEVO_MODELO_PRETENDIDO_V1686 = ELEVO_MODELO_FALLBACK_V1686
 # Mantém o nome da variável usada nas oito chamadas originais (sem alterar suas funções).
 ELEVO_MODELO_PRODUCAO_V1685 = ELEVO_MODELO_PRETENDIDO_V1686
 ELEVO_MODELOS_CANDIDATOS_V1685 = {
-    "Criação e leitura de fotos (Luna)": "gpt-6-luna",
-    "Roteiros complexos (Sol)": "gpt-6.1-sol",
+    "Motor principal (Terra)": "gpt-6.1-terra",
     "Leitura de fotos (Terra)": "gpt-6.1-terra",
     "Auditoria (Astra)": "gpt-6-astra",
 }
 ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685 = {
     "gpt-4o-mini": (0.15, 0.60),
-    "gpt-6-luna": (0.10, 0.50),
-    "gpt-6.1-sol": (2.00, 10.00),
     "gpt-6.1-terra": (1.00, 5.00),
     "gpt-6-astra": (10.00, 50.00),
 }
 
-def _elevo_luna_parametros_v1686(kwargs):
+def _elevo_terra_parametros_v1686(kwargs):
     """Adapta somente parâmetros técnicos; nenhum prompt é modificado."""
     p = dict(kwargs)
-    p["model"] = "gpt-6-luna"
+    p["model"] = "gpt-6.1-terra"
     # O modo none conserva a variação dos prompts legados e o Chat Completions.
     p["reasoning_effort"] = "none"
     if "max_tokens" in p:
         p["max_completion_tokens"] = p.pop("max_tokens")
     return p
 
-def _elevo_luna_erro_compatibilidade_v1686(erro):
+def _elevo_terra_erro_compatibilidade_v1686(erro):
     """Retorna True só para falhas de modelo/parâmetro/serviço, não moderação."""
     status = int(getattr(erro, "status_code", 0) or 0)
     if status in (403, 404, 429, 500, 502, 503, 504):
@@ -153,7 +152,7 @@ def _elevo_luna_erro_compatibilidade_v1686(erro):
         "permission", "access", "not found", "does not exist",
     ))
 
-def _elevo_luna_resposta_incompleta_v1686(resposta):
+def _elevo_terra_resposta_incompleta_v1686(resposta):
     """Não deixa uma saída vazia/truncada seguir para os validadores de roteiro."""
     try:
         escolha = resposta.choices[0]
@@ -168,33 +167,33 @@ def _elevo_luna_resposta_incompleta_v1686(resposta):
 def elevo_chat_create_v1685(**kwargs):
     """Compatível com a API anterior e com todos os validadores existentes.
 
-    GPT-6 Luna é testado apenas quando habilitado. Em caso de incompatibilidade
+    GPT-6.1 Terra é testado como motor principal. Em caso de incompatibilidade
     ou resposta vazia/truncada, tenta uma única vez o modelo funcional anterior.
     Não reescreve os comandos e não retorna conteúdo do usuário nos logs.
     """
     pedido = dict(kwargs)
     modelo_solicitado = str(pedido.get("model", ELEVO_MODELO_PRODUCAO_V1685))
-    usa_luna = (modelo_solicitado == "gpt-6-luna"
-                 and not st.session_state.get("elevo_luna_indisponivel_v1686", False))
+    usa_terra = (modelo_solicitado == "gpt-6.1-terra"
+                 and not st.session_state.get("elevo_terra_indisponivel_v1686", False))
     modelo_real = ELEVO_MODELO_FALLBACK_V1686
-    if usa_luna:
+    if usa_terra:
         try:
             resposta = cliente_openai.chat.completions.create(
-                **_elevo_luna_parametros_v1686(pedido)
+                **_elevo_terra_parametros_v1686(pedido)
             )
-            if _elevo_luna_resposta_incompleta_v1686(resposta):
+            if _elevo_terra_resposta_incompleta_v1686(resposta):
                 # A saída truncada não deve virar um roteiro inválido.
-                st.session_state["elevo_luna_fallback_motivo_v1686"] = "Resposta incompleta"
+                st.session_state["elevo_terra_fallback_motivo_v1686"] = "Resposta incompleta"
                 resposta = cliente_openai.chat.completions.create(
                     **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
                 )
             else:
-                modelo_real = "gpt-6-luna"
+                modelo_real = "gpt-6.1-terra"
         except APIStatusError as erro:
-            if not _elevo_luna_erro_compatibilidade_v1686(erro):
+            if not _elevo_terra_erro_compatibilidade_v1686(erro):
                 raise
-            st.session_state["elevo_luna_indisponivel_v1686"] = True
-            st.session_state["elevo_luna_fallback_motivo_v1686"] = "Incompatibilidade ou indisponibilidade"
+            st.session_state["elevo_terra_indisponivel_v1686"] = True
+            st.session_state["elevo_terra_fallback_motivo_v1686"] = "Incompatibilidade ou indisponibilidade"
             resposta = cliente_openai.chat.completions.create(
                 **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
             )
@@ -203,7 +202,7 @@ def elevo_chat_create_v1685(**kwargs):
             **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
         )
     st.session_state["elevo_ai_ultimo_modelo_v1686"] = modelo_real
-    if usa_luna and modelo_real == ELEVO_MODELO_FALLBACK_V1686:
+    if usa_terra and modelo_real == ELEVO_MODELO_FALLBACK_V1686:
         st.session_state["elevo_ai_fallback_count_v1686"] = (
             int(st.session_state.get("elevo_ai_fallback_count_v1686", 0)) + 1
         )
