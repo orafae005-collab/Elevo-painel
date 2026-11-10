@@ -5403,35 +5403,54 @@ with _elevo_area_criacao_v16823:
                 ],
                 temperature=0.2
             )
-            dados_scan = json.loads(resp_s.choices[0].message.content)
-            qtd = int(dados_scan.get("qtd", 1))
-            tipo_emb = str(dados_scan.get("tipo_embalagem", "product container"))
-            nome_pt = str(dados_scan.get("nome_pt", "Produto Principal"))
-            dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade verificável no rótulo"))
-            solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício documentado na embalagem"))
+            conteudo_scan = resp_s.choices[0].message.content
+            if not conteudo_scan:
+                raise ValueError("Scanner retornou resposta vazia.")
+            dados_scan = json.loads(conteudo_scan)
+            if "qtd" not in dados_scan or isinstance(dados_scan.get("qtd"), bool):
+                raise ValueError("Scanner não confirmou a quantidade de unidades.")
+            qtd = int(dados_scan["qtd"])
+            if qtd < 1 or qtd > 30:
+                raise ValueError("Quantidade de unidades fora do intervalo permitido (1 a 30).")
+            tipo_emb = str(dados_scan.get("tipo_embalagem", "referenced item"))
+            nome_pt = str(dados_scan.get("nome_pt", "item da referência"))
+            dor_pt = str(dados_scan.get("dor_visceral_pt", "necessidade identificada pelo usuário"))
+            solucao_pt = str(dados_scan.get("sensacao_solucao_pt", "benefício não confirmado"))
             _scan_sucesso_v16824 = True
         except RuntimeError:
-            # Uma falha conhecida de cota deve chegar ao botão; não mascarar como scanner genérico.
+            # Falhas de autenticação/cota/serviço não podem virar uma contagem inventada.
             raise
-        except Exception:
-            qtd = 1
-            tipo_emb = "product container"
-            nome_pt = "Produto Principal"
-            dor_pt = "necessidade apresentada pelo usuário ou indicada claramente no rótulo"
-            solucao_pt = "característica verificável na embalagem, sem inventar efeitos"
+        except Exception as exc_scan_v92:
+            logging.getLogger("elevo.geracao").exception(
+                "Scanner de referência não confirmou a quantidade; geração bloqueada (%s)",
+                type(exc_scan_v92).__name__)
+            raise RuntimeError(
+                "Não foi possível confirmar quantas unidades existem na foto. "
+                "Envie novamente uma imagem nítida do kit; a ÉLÉVO não vai presumir quantidade."
+            ) from exc_scan_v92
 
-        qtd = max(1, min(qtd, 30))
         # O scanner identifica o produto para FALA/SEO; a aparência é competência
         # EXCLUSIVA da fotografia carregada no gerador externo de imagem/vídeo.
         # Nada de descrever cor, tipo de frasco, rótulo, peso ou lote no prompt visual.
         regra_escala = (
-            "Use the separately supplied PRODUCT REFERENCE IMAGE as the sole authority for "
-        "the item's identity, packaging, surface, colors, markings and relative real-world scale. "
-        "Never verbally reconstruct or reinterpret its appearance. Preserve its proportions "
-        "relative to the presenter's hand and supporting furniture. Do NOT automatically enlarge "
-        "small items or force genuinely large items into a compact hand-sized container. "
-        "Avoid exaggerated wide-angle near-lens perspective. The product must not be closer "
-        "to the lens than the supporting hand; plausible physical depth and stable geometry. "
+            "[MANDATORY SOURCE IMAGE — DO NOT GENERATE WITHOUT THE ATTACHED PRODUCT REFERENCE]: "
+            "The exact separately attached product/kit reference image is the ONLY authority "
+            "for every visible item. Reference-image identity has absolute priority over all "
+            "model knowledge, training priors, product names, marketing text and visual guesses. "
+            "COPY the referenced item(s) as photographed; do not redesign, reinterpret, improve, "
+            "simplify, substitute, normalize or create a look-alike. Never convert one package "
+            "type into another. Never replace a jar with a bottle, bottle with a tube, or any "
+            "source shape with a different silhouette. Preserve the exact count, each distinct "
+            "variant, geometry, proportions, cap/closure, printed artwork, typography and layout "
+            "from the attached reference. Do not invent or redraw any packaging element. "
+            "Do NOT write or infer product appearance in text: no product name, brand, color, "
+            "shape, material, label, logo, size, capacity, weight, texture or packaging description. "
+            "The attached reference image must supply all those visual facts. "
+            "If the image reference is unavailable, ambiguous or unsupported by the target image/video "
+            "generator, STOP and request the reference instead of generating an approximation. "
+            "Maintain real-world scale relative to hands, body and furniture; never enlarge, "
+            "shrink, crop away, duplicate, merge, recolor or replace an item. Avoid wide-angle "
+            "near-lens perspective; preserve plausible physical depth, contact and stable geometry. "
         )
         if qtd <= 1:
             regra_pos_img = (
@@ -7053,20 +7072,27 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         # É proposital não interpolar scan[nome_pt]/tipo_embalagem e não repetir
         # nenhum produto histórico. Apenas a QUANTIDADE verificada entra na cena.
         produto_comum = (
-            '[CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING] '
-        '[CRITICAL: 1:1 real-world scale, strictly realistic product size and proportions, '
-        'exact match to reference, do not oversize] '
-        'The SEPARATELY ATTACHED ORIGINAL PRODUCT PHOTO is the sole and absolute visual '
-        'authority for every unit. Preserve the original identity, geometry, physical '
-        'proportions and printed artwork exactly as photographed. Do not generate a new '
-        'package design or describe the item in text: no invented color, material, shape, '
-        'capacity, label, logo, brand, closure or surface details. All units must be '
-        'copied faithfully from their respective source reference, including distinct '
-        'variants if the original kit contains them. The actual item may be small or '
-        'large: NEVER enforce a universal hand-sized product. Natural hand-to-object, '
-        'forearm-to-object and table-to-object relative scale, not an oversized hero prop; '
-        'no forced near-lens enlargement. '
+            "[ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK] "
+            "[CRITICAL 1:1 SCALE — NO RECONSTRUCTION — NO SUBSTITUTION] "
+            "The separately attached ORIGINAL PRODUCT/KIT REFERENCE IMAGE is the sole "
+            "and absolute source of truth for every product unit in the still and every "
+            "video frame. Copy the exact photographed source objects, not a text-based "
+            "interpretation. Preserve exact unit count and every separate variant. "
+            "Never change package category or silhouette: no jar-to-bottle, bottle-to-jar, "
+            "tube-to-bottle, or any other conversion. Preserve geometry, dimensions, "
+            "proportions, closures, printed artwork and label layout exactly as visible "
+            "in the reference. Never invent, redraw, stylize, replace, beautify, simplify, "
+            "relabel, recolor, duplicate, merge or omit any unit. "
+            "Do not describe the product in words and do not generate product attributes "
+            "from text: no product/brand name, color, shape, material, label, logo, "
+            "capacity, weight, texture or packaging details. The attached image alone "
+            "provides those facts. If the target generator cannot use the attached image "
+            "as a visual reference, do not generate; request a compatible reference workflow. "
+            "Maintain true 1:1 real-world scale and physically plausible hand/body/furniture "
+            "proportions. Never force a hand-sized object, never oversize as a hero prop, "
+            "never use forced near-lens enlargement or perspective tricks. "
         )
+
     
         imagem = (
             'RAW photography, cinematic mid-shot POV handheld mobile phone selfie, '
