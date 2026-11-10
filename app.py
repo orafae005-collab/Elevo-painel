@@ -2140,38 +2140,101 @@ if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vi
 
 if st.session_state.get("usuario_logado") and st.session_state.get("elevo_vip_diaria_audio_v16840"):
     _vip = st.components.v2.component(
-        name="elevo_vip_daily_protocol_v16840",
-        html="""<main id="vip"><div class="grid"></div><section class="panel">
-        <div class="top">ÉLÉVO INTELLIGENCE ONLINE <span>● SECURE SESSION</span></div>
-        <svg class="face" viewBox="0 0 220 240" aria-label="Rosto holográfico abstrato">
-        <path d="M110 15 C52 15 42 70 52 130 L66 195 Q110 235 154 195 L168 130 C178 70 168 15 110 15Z" fill="rgba(0,229,255,.04)" stroke="#00e5ff" stroke-width="2"/>
-        <path d="M65 95 Q88 75 102 96 M118 96 Q132 75 155 95 M75 125 Q90 115 102 125 M118 125 Q130 115 145 125 M110 105 L101 155 L119 160 M85 185 Q110 201 135 185" fill="none" stroke="#73f5ff" stroke-width="2"/>
-        <path d="M52 130 H168 M60 160 H160 M75 55 H145" stroke="#00e5ff" stroke-opacity=".3" stroke-dasharray="3 5"/></svg>
-        <div class="kicker">PROTOCOLO DE ACESSO VIP</div><h2 id="nome"></h2><p id="frase"></p>
-        <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-        <div id="status">SINCRONIZANDO VOZ E IDENTIDADE...</div>
-        <button id="play">▶ ATIVAR MENSAGEM</button><button id="close">CONTINUAR PARA A ÉLÉVO</button>
-        <audio id="audio" preload="auto" playsinline></audio></section></main>""",
-        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 40%,#10283a,#050a12 60%,#02040a);color:#eafaff;display:grid;place-items:center;font-family:Arial;overflow:auto}
-        #vip:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);background-size:36px 36px}
-        .panel{position:relative;width:min(92vw,620px);padding:clamp(18px,4vw,34px);text-align:center;border:1px solid #087f9a;border-radius:24px;background:linear-gradient(145deg,rgba(8,24,39,.97),rgba(3,8,17,.98));box-shadow:0 0 60px #00b8df33;animation:appear .8s ease}
-        .top{font-size:10px;letter-spacing:2px;color:#7df4ff;display:flex;justify-content:space-between}.top span{color:#5bd6ad}
-        .face{width:190px;height:205px;margin:10px auto;display:block;filter:drop-shadow(0 0 13px #00e5ff88);animation:float 3s infinite}
-        .kicker{font-size:10px;letter-spacing:4px;color:#d9b96e}#nome{font-size:26px;letter-spacing:2px;margin:10px}#frase{font-size:16px;line-height:1.65;color:#c4dce7}
-        .wave{height:35px;display:flex;align-items:center;justify-content:center;gap:5px}.wave i{width:4px;height:5px;border-radius:5px;background:#00e5ff}
-        #vip.playing .wave i{animation:wave .45s infinite alternate}#status{font-size:9px;letter-spacing:2px;color:#69cbd9;margin:10px}
-        button{border-radius:30px;padding:12px 20px;margin:5px;cursor:pointer;font-weight:800;letter-spacing:1px;background:#07536b;color:white;border:1px solid #00dfff}#close{display:none;background:transparent;border-color:#d9b96e}
-        @keyframes wave{to{height:32px}}@keyframes float{50%{transform:translateY(-5px)}}@keyframes appear{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
-        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important}}""",
+        name="elevo_vip_daily_protocol_v16841",
+        html="""<main id="vip">
+        <div class="code-rain" aria-hidden="true">
+          <span>0100101<br>ACCESS_GRANTED<br>0xE1EVO<br>11001010<br>NEURAL_LINK<br>010101</span>
+          <span>AUTH::VALID<br>10100101<br>IDENTITY_SYNC<br>0x7F2A<br>11001010<br>CORE_ONLINE</span>
+          <span>01010110<br>ENCRYPTION_OK<br>11100010<br>PROTOCOL_VIP<br>01001101</span>
+          <span>SYS://ELEVO<br>11010010<br>BIOMETRIC_SCAN<br>01010101<br>ACCESS_GRANTED</span>
+          <span>10101001<br>NEURAL_CORE<br>01001010<br>SECURE_CHANNEL<br>11010100</span>
+        </div>
+        <div class="hud-grid" aria-hidden="true"></div>
+        <div class="scanline" aria-hidden="true"></div>
+        <section class="panel">
+          <div class="top"><span>ÉLÉVO <b>INTELLIGENCE</b></span><span class="secure"><i></i> SECURE SESSION</span></div>
+          <div class="stage">
+            <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+            <div class="orbit orbit-c"></div><div class="target t1"></div><div class="target t2"></div>
+            <div class="core">
+              <div class="core-ring"></div><div class="core-glow"></div>
+              <svg class="sigil" viewBox="0 0 300 300" role="img" aria-label="Núcleo holográfico de inteligência">
+                <defs>
+                  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6ffff"/><stop offset=".45" stop-color="#26dfff"/><stop offset="1" stop-color="#b68b48"/></linearGradient>
+                  <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+                <g fill="none" stroke="url(#metal)" stroke-width="1.35" filter="url(#glow)">
+                  <path d="M150 25 220 65 258 135 238 220 175 267 105 267 45 220 25 135 65 65Z" opacity=".8"/>
+                  <path d="M150 45 205 77 232 135 216 205 170 244 110 244 64 205 48 135 75 77Z" opacity=".55"/>
+                  <path d="M150 52 125 76 108 115 112 164 132 205 150 229 168 205 188 164 192 115 175 76Z"/>
+                  <path d="M85 119 121 107 145 119 M155 119 179 107 215 119" stroke-width="2.4"/>
+                  <path d="M98 137 126 132 142 139 M158 139 174 132 202 137" stroke-width="2.2"/>
+                  <path d="M150 132 141 171 150 178 159 171Z"/>
+                  <path d="M123 197 Q150 211 177 197" stroke-width="2"/>
+                  <path d="M75 92 105 105 112 164 88 191 M225 92 195 105 188 164 212 191" opacity=".55"/>
+                  <path d="M150 25V52 M150 229V267 M25 135H48 M232 135H258" opacity=".7"/>
+                </g>
+                <g fill="#a9fbff"><circle cx="126" cy="137" r="2.5"/><circle cx="174" cy="137" r="2.5"/><circle cx="150" cy="25" r="3"/></g>
+              </svg>
+              <div class="core-label">AI // CORE</div>
+            </div>
+            <div class="crosshair ch1"></div><div class="crosshair ch2"></div>
+            <div class="readout r1">IDENTITY<br><b>VERIFIED</b></div>
+            <div class="readout r2">NEURAL LINK<br><b>ACTIVE</b></div>
+            <div class="readout r3">ENCRYPTION<br><b>AES-256</b></div>
+          </div>
+          <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
+          <h2 id="nome"></h2>
+          <div class="divider"><span></span><b>DAILY INTELLIGENCE BRIEFING</b><span></span></div>
+          <p id="frase"></p>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div id="status">ESTABELECENDO CONEXÃO DE VOZ...</div>
+          <button id="play">▶ ATIVAR MENSAGEM</button>
+          <button id="close">ENTRAR NA ÉLÉVO <span>→</span></button>
+          <audio id="audio" preload="auto" playsinline></audio>
+        </section>
+        <div class="bottomline"><span>ÉLÉVO SYSTEMS</span><span>PROTECTED ENVIRONMENT • BRASIL</span><span>V.01 / ONLINE</span></div>
+        </main>""",
+        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 46%,#102c42 0%,#07111f 42%,#02050b 100%);color:#eafaff;display:grid;place-items:center;font-family:Arial,sans-serif;overflow:hidden}
+        #vip:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(0,222,255,.13),transparent 28%),linear-gradient(115deg,transparent 35%,rgba(0,229,255,.035) 50%,transparent 65%);pointer-events:none}
+        .hud-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,220,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.055) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 0%,transparent 78%);opacity:.55}
+        .code-rain{position:absolute;inset:-20% 0;display:flex;justify-content:space-around;gap:5vw;overflow:hidden;opacity:.25;pointer-events:none}
+        .code-rain span{font:10px/2.2 monospace;letter-spacing:3px;color:#20dff5;text-shadow:0 0 9px #00cfff;white-space:nowrap;writing-mode:vertical-rl;animation:codefall 13s linear infinite}
+        .code-rain span:nth-child(2){animation-delay:-7s;animation-duration:17s;color:#9bdbd7}.code-rain span:nth-child(3){animation-delay:-3s;animation-duration:15s}.code-rain span:nth-child(4){animation-delay:-10s;animation-duration:19s}.code-rain span:nth-child(5){animation-delay:-5s;animation-duration:14s}
+        .scanline{position:absolute;left:0;right:0;height:2px;top:-5%;background:linear-gradient(90deg,transparent,#00eaff88,#d6b46b88,transparent);box-shadow:0 0 24px #00dfff;animation:scan 6s ease-in-out infinite;opacity:.7}
+        .panel{position:relative;width:min(94vw,720px);max-height:96vh;overflow:auto;padding:clamp(16px,3vw,28px) clamp(16px,4vw,38px) 22px;text-align:center;border:1px solid rgba(49,218,239,.38);border-radius:22px;background:linear-gradient(145deg,rgba(7,22,37,.94),rgba(3,8,17,.97) 70%);box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 22px 90px #000b,0 0 65px #00c8ed22;backdrop-filter:blur(14px);animation:materialize 1s cubic-bezier(.16,1,.3,1)}
+        .top{font-size:10px;letter-spacing:3px;color:#a8eefa;display:flex;justify-content:space-between;gap:10px;text-align:left}.top b{color:#fff}.secure{color:#8de6c8;font-size:9px;letter-spacing:1.5px}.secure i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:6px}
+        .stage{height:clamp(225px,34vh,300px);position:relative;display:grid;place-items:center;margin:2px auto 0;max-width:470px;overflow:hidden}
+        .core{position:relative;width:180px;height:180px;display:grid;place-items:center;animation:corefloat 5s ease-in-out infinite}
+        .sigil{position:relative;width:100%;height:100%;z-index:3;filter:drop-shadow(0 0 12px #00dfff99);animation:sigilpulse 3s ease-in-out infinite}
+        .core-ring{position:absolute;inset:9px;border:1px solid #39eaff77;border-radius:50%;box-shadow:0 0 32px #00dfff33,inset 0 0 28px #00dfff22;animation:spin 16s linear infinite}
+        .core-ring:before,.core-ring:after{content:"";position:absolute;inset:-13px;border:1px dashed #3ceaff66;border-radius:50%}.core-ring:after{inset:20px;border-style:solid;border-color:#d6b46b66;animation:spin 9s linear infinite reverse}
+        .core-glow{position:absolute;width:110px;height:110px;border-radius:50%;background:#00cfff22;filter:blur(30px);animation:glow 2.5s ease-in-out infinite}
+        .core-label{position:absolute;bottom:4px;font:8px monospace;letter-spacing:4px;color:#b5faff;z-index:4}
+        .orbit{position:absolute;border:1px solid rgba(0,220,255,.32);border-radius:50%;transform:rotate(-24deg);width:290px;height:100px;box-shadow:0 0 16px #00cfff16}.orbit-a{animation:orbit 12s linear infinite}.orbit-b{width:340px;height:140px;transform:rotate(52deg);border-color:#d6b46b44;animation:orbit 18s linear infinite reverse}.orbit-c{width:390px;height:190px;transform:rotate(-65deg);border-style:dashed;opacity:.55;animation:orbit 25s linear infinite}
+        .target{position:absolute;width:7px;height:7px;border-radius:50%;background:#b9ffff;box-shadow:0 0 16px 4px #00dfff}.t1{top:24%;left:24%}.t2{bottom:20%;right:25%;background:#e4c27b;box-shadow:0 0 16px 4px #c79b4a}
+        .crosshair{position:absolute;width:16px;height:16px;border:1px solid #8defff88}.ch1{top:18%;right:22%;border-left:0;border-bottom:0}.ch2{bottom:18%;left:22%;border-right:0;border-top:0}
+        .readout{position:absolute;text-align:left;font:8px/1.7 monospace;letter-spacing:1.5px;color:#6baebb}.readout b{color:#c4faff;font-weight:600}.r1{top:24%;left:3%}.r2{top:30%;right:2%;text-align:right}.r3{bottom:19%;right:5%;text-align:right}
+        .kicker{font-size:9px;letter-spacing:4px;color:#d7b66e;font-weight:700;margin-top:0}#nome{font-size:clamp(20px,3vw,27px);letter-spacing:3px;margin:8px 0;color:#f2fcff;text-shadow:0 0 22px #00dfff55}
+        .divider{display:flex;align-items:center;gap:12px;justify-content:center;margin:12px 0 7px;color:#8ebdca;font:8px monospace;letter-spacing:2px}.divider span{height:1px;width:45px;background:linear-gradient(90deg,transparent,#36dff4)}.divider span:last-child{transform:rotate(180deg)}
+        #frase{font-size:clamp(14px,1.8vw,16px);line-height:1.7;color:#d1e5ec;max-width:570px;margin:8px auto 12px}
+        .wave{height:27px;display:flex;align-items:center;justify-content:center;gap:4px}.wave i{width:3px;height:4px;border-radius:4px;background:linear-gradient(#e4c27b,#00dfff);opacity:.8}
+        #vip.playing .wave i{animation:wave .42s ease-in-out infinite alternate}#vip.playing .wave i:nth-child(3n){animation-delay:.13s}#vip.playing .wave i:nth-child(2n){animation-delay:.25s}
+        #status{font:8px monospace;letter-spacing:2px;color:#78cbd8;margin:7px 0 10px}
+        button{border-radius:30px;padding:12px 22px;margin:4px;cursor:pointer;font-size:10px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(110deg,#07506a,#087d91);color:white;border:1px solid #40eaff;box-shadow:0 0 22px #00dfff22;transition:transform .2s,box-shadow .2s}button:hover{transform:translateY(-2px);box-shadow:0 0 28px #00dfff55}#close{display:none;background:linear-gradient(110deg,#9b783b,#d2b36e);color:#09121b;border-color:#f2d28c}#close span{font-size:15px;margin-left:8px}
+        .bottomline{position:absolute;bottom:12px;left:18px;right:18px;display:flex;justify-content:space-between;color:#47717f;font:7px monospace;letter-spacing:1.5px;pointer-events:none}
+        @keyframes codefall{from{transform:translateY(-20%)}to{transform:translateY(35%)}}@keyframes scan{0%{top:-5%}100%{top:105%}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes orbit{to{transform:rotate(336deg)}}@keyframes corefloat{50%{transform:translateY(-5px)}}@keyframes sigilpulse{50%{filter:drop-shadow(0 0 22px #00eaffcc);transform:scale(1.025)}}@keyframes glow{50%{opacity:.45;transform:scale(1.35)}}@keyframes wave{to{height:25px}}@keyframes materialize{from{opacity:0;transform:scale(.94) translateY(12px);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
+        @media(max-width:600px){.panel{padding:15px 14px 18px;border-radius:17px}.stage{height:220px}.core{width:150px;height:150px}.orbit-a{width:245px}.orbit-b{width:280px}.orbit-c{width:310px}.readout{font-size:7px}.r1{left:0}.r2{right:0}.bottomline{font-size:6px;left:8px;right:8px}.bottomline span:nth-child(2){display:none}}
+        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important;scroll-behavior:auto!important}}""",
         js="""export default function(c){const {parentElement,data,setTriggerValue}=c;const root=parentElement.querySelector('#vip'),a=parentElement.querySelector('#audio'),p=parentElement.querySelector('#play'),x=parentElement.querySelector('#close'),s=parentElement.querySelector('#status');if(!root||!a||!data?.audio)return;
         parentElement.querySelector('#nome').textContent=data.name||'IDENTIDADE RECONHECIDA';parentElement.querySelector('#frase').textContent=data.phrase||'';a.src='data:audio/mpeg;base64,'+data.audio;let done=false;
-        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .6s';root.style.opacity=0;setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},650)};
-        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='MENSAGEM VIP EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
+        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .7s,filter .7s';root.style.opacity=0;root.style.filter='blur(8px)';setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},720)};
+        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='TRANSMISSÃO SEGURA • MENSAGEM EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
         p.addEventListener('click',play);x.addEventListener('click',finish);a.addEventListener('ended',()=>{root.classList.remove('playing');s.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';x.style.display='inline-block';p.style.display='none'});
-        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • VOCÊ PODE CONTINUAR';x.style.display='inline-block'});play();
+        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';x.style.display='inline-block'});play();
         return()=>{p.removeEventListener('click',play);x.removeEventListener('click',finish);a.pause()}}"""
     )
-    _vip(key="elevo_vip_daily_overlay_v16840",
+    _vip(key="elevo_vip_daily_overlay_v16841",
          data={"name": _vip_nome.upper(),
                "phrase": st.session_state.get("elevo_vip_diaria_frase_v16840", ""),
                "audio": st.session_state["elevo_vip_diaria_audio_v16840"]},
