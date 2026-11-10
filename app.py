@@ -7720,7 +7720,15 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         if not img_produto:
             st.warning("⚠️ Suba a **📸 Foto do Produto** ali em cima no Bloco 17 primeiro!")
         else:
-            with st.spinner("🧬 Escaneando Dor & Solução e forjando Criação V9.2 sem logo de encerramento..."):
+            _status_v92_logo_v16842 = (
+                "com assinatura de marca no encerramento"
+                if v92_logo_ativo_v16837
+                else "com encerramento natural, sem assinatura de marca"
+            )
+            with st.spinner(
+                "🧬 Escaneando Dor & Solução e forjando Criação V9.2 "
+                + _status_v92_logo_v16842 + "..."
+            ):
                 _debito_v92_v16813 = None
                 try:
                     _debito_v92_v16813 = elevo_credito_reservar_v16813(
@@ -7842,7 +7850,20 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     conteudo_v92 = sincronizar_persona_imagem_video_v1683(
                         conteudo_v92, nome_inf_ativa, visual_inf_isolado_v16811)
                     etapa_formato_elevo = "fisica_video_produto"
-                    conteudo_v92 = neutralizar_descricao_variavel_do_produto_v16811(conteudo_v92)
+                    # V16.8.43 — proteção isolada EXCLUSIVAMENTE no motor V9.2.
+                    # Se o sanitizador opcional encontrar um caso inesperado, preserva
+                    # o roteiro já gerado e permite que as demais proteções continuem.
+                    # A falha fica registrada no log técnico, sem derrubar a criação.
+                    try:
+                        conteudo_v92 = neutralizar_descricao_variavel_do_produto_v16811(conteudo_v92)
+                    except Exception as exc_fisica_produto_v92:
+                        import logging
+                        logging.getLogger("elevo.geracao").exception(
+                            "V9.2: falha isolada em neutralizar_descricao_variavel_do_produto_v16811; "
+                            "roteiro preservado e fluxo continuado (%s)",
+                            type(exc_fisica_produto_v92).__name__,
+                        )
+                    etapa_formato_elevo = "continuacao_protecao_video"
                     # Os filtros abaixo atingem só o VÍDEO; a IMAGEM e SEO não mudam.
                     conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
                     conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
