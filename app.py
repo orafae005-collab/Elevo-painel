@@ -2116,6 +2116,7 @@ def _elevo_vip_audio_v16840(frase):
 def _elevo_vip_fechar_v16840():
     st.session_state["elevo_vip_diaria_exibida_v16840"] = True
     st.session_state["elevo_vip_diaria_audio_v16840"] = None
+    st.session_state["elevo_vip_preview_ceo_v16842"] = False
 
 
 if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vip_diaria_exibida_v16840", False):
@@ -2138,7 +2139,10 @@ if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vi
             st.session_state["elevo_vip_diaria_exibida_v16840"] = True
 
 
-if st.session_state.get("usuario_logado") and st.session_state.get("elevo_vip_diaria_audio_v16840"):
+if (st.session_state.get("usuario_logado")
+        and st.session_state.get("elevo_vip_diaria_audio_v16840")
+        and (not st.session_state.get("elevo_vip_diaria_exibida_v16840", False)
+             or st.session_state.get("elevo_vip_preview_ceo_v16842", False))):
     _vip = st.components.v2.component(
         name="elevo_vip_daily_protocol_v16841",
         html="""<main id="vip">
@@ -4545,6 +4549,28 @@ def elevo_ler_painel_v16814(forcar=False):
 # ÉLÉVO V16.8.13 — PAINEL DE CONTAS VIP (EXCLUSIVO CEO)
 # ==========================================================
 if E_O_CEO:
+    # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
+    # Não altera o registro diário nem consome a saudação de usuários.
+    with st.container(border=True):
+        st.markdown("#### 🎬 Prévia do Protocolo VIP")
+        st.caption("Reproduza a animação e a voz quando quiser, sem esperar o próximo dia e sem alterar o controle diário.")
+        if st.button("▶ TESTAR ANIMAÇÃO VIP", key="elevo_vip_preview_ceo_btn_v16842",
+                     use_container_width=True):
+            _preview_nome = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+            _preview_frase = _elevo_vip_frase_v16840(
+                str(EMAIL_MESTRE).strip().lower(), _preview_nome,
+                _elevo_vip_hoje_v16840()
+            )
+            with st.spinner("Preparando a prévia de voz..."):
+                _preview_audio = _elevo_vip_audio_v16840(_preview_frase)
+            if _preview_audio:
+                st.session_state["elevo_vip_diaria_frase_v16840"] = _preview_frase
+                st.session_state["elevo_vip_diaria_audio_v16840"] = base64.b64encode(_preview_audio).decode("ascii")
+                st.session_state["elevo_vip_preview_ceo_v16842"] = True
+                st.session_state["elevo_vip_diaria_exibida_v16840"] = False
+                st.rerun()
+            else:
+                st.warning("Não foi possível gerar o áudio agora. Verifique a conexão e tente novamente.")
     st.divider()
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
