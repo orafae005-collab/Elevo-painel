@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.45 — VOZ VIP COM FALLBACK DE DISPONIBILIDADE | BASE V16.8.44
+# ÉLÉVO V16.8.46 — PROTOCOLO DISCIPLINA E EXECUÇÃO | BASE V16.8.45
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.45 — VOZ VIP COM FALLBACK DE DISPONIBILIDADE (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.46 — PROTOCOLO DISCIPLINA E EXECUÇÃO (MÓDULO INDEPENDENTE)
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2067,25 +2067,34 @@ def _elevo_vip_reservar_v16840(email, hoje):
 
 
 def _elevo_vip_frase_v16840(email, nome, hoje):
+    """
+    Mensagens VIP com posicionamento de disciplina e execução.
+    Tom firme e provocativo, sem humilhação ou manipulação emocional.
+    Seleção determinística por conta e data: uma frase por pessoa/dia.
+    """
     ceo = email == str(EMAIL_MESTRE).strip().lower()
     ceo_frases = [
-        "A sua visão define o destino, mas é a disciplina que constrói o caminho. Proteja sua mente, escolha suas prioridades e lidere pelo exemplo. Hoje é dia de avançar.",
-        "Não entregue o comando do seu dia às urgências dos outros. Vigie a porta da sua mente, mantenha a estratégia clara e execute o que realmente importa.",
-        "Grandes resultados nascem de decisões consistentes. Pense com clareza, aja com firmeza e não negocie seus princípios. Vamos construir.",
-        "O mercado muda, mas a disciplina sustenta quem sabe aonde quer chegar. Mantenha a visão no longo prazo e faça o trabalho de hoje."
+        "Visão sem execução é apenas intenção. Decida o que realmente move o negócio, elimine o ruído e faça o que precisa ser feito. Resultado não respeita desculpas; responde à consistência.",
+        "Ninguém vai proteger suas prioridades por você. Liderança começa quando você assume o comando do próprio tempo, toma decisões difíceis e sustenta o padrão mesmo quando ninguém está olhando.",
+        "O próximo nível não exige mais promessas. Exige escolhas melhores, foco inegociável e execução diária. Pare de administrar distrações. Construa aquilo que merece permanecer.",
+        "Seu negócio não cresce na velocidade dos seus planos, mas na qualidade das decisões que você executa. Hoje, menos discurso. Mais direção, responsabilidade e entrega."
     ]
     geral = [
-        "Cada dia oferece uma nova oportunidade de aprender, criar e avançar. Dê o próximo passo com confiança e transforme intenção em ação.",
-        "Não precisa resolver tudo de uma vez. Escolha uma prioridade, concentre sua energia e faça bem-feito o que está ao seu alcance hoje.",
-        "Consistência vale mais do que pressa. Continue aprendendo, mantenha o foco e permita que pequenas conquistas construam grandes resultados.",
-        "Seu progresso começa quando você decide agir. Desenvolva suas habilidades e faça deste dia mais um passo na direção dos seus objetivos."
+        "Existe uma diferença entre querer mudar e decidir mudar. A primeira coisa depende do que você sente. A segunda aparece no que você faz. Não espere vontade: escolha uma tarefa e comece.",
+        "O tempo vai passar de qualquer maneira. A pergunta é o que estará construído quando este dia terminar. Feche as distrações, assuma sua responsabilidade e entregue o trabalho que você vive adiando.",
+        "Disciplina é cumprir o combinado consigo mesmo, principalmente nos dias comuns. Não negocie com cada desconforto. Dê o primeiro passo, permaneça no trabalho e deixe a ação provar sua decisão.",
+        "Você não precisa de mais um sinal, nem de uma segunda-feira perfeita. Precisa escolher o que importa e começar agora. Um compromisso cumprido vale mais do que dez planos esquecidos."
     ]
     banco = ceo_frases if ceo else geral
     h = hashlib.sha256(f"{email}|{hoje}|elevo-vip".encode()).digest()
     frase = banco[int.from_bytes(h[:4], "big") % len(banco)]
     hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
     saudacao = "Bom dia" if hora < 12 else ("Boa tarde" if hora < 18 else "Boa noite")
-    return f"{saudacao}, {nome}. {frase} Seja muito bem-vindo de volta à ÉLÉVO. Estamos prontos. Vamos construir algo extraordinário."
+    return (
+        f"{saudacao}, {nome}. {frase} "
+        "A decisão é sua. A execução começa agora. "
+        "Seja muito bem-vindo de volta à ÉLÉVO."
+    )
 
 
 def _elevo_vip_audio_v16840(frase):
