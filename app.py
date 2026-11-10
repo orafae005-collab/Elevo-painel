@@ -7863,25 +7863,32 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                             "roteiro preservado e fluxo continuado (%s)",
                             type(exc_fisica_produto_v92).__name__,
                         )
-                    etapa_formato_elevo = "continuacao_protecao_video"
+                    # V16.8.44: granularidade de etapa para identificar o erro real.
                     # Os filtros abaixo atingem só o VÍDEO; a IMAGEM e SEO não mudam.
+                    etapa_formato_elevo = "v92_limpar_fecho_logo"
                     conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
+                    etapa_formato_elevo = "v92_texto_na_tela"
                     conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
                     # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
+                    etapa_formato_elevo = "v92_restaurar_matriz_identidade"
                     conteudo_v92 = restaurar_matriz_v9_tres_criacoes_v16824(
                         conteudo_v92, scan_v92, nome_inf_ativa, visual_inf_isolado_v16811,
                         direcao_v11_92.get('escolhido', ''), modo='v9.2',
                         observacao_ambiente=st.session_state.get('elevo_ambiente_obs', ''),
                     )
+                    etapa_formato_elevo = "v92_duracao_fidelidade"
                     conteudo_v92 = elevo_video_duracao_fidelidade_v16829(
                         conteudo_v92, segundos_video_v16829, modo="v9.2")
                     # V16.8.34: mesma proteção aprovada da imagem 360º, sem alterar vídeo/SEO.
+                    etapa_formato_elevo = "v92_protecao_produto_imagem"
                     conteudo_v92 = proteger_produto_imagem_outros_modos_v16834(
                         conteudo_v92, scan_v92.get('qtd', 1), modo='v9.2')
                     # V16.8.36: imagem final V34 preservada; V10 SOMENTE no vídeo V9.2.
+                    etapa_formato_elevo = "v92_fisica_video_v10"
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
                     # V16.8.38: logo editável / nome aplicado SOMENTE no fim da V9.2.
+                    etapa_formato_elevo = "v92_assinatura_final"
                     conteudo_v92 = elevo_logo_final_video_v92_v16837(
                         conteudo_v92,
                         habilitado=bool(v92_logo_ativo_v16837),
@@ -7889,12 +7896,14 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         arquivo='',
                         efeito=v92_logo_efeito_v16837,
                         segundos=segundos_video_v16829)
+                    etapa_formato_elevo = "v92_salvar_estado_sessao"
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                     st.session_state["roteiro_temporario"] = conteudo_v92
                     contexto_mem_92["roteiro_hash"] = hashlib.sha256(conteudo_v92.encode("utf-8")).hexdigest()
                     st.session_state["elevo_mem_v1_contexto"] = contexto_mem_92
                     # Mesma regra de rascunho temporário do motor 360º.
+                    etapa_formato_elevo = "v92_salvar_rascunho"
                     elevo_rascunho_substituir_v16820(email_sessao, conteudo_v92)
                     st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
