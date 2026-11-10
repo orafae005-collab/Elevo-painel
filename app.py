@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.44 — VOZ VIP NEURAL + PRONÚNCIA DA MARCA | BASE V16.8.43
+# ÉLÉVO V16.8.45 — VOZ VIP COM FALLBACK DE DISPONIBILIDADE | BASE V16.8.44
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.44 — VOZ VIP NEURAL + PRONÚNCIA DA MARCA (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.45 — VOZ VIP COM FALLBACK DE DISPONIBILIDADE (MÓDULO INDEPENDENTE)
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2090,64 +2090,77 @@ def _elevo_vip_frase_v16840(email, nome, hoje):
 
 def _elevo_vip_audio_v16840(frase):
     """
-    Motor de voz VIP isolado da Aurora.
-    Prioridade: Edge Neural pt-BR-Donato; reserva: Edge Neural pt-BR-Antonio.
-    Não usa gTTS como fallback, para não voltar silenciosamente à voz antiga.
-    Se os dois serviços falharem, o acesso continua com a mensagem em texto.
+    Geração de áudio VIP com tentativas em cascata:
+    1) Edge Neural Donato (principal)
+    2) Edge Neural Antonio (reserva neural)
+    3) Google TTS (reserva de disponibilidade)
+    O fallback é registrado no log; falha de áudio nunca bloqueia o acesso.
     """
     import asyncio
 
-    # Texto falado é diferente do texto exibido: evita soletrar os acentos da marca.
+    # Texto falado separado da grafia visual da marca.
     texto_falado = str(frase or "").strip()
     texto_falado = re.sub(r"ÉLÉVO", "Élevo", texto_falado, flags=re.IGNORECASE)
-    texto_falado = re.sub(r"\\s+", " ", texto_falado).strip()
+    texto_falado = re.sub(r"\s+", " ", texto_falado).strip()
     if not texto_falado:
+        logging.warning("ELEVO_VIP_TTS_TEXTO_VAZIO")
         return None
 
-    try:
-        import edge_tts
-    except Exception as exc:
-        logging.warning("ELEVO_VIP_TTS_EDGE_NAO_INSTALADO: %s", type(exc).__name__)
-        return None
-
-    # Duas vozes neurais masculinas brasileiras; a reserva não recorre ao gTTS.
     vozes = [
         ("pt-BR-DonatoNeural", "-7%", "-3Hz"),
         ("pt-BR-AntonioNeural", "-6%", "-2Hz"),
     ]
 
-    async def gerar_com_voz(voz, velocidade, tom):
-        comunicacao = edge_tts.Communicate(
-            text=texto_falado,
-            voice=voz,
-            rate=velocidade,
-            pitch=tom,
-            volume="+0%",
-        )
-        partes = []
-        async for parte in comunicacao.stream():
-            if parte.get("type") == "audio" and parte.get("data"):
-                partes.append(parte["data"])
-        return b"".join(partes)
+    # Tenta Edge TTS. Se houver falha de rede, segue para a próxima opção.
+    try:
+        import edge_tts
 
-    for voz, velocidade, tom in vozes:
-        try:
-            # Evita deixar o carregamento preso indefinidamente em falha de rede.
-            audio = asyncio.run(asyncio.wait_for(
-                gerar_com_voz(voz, velocidade, tom),
-                timeout=35,
-            ))
-            if audio and len(audio) > 2048:
-                logging.info("ELEVO_VIP_TTS_OK voice=%s bytes=%s", voz, len(audio))
-                return audio
-            logging.warning("ELEVO_VIP_TTS_VAZIO voice=%s", voz)
-        except Exception as exc:
-            logging.warning(
-                "ELEVO_VIP_TTS_FALHA voice=%s error=%s",
-                voz, type(exc).__name__
+        async def gerar_com_voz(voz, velocidade, tom):
+            comunicacao = edge_tts.Communicate(
+                text=texto_falado,
+                voice=voz,
+                rate=velocidade,
+                pitch=tom,
+                volume="+0%",
             )
+            partes = []
+            async for parte in comunicacao.stream():
+                if parte.get("type") == "audio" and parte.get("data"):
+                    partes.append(parte["data"])
+            return b"".join(partes)
 
-    # Não voltar ao gTTS: isso mascararia a falha e reproduziria a voz antiga.
+        for voz, velocidade, tom in vozes:
+            try:
+                # Compatível com execução Streamlit sem aguardar indefinidamente.
+                audio = asyncio.run(asyncio.wait_for(
+                    gerar_com_voz(voz, velocidade, tom),
+                    timeout=25,
+                ))
+                if audio and len(audio) > 2048:
+                    logging.info("ELEVO_VIP_TTS_OK provider=edge voice=%s bytes=%s",
+                                 voz, len(audio))
+                    return audio
+                logging.warning("ELEVO_VIP_TTS_SEM_AUDIO provider=edge voice=%s", voz)
+            except Exception as exc:
+                logging.warning("ELEVO_VIP_TTS_FALHA provider=edge voice=%s error=%s",
+                                 voz, type(exc).__name__)
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_TTS_EDGE_INDISPONIVEL error=%s", type(exc).__name__)
+
+    # Fallback explícito de disponibilidade: mantém o botão de reprodução funcional
+    # quando o endpoint neural do Edge estiver inacessível no servidor hospedado.
+    try:
+        from gtts import gTTS
+        arquivo_audio = io.BytesIO()
+        gTTS(text=texto_falado, lang="pt", tld="com.br", slow=False).write_to_fp(arquivo_audio)
+        audio = arquivo_audio.getvalue()
+        if audio and len(audio) > 1024:
+            logging.warning("ELEVO_VIP_TTS_FALLBACK provider=gTTS")
+            return audio
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_TTS_FALLBACK_FALHA provider=gTTS error=%s",
+                        type(exc).__name__)
+
     return None
 
 
