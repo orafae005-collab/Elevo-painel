@@ -5227,6 +5227,88 @@ with _elevo_area_criacao_v16823:
                 bool(partes["secao_seo_texto"].strip()))
 
 
+    def elevo_quality_gate_v1700(conteudo, scan, modo="360"):
+        """
+        QUALITY GATE central V17.0.
+        Bloqueia a entrega quando faltam seções, travas de referência, contagem,
+        títulos SEO ou legendas V9.2. Não transforma falhas em sucesso.
+        """
+        import logging
+        log = logging.getLogger("elevo.quality_gate")
+        if not isinstance(conteudo, str) or not conteudo.strip():
+            raise ValueError("QUALITY_GATE: roteiro vazio ou não textual.")
+        partes = extrair_blocos_roteiro(conteudo)
+        imagem = partes.get("prompt_imagem", "").strip()
+        video = partes.get("prompt_video", "").strip()
+        seo = partes.get("secao_seo_texto", "").strip()
+        falhas = []
+
+        if not imagem or len(imagem) < 700:
+            falhas.append("prompt de imagem ausente ou incompleto")
+        if not video or len(video) < 1000:
+            falhas.append("prompt de vídeo ausente ou incompleto")
+        if not seo or len(seo) < 45:
+            falhas.append("bloco SEO ausente ou incompleto")
+
+        # A matriz V9 precisa estar presente nos dois prompts, não só no briefing.
+        trava = "ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK"
+        for nome_secao, texto in (("imagem", imagem), ("vídeo", video)):
+            if trava not in texto:
+                falhas.append(f"trava de referência do produto ausente no prompt de {nome_secao}")
+
+        try:
+            qtd = int((scan or {}).get("qtd"))
+            if qtd < 1 or qtd > 30:
+                raise ValueError()
+        except Exception:
+            qtd = None
+            falhas.append("quantidade do produto não confirmada pelo scanner")
+
+        if qtd is not None:
+            marcador_qtd = f"[MULTI-PRODUCT KIT LOCK — {qtd} UNIT(S) TOTAL]"
+            marcador_video = f"[KIT INVENTORY — {qtd} ORIGINAL UNIT(S)]"
+            if marcador_qtd not in imagem:
+                falhas.append("quantidade confirmada não está travada no prompt de imagem")
+            if marcador_video not in video:
+                falhas.append("quantidade confirmada não está travada no prompt de vídeo")
+
+        # Bloqueia placeholders editoriais que não podem chegar ao usuário final.
+        placeholders = (
+            "[PERGUNTA CURTA", "[SENSAÇÃO / SOLUÇÃO", "[Título focado",
+            "[Nome completo do produto", "[Marca e nome do produto", "[Escreva em português",
+            "[CTA AQUI", "[INSERIR TEXTO",
+        )
+        for token in placeholders:
+            if token.casefold() in (imagem + "\n" + video + "\n" + seo).casefold():
+                falhas.append(f"placeholder não resolvido: {token}")
+
+        # SEO precisa conter três campos distintos, sem depender de uma única ordem.
+        seo_lower = seo.casefold()
+        for rotulo in ("geral", "solução", "marca"):
+            if rotulo not in seo_lower:
+                falhas.append(f"campo SEO obrigatório ausente: {rotulo}")
+
+        if str(modo).casefold() in ("v9.2", "v92"):
+            # V9.2 só aprova se o texto na tela possuir três legendas reais e curtas.
+            m = re.search(
+                r"(?ims)^\s*📝\s*Texto na Tela[^\n]*\n(.*?)(?=^\s*(?:🎞️|🏁|Finaliza(?:ção|cao)|###|🔑)|\Z)",
+                video,
+            )
+            corpo = m.group(1).strip() if m else ""
+            linhas = [re.sub(r"^\s*\d+[.)]\s*", "", x).strip()
+                      for x in corpo.splitlines() if x.strip()]
+            linhas = [x for x in linhas if x and len(x) <= 100
+                      and not re.match(r"(?i)^(render|keep typography|these are|no platform|show |burn |use only)", x)]
+            if not m or len(linhas) != 3:
+                falhas.append("V9.2 exige exatamente três legendas curtas e válidas")
+
+        if falhas:
+            log.error("QUALITY_GATE reprovou modo=%s; falhas=%s", modo, falhas)
+            raise ValueError("QUALITY_GATE_REPROVADO: " + "; ".join(falhas))
+        log.info("QUALITY_GATE aprovado modo=%s; quantidade=%s", modo, qtd)
+        return True
+
+
     def gerar_roteiro_com_recuperacao_v1689(instrucao, sistema, temperatura=0.75):
         """Preserva a geração original; se faltar seção, recupera conteúdo em JSON.
 
@@ -7638,6 +7720,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 conteudo_texto = elevo_v10_fisica_video_apenas_v16836(
                     conteudo_texto,
                     modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
+                etapa_formato_elevo = "quality_gate_360_produto_3s"
+                elevo_quality_gate_v1700(
+                    conteudo_texto, scan_17,
+                    modo="produto_3s" if st.session_state.get("elevo_produto_primeiro_3s_v16821", False) else "360",
+                )
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                 st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
                 st.session_state["roteiro_temporario"] = conteudo_texto
@@ -7671,10 +7758,46 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if v92_logo_ativo_v16837
                 else "com encerramento natural, sem assinatura de marca"
             )
-            with st.spinner(
-                "🧬 Escaneando Dor & Solução e forjando Criação V9.2 "
-                + _status_v92_logo_v16842 + "..."
-            ):
+            # V16.8.47 — loader VIP animado, somente camada visual da V9.2.
+            loader_v92_slot = st.empty()
+            loader_v92_slot.markdown(
+                """
+                <style>
+                @keyframes e47spin{to{transform:rotate(360deg)}}
+                @keyframes e47pulse{0%,100%{transform:scale(.92);opacity:.75}50%{transform:scale(1.08);opacity:1}}
+                @keyframes e47scan{0%{transform:translateX(-130%)}100%{transform:translateX(330%)}}
+                @keyframes e47dot{0%,80%,100%{transform:scale(.4);opacity:.3}40%{transform:scale(1);opacity:1}}
+                .e47card{position:relative;overflow:hidden;padding:22px;border-radius:18px;border:1px solid rgba(93,220,255,.38);background:radial-gradient(ellipse at 12% 0%,rgba(0,195,255,.18),transparent 48%),radial-gradient(ellipse at 92% 100%,rgba(153,82,255,.2),transparent 48%),linear-gradient(135deg,#061321,#0b1025 58%,#151329);box-shadow:0 18px 45px rgba(0,0,0,.4),inset 0 1px rgba(255,255,255,.08);color:#f4f8ff;font-family:Inter,system-ui,sans-serif}
+                .e47card:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(rgba(100,215,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(100,215,255,.2) 1px,transparent 1px);background-size:27px 27px;mask-image:linear-gradient(90deg,#000,transparent)}
+                .e47head{display:flex;align-items:center;gap:16px;position:relative}
+                .e47reactor{width:62px;height:62px;flex:0 0 62px;display:grid;place-items:center;position:relative}
+                .e47core{width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#65edff 38%,#1476ff 76%);box-shadow:0 0 13px #48dfff,0 0 32px #167dff;animation:e47pulse 1.8s ease-in-out infinite}
+                .e47ring{position:absolute;inset:2px;border:1px solid #5ce7ff;border-top-color:#fff;border-right-color:#ad7cff;border-radius:50%;animation:e47spin 3s linear infinite}
+                .e47ring2{position:absolute;inset:10px;border:1px dashed rgba(180,126,255,.85);border-radius:50%;animation:e47spin 5s linear infinite reverse}
+                .e47title{font-size:15px;letter-spacing:1.6px;font-weight:850;text-transform:uppercase}
+                .e47sub{font-size:12px;color:#a5bad4;margin-top:5px}
+                .e47tag{margin-left:auto;align-self:flex-start;padding:5px 8px;border-radius:20px;border:1px solid rgba(91,220,255,.4);color:#83edff;font-size:9px;letter-spacing:1.2px;background:rgba(0,190,255,.08)}
+                .e47bar{height:4px;border-radius:10px;background:rgba(135,166,205,.16);margin-top:19px;overflow:hidden;position:relative}
+                .e47bar:after{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,#50eaff,#b18aff,transparent);filter:drop-shadow(0 0 6px #55dfff);animation:e47scan 2.1s ease-in-out infinite}
+                .e47steps{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;color:#91a9c6;font-size:10px;letter-spacing:.35px}
+                .e47steps b{width:5px;height:5px;border-radius:50%;background:#67eaff;display:inline-block;box-shadow:0 0 8px #3ddcff;animation:e47dot 1.3s infinite}
+                .e47steps b:nth-child(2){animation-delay:.18s}.e47steps b:nth-child(3){animation-delay:.36s}
+                @media(prefers-reduced-motion:reduce){.e47ring,.e47ring2,.e47core,.e47bar:after,.e47steps b{animation:none}}
+                </style>
+                <div class="e47card">
+                  <div class="e47head">
+                    <div class="e47reactor"><span class="e47ring"></span><span class="e47ring2"></span><span class="e47core"></span></div>
+                    <div><div class="e47title">ÉLÉVO <span style="color:#66eaff">NEURAL ENGINE</span></div>
+                    <div class="e47sub">Forjando sua criação V9.2 · Imagem original preservada · Vídeo V12</div></div>
+                    <div class="e47tag">VIP PROCESSING</div>
+                  </div>
+                  <div class="e47bar"></div>
+                  <div class="e47steps"><b></b><b></b><b></b><span>ANÁLISE VISUAL</span><span>·</span><span>FIDELIDADE DO ITEM</span><span>·</span><span>ROTEIRO CINEMATOGRÁFICO</span></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            with st.container():
                 _debito_v92_v16813 = None
                 try:
                     _debito_v92_v16813 = elevo_credito_reservar_v16813(
@@ -7814,7 +7937,21 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     etapa_formato_elevo = "v92_limpar_fecho_logo"
                     conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
                     etapa_formato_elevo = "v92_texto_na_tela"
-                    conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
+                    # V16.8.48 — fail-safe: a formatação opcional das legendas nunca
+                    # deve cancelar os prompts V9.2 já produzidos. O texto original
+                    # permanece intacto quando a saída da IA não segue o padrão esperado.
+                    _conteudo_v92_antes_legendas = conteudo_v92
+                    try:
+                        conteudo_v92 = elevo_v92_texto_na_tela_v16821(conteudo_v92)
+                    except Exception as exc_legendas_v92:
+                        import logging
+                        conteudo_v92 = _conteudo_v92_antes_legendas
+                        logging.getLogger("elevo.geracao").warning(
+                            "V9.2: normalização de Texto na Tela ignorada; "
+                            "prompt original preservado e fluxo continuado. Motivo=%s",
+                            type(exc_legendas_v92).__name__,
+                            exc_info=True,
+                        )
                     # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
                     etapa_formato_elevo = "v92_restaurar_matriz_identidade"
                     conteudo_v92 = restaurar_matriz_v9_tres_criacoes_v16824(
@@ -7850,6 +7987,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         logging.getLogger("elevo.geracao").exception(
                             "V9.2: assinatura final opcional não aplicada; "
                             "prompts preservados (%s)", type(exc_logo_v92).__name__)
+                    etapa_formato_elevo = "quality_gate_v92"
+                    elevo_quality_gate_v1700(conteudo_v92, scan_v92, modo="v9.2")
                     etapa_formato_elevo = "v92_salvar_estado_sessao"
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
@@ -7862,6 +8001,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
+                    loader_v92_slot.empty()
                     st.success("🔥 Criação V9.2 pronta, com legendas nativas e " +
                                ("logo opcional no encerramento!" if v92_logo_ativo_v16837
                                 else "encerramento natural sem logo!"))
@@ -7873,6 +8013,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     if _debito_v92_v16813:
                         try: elevo_credito_estornar_v16813(_debito_v92_v16813, ELEVO_CUSTO_PROMPT_V16813)
                         except Exception: pass
+                    loader_v92_slot.empty()
                     mostrar_erro_criacao_v1686(e, "Bloco 17.2 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
     # ==========================================================
