@@ -6727,6 +6727,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
     # ==========================================================
     def travar_escala_e_fisica_somente_video_v1685(conteudo):
         """Fixa geometria e inércia do produto em todos os frames do vídeo."""
+        if not isinstance(conteudo, str):
+            raise TypeError("V16.8.41: conteúdo não textual recebido pela trava de escala/física do vídeo.")
+        if not conteudo.strip():
+            raise ValueError("V16.8.41: conteúdo vazio recebido pela trava de escala/física do vídeo.")
         marcador = '[ÉLÉVO V16.8.5 — VIDEO PRODUCT SCALE / PHYSICS LOCK]'
         trava = (
             marcador + "\n"
@@ -7827,9 +7831,17 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     etapa_formato_elevo = "limpeza_visual"
                     conteudo_v92 = sanitizar_descricao_produto_visual_v1684(conteudo_v92)
                     conteudo_v92 = aplicar_fidelidade_neutra_v1685(conteudo_v92, scan_v92)
-                    etapa_formato_elevo = "fisica_video"
+                    # V16.8.41 — diagnóstico granular do pós-processamento físico.
+                    # Mantém a ordem e o conteúdo das três proteções; identifica exatamente
+                    # qual função falhou, em vez de reportar genericamente "fisica_video".
+                    if not isinstance(conteudo_v92, str) or not conteudo_v92.strip():
+                        raise ValueError("V16.8.41: a IA retornou conteúdo vazio ou não textual antes das proteções físicas.")
+                    etapa_formato_elevo = "fisica_video_escala"
                     conteudo_v92 = travar_escala_e_fisica_somente_video_v1685(conteudo_v92)
-                    conteudo_v92 = sincronizar_persona_imagem_video_v1683(conteudo_v92, nome_inf_ativa, visual_inf_isolado_v16811)
+                    etapa_formato_elevo = "fisica_video_persona"
+                    conteudo_v92 = sincronizar_persona_imagem_video_v1683(
+                        conteudo_v92, nome_inf_ativa, visual_inf_isolado_v16811)
+                    etapa_formato_elevo = "fisica_video_produto"
                     conteudo_v92 = neutralizar_descricao_variavel_do_produto_v16811(conteudo_v92)
                     # Os filtros abaixo atingem só o VÍDEO; a IMAGEM e SEO não mudam.
                     conteudo_v92 = elevo_v92_limpar_fecho_logo_v16821(conteudo_v92)
