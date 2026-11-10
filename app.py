@@ -1,4 +1,5 @@
-# ÉLÉVO V16.8.39 — MOTOR PRINCIPAL GPT-6.1 TERRA | BASE V16.8.38 PRESERVADA
+# ÉLÉVO V16.8.40 — PROTOCOLO VIP DIÁRIO | BASE V16.8.39 PRESERVADA
+# Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
 # Somente UI/identidade da logo final V9.2 e higienização de três frases V9.2; imagem V9 e motores 360/3S intactos.
@@ -2021,6 +2022,161 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
               "visitKey": st.session_state.get("elevo_bv_chave_v16814", "")},
         on_concluido_change=concluir_audio_aurora,
     )
+
+
+
+# ==========================================================
+# ÉLÉVO V16.8.40 — PROTOCOLO VIP DIÁRIO (MÓDULO INDEPENDENTE)
+# Aurora, login, cadastro, créditos e motores existentes não são alterados.
+# ==========================================================
+def _elevo_vip_hoje_v16840():
+    return datetime.now(ZoneInfo("America/Sao_Paulo")).date().isoformat()
+
+
+def _elevo_vip_aurora_hoje_v16840(email, hoje):
+    # A conta que acabou de receber a Aurora não recebe a segunda surpresa no mesmo dia.
+    try:
+        for r in elevo_aba_aurora_v16816().get_all_records():
+            if str(r.get("Email", "")).strip().lower() == email and r.get("ConsumidoEm"):
+                dt = datetime.fromisoformat(str(r["ConsumidoEm"]).replace("Z", "+00:00"))
+                if dt.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat() == hoje:
+                    return True
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_AURORA_CHECK: %s", type(exc).__name__)
+    return False
+
+
+def _elevo_vip_reservar_v16840(email, hoje):
+    # Aba própria; uma linha por conta; marca antes do áudio para impedir repetição em F5.
+    try:
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_v16813("Elevo_Saudacao_Diaria_V1",
+                                   ["Email", "UltimaData", "AtualizadoEm"])
+            for n, r in enumerate(aba.get_all_records(), start=2):
+                if str(r.get("Email", "")).strip().lower() == email:
+                    if str(r.get("UltimaData", "")) == hoje:
+                        return False
+                    aba.update_cell(n, 2, hoje)
+                    aba.update_cell(n, 3, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat())
+                    return True
+            aba.append_row([email, hoje, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()])
+            return True
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_DAILY_SHEETS: %s", type(exc).__name__)
+        return False
+
+
+def _elevo_vip_frase_v16840(email, nome, hoje):
+    ceo = email == str(EMAIL_MESTRE).strip().lower()
+    ceo_frases = [
+        "A sua visão define o destino, mas é a disciplina que constrói o caminho. Proteja sua mente, escolha suas prioridades e lidere pelo exemplo. Hoje é dia de avançar.",
+        "Não entregue o comando do seu dia às urgências dos outros. Vigie a porta da sua mente, mantenha a estratégia clara e execute o que realmente importa.",
+        "Grandes resultados nascem de decisões consistentes. Pense com clareza, aja com firmeza e não negocie seus princípios. Vamos construir.",
+        "O mercado muda, mas a disciplina sustenta quem sabe aonde quer chegar. Mantenha a visão no longo prazo e faça o trabalho de hoje."
+    ]
+    geral = [
+        "Cada dia oferece uma nova oportunidade de aprender, criar e avançar. Dê o próximo passo com confiança e transforme intenção em ação.",
+        "Não precisa resolver tudo de uma vez. Escolha uma prioridade, concentre sua energia e faça bem-feito o que está ao seu alcance hoje.",
+        "Consistência vale mais do que pressa. Continue aprendendo, mantenha o foco e permita que pequenas conquistas construam grandes resultados.",
+        "Seu progresso começa quando você decide agir. Desenvolva suas habilidades e faça deste dia mais um passo na direção dos seus objetivos."
+    ]
+    banco = ceo_frases if ceo else geral
+    h = hashlib.sha256(f"{email}|{hoje}|elevo-vip".encode()).digest()
+    frase = banco[int.from_bytes(h[:4], "big") % len(banco)]
+    hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
+    saudacao = "Bom dia" if hora < 12 else ("Boa tarde" if hora < 18 else "Boa noite")
+    return f"{saudacao}, {nome}. {frase}"
+
+
+def _elevo_vip_audio_v16840(frase):
+    # Edge TTS sem cadastro/chave; gTTS fica como fallback para não bloquear o acesso.
+    try:
+        import asyncio, edge_tts
+        async def gerar():
+            tts = edge_tts.Communicate(frase, "pt-BR-AntonioNeural", rate="-3%", pitch="-2Hz")
+            partes = []
+            async for p in tts.stream():
+                if p.get("type") == "audio":
+                    partes.append(p["data"])
+            return b"".join(partes)
+        audio = asyncio.run(gerar())
+        if audio:
+            return audio
+    except Exception as exc:
+        logging.info("ELEVO_EDGE_TTS_FALLBACK: %s", type(exc).__name__)
+    try:
+        fp = io.BytesIO()
+        gTTS(text=frase, lang="pt", tld="com.br").write_to_fp(fp)
+        return fp.getvalue()
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_TTS: %s", type(exc).__name__)
+        return None
+
+
+def _elevo_vip_fechar_v16840():
+    st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+    st.session_state["elevo_vip_diaria_audio_v16840"] = None
+
+
+if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vip_diaria_exibida_v16840", False):
+    _vip_email = str(st.session_state.get("email_usuario", "")).strip().lower()
+    _vip_nome = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+    _vip_hoje = _elevo_vip_hoje_v16840()
+    if _vip_email:
+        if _elevo_vip_aurora_hoje_v16840(_vip_email, _vip_hoje):
+            st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+        elif _elevo_vip_reservar_v16840(_vip_email, _vip_hoje):
+            _vip_frase = _elevo_vip_frase_v16840(_vip_email, _vip_nome, _vip_hoje)
+            with st.spinner("Preparando sua mensagem diária..."):
+                _vip_bytes = _elevo_vip_audio_v16840(_vip_frase)
+            if _vip_bytes:
+                st.session_state["elevo_vip_diaria_frase_v16840"] = _vip_frase
+                st.session_state["elevo_vip_diaria_audio_v16840"] = base64.b64encode(_vip_bytes).decode("ascii")
+            else:
+                st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+        else:
+            st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+
+
+if st.session_state.get("usuario_logado") and st.session_state.get("elevo_vip_diaria_audio_v16840"):
+    _vip = st.components.v2.component(
+        name="elevo_vip_daily_protocol_v16840",
+        html="""<main id="vip"><div class="grid"></div><section class="panel">
+        <div class="top">ÉLÉVO INTELLIGENCE ONLINE <span>● SECURE SESSION</span></div>
+        <svg class="face" viewBox="0 0 220 240" aria-label="Rosto holográfico abstrato">
+        <path d="M110 15 C52 15 42 70 52 130 L66 195 Q110 235 154 195 L168 130 C178 70 168 15 110 15Z" fill="rgba(0,229,255,.04)" stroke="#00e5ff" stroke-width="2"/>
+        <path d="M65 95 Q88 75 102 96 M118 96 Q132 75 155 95 M75 125 Q90 115 102 125 M118 125 Q130 115 145 125 M110 105 L101 155 L119 160 M85 185 Q110 201 135 185" fill="none" stroke="#73f5ff" stroke-width="2"/>
+        <path d="M52 130 H168 M60 160 H160 M75 55 H145" stroke="#00e5ff" stroke-opacity=".3" stroke-dasharray="3 5"/></svg>
+        <div class="kicker">PROTOCOLO DE ACESSO VIP</div><h2 id="nome"></h2><p id="frase"></p>
+        <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <div id="status">SINCRONIZANDO VOZ E IDENTIDADE...</div>
+        <button id="play">▶ ATIVAR MENSAGEM</button><button id="close">CONTINUAR PARA A ÉLÉVO</button>
+        <audio id="audio" preload="auto" playsinline></audio></section></main>""",
+        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 40%,#10283a,#050a12 60%,#02040a);color:#eafaff;display:grid;place-items:center;font-family:Arial;overflow:auto}
+        #vip:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(0,229,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.05) 1px,transparent 1px);background-size:36px 36px}
+        .panel{position:relative;width:min(92vw,620px);padding:clamp(18px,4vw,34px);text-align:center;border:1px solid #087f9a;border-radius:24px;background:linear-gradient(145deg,rgba(8,24,39,.97),rgba(3,8,17,.98));box-shadow:0 0 60px #00b8df33;animation:appear .8s ease}
+        .top{font-size:10px;letter-spacing:2px;color:#7df4ff;display:flex;justify-content:space-between}.top span{color:#5bd6ad}
+        .face{width:190px;height:205px;margin:10px auto;display:block;filter:drop-shadow(0 0 13px #00e5ff88);animation:float 3s infinite}
+        .kicker{font-size:10px;letter-spacing:4px;color:#d9b96e}#nome{font-size:26px;letter-spacing:2px;margin:10px}#frase{font-size:16px;line-height:1.65;color:#c4dce7}
+        .wave{height:35px;display:flex;align-items:center;justify-content:center;gap:5px}.wave i{width:4px;height:5px;border-radius:5px;background:#00e5ff}
+        #vip.playing .wave i{animation:wave .45s infinite alternate}#status{font-size:9px;letter-spacing:2px;color:#69cbd9;margin:10px}
+        button{border-radius:30px;padding:12px 20px;margin:5px;cursor:pointer;font-weight:800;letter-spacing:1px;background:#07536b;color:white;border:1px solid #00dfff}#close{display:none;background:transparent;border-color:#d9b96e}
+        @keyframes wave{to{height:32px}}@keyframes float{50%{transform:translateY(-5px)}}@keyframes appear{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important}}""",
+        js="""export default function(c){const {parentElement,data,setTriggerValue}=c;const root=parentElement.querySelector('#vip'),a=parentElement.querySelector('#audio'),p=parentElement.querySelector('#play'),x=parentElement.querySelector('#close'),s=parentElement.querySelector('#status');if(!root||!a||!data?.audio)return;
+        parentElement.querySelector('#nome').textContent=data.name||'IDENTIDADE RECONHECIDA';parentElement.querySelector('#frase').textContent=data.phrase||'';a.src='data:audio/mpeg;base64,'+data.audio;let done=false;
+        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .6s';root.style.opacity=0;setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},650)};
+        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='MENSAGEM VIP EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
+        p.addEventListener('click',play);x.addEventListener('click',finish);a.addEventListener('ended',()=>{root.classList.remove('playing');s.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';x.style.display='inline-block';p.style.display='none'});
+        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • VOCÊ PODE CONTINUAR';x.style.display='inline-block'});play();
+        return()=>{p.removeEventListener('click',play);x.removeEventListener('click',finish);a.pause()}}"""
+    )
+    _vip(key="elevo_vip_daily_overlay_v16840",
+         data={"name": _vip_nome.upper(),
+               "phrase": st.session_state.get("elevo_vip_diaria_frase_v16840", ""),
+               "audio": st.session_state["elevo_vip_diaria_audio_v16840"]},
+         on_closed_change=_elevo_vip_fechar_v16840)
+
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
