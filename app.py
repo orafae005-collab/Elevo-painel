@@ -6347,6 +6347,90 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         resto=pedacos[1] if len(pedacos)>1 else ''
         return (visual+_reforco_ecossistema_v14(imagem,scan,modo)+'\n'+resto).rstrip()
 
+    def _elevo_ambiente_vivo_v1705(prompt_imagem):
+        """
+        Direção determinística de microeventos ambientais baseada SOMENTE
+        nos elementos já descritos no prompt de imagem aprovado.
+        Não adiciona animais, clima, objetos ou cenários novos.
+        """
+        t = str(prompt_imagem or "").casefold()
+        eventos = []
+        urbano = any(x in t for x in (
+            "street", "sidewalk", "calçada", "calcada", "rua", "avenue",
+            "avenida", "storefront", "loja", "urban", "city", "cidade",
+            "shop", "comércio", "comercio"
+        ))
+        molhado = any(x in t for x in (
+            "wet", "molhado", "molhada", "rain", "chuva", "puddle",
+            "poça", "poca", "reflections on pavement", "wet pavement",
+            "wet sidewalk", "reflexo no chão", "reflexos no chão"
+        ))
+        animal = any(x in t for x in (
+            "dog", "cachorro", "cat", "gato", "bird", "pássaro",
+            "passaro", "animal"
+        ))
+        plantas = any(x in t for x in (
+            "plant", "foliage", "leaves", "leaf", "palm", "fern",
+            "garden", "planta", "folhagem", "árvore", "arvore",
+            "samambaia", "palmeira"
+        ))
+        tecido = any(x in t for x in (
+            "curtain", "awning", "towel", "fabric", "newspaper",
+            "jornal", "tecido", "toalha", "toldo"
+        ))
+
+        eventos.append(
+            "[V17.0.5 — LIVING ENVIRONMENT MOTION LOCK] The background must not behave "
+            "like a frozen photograph. Preserve the exact approved still-image location, "
+            "all object positions and the same weather; animate only visible, already "
+            "established elements with subtle, continuous, non-looping cause-and-effect."
+        )
+        if urbano:
+            eventos.append(
+                "URBAN DEPTH: keep the distant street alive with restrained real-world "
+                "parallax and background activity. Vehicles may pass slowly in the far "
+                "background ONLY if a road and vehicles are already visible in the approved "
+                "still; never spawn a new car, pedestrian, sign or storefront. Keep all "
+                "motion distant and subordinate to the presenter and referenced product."
+            )
+        if molhado:
+            eventos.append(
+                "WET-SURFACE PHYSICS: preserve the existing wet ground and its original "
+                "puddles. Reflections shimmer subtly as the handheld camera moves and as "
+                "existing distant light sources change angle; tiny ripples occur only when "
+                "an already-present droplet, breeze or footstep can physically cause them. "
+                "Do not create new rain, streams, splashes or water sources."
+            )
+        if animal:
+            eventos.append(
+                "BACKGROUND ANIMAL LIFE: the exact animal already visible in the approved "
+                "still performs one or two subtle unscripted micro-actions over the clip "
+                "(natural breathing, one blink, a small ear/head adjustment or a slight "
+                "weight shift). Keep the same species, body, location and scale; no walking "
+                "toward camera, no duplication and no new animal."
+            )
+        if plantas:
+            eventos.append(
+                "PLANT RESPONSE: only foliage already visible may move; small leaves react "
+                "first, larger stems follow with delayed inertia, then settle irregularly "
+                "under one coherent light breeze. No synchronized looping and no new plants."
+            )
+        if tecido:
+            eventos.append(
+                "LIGHT OBJECT RESPONSE: already-visible loose paper, awning edges or fabric "
+                "may flutter very slightly under a plausible existing breeze, with gravity "
+                "and friction returning them to rest. Rigid benches, walls, shutters and "
+                "fixed architecture remain rigid and stationary."
+            )
+        eventos.append(
+            "TEMPORAL CONTINUITY: distribute these background events across the full shot, "
+            "not all at once: a small change early, a different subtle response mid-shot, "
+            "and continuing micro-motion in the final second. The presenter/product remain "
+            "the visual priority. No artificial camera shake to fake environmental life."
+        )
+        return "\\n".join(eventos)
+
+
     def reforcar_apenas_video_v12(conteudo, scan, modo):
         """Second IA pass rewrites ONLY the video and leaves image/SEO byte-identical."""
         partes=extrair_blocos_roteiro(conteudo)
@@ -6423,6 +6507,11 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         # V14: reforço determinístico, com descrição específica dos objetos da IMAGEM.
         # Entra APENAS no texto do vídeo, mesmo quando a IA responde pouco ou pula detalhes.
         novo_video=_injetar_ecossistema_v14(novo_video,imagem,scan,modo)
+        # V17.0.5: força microeventos no ambiente já aprovado, sem inventar cenário.
+        direcao_ambiente_vivo = _elevo_ambiente_vivo_v1705(imagem)
+        if "[V17.0.5 — LIVING ENVIRONMENT MOTION LOCK]" not in novo_video:
+            blocos = novo_video.split("\\n", 1)
+            novo_video = (blocos[0] + "\\n" + direcao_ambiente_vivo + "\\n" + blocos[1]) if len(blocos) > 1 else (novo_video + "\\n" + direcao_ambiente_vivo)
         final=_trocar_so_video_v12(conteudo,novo_video)
         validado=extrair_blocos_roteiro(final)
         if validado['prompt_imagem']!=imagem or validado['secao_seo_texto']!=partes['secao_seo_texto']:
