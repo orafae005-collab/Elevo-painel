@@ -304,7 +304,6 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_hist_erro_gravacao_v16817", "elevo_hist_mensagem_v16817",
     "elevo_roteiro_usuario_v16820",
     "elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
-    "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837",
     "elevo_v92_logo_nome_aplicado_v16838",
     "elevo_hist_mensagem_aviso_v16818",
     "influencer_atual", "email_inf_carregado", "dados_prontos",
@@ -5560,8 +5559,7 @@ with _elevo_area_criacao_v16823:
     # anterior. Recuperar somente o rascunho volátil da conta autenticada.
     if st.session_state.get("elevo_roteiro_usuario_v16820") != email_sessao:
         for _k_v92_logo in ("elevo_v92_logo_ativo_v16837", "elevo_v92_logo_nome_v16837",
-                           "elevo_v92_logo_arquivo_v16837", "elevo_v92_logo_efeito_v16837",
-                           "elevo_v92_logo_nome_aplicado_v16838"):
+                                                  "elevo_v92_logo_nome_aplicado_v16838"):
             st.session_state.pop(_k_v92_logo, None)
         st.session_state["elevo_roteiro_usuario_v16820"] = email_sessao
         st.session_state["roteiro_temporario"] = None
@@ -5689,81 +5687,66 @@ with _elevo_area_criacao_v16823:
 
     
     # ==========================================================
-    # 17.2. CRIAÇÃO V9.2 (INTERLIGADO AO 17; LOGO FINAL OPCIONAL E ISOLADA)
+    # 17.2. CRIAÇÃO V9.2 — FINALIZAÇÃO DE MARCA SIMPLIFICADA
     # ==========================================================
     btn_gerar_v92 = False
-    # Configuração local à sessão da conta, não reaproveita marca de influenciadora.
     st.session_state.setdefault("elevo_v92_logo_ativo_v16837", bool(E_O_CEO))
     st.session_state.setdefault("elevo_v92_logo_efeito_v16837", "Glitch vermelho discreto" if E_O_CEO else "Aparecimento suave")
-    # Marca padrão do CEO continua preenchida, mas agora é editável como qualquer outra.
     _marca_padrao_v16838 = "O Achado Secreto" if E_O_CEO else ""
     st.session_state.setdefault("elevo_v92_logo_nome_v16837", _marca_padrao_v16838)
     st.session_state.setdefault("elevo_v92_logo_nome_aplicado_v16838", _marca_padrao_v16838)
     v92_logo_ativo_v16837 = False
     v92_logo_nome_v16837 = ""
-    v92_logo_arquivo_v16837 = None
     v92_logo_efeito_v16837 = "Aparecimento suave"
     if st.session_state.get("modo_entidade_v9"):
         st.markdown("<br>", unsafe_allow_html=True)
         with st.container(border=True):
-            st.markdown("<h3 style='text-align: center; color: #FF0040;'>🧬 17.2. Máquina V9.2 (Imagem Original + Vídeo V12 Hiper-Realista)</h3>", unsafe_allow_html=True)
-            st.caption("Imagem RAW preservada, física V10, legendas nativas e finalização com logo OPCIONAL. A logo nunca entra na fotografia do produto.")
-            with st.container(border=True):
-                st.markdown("**🏷️ Logo no encerramento da V9.2 (opcional)**")
-                v92_logo_ativo_v16837 = st.checkbox(
-                    "Finalizar o vídeo com minha logo", key="elevo_v92_logo_ativo_v16837")
-                if v92_logo_ativo_v16837:
-                    if E_O_CEO:
-                        st.caption("👑 Sua marca inicial é O Achado Secreto, mas você pode alterar e aplicar outro nome.")
-                    nome_digitado_v16838 = st.text_input(
-                        "✍️ Nome da logo / marca (editável também para o CEO)",
-                        placeholder="Ex.: O Achado Secreto ou Minha Loja", max_chars=70,
-                        key="elevo_v92_logo_nome_v16837",
-                        help="Edite o nome e clique Aplicar. Isso vale para seus próximos prompts desta sessão, não altera a marca de outras contas.")
-                    if st.button("✓ Aplicar nome da marca", key="elevo_v92_logo_aplicar_nome_v16838",
-                                 use_container_width=True):
-                        nome_aplicavel_v16838 = re.sub(r"\s+", " ", nome_digitado_v16838).strip()
-                        st.session_state["elevo_v92_logo_nome_aplicado_v16838"] = nome_aplicavel_v16838
-                        st.success("Nome aplicado à finalização da V9.2." if nome_aplicavel_v16838
-                                   else "Nome removido; envie uma imagem de logo para manter a finalização ativa.")
-                    v92_logo_nome_v16837 = str(st.session_state.get(
-                        "elevo_v92_logo_nome_aplicado_v16838", "")).strip()
-                    if nome_digitado_v16838.strip() != v92_logo_nome_v16837:
-                        st.info("Você editou o nome. Clique em **Aplicar nome da marca** antes de gerar.")
-                    else:
-                        st.caption("**Nome aplicado:** " + (v92_logo_nome_v16837 or "somente imagem da logo"))
-                    v92_logo_arquivo_v16837 = st.file_uploader(
-                        "📎 Adicionar imagem da minha logo (PNG/JPG/WEBP)",
-                        type=["png", "jpg", "jpeg", "webp"],
-                        key="elevo_v92_logo_arquivo_v16837",
-                        help="Sua logo é usada somente como instrução de encerramento. O arquivo também precisará ser enviado ao editor/gerador externo para preservar o desenho original.")
-                    if v92_logo_arquivo_v16837 is not None:
-                        if v92_logo_arquivo_v16837.size > 3_000_000:
-                            st.warning("A logo deve ter até 3 MB. Use um PNG comprimido, se necessário.")
-                        else:
-                            st.image(v92_logo_arquivo_v16837, width=150, caption="Logo selecionada — uso exclusivo no final do vídeo")
-                    v92_logo_efeito_v16837 = st.selectbox(
-                        "Efeito da assinatura final",
-                        ["Aparecimento suave", "Glitch vermelho discreto", "Sem efeito"],
-                        key="elevo_v92_logo_efeito_v16837")
-                    st.caption("A ÉLÉVO cria o prompt, mas não transmite automaticamente o arquivo da logo à geradora externa. Para copiar o desenho exato, anexe a mesma logo ao editor de vídeo.")
-                else:
-                    st.caption("Desligado: encerramento natural, sem logo, exatamente como na V16.8.36.")
+            st.markdown("<h3 style='text-align:center;color:#FF496B;margin-bottom:.25rem'>🧬 17.2. Máquina V9.2</h3>", unsafe_allow_html=True)
+            st.caption("Imagem original preservada • Vídeo V12 hiper-realista")
+
+            # Bloco compacto, sem upload de logo e sem uma segunda caixa/linha divisória.
+            st.markdown("<div style='padding:12px 15px;border-radius:12px;background:linear-gradient(145deg,rgba(20,35,55,.92),rgba(8,17,30,.96));box-shadow:0 8px 22px rgba(0,0,0,.24);border:1px solid rgba(105,160,205,.24);margin:6px 0 12px 0'>", unsafe_allow_html=True)
+            st.markdown("**🏷️ Assinatura de marca no encerramento**")
+            v92_logo_ativo_v16837 = st.checkbox(
+                "Finalizar o vídeo com o nome da minha marca", key="elevo_v92_logo_ativo_v16837")
+            if v92_logo_ativo_v16837:
+                if E_O_CEO:
+                    st.caption("Marca inicial: O Achado Secreto — você pode editar o nome.")
+                nome_digitado_v16838 = st.text_input(
+                    "Nome da marca", placeholder="Ex.: O Achado Secreto ou Minha Loja",
+                    max_chars=70, key="elevo_v92_logo_nome_v16837",
+                    help="O nome será usado somente na assinatura final deste vídeo.")
+                if st.button("✓ Aplicar nome", key="elevo_v92_logo_aplicar_nome_v16838",
+                             use_container_width=True):
+                    nome_aplicavel_v16838 = re.sub(r"\s+", " ", nome_digitado_v16838).strip()
+                    st.session_state["elevo_v92_logo_nome_aplicado_v16838"] = nome_aplicavel_v16838
+                    st.success("Nome aplicado." if nome_aplicavel_v16838 else "Nome da marca removido.")
+                v92_logo_nome_v16837 = str(st.session_state.get(
+                    "elevo_v92_logo_nome_aplicado_v16838", "")).strip()
+                if nome_digitado_v16838.strip() != v92_logo_nome_v16837:
+                    st.info("Aplique o nome editado antes de gerar.")
+                st.selectbox(
+                    "Efeito da assinatura",
+                    ["Aparecimento suave", "Glitch vermelho discreto", "Sem efeito"],
+                    key="elevo_v92_logo_efeito_v16837")
+                v92_logo_efeito_v16837 = st.session_state.get(
+                    "elevo_v92_logo_efeito_v16837", "Aparecimento suave")
+            else:
+                v92_logo_nome_v16837 = ""
+                st.caption("Encerramento natural, sem assinatura de marca.")
+            st.markdown("</div>", unsafe_allow_html=True)
 
             v92_logo_invalida_v16837 = bool(
                 v92_logo_ativo_v16837 and
-                ((not v92_logo_nome_v16837.strip() and v92_logo_arquivo_v16837 is None)
-                 or (v92_logo_arquivo_v16837 is not None and
-                     v92_logo_arquivo_v16837.size > 3_000_000)
-                 or (st.session_state.get("elevo_v92_logo_nome_v16837", "").strip()
-                     != v92_logo_nome_v16837)))
+                (not v92_logo_nome_v16837 or
+                 st.session_state.get("elevo_v92_logo_nome_v16837", "").strip() != v92_logo_nome_v16837))
             if v92_logo_invalida_v16837:
-                st.warning("Para finalizar, clique em Aplicar após editar o nome e informe uma marca ou anexe uma logo de até 3 MB.")
+                st.warning("Aplique um nome de marca válido antes de gerar.")
             if not pode_gerar_roteiro:
                 st.error("Entre na sua conta para gerar roteiros.")
-                btn_gerar_v92 = st.button("🔥 LER RÓTULO E GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
+                btn_gerar_v92 = st.button("🔥 GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
             else:
-                txt_btn_v92 = "🔥 LER RÓTULO E GERAR NA V9.2 (Ilimitado)" if E_O_CEO else "🔥 LER RÓTULO E GERAR NA V9.2 • 10 CR"
+                txt_btn_v92 = "🔥 GERAR NA V9.2 (Ilimitado)" if E_O_CEO else "🔥 GERAR NA V9.2 • 10 CR"
                 btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, disabled=v92_logo_invalida_v16837, key="btn_v92_ativo")
 
     # ==========================================================
@@ -7866,15 +7849,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
                     # V16.8.38: logo editável / nome aplicado SOMENTE no fim da V9.2.
-                    if v92_logo_ativo_v16837:
-                        if (v92_logo_arquivo_v16837 is not None
-                                and v92_logo_arquivo_v16837.size > 3_000_000):
-                            raise ValueError('Arquivo de logo acima do limite de 3 MB.')
                     conteudo_v92 = elevo_logo_final_video_v92_v16837(
                         conteudo_v92,
                         habilitado=bool(v92_logo_ativo_v16837),
                         nome=v92_logo_nome_v16837,
-                        arquivo=(v92_logo_arquivo_v16837.name if v92_logo_arquivo_v16837 else ''),
+                        arquivo='',
                         efeito=v92_logo_efeito_v16837,
                         segundos=segundos_video_v16829)
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
@@ -8236,6 +8215,7 @@ components.html(r"""
       if (el.closest('[data-elevo-no-voice]')) return false;
       const rotulo = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('placeholder') || '')).toLowerCase();
       if (/senha|password|token|chave secreta|api.?key|email|e-mail|gmail|código de segurança/.test(rotulo)) return false;
+      if ((el.getAttribute('placeholder') || '').toLowerCase().includes('achado secreto ou minha loja')) return false;
       return true;
     }
     function inserirTexto(el, texto) {
