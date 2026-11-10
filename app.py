@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.48 — VOZ VIP EXCLUSIVA + DIAGNÓSTICO | BASE V16.8.47
+# ÉLÉVO V16.8.49 — LABORATÓRIO DE AUDIÇÃO E ESCOLHA DE VOZ VIP | BASE V16.8.48
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.48 — VOZ VIP EXCLUSIVA + DIAGNÓSTICO DE CONEXÃO (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.49 — LABORATÓRIO DE AUDIÇÃO E ESCOLHA DE VOZ VIP
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2189,6 +2189,53 @@ def _elevo_vip_frase_v16840(email, nome, hoje):
     )
 
 
+def _elevo_tts_gerar_amostra_v16849(texto, voz):
+    """Gera amostra sem fallback e devolve erros reais para o painel CEO."""
+    import asyncio
+    import concurrent.futures
+
+    texto = re.sub(r"ÉLÉVO", "Élevo", str(texto or ""), flags=re.IGNORECASE).strip()
+    permitidas = {"pt-BR-FranciscaNeural", "pt-BR-ThalitaMultilingualNeural", "pt-BR-DonatoNeural"}
+    if voz not in permitidas:
+        raise ValueError("Voz não autorizada para a prévia.")
+    try:
+        import edge_tts
+    except Exception as exc:
+        raise RuntimeError(
+            "Pacote edge-tts ausente. Acrescente edge-tts>=7.0.0 ao requirements.txt "
+            "e faça novo deploy. " + type(exc).__name__ + ": " + str(exc)
+        ) from exc
+
+    async def gerar_async():
+        comunicacao = edge_tts.Communicate(
+            text=texto, voice=voz, rate="-4%",
+            pitch="-1Hz" if voz == "pt-BR-DonatoNeural" else "+0Hz",
+            volume="+0%"
+        )
+        partes = []
+        async for parte in comunicacao.stream():
+            if parte.get("type") == "audio" and parte.get("data"):
+                partes.append(parte["data"])
+        return b"".join(partes)
+
+    def executar():
+        return asyncio.run(asyncio.wait_for(gerar_async(), timeout=35))
+
+    try:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            audio = executar()
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                audio = pool.submit(executar).result(timeout=40)
+    except Exception as exc:
+        raise RuntimeError(f"Falha em {voz}: {type(exc).__name__}: {str(exc)[:900]}") from exc
+    if not audio or len(audio) < 1500:
+        raise RuntimeError(f"{voz} retornou áudio inválido ({len(audio or b'')} bytes).")
+    return audio
+
+
 def _elevo_vip_audio_v16840(frase):
     """
     Voz exclusiva da experiência VIP: somente Donato Neural.
@@ -2224,7 +2271,7 @@ def _elevo_vip_audio_v16840(frase):
     async def gerar():
         comunicacao = edge_tts.Communicate(
             text=texto_falado,
-            voice="pt-BR-DonatoNeural",
+            voice=st.session_state.get("elevo_vip_voz_escolhida_v16849", "pt-BR-DonatoNeural"),
             rate="-7%",
             pitch="-3Hz",
             volume="+0%",
@@ -4712,6 +4759,67 @@ def elevo_ler_painel_v16814(forcar=False):
 # ÉLÉVO V16.8.13 — PAINEL DE CONTAS VIP (EXCLUSIVO CEO)
 # ==========================================================
 if E_O_CEO:
+    # V16.8.49 — laboratório de audição de três vozes.
+    with st.container(border=True):
+        st.markdown("#### 🎙️ Laboratório de Vozes • Escolha antes de ativar")
+        st.caption("Ouça as três amostras com o mesmo texto. Não há troca automática de voz.")
+        _texto_teste_voz = (
+            "Disciplina não depende de vontade. O que transforma resultados é a decisão "
+            "de agir, manter o foco e cumprir o que precisa ser feito. ÉLÉVO. "
+            "Sua próxima etapa começa agora."
+        )
+        _opcoes_voz_vip = [
+            ("pt-BR-FranciscaNeural", "Francisca", "Feminina • Português brasileiro", "francisca"),
+            ("pt-BR-ThalitaMultilingualNeural", "Thalita", "Feminina • Português brasileiro multilíngue", "thalita"),
+            ("pt-BR-DonatoNeural", "Donato", "Masculina • Português brasileiro", "donato"),
+        ]
+        _voz_escolhida_atual = st.session_state.get(
+            "elevo_vip_voz_escolhida_v16849", "pt-BR-DonatoNeural"
+        )
+        for _voz_id, _voz_nome, _voz_perfil, _voz_key in _opcoes_voz_vip:
+            with st.container(border=True):
+                st.markdown(f"**{_voz_nome}**")
+                st.caption(_voz_perfil)
+                if _voz_id == _voz_escolhida_atual:
+                    st.success("Selecionada para o Protocolo VIP")
+                _col_play, _col_select = st.columns(2)
+                with _col_play:
+                    if st.button("▶ Ouvir amostra", key=f"elevo_tts_play_{_voz_key}_v16849",
+                                 use_container_width=True):
+                        st.session_state["elevo_tts_amostra_erro_v16849"] = ""
+                        try:
+                            with st.spinner(f"Gerando amostra: {_voz_nome}..."):
+                                _audio_amostra = _elevo_tts_gerar_amostra_v16849(_texto_teste_voz, _voz_id)
+                            st.session_state["elevo_tts_amostra_bytes_v16849"] = base64.b64encode(
+                                _audio_amostra
+                            ).decode("ascii")
+                            st.session_state["elevo_tts_amostra_nome_v16849"] = _voz_nome
+                        except Exception as _erro_voz:
+                            st.session_state["elevo_tts_amostra_bytes_v16849"] = ""
+                            st.session_state["elevo_tts_amostra_erro_v16849"] = (
+                                f"Voz solicitada: {_voz_id}\\n"
+                                f"Erro: {type(_erro_voz).__name__}\\n"
+                                f"Detalhe: {str(_erro_voz)}"
+                            )
+                            logging.exception("ELEVO_VOICE_AUDITION_FAILED voice=%s", _voz_id)
+                        st.rerun()
+                with _col_select:
+                    if st.button(f"Selecionar {_voz_nome}",
+                                 key=f"elevo_tts_select_{_voz_key}_v16849",
+                                 use_container_width=True):
+                        st.session_state["elevo_vip_voz_escolhida_v16849"] = _voz_id
+                        st.session_state["elevo_vip_tts_voz_v16848"] = _voz_id
+                        st.rerun()
+
+        _amostra_b64 = st.session_state.get("elevo_tts_amostra_bytes_v16849", "")
+        if _amostra_b64:
+            st.markdown(f"**Amostra: {st.session_state.get('elevo_tts_amostra_nome_v16849', 'voz selecionada')}**")
+            st.audio(base64.b64decode(_amostra_b64), format="audio/mp3")
+        _erro_amostra = st.session_state.get("elevo_tts_amostra_erro_v16849", "")
+        if _erro_amostra:
+            st.error("A amostra falhou. Nenhuma voz alternativa foi acionada.")
+            st.code(_erro_amostra, language="text")
+
     # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
     # Não altera o registro diário nem consome a saudação de usuários.
     with st.container(border=True):
