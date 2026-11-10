@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.40 — PROTOCOLO VIP DIÁRIO (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.43 — REARME DIÁRIO COM SESSÃO PERSISTENTE (MÓDULO INDEPENDENTE)
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2085,7 +2085,7 @@ def _elevo_vip_frase_v16840(email, nome, hoje):
     frase = banco[int.from_bytes(h[:4], "big") % len(banco)]
     hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
     saudacao = "Bom dia" if hora < 12 else ("Boa tarde" if hora < 18 else "Boa noite")
-    return f"{saudacao}, {nome}. {frase}"
+    return f"{saudacao}, {nome}. {frase} Seja muito bem-vindo de volta à ÉLÉVO. Estamos prontos. Vamos construir algo extraordinário."
 
 
 def _elevo_vip_audio_v16840(frase):
@@ -2118,6 +2118,18 @@ def _elevo_vip_fechar_v16840():
     st.session_state["elevo_vip_diaria_audio_v16840"] = None
     st.session_state["elevo_vip_preview_ceo_v16842"] = False
 
+
+# A sessão pode permanecer autenticada por vários dias.
+# Ao executar o app em uma nova data de São Paulo, rearmamos somente o controle
+# visual da saudação; a planilha continua sendo a fonte persistente por conta/dia.
+_vip_data_execucao = _elevo_vip_hoje_v16840()
+_vip_data_sessao = st.session_state.get("elevo_vip_data_sessao_v16843")
+if _vip_data_sessao != _vip_data_execucao:
+    st.session_state["elevo_vip_data_sessao_v16843"] = _vip_data_execucao
+    st.session_state["elevo_vip_diaria_exibida_v16840"] = False
+    st.session_state["elevo_vip_diaria_audio_v16840"] = None
+    st.session_state["elevo_vip_diaria_frase_v16840"] = ""
+    st.session_state["elevo_vip_preview_ceo_v16842"] = False
 
 if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vip_diaria_exibida_v16840", False):
     _vip_email = str(st.session_state.get("email_usuario", "")).strip().lower()
