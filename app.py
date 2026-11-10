@@ -7938,10 +7938,63 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         return novo
 
 
+    # ==========================================================
+    # V17.0.9 — UNIFIED VIP LOADER: SHARED BY ALL THREE ENGINES
+    # ==========================================================
+    def elevo_render_loader_vip_v1709(slot, motor="360º"):
+        """Renderiza a mesma animação VIP em 360º, V9.2 e Produto 3S."""
+        nome = str(motor or "ÉLÉVO").replace("<", "").replace(">", "")[:30]
+        slot.markdown(
+            f"""
+            <style>
+            @keyframes evip-orbit{{to{{transform:rotate(360deg)}}}}
+            @keyframes evip-orbit-rev{{to{{transform:rotate(-360deg)}}}}
+            @keyframes evip-pulse{{0%,100%{{transform:scale(.88);filter:brightness(.9)}}50%{{transform:scale(1.12);filter:brightness(1.35)}}}}
+            @keyframes evip-scan{{0%{{transform:translateX(-140%)}}100%{{transform:translateX(340%)}}}}
+            @keyframes evip-particle{{0%,100%{{opacity:.15;transform:translateY(0)}}50%{{opacity:1;transform:translateY(-5px)}}}}
+            .evip-shell{{position:relative;overflow:hidden;padding:21px 22px;border-radius:20px;border:1px solid rgba(91,220,255,.48);
+            background:radial-gradient(ellipse at 12% 0%,rgba(0,190,255,.22),transparent 48%),
+            radial-gradient(ellipse at 92% 100%,rgba(145,82,255,.20),transparent 48%),
+            linear-gradient(135deg,#061321,#0b1025 58%,#151329);
+            box-shadow:0 18px 48px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.10);color:#f4f8ff;font-family:Inter,system-ui,sans-serif}}
+            .evip-shell:before{{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
+            background-image:linear-gradient(rgba(100,215,255,.24) 1px,transparent 1px),linear-gradient(90deg,rgba(100,215,255,.24) 1px,transparent 1px);background-size:26px 26px}}
+            .evip-head{{display:flex;align-items:center;gap:16px;position:relative;z-index:1}}
+            .evip-reactor{{width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;position:relative}}
+            .evip-core{{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#65edff 38%,#1476ff 76%);box-shadow:0 0 14px #48dfff,0 0 34px #167dff;animation:evip-pulse 1.8s ease-in-out infinite}}
+            .evip-ring{{position:absolute;inset:1px;border:1px solid #5ce7ff;border-top-color:#fff;border-right-color:#ad7cff;border-radius:50%;animation:evip-orbit 3s linear infinite}}
+            .evip-ring2{{position:absolute;inset:10px;border:1px dashed rgba(180,126,255,.9);border-radius:50%;animation:evip-orbit-rev 4.7s linear infinite}}
+            .evip-title{{font-size:15px;letter-spacing:1.6px;font-weight:850;text-transform:uppercase}}
+            .evip-sub{{font-size:12px;color:#a5bad4;margin-top:5px}}
+            .evip-tag{{margin-left:auto;align-self:flex-start;padding:5px 9px;border-radius:20px;border:1px solid rgba(91,220,255,.45);color:#83edff;font-size:9px;letter-spacing:1.1px;background:rgba(0,190,255,.09)}}
+            .evip-bar{{height:4px;border-radius:10px;background:rgba(135,166,205,.16);margin-top:18px;overflow:hidden;position:relative}}
+            .evip-bar:after{{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,#50eaff,#b18aff,transparent);filter:drop-shadow(0 0 7px #55dfff);animation:evip-scan 2.1s ease-in-out infinite}}
+            .evip-steps{{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;color:#91a9c6;font-size:10px;letter-spacing:.35px;position:relative}}
+            .evip-steps i{{width:5px;height:5px;border-radius:50%;background:#67eaff;display:inline-block;box-shadow:0 0 8px #3ddcff;animation:evip-particle 1.3s infinite}}
+            .evip-steps i:nth-child(2){{animation-delay:.18s}}.evip-steps i:nth-child(3){{animation-delay:.36s}}
+            @media(prefers-reduced-motion:reduce){{.evip-ring,.evip-ring2,.evip-core,.evip-bar:after,.evip-steps i{{animation:none}}}}
+            </style>
+            <div class="evip-shell">
+              <div class="evip-head">
+                <div class="evip-reactor"><span class="evip-ring"></span><span class="evip-ring2"></span><span class="evip-core"></span></div>
+                <div><div class="evip-title">ÉLÉVO <span style="color:#66eaff">NEURAL ENGINE</span></div>
+                <div class="evip-sub">Forjando {nome} · Referência original protegida · Inteligência compartilhada</div></div>
+                <div class="evip-tag">VIP PROCESSING</div>
+              </div>
+              <div class="evip-bar"></div>
+              <div class="evip-steps"><i></i><i></i><i></i><span>ANÁLISE DA REFERÊNCIA</span><span>·</span><span>FIDELIDADE E FÍSICA</span><span>·</span><span>CONSTRUÇÃO DO CRIATIVO</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-        with st.spinner("💎 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
+        loader_360_slot_v1709 = st.empty()
+        _modo_loader_360_v1709 = "Produto 3S" if st.session_state.get("elevo_produto_primeiro_3s_v16821", False) else "360º"
+        elevo_render_loader_vip_v1709(loader_360_slot_v1709, _modo_loader_360_v1709)
+        with st.spinner("💎 Analisando referência, consultando memória e construindo sua criação..."):
             _debito_360_v16813 = None
             try:
                 _debito_360_v16813 = elevo_credito_reservar_v16813(
@@ -8091,6 +8144,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
             
                 
+                loader_360_slot_v1709.empty()
                 st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
                 time.sleep(1)
                 st.rerun()
@@ -8100,6 +8154,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if _debito_360_v16813:
                     try: elevo_credito_estornar_v16813(_debito_360_v16813, ELEVO_CUSTO_PROMPT_V16813)
                     except Exception: pass
+                loader_360_slot_v1709.empty()
                 mostrar_erro_criacao_v1686(e, "Bloco 17 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
     # ==========================================================
@@ -8114,45 +8169,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if v92_logo_ativo_v16837
                 else "com encerramento natural, sem assinatura de marca"
             )
-            # V16.8.47 — loader VIP animado, somente camada visual da V9.2.
+            # V17.0.9 — usa o MESMO loader VIP compartilhado com 360º e Produto 3S.
             loader_v92_slot = st.empty()
-            loader_v92_slot.markdown(
-                """
-                <style>
-                @keyframes e47spin{to{transform:rotate(360deg)}}
-                @keyframes e47pulse{0%,100%{transform:scale(.92);opacity:.75}50%{transform:scale(1.08);opacity:1}}
-                @keyframes e47scan{0%{transform:translateX(-130%)}100%{transform:translateX(330%)}}
-                @keyframes e47dot{0%,80%,100%{transform:scale(.4);opacity:.3}40%{transform:scale(1);opacity:1}}
-                .e47card{position:relative;overflow:hidden;padding:22px;border-radius:18px;border:1px solid rgba(93,220,255,.38);background:radial-gradient(ellipse at 12% 0%,rgba(0,195,255,.18),transparent 48%),radial-gradient(ellipse at 92% 100%,rgba(153,82,255,.2),transparent 48%),linear-gradient(135deg,#061321,#0b1025 58%,#151329);box-shadow:0 18px 45px rgba(0,0,0,.4),inset 0 1px rgba(255,255,255,.08);color:#f4f8ff;font-family:Inter,system-ui,sans-serif}
-                .e47card:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(rgba(100,215,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(100,215,255,.2) 1px,transparent 1px);background-size:27px 27px;mask-image:linear-gradient(90deg,#000,transparent)}
-                .e47head{display:flex;align-items:center;gap:16px;position:relative}
-                .e47reactor{width:62px;height:62px;flex:0 0 62px;display:grid;place-items:center;position:relative}
-                .e47core{width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#65edff 38%,#1476ff 76%);box-shadow:0 0 13px #48dfff,0 0 32px #167dff;animation:e47pulse 1.8s ease-in-out infinite}
-                .e47ring{position:absolute;inset:2px;border:1px solid #5ce7ff;border-top-color:#fff;border-right-color:#ad7cff;border-radius:50%;animation:e47spin 3s linear infinite}
-                .e47ring2{position:absolute;inset:10px;border:1px dashed rgba(180,126,255,.85);border-radius:50%;animation:e47spin 5s linear infinite reverse}
-                .e47title{font-size:15px;letter-spacing:1.6px;font-weight:850;text-transform:uppercase}
-                .e47sub{font-size:12px;color:#a5bad4;margin-top:5px}
-                .e47tag{margin-left:auto;align-self:flex-start;padding:5px 8px;border-radius:20px;border:1px solid rgba(91,220,255,.4);color:#83edff;font-size:9px;letter-spacing:1.2px;background:rgba(0,190,255,.08)}
-                .e47bar{height:4px;border-radius:10px;background:rgba(135,166,205,.16);margin-top:19px;overflow:hidden;position:relative}
-                .e47bar:after{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,#50eaff,#b18aff,transparent);filter:drop-shadow(0 0 6px #55dfff);animation:e47scan 2.1s ease-in-out infinite}
-                .e47steps{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;color:#91a9c6;font-size:10px;letter-spacing:.35px}
-                .e47steps b{width:5px;height:5px;border-radius:50%;background:#67eaff;display:inline-block;box-shadow:0 0 8px #3ddcff;animation:e47dot 1.3s infinite}
-                .e47steps b:nth-child(2){animation-delay:.18s}.e47steps b:nth-child(3){animation-delay:.36s}
-                @media(prefers-reduced-motion:reduce){.e47ring,.e47ring2,.e47core,.e47bar:after,.e47steps b{animation:none}}
-                </style>
-                <div class="e47card">
-                  <div class="e47head">
-                    <div class="e47reactor"><span class="e47ring"></span><span class="e47ring2"></span><span class="e47core"></span></div>
-                    <div><div class="e47title">ÉLÉVO <span style="color:#66eaff">NEURAL ENGINE</span></div>
-                    <div class="e47sub">Forjando sua criação V9.2 · Imagem original preservada · Vídeo V12</div></div>
-                    <div class="e47tag">VIP PROCESSING</div>
-                  </div>
-                  <div class="e47bar"></div>
-                  <div class="e47steps"><b></b><b></b><b></b><span>ANÁLISE VISUAL</span><span>·</span><span>FIDELIDADE DO ITEM</span><span>·</span><span>ROTEIRO CINEMATOGRÁFICO</span></div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            elevo_render_loader_vip_v1709(loader_v92_slot, "V9.2")
             with st.container():
                 _debito_v92_v16813 = None
                 try:
