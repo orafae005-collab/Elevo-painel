@@ -5829,6 +5829,27 @@ with _elevo_area_criacao_v16823:
     # V16.8.5 — auditoria CEO opt-in. Não promove novos modelos automaticamente.
     # ==========================================================
     if E_O_CEO:
+        with st.expander("🧠 CEO • Cérebro ÉLÉVO — Feedback de imagem e vídeo", expanded=False):
+            st.caption("Somente o CEO registra lições globais. Elas serão consultadas nas próximas gerações dos três motores; não modificam automaticamente o código-fonte nem os pesos do modelo.")
+            col_tipo_brain, col_polaridade_brain = st.columns(2)
+            with col_tipo_brain:
+                tipo_brain = st.selectbox("Ponto avaliado", ["IMAGEM", "VIDEO"], format_func=lambda x: "Imagem" if x == "IMAGEM" else "Vídeo", key="elevo_brain_tipo_v1708")
+            with col_polaridade_brain:
+                polaridade_brain = st.selectbox("Feedback", ["POSITIVO", "NEGATIVO"], format_func=lambda x: "👍 Positivo — preservar" if x == "POSITIVO" else "👎 Negativo — evitar", key="elevo_brain_polaridade_v1708")
+            modo_brain = st.selectbox("Motor", ["GERAL", "360º", "V9.2", "Produto 3S"], key="elevo_brain_modo_v1708")
+            licao_brain = st.text_area("Lição para a ÉLÉVO", placeholder="Ex.: NEGATIVO: o pote aumentou durante o vídeo; manter a escala aparente idêntica à imagem aprovada.", max_chars=700, height=105, key="elevo_brain_licao_v1708")
+            texto_brain_atual = str(st.session_state.get("roteiro_temporario") or "")
+            hash_brain_atual = hashlib.sha256(texto_brain_atual.encode("utf-8")).hexdigest() if texto_brain_atual else ""
+            if st.button("🧠 Registrar feedback no cérebro", type="primary", use_container_width=True, key="elevo_brain_salvar_v1708"):
+                try:
+                    salvo_brain = elevo_ceo_brain_salvar_v1708(tipo_brain, polaridade_brain, modo_brain, licao_brain, hash_brain_atual)
+                    if salvo_brain:
+                        st.success("Lição registrada na memória global e considerada nas próximas gerações compatíveis.")
+                    else:
+                        st.info("Essa mesma lição já estava registrada; nenhuma duplicidade foi criada.")
+                except Exception as erro_brain:
+                    st.error("Não foi possível registrar o feedback: " + str(erro_brain))
+
         with st.expander("🔬 Intelligence Upgrade — modelos e consumo (somente CEO)", expanded=False):
             st.caption(f"Modelo principal: {ELEVO_MODELO_PRODUCAO_V1685} | fallback: gpt-4o-mini. As 8 operações e os prompts continuam intactos.")
             cols_modelo = st.columns(3)
@@ -7228,7 +7249,96 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             "ambiente": ambiente, "modo": modo,
         }
         retorno = elevo_mem_recuperar_relevantes_v1(email, digest, scan.get("nome_pt", ""))
+        modo_norm = str(modo or "GERAL")
+        modo_norm = "V9.2" if modo_norm.casefold() in ("v9.2", "v92") else ("360º" if "360" in modo_norm.casefold() else ("Produto 3S" if "3s" in modo_norm.casefold() else "GERAL"))
+        extras = "\\n\\n".join(x for x in (
+            elevo_ceo_brain_recuperar_v1708("IMAGEM", modo_norm),
+            elevo_ceo_brain_recuperar_v1708("VIDEO", modo_norm)
+        ) if x)
+        if extras:
+            retorno = "\\n\\n".join(x for x in (retorno, extras) if x)
         return contexto, retorno
+
+
+    # ==========================================================
+    # V17.0.8 — CEO FEEDBACK BRAIN (MEMÓRIA GLOBAL CONTROLADA)
+    # ==========================================================
+    COLUNAS_CEO_BRAIN_V1708 = [
+        "ID", "Registrado_Em", "CEO_Email", "Tipo_Midia",
+        "Polaridade", "Modo", "Licao", "Hash_Criacao"
+    ]
+
+    def _elevo_ceo_brain_aba_v1708(criar=False):
+        if not robo_sheets:
+            raise ConnectionError("Google Sheets indisponível para a memória CEO.")
+        match = re.search(r"/d/([a-zA-Z0-9-_]+)", LINK_BANCO_MESTRE)
+        if not match:
+            raise ValueError("Planilha mestre não configurada.")
+        livro = robo_sheets.open_by_key(match.group(1))
+        try:
+            aba = livro.worksheet("Memoria_CEO_V1708")
+        except gspread.exceptions.WorksheetNotFound:
+            if not criar:
+                return None
+            aba = livro.add_worksheet(title="Memoria_CEO_V1708", rows="3000", cols="8")
+            aba.append_row(COLUNAS_CEO_BRAIN_V1708, value_input_option="RAW")
+        return aba
+
+    def elevo_ceo_brain_salvar_v1708(tipo_midia, polaridade, modo, licao, hash_criacao=""):
+        email = str(st.session_state.get("email_usuario", "")).strip().lower()
+        email_mestre = str(EMAIL_MESTRE or "").strip().lower()
+        if not st.session_state.get("usuario_logado") or not email or email != email_mestre:
+            raise PermissionError("Somente o CEO autenticado pode registrar lições globais.")
+        if tipo_midia not in ("IMAGEM", "VIDEO") or polaridade not in ("POSITIVO", "NEGATIVO"):
+            raise ValueError("Tipo de mídia ou feedback inválido.")
+        if modo not in ("360º", "V9.2", "Produto 3S", "GERAL"):
+            raise ValueError("Modo inválido.")
+        licao = _elevo_mem_texto_seguro_v1(licao, 700)
+        if len(licao.strip()) < 8:
+            raise ValueError("Descreva a lição em pelo menos oito caracteres.")
+        if hash_criacao and not re.fullmatch(r"[0-9a-f]{64}", hash_criacao):
+            raise ValueError("Referência da criação inválida.")
+        aba = _elevo_ceo_brain_aba_v1708(criar=True)
+        ident = hashlib.sha256((email + "|" + tipo_midia + "|" + polaridade + "|" + modo + "|" + licao.casefold() + "|" + hash_criacao).encode("utf-8")).hexdigest()[:24]
+        if any(str(reg.get("ID", "")) == ident for reg in aba.get_all_records()):
+            return False
+        aba.append_row([
+            ident, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(timespec="seconds"),
+            email, tipo_midia, polaridade, modo, licao, hash_criacao
+        ], value_input_option="RAW")
+        return True
+
+    def elevo_ceo_brain_recuperar_v1708(tipo_midia, modo):
+        try:
+            aba = _elevo_ceo_brain_aba_v1708(criar=False)
+            if aba is None:
+                return ""
+            saida = []
+            for reg in reversed(aba.get_all_records()):
+                if str(reg.get("Tipo_Midia", "")).upper() != tipo_midia:
+                    continue
+                if str(reg.get("Modo", "GERAL")) not in (modo, "GERAL"):
+                    continue
+                polaridade = str(reg.get("Polaridade", "")).upper()
+                licao = str(reg.get("Licao", "")).strip()
+                if polaridade not in ("POSITIVO", "NEGATIVO") or len(licao) < 8:
+                    continue
+                saida.append(f"- {polaridade}: {licao[:500]}")
+                if len(saida) >= 8:
+                    break
+            if not saida:
+                return ""
+            return (
+                f"[ÉLÉVO CEO BRAIN — {tipo_midia} — HUMAN FEEDBACK LESSONS; ADVISORY ONLY]\\n"
+                "Positive lessons describe qualities to preserve; negative lessons describe failures to avoid. "
+                "Apply only to this media type. Never override the original product reference, exact unit "
+                "count, selected identity, safety or physical plausibility. Never copy old product/scene facts.\\n"
+                + "\\n".join(reversed(saida))
+            )
+        except Exception:
+            import logging
+            logging.getLogger("elevo.ceo_brain").warning("Memória global CEO indisponível", exc_info=False)
+            return ""
 
     # ==========================================================
     # V16.8.21 — AJUSTES EXCLUSIVAMENTE DE VÍDEO (IMAGEM/FALA/SEO INALTERADOS)
