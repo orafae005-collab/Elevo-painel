@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.40 — PROTOCOLO VIP DIÁRIO | BASE V16.8.39 PRESERVADA
+# ÉLÉVO V16.8.44 — VOZ VIP NEURAL + PRONÚNCIA DA MARCA | BASE V16.8.43
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.43 — REARME DIÁRIO COM SESSÃO PERSISTENTE (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.44 — VOZ VIP NEURAL + PRONÚNCIA DA MARCA (MÓDULO INDEPENDENTE)
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2089,28 +2089,66 @@ def _elevo_vip_frase_v16840(email, nome, hoje):
 
 
 def _elevo_vip_audio_v16840(frase):
-    # Edge TTS sem cadastro/chave; gTTS fica como fallback para não bloquear o acesso.
-    try:
-        import asyncio, edge_tts
-        async def gerar():
-            tts = edge_tts.Communicate(frase, "pt-BR-AntonioNeural", rate="-3%", pitch="-2Hz")
-            partes = []
-            async for p in tts.stream():
-                if p.get("type") == "audio":
-                    partes.append(p["data"])
-            return b"".join(partes)
-        audio = asyncio.run(gerar())
-        if audio:
-            return audio
-    except Exception as exc:
-        logging.info("ELEVO_EDGE_TTS_FALLBACK: %s", type(exc).__name__)
-    try:
-        fp = io.BytesIO()
-        gTTS(text=frase, lang="pt", tld="com.br").write_to_fp(fp)
-        return fp.getvalue()
-    except Exception as exc:
-        logging.warning("ELEVO_VIP_TTS: %s", type(exc).__name__)
+    """
+    Motor de voz VIP isolado da Aurora.
+    Prioridade: Edge Neural pt-BR-Donato; reserva: Edge Neural pt-BR-Antonio.
+    Não usa gTTS como fallback, para não voltar silenciosamente à voz antiga.
+    Se os dois serviços falharem, o acesso continua com a mensagem em texto.
+    """
+    import asyncio
+
+    # Texto falado é diferente do texto exibido: evita soletrar os acentos da marca.
+    texto_falado = str(frase or "").strip()
+    texto_falado = re.sub(r"ÉLÉVO", "Élevo", texto_falado, flags=re.IGNORECASE)
+    texto_falado = re.sub(r"\\s+", " ", texto_falado).strip()
+    if not texto_falado:
         return None
+
+    try:
+        import edge_tts
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_TTS_EDGE_NAO_INSTALADO: %s", type(exc).__name__)
+        return None
+
+    # Duas vozes neurais masculinas brasileiras; a reserva não recorre ao gTTS.
+    vozes = [
+        ("pt-BR-DonatoNeural", "-7%", "-3Hz"),
+        ("pt-BR-AntonioNeural", "-6%", "-2Hz"),
+    ]
+
+    async def gerar_com_voz(voz, velocidade, tom):
+        comunicacao = edge_tts.Communicate(
+            text=texto_falado,
+            voice=voz,
+            rate=velocidade,
+            pitch=tom,
+            volume="+0%",
+        )
+        partes = []
+        async for parte in comunicacao.stream():
+            if parte.get("type") == "audio" and parte.get("data"):
+                partes.append(parte["data"])
+        return b"".join(partes)
+
+    for voz, velocidade, tom in vozes:
+        try:
+            # Evita deixar o carregamento preso indefinidamente em falha de rede.
+            audio = asyncio.run(asyncio.wait_for(
+                gerar_com_voz(voz, velocidade, tom),
+                timeout=35,
+            ))
+            if audio and len(audio) > 2048:
+                logging.info("ELEVO_VIP_TTS_OK voice=%s bytes=%s", voz, len(audio))
+                return audio
+            logging.warning("ELEVO_VIP_TTS_VAZIO voice=%s", voz)
+        except Exception as exc:
+            logging.warning(
+                "ELEVO_VIP_TTS_FALHA voice=%s error=%s",
+                voz, type(exc).__name__
+            )
+
+    # Não voltar ao gTTS: isso mascararia a falha e reproduziria a voz antiga.
+    return None
 
 
 def _elevo_vip_fechar_v16840():
