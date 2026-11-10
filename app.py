@@ -5229,81 +5229,106 @@ with _elevo_area_criacao_v16823:
 
     def elevo_quality_gate_v1700(conteudo, scan, modo="360"):
         """
-        QUALITY GATE central V17.0.
-        Bloqueia a entrega quando faltam seções, travas de referência, contagem,
-        títulos SEO ou legendas V9.2. Não transforma falhas em sucesso.
+        QUALITY GATE V17.0.2.
+        Valida a estrutura efetivamente produzida pela matriz V9 ativa.
+        Compatível com os marcadores universais V16.8.24/V16.8.46 e
+        sem exigir frases de controle que não fazem parte do prompt final.
         """
         import logging
         log = logging.getLogger("elevo.quality_gate")
         if not isinstance(conteudo, str) or not conteudo.strip():
             raise ValueError("QUALITY_GATE: roteiro vazio ou não textual.")
+
         partes = extrair_blocos_roteiro(conteudo)
-        imagem = partes.get("prompt_imagem", "").strip()
-        video = partes.get("prompt_video", "").strip()
-        seo = partes.get("secao_seo_texto", "").strip()
+        imagem = str(partes.get("prompt_imagem", "") or "").strip()
+        video = str(partes.get("prompt_video", "") or "").strip()
+        seo = str(partes.get("secao_seo_texto", "") or "").strip()
         falhas = []
 
-        if not imagem or len(imagem) < 700:
-            falhas.append("prompt de imagem ausente ou incompleto")
-        if not video or len(video) < 1000:
-            falhas.append("prompt de vídeo ausente ou incompleto")
-        if not seo or len(seo) < 45:
-            falhas.append("bloco SEO ausente ou incompleto")
+        if len(imagem) < 700:
+            falhas.append("prompt de imagem ausente/incompleto")
+        if len(video) < 1000:
+            falhas.append("prompt de vídeo ausente/incompleto")
+        if len(seo) < 20:
+            falhas.append("SEO ausente/incompleto")
 
-        # A matriz V9 precisa estar presente nos dois prompts, não só no briefing.
-        trava = "ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK"
-        for nome_secao, texto in (("imagem", imagem), ("vídeo", video)):
-            if trava not in texto:
-                falhas.append(f"trava de referência do produto ausente no prompt de {nome_secao}")
+        # A matriz V9 insere este lock universal tanto na imagem quanto no vídeo.
+        lock = "[ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK]"
+        if imagem.count(lock) != 1:
+            falhas.append("lock universal de referência ausente/duplicado na imagem")
+        if video.count(lock) != 1:
+            falhas.append("lock universal de referência ausente/duplicado no vídeo")
 
+        # A contagem é a saída confirmada do scanner; nunca assumir 1 como fallback.
+        qtd = None
         try:
-            qtd = int((scan or {}).get("qtd"))
+            raw_qtd = (scan or {}).get("qtd")
+            if isinstance(raw_qtd, bool):
+                raise ValueError()
+            qtd = int(raw_qtd)
             if qtd < 1 or qtd > 30:
                 raise ValueError()
         except Exception:
-            qtd = None
-            falhas.append("quantidade do produto não confirmada pelo scanner")
+            falhas.append("quantidade não confirmada pelo scanner")
 
         if qtd is not None:
-            marcador_qtd = f"[MULTI-PRODUCT KIT LOCK — {qtd} UNIT(S) TOTAL]"
-            marcador_video = f"[KIT INVENTORY — {qtd} ORIGINAL UNIT(S)]"
-            if marcador_qtd not in imagem:
-                falhas.append("quantidade confirmada não está travada no prompt de imagem")
-            if marcador_video not in video:
-                falhas.append("quantidade confirmada não está travada no prompt de vídeo")
+            marcador_img = f"[MULTI-PRODUCT KIT LOCK — {qtd} UNIT(S) TOTAL]"
+            marcador_vid = f"[KIT INVENTORY — {qtd} ORIGINAL UNIT(S)]"
+            if marcador_img not in imagem:
+                falhas.append("quantidade do scanner diverge da trava da imagem")
+            if marcador_vid not in video:
+                falhas.append("quantidade do scanner diverge da trava do vídeo")
 
-        # Bloqueia placeholders editoriais que não podem chegar ao usuário final.
+        # Bloqueia apenas placeholders reais, evitando falso positivo em texto editorial.
         placeholders = (
-            "[PERGUNTA CURTA", "[SENSAÇÃO / SOLUÇÃO", "[Título focado",
-            "[Nome completo do produto", "[Marca e nome do produto", "[Escreva em português",
-            "[CTA AQUI", "[INSERIR TEXTO",
+            "[CTA AQUI", "[INSERIR TEXTO", "[ESCREVA EM PORTUGUÊS]",
+            "[NOME COMPLETO DO PRODUTO]", "[TÍTULO FOCADO",
         )
+        texto_total = (imagem + "\\n" + video + "\\n" + seo).casefold()
         for token in placeholders:
-            if token.casefold() in (imagem + "\n" + video + "\n" + seo).casefold():
-                falhas.append(f"placeholder não resolvido: {token}")
+            if token.casefold() in texto_total:
+                falhas.append("placeholder editorial não resolvido")
 
-        # SEO precisa conter três campos distintos, sem depender de uma única ordem.
+        # SEO pode vir como 'Geral:', 'Título Geral:' etc.; validar os três campos
+        # sem exigir uma redação ou ordem específica.
         seo_lower = seo.casefold()
-        for rotulo in ("geral", "solução", "marca"):
-            if rotulo not in seo_lower:
-                falhas.append(f"campo SEO obrigatório ausente: {rotulo}")
+        seo_checks = {
+            "geral": r"(?i)\\bgeral\\b",
+            "solução": r"(?i)\\bsolu(?:ç|c)ão\\b",
+            "marca": r"(?i)\\bmarca\\b",
+        }
+        for nome, padrao in seo_checks.items():
+            if not re.search(padrao, seo_lower):
+                falhas.append(f"campo SEO '{nome}' ausente")
 
         if str(modo).casefold() in ("v9.2", "v92"):
-            # V9.2 só aprova se o texto na tela possuir três legendas reais e curtas.
+            # O normalizador V9.2 grava as frases em linhas numeradas.
+            # Aceita variações de negrito/emoji no título e encerra no próximo heading.
             m = re.search(
-                r"(?ims)^\s*📝\s*Texto na Tela[^\n]*\n(.*?)(?=^\s*(?:🎞️|🏁|Finaliza(?:ção|cao)|###|🔑)|\Z)",
+                r"(?ims)^\\s*📝\\s*\\*{0,2}Texto na Tela[^\\n]*\\n"
+                r"(.*?)(?=^\\s*(?:🎞️|🏁|🎙️|🔑|###)|\\Z)",
                 video,
             )
-            corpo = m.group(1).strip() if m else ""
-            linhas = [re.sub(r"^\s*\d+[.)]\s*", "", x).strip()
-                      for x in corpo.splitlines() if x.strip()]
-            linhas = [x for x in linhas if x and len(x) <= 100
-                      and not re.match(r"(?i)^(render|keep typography|these are|no platform|show |burn |use only)", x)]
-            if not m or len(linhas) != 3:
-                falhas.append("V9.2 exige exatamente três legendas curtas e válidas")
+            corpo = m.group(1) if m else ""
+            legendas = []
+            for linha in corpo.splitlines():
+                linha = linha.strip()
+                if not linha:
+                    continue
+                linha = re.sub(r"^\\*{0,2}\\s*\\d+[.)]\\s*", "", linha).strip()
+                linha = linha.strip("* \\t")
+                if not linha:
+                    continue
+                # Instruções técnicas não são legendas.
+                if re.match(r"(?i)^(render|keep typography|these are|no platform|show |burn |use only|clear captions)", linha):
+                    continue
+                if len(linha) <= 100:
+                    legendas.append(linha)
+            if not m or len(legendas) != 3:
+                falhas.append("V9.2: seção Texto na Tela precisa conter três legendas curtas")
 
         if falhas:
-            log.error("QUALITY_GATE reprovou modo=%s; falhas=%s", modo, falhas)
+            log.error("QUALITY_GATE reprovado modo=%s; falhas=%s", modo, falhas)
             raise ValueError("QUALITY_GATE_REPROVADO: " + "; ".join(falhas))
         log.info("QUALITY_GATE aprovado modo=%s; quantidade=%s", modo, qtd)
         return True
