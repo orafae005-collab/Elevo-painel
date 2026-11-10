@@ -5284,12 +5284,6 @@ with _elevo_area_criacao_v16823:
         if video.count(lock) != 1:
             falhas.append("lock universal de referência ausente/duplicado no vídeo")
 
-        lock_pessoa = "[ÉLÉVO SINGLE-PERSON IDENTITY & ANATOMY LOCK — HIGHEST PRIORITY]"
-        if imagem.count(lock_pessoa) != 1:
-            falhas.append("trava de pessoa única/anatomia ausente ou duplicada na imagem")
-        if video.count(lock_pessoa) != 1:
-            falhas.append("trava de pessoa única/anatomia ausente ou duplicada no vídeo")
-
         # A contagem é a saída confirmada do scanner; nunca assumir 1 como fallback.
         qtd = None
         try:
@@ -7574,34 +7568,6 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         'usernames, no graphic CTA or newly added logo in the still image.'
         )
 
-        # V17.1.0 — SINGLE-PERSON / ANATOMY / FRAMING LOCK.
-        # Product and environment rules remain unchanged; only human composition is constrained.
-        trava_pessoa_unica = (
-            "[ÉLÉVO SINGLE-PERSON IDENTITY & ANATOMY LOCK — HIGHEST PRIORITY] "
-            "Show EXACTLY ONE adult woman: the selected presenter, one single continuous human subject. "
-            "ONE head, ONE face, ONE neck, ONE torso, TWO shoulders, TWO arms, TWO hands total, "
-            "with anatomically correct left/right assignment. Never create a second copy, twin, clone, "
-            "duplicate body, partial person, extra face, extra head, extra arm, extra hand, or a second "
-            "presenter. No split screen, collage, multi-panel layout, mirror/reflection duplicate, "
-            "shop-window reflection containing another person, screen-within-screen, ghost image, "
-            "motion-trail person, or overlapping alternate pose. "
-            "Keep the entire face and head naturally inside the frame with safe margin; never crop "
-            "the forehead, chin, jaw, or side of the face. Keep one coherent neck-to-shoulder-to-torso "
-            "anatomical connection. Do not generate a second partial body at either frame edge. "
-            "HAND OWNERSHIP: one chosen hand may hold the referenced item with a continuous natural grip; "
-            "the other hand remains the same person's free hand, relaxed or making at most one simple "
-            "gesture. Never show two right hands, two left hands, duplicated wrists, detached fingers, "
-            "crossed/mirrored arm anatomy, or a hand emerging from outside the same person's body. "
-            "If a hand cannot be rendered correctly, keep it naturally outside the crop rather than "
-            "inventing or duplicating it. Do not force both hands into view. "
-            "The presenter description defines identity only; ignore conflicting pose wording that would "
-            "require extra limbs, a second body, or an impossible simultaneous action. "
-            "Maintain the SAME face, hair, skin appearance, outfit and body identity across all frames. "
-            "This lock does not authorize changing the product reference, product count, product scale, "
-            "or selected environment."
-        )
-        imagem = imagem.rstrip() + "\\n\\n" + trava_pessoa_unica
-
         # The first part is ALWAYS the same V9 scene and product lock. The third
         # creation changes ONLY the video shot timing, as already approved.
         if produto_primeiro_3s:
@@ -7638,11 +7604,6 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             + f'[SELECTED HUMAN ONLY]: {nome}: {pessoa}. Same face, hair, outfit, '
         'voice and natural mannerisms as the still. Changing her identity must NEVER '
         'change any source-referenced product unit, label or scale.\n'
-            + trava_pessoa_unica + '\n'
-            + 'VIDEO CONTINUITY: exactly this one presenter remains the only human subject from first to last frame; '
-        'no identity substitution, face morph, cloned body, second person, duplicated limb, mirrored hand, '
-        'or partial extra person may appear during camera reframing. Preserve left/right arm ownership and '
-        'the same continuous hand-to-product contact whenever the product is held.\n'
             + shot1 + '\n'
             + '🎥 Shot 2 (00:03–00:06, THE GOSSIP LEAN): Gently reframe to the SAME '
         'selected presenter’s face, not a jump cut or different character; a brief '
