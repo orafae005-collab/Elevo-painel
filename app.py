@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.46 — PROTOCOLO DISCIPLINA E EXECUÇÃO | BASE V16.8.45
+# ÉLÉVO V16.8.48 — VOZ VIP EXCLUSIVA + DIAGNÓSTICO | BASE V16.8.47
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -2026,7 +2026,7 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
 
 
 # ==========================================================
-# ÉLÉVO V16.8.46 — PROTOCOLO DISCIPLINA E EXECUÇÃO (MÓDULO INDEPENDENTE)
+# ÉLÉVO V16.8.48 — VOZ VIP EXCLUSIVA + DIAGNÓSTICO DE CONEXÃO (MÓDULO INDEPENDENTE)
 # Aurora, login, cadastro, créditos e motores existentes não são alterados.
 # ==========================================================
 def _elevo_vip_hoje_v16840():
@@ -2066,32 +2066,124 @@ def _elevo_vip_reservar_v16840(email, hoje):
         return False
 
 
+def _elevo_vip_gerar_mensagem_ia_v16847(email, hoje):
+    """
+    Gera uma mensagem original por dia e por perfil, usando o cliente OpenAI
+    já configurado na ÉLÉVO. O resultado fica persistido no Google Sheets.
+    Não mantém banco de frases pré-escritas.
+    """
+    publico = "CEO" if email == str(EMAIL_MESTRE).strip().lower() else "GERAL"
+    chave_cache = f"{hoje}|{publico}"
+    fallback = (
+        "Não espere sentir vontade para cumprir o que importa. Escolha a prioridade, "
+        "comece pelo próximo passo e sustente a execução. Disciplina é transformar "
+        "decisão em comportamento, inclusive nos dias difíceis."
+    )
+
+    try:
+        # Lock compartilhado para impedir duas gerações simultâneas para o mesmo dia.
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_v16813(
+                "Elevo_Mensagem_Diaria_IA_V1",
+                ["Data", "Publico", "Mensagem", "Modelo", "CriadoEm"]
+            )
+
+            # Cache diário persistente: uma geração para cada público em cada data.
+            for linha in aba.get_all_records():
+                if (str(linha.get("Data", "")).strip() == hoje
+                        and str(linha.get("Publico", "")).strip().upper() == publico):
+                    mensagem_salva = str(linha.get("Mensagem", "")).strip()
+                    if mensagem_salva:
+                        return mensagem_salva
+
+            perfil = (
+                "Você escreve para o CEO e fundador da ÉLÉVO. Fale com alguém que "
+                "precisa liderar, decidir, priorizar e executar. Traga visão estratégica, "
+                "responsabilidade e padrão elevado."
+                if publico == "CEO" else
+                "Você escreve para um usuário da ÉLÉVO. Fale com alguém que precisa "
+                "assumir responsabilidade pela própria rotina, vencer a procrastinação "
+                "e transformar intenção em ação concreta."
+            )
+
+            instrucao = f"""
+Você é a voz de disciplina e execução da plataforma ÉLÉVO.
+Crie UMA mensagem diária original em português brasileiro.
+
+PÚBLICO: {publico}
+CONTEXTO: {perfil}
+
+DIREÇÃO CRIATIVA:
+- Tom firme, intenso, inteligente e memorável, como um estrategista de alta performance.
+- A mensagem deve provocar reflexão e movimento, não oferecer carinho ou motivação vazia.
+- Mostre uma verdade incômoda com respeito e conduza a uma ação concreta.
+- Valorize disciplina, responsabilidade, foco, consistência e execução.
+- Seja persuasivo sem humilhar, ameaçar, culpar ou manipular emocionalmente.
+- Evite clichês de coach, frases famosas, slogans genéricos e repetições previsíveis.
+- Não use o nome do usuário, saudação, nome da plataforma, emojis, aspas ou título.
+- Escreva entre 35 e 55 palavras, em 2 a 4 frases curtas.
+- Termine com uma orientação prática que a pessoa possa aplicar hoje.
+- Não acrescente explicações sobre como a mensagem foi criada.
+
+Data de referência: {hoje}.
+Entregue somente a mensagem final.
+"""
+
+            resposta = cliente_openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é um redator estratégico de alto impacto. "
+                            "Cada solicitação exige uma ideia original; não reutilize "
+                            "fórmulas, aberturas ou metáforas previsíveis."
+                        )
+                    },
+                    {"role": "user", "content": instrucao}
+                ],
+                temperature=0.95,
+                max_tokens=150,
+            )
+            mensagem = str(resposta.choices[0].message.content or "").strip()
+            mensagem = mensagem.strip().strip('"“”').strip()
+            mensagem = re.sub(r"^Mensagem:\\s*", "", mensagem, flags=re.IGNORECASE).strip()
+
+            if not mensagem or len(mensagem) < 40:
+                raise ValueError("A IA retornou uma mensagem vazia ou muito curta.")
+
+            modelo_usado = "gpt-4o-mini"
+            criado_em = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+            aba.append_row([hoje, publico, mensagem, modelo_usado, criado_em])
+            logging.info("ELEVO_VIP_DAILY_AI_OK date=%s audience=%s", hoje, publico)
+            return mensagem
+
+    except Exception as exc:
+        logging.warning(
+            "ELEVO_VIP_DAILY_AI_FALLBACK date=%s audience=%s error=%s",
+            hoje, publico, type(exc).__name__
+        )
+        # Fallback único de segurança, não é um banco de frases alternativas.
+        return fallback
+
+
 def _elevo_vip_frase_v16840(email, nome, hoje):
     """
-    Mensagens VIP com posicionamento de disciplina e execução.
-    Tom firme e provocativo, sem humilhação ou manipulação emocional.
-    Seleção determinística por conta e data: uma frase por pessoa/dia.
+    Monta a saudação diária com mensagem criada pela IA e persistida por data/perfil.
     """
-    ceo = email == str(EMAIL_MESTRE).strip().lower()
-    ceo_frases = [
-        "Visão sem execução é apenas intenção. Decida o que realmente move o negócio, elimine o ruído e faça o que precisa ser feito. Resultado não respeita desculpas; responde à consistência.",
-        "Ninguém vai proteger suas prioridades por você. Liderança começa quando você assume o comando do próprio tempo, toma decisões difíceis e sustenta o padrão mesmo quando ninguém está olhando.",
-        "O próximo nível não exige mais promessas. Exige escolhas melhores, foco inegociável e execução diária. Pare de administrar distrações. Construa aquilo que merece permanecer.",
-        "Seu negócio não cresce na velocidade dos seus planos, mas na qualidade das decisões que você executa. Hoje, menos discurso. Mais direção, responsabilidade e entrega."
-    ]
-    geral = [
-        "Existe uma diferença entre querer mudar e decidir mudar. A primeira coisa depende do que você sente. A segunda aparece no que você faz. Não espere vontade: escolha uma tarefa e comece.",
-        "O tempo vai passar de qualquer maneira. A pergunta é o que estará construído quando este dia terminar. Feche as distrações, assuma sua responsabilidade e entregue o trabalho que você vive adiando.",
-        "Disciplina é cumprir o combinado consigo mesmo, principalmente nos dias comuns. Não negocie com cada desconforto. Dê o primeiro passo, permaneça no trabalho e deixe a ação provar sua decisão.",
-        "Você não precisa de mais um sinal, nem de uma segunda-feira perfeita. Precisa escolher o que importa e começar agora. Um compromisso cumprido vale mais do que dez planos esquecidos."
-    ]
-    banco = ceo_frases if ceo else geral
-    h = hashlib.sha256(f"{email}|{hoje}|elevo-vip".encode()).digest()
-    frase = banco[int.from_bytes(h[:4], "big") % len(banco)]
+    try:
+        mensagem = _elevo_vip_gerar_mensagem_ia_v16847(email, hoje)
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_DAILY_MESSAGE: %s", type(exc).__name__)
+        mensagem = (
+            "Não espere sentir vontade para cumprir o que importa. "
+            "Escolha a prioridade, comece pelo próximo passo e sustente a execução."
+        )
+
     hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
     saudacao = "Bom dia" if hora < 12 else ("Boa tarde" if hora < 18 else "Boa noite")
     return (
-        f"{saudacao}, {nome}. {frase} "
+        f"{saudacao}, {nome}. {mensagem} "
         "A decisão é sua. A execução começa agora. "
         "Seja muito bem-vindo de volta à ÉLÉVO."
     )
@@ -2099,77 +2191,75 @@ def _elevo_vip_frase_v16840(email, nome, hoje):
 
 def _elevo_vip_audio_v16840(frase):
     """
-    Geração de áudio VIP com tentativas em cascata:
-    1) Edge Neural Donato (principal)
-    2) Edge Neural Antonio (reserva neural)
-    3) Google TTS (reserva de disponibilidade)
-    O fallback é registrado no log; falha de áudio nunca bloqueia o acesso.
+    Voz exclusiva da experiência VIP: somente Donato Neural.
+    Não usa Antonio nem gTTS como fallback. A voz alternativa do primeiro
+    acesso/Aurora permanece independente e não é chamada por esta função.
+    Em falha, registra diagnóstico técnico para o CEO.
     """
     import asyncio
+    import traceback
 
-    # Texto falado separado da grafia visual da marca.
+    diagnosticos = []
     texto_falado = str(frase or "").strip()
     texto_falado = re.sub(r"ÉLÉVO", "Élevo", texto_falado, flags=re.IGNORECASE)
-    texto_falado = re.sub(r"\s+", " ", texto_falado).strip()
+    texto_falado = re.sub(r"\\s+", " ", texto_falado).strip()
+
     if not texto_falado:
-        logging.warning("ELEVO_VIP_TTS_TEXTO_VAZIO")
+        diagnostico = "Texto da mensagem vazio; nenhuma solicitação de voz foi enviada."
+        st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+        logging.error("ELEVO_VIP_TTS_ERROR: %s", diagnostico)
         return None
 
-    vozes = [
-        ("pt-BR-DonatoNeural", "-7%", "-3Hz"),
-        ("pt-BR-AntonioNeural", "-6%", "-2Hz"),
-    ]
-
-    # Tenta Edge TTS. Se houver falha de rede, segue para a próxima opção.
     try:
         import edge_tts
-
-        async def gerar_com_voz(voz, velocidade, tom):
-            comunicacao = edge_tts.Communicate(
-                text=texto_falado,
-                voice=voz,
-                rate=velocidade,
-                pitch=tom,
-                volume="+0%",
-            )
-            partes = []
-            async for parte in comunicacao.stream():
-                if parte.get("type") == "audio" and parte.get("data"):
-                    partes.append(parte["data"])
-            return b"".join(partes)
-
-        for voz, velocidade, tom in vozes:
-            try:
-                # Compatível com execução Streamlit sem aguardar indefinidamente.
-                audio = asyncio.run(asyncio.wait_for(
-                    gerar_com_voz(voz, velocidade, tom),
-                    timeout=25,
-                ))
-                if audio and len(audio) > 2048:
-                    logging.info("ELEVO_VIP_TTS_OK provider=edge voice=%s bytes=%s",
-                                 voz, len(audio))
-                    return audio
-                logging.warning("ELEVO_VIP_TTS_SEM_AUDIO provider=edge voice=%s", voz)
-            except Exception as exc:
-                logging.warning("ELEVO_VIP_TTS_FALHA provider=edge voice=%s error=%s",
-                                 voz, type(exc).__name__)
     except Exception as exc:
-        logging.warning("ELEVO_VIP_TTS_EDGE_INDISPONIVEL error=%s", type(exc).__name__)
+        diagnostico = (
+            "Não foi possível importar o pacote edge-tts. "
+            f"Tipo: {type(exc).__name__}. Detalhe: {str(exc)[:700]}"
+        )
+        st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+        logging.exception("ELEVO_VIP_TTS_IMPORT_ERROR")
+        return None
 
-    # Fallback explícito de disponibilidade: mantém o botão de reprodução funcional
-    # quando o endpoint neural do Edge estiver inacessível no servidor hospedado.
+    async def gerar():
+        comunicacao = edge_tts.Communicate(
+            text=texto_falado,
+            voice="pt-BR-DonatoNeural",
+            rate="-7%",
+            pitch="-3Hz",
+            volume="+0%",
+        )
+        partes = []
+        async for parte in comunicacao.stream():
+            if parte.get("type") == "audio" and parte.get("data"):
+                partes.append(parte["data"])
+        return b"".join(partes)
+
     try:
-        from gtts import gTTS
-        arquivo_audio = io.BytesIO()
-        gTTS(text=texto_falado, lang="pt", tld="com.br", slow=False).write_to_fp(arquivo_audio)
-        audio = arquivo_audio.getvalue()
-        if audio and len(audio) > 1024:
-            logging.warning("ELEVO_VIP_TTS_FALLBACK provider=gTTS")
-            return audio
+        audio = asyncio.run(asyncio.wait_for(gerar(), timeout=35))
+        if not audio or len(audio) <= 2048:
+            raise RuntimeError(
+                f"O serviço respondeu sem áudio válido. Bytes recebidos: {len(audio or b'')}."
+            )
+        st.session_state["elevo_vip_tts_erro_v16848"] = ""
+        st.session_state["elevo_vip_tts_voz_v16848"] = "pt-BR-DonatoNeural"
+        logging.info("ELEVO_VIP_TTS_OK provider=edge voice=pt-BR-DonatoNeural bytes=%s",
+                     len(audio))
+        return audio
     except Exception as exc:
-        logging.warning("ELEVO_VIP_TTS_FALLBACK_FALHA provider=gTTS error=%s",
-                        type(exc).__name__)
+        detalhe = f"{type(exc).__name__}: {str(exc)[:1000]}"
+        diagnosticos.append(detalhe)
+        logging.exception("ELEVO_VIP_TTS_PRIMARY_FAILED voice=pt-BR-DonatoNeural")
 
+    diagnostico = (
+        "FALHA NA VOZ VIP — nenhuma voz reserva foi acionada.\\n"
+        "Voz solicitada: pt-BR-DonatoNeural\\n"
+        "Provedor: Microsoft Edge Neural TTS\\n"
+        "Diagnóstico: " + " | ".join(diagnosticos)
+    )
+    st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+    st.session_state["elevo_vip_tts_voz_v16848"] = ""
+    logging.error("ELEVO_VIP_TTS_FINAL_ERROR: %s", diagnostico)
     return None
 
 
@@ -2206,6 +2296,7 @@ if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vi
                 st.session_state["elevo_vip_diaria_frase_v16840"] = _vip_frase
                 st.session_state["elevo_vip_diaria_audio_v16840"] = base64.b64encode(_vip_bytes).decode("ascii")
             else:
+                # Não aciona voz reserva nem bloqueia o restante da plataforma.
                 st.session_state["elevo_vip_diaria_exibida_v16840"] = True
         else:
             st.session_state["elevo_vip_diaria_exibida_v16840"] = True
@@ -4642,7 +4733,16 @@ if E_O_CEO:
                 st.session_state["elevo_vip_diaria_exibida_v16840"] = False
                 st.rerun()
             else:
-                st.warning("Não foi possível gerar o áudio agora. Verifique a conexão e tente novamente.")
+                st.error("A voz principal da ÉLÉVO não conseguiu conectar. Nenhuma voz reserva foi utilizada.")
+                _diag_vip = str(st.session_state.get(
+                    "elevo_vip_tts_erro_v16848",
+                    "O serviço não retornou um diagnóstico detalhado."
+                ))
+                st.code(_diag_vip, language="text")
+                st.caption(
+                    "Envie este diagnóstico para análise. O botão de teste usa exclusivamente "
+                    "pt-BR-DonatoNeural; a voz reserva do primeiro acesso/Aurora não participa."
+                )
     st.divider()
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
