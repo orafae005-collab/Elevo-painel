@@ -5227,6 +5227,31 @@ with _elevo_area_criacao_v16823:
                 bool(partes["secao_seo_texto"].strip()))
 
 
+    def elevo_deduplicar_regras_v1706(conteudo):
+        """Remove parágrafos literalmente repetidos, preservando a primeira ocorrência."""
+        partes = extrair_blocos_roteiro(conteudo)
+        def limpar(secao):
+            vistos, saida = set(), []
+            for bloco in re.split(r"\n\s*\n", str(secao or "")):
+                texto = bloco.strip()
+                if not texto:
+                    continue
+                chave = re.sub(r"\s+", " ", texto).casefold()
+                if chave in vistos:
+                    continue
+                vistos.add(chave)
+                saida.append(texto)
+            return "\n\n".join(saida)
+        imagem = limpar(partes.get("prompt_imagem", ""))
+        video = limpar(partes.get("prompt_video", ""))
+        seo = limpar(partes.get("secao_seo_texto", ""))
+        return (
+            "### 📸 PROMPT DE IMAGEM\n" + imagem + "\n\n"
+            "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
+            "### 🔑 TÍTULOS SEO (Separados)\n" + seo
+        )
+
+
     def elevo_quality_gate_v1700(conteudo, scan, modo="360"):
         """
         QUALITY GATE V17.0.2.
@@ -5302,6 +5327,9 @@ with _elevo_area_criacao_v16823:
                 falhas.append(f"campo SEO '{nome}' ausente")
 
         if str(modo).casefold() in ("v9.2", "v92"):
+            if st.session_state.get("elevo_v92_logo_ativo_v16837", False):
+                if "[ÉLÉVO V17.0.6 — V9.2 FINAL BRAND SIGNATURE — REQUIRED]" not in video:
+                    falhas.append("assinatura final da marca ativada, mas ausente no vídeo")
             # O normalizador V9.2 grava as frases em linhas numeradas.
             # Aceita variações de negrito/emoji no título e encerra no próximo heading.
             m = re.search(
@@ -7625,95 +7653,73 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
     # Aplicar SOMENTE depois dos reforços estáveis de imagem e vídeo.
     # ==========================================================
     def elevo_logo_final_video_v92_v16837(roteiro, habilitado, nome, arquivo, efeito, segundos):
-        """Encerramento por opção de conta; upload é um ASSET EXTERNO de pós-produção.
-
-        Não redesenha a logo: sem arquivo no editor externo, instruir overlay posterior.
-        """
+        """Insere assinatura final V9.2; nunca falha silenciosamente quando ativada."""
         if not habilitado:
-            return roteiro  # Política desligada = saída anterior byte a byte.
+            return roteiro
         sec = extrair_blocos_roteiro(roteiro)
         if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
-            raise ValueError("V16.8.37: faltam seções da V9.2.")
+            raise ValueError("V17.0.6: não foi possível inserir a assinatura: seções incompletas.")
         video = sec["prompt_video"]
-        marca = "[ÉLÉVO V16.8.37 — AUTHORIZED V9.2 END LOGO / VIDEO ONLY]"
+        marca = "[ÉLÉVO V17.0.6 — V9.2 FINAL BRAND SIGNATURE — REQUIRED]"
         if marca in video:
-            return roteiro  # Idempotência.
-        if "[ÉLÉVO V9.2 — REAL IN-VIDEO TEXT RENDER LOCK]" not in video:
-            raise ValueError("V16.8.37: legendas da V9.2 não encontradas; logo não inserida.")
-        if "[ÉLÉVO V16.8.35 — V10 CAUSAL HUMAN & ENVIRONMENTAL PHYSICS]" not in video:
-            raise ValueError("V16.8.37: física V10 ausente; logo não inserida.")
-        # Dados de texto/arquivo são tratados apenas como identidade informada, NUNCA
-        # como descrição do produto ou autorização para usar foto da logo na IMAGEM.
+            return roteiro
         nome_limpo = re.sub(r"[\x00-\x1f\x7f]+", " ", str(nome or ""))
         nome_limpo = re.sub(r"\s+", " ", nome_limpo).strip()[:70]
-        arquivo_limpo = re.sub(r"[^A-Za-z0-9_.-]", "_", str(arquivo or "").split("/")[-1].split("\\")[-1])[:100]
-        if not nome_limpo and not arquivo_limpo:
-            raise ValueError("Para finalizar com logo, escreva a marca ou envie a imagem da logo.")
+        if not nome_limpo:
+            raise ValueError("V17.0.6: assinatura ativada, mas o nome da marca não foi aplicado.")
+        arquivo_limpo = re.sub(r"[^A-Za-z0-9_.-]", "_",
+            str(arquivo or "").split("/")[-1].split("\\")[-1])[:100]
         if arquivo_limpo and not arquivo_limpo.lower().endswith((".png", ".jpg", ".jpeg", ".webp")):
-            raise ValueError("A logo precisa ser PNG, JPG ou WEBP.")
-        efeito_mapa = {
-            "Aparecimento suave": "a gentle 0.18-second opacity reveal, no color shift",
-            "Glitch vermelho discreto": "one restrained red glitch flicker lasting at most 0.15 seconds, then a stable original logo",
-            "Sem efeito": "a simple clean overlay, no animation",
+            raise ValueError("V17.0.6: arquivo de logo deve ser PNG, JPG ou WEBP.")
+        efeitos = {
+            "Aparecimento suave": "a smooth 0.25-second opacity reveal",
+            "Glitch vermelho discreto": "one restrained red 0.12-second glitch reveal, then stable clean logo",
+            "Sem efeito": "a clean static overlay with no animation",
         }
-        if efeito not in efeito_mapa:
-            raise ValueError("Efeito de logo desconhecido.")
+        if efeito not in efeitos:
+            raise ValueError("V17.0.6: efeito de assinatura inválido.")
         dur = int(segundos)
         if dur not in (10, 12, 15):
-            raise ValueError("Duração de vídeo V9.2 não suportada.")
-        inicio = dur - 0.8
-
-        # Única exceção autorizada às proibições antigas de logomarca no vídeo.
-        # Reescreve apenas as poucas cláusulas contraditórias, sem alterar a
-        # identidade do produto, o anti-morphing, textos e bloqueio de interface.
-        substituicoes = (
-            ("No extra narrative captions, platform UI, watermark or invented branding;",
-             "No extra narrative captions, platform UI, watermark or branding except the approved final logo;"),
-            ("no added logo, brand card, glitch or fade to black.",
-             "no unauthorized brand overlay before the final 0.8-second logo beat; no fade to black."),
-            ("platform UI, new logo, invented graphics or product replacements.",
-             "platform UI, unauthorized branding, invented graphics or product replacements."),
-            ("Never fade to black, insert glitch, floating shopping bag, platform UI, new logo,",
-             "Never fade to black, insert an unapproved glitch, floating shopping bag, platform UI, unauthorized logo,"),
-        )
-        for antes, depois in substituicoes:
-            video = video.replace(antes, depois)
-        identidade = (
-            f"The creator-selected brand name is {nome_limpo!r}. " if nome_limpo else ""
+            raise ValueError("V17.0.6: duração de vídeo não suportada.")
+        inicio = dur - 1.0
+        assinatura = (
+            f"\n\n{marca}\n"
+            "[HIGHEST PRIORITY — THIS FINAL BRAND SIGNATURE OVERRIDES ALL EARLIER "
+            "GENERIC 'NO LOGO' OR 'NO BRANDING' INSTRUCTIONS FOR THIS FINAL BEAT ONLY.] "
+            f"At {inicio:.1f}s–{dur:.1f}s, render the exact brand wording “{nome_limpo}” "
+            "as a small, crisp, legible end-of-video brand signature over the SAME live "
+            "scene. It must visibly appear in the final frame, remain stable and correctly "
+            "spelled, and never cover the face, hands or original referenced product. "
+            "Do not create a separate black card, do not alter the product, and do not add "
+            "any other logo or graphic. Earlier no-logo restrictions remain active before "
+            "this final one-second signature. "
+            f"Effect: {efeitos[efeito]}. "
         )
         if arquivo_limpo:
-            identidade += (
-                f"Use ONLY the original separate LOGO ASSET named {arquivo_limpo!r} "
-                "for the end overlay; it is NOT a product reference. "
-                "The user must separately supply this logo file to the external video editor. "
-                "If the video generator does not accept a separate logo layer, leave the "
-                "video ending clean for later editor compositing; NEVER invent or redraw a logo. "
+            assinatura += (
+                f"Use the separately supplied original logo asset {arquivo_limpo!r} "
+                "without redrawing, recoloring or distorting it; if the external generator "
+                "cannot accept a logo layer, preserve the exact brand wording as a clean "
+                "text signature for editor compositing."
             )
         else:
-            identidade += (
-                "No logo artwork file was supplied. Render the exact brand wording "
-                "only as an editor-made text overlay; do not fabricate a company symbol. "
+            assinatura += (
+                "No logo artwork file was attached to this prompt; render the brand name "
+                "as a clean typographic signature, not as an invented symbol."
             )
-        final = (
-            f"\n\n{marca}\n"
-            f"ONLY V9.2, final {inicio:.1f}s–{dur:.1f}s (last 0.8s): "
-            "show one small approved brand overlay over the same moving scene, clear of "
-            "face, hands and source-identical products. Previous captions end first. "
-            "No separate card, black frame, extra logo, duplicate brand or product changes. "
-            + identidade + "Transition: " + efeito_mapa[efeito] + ". "
-            "Earlier no-logo rules apply until this final brand beat; "
-            "preserve the existing speech, total duration and product fidelity."
+        video = video.rstrip() + assinatura
+        novo = (
+            "### 📸 PROMPT DE IMAGEM\n" + sec["prompt_imagem"] + "\n\n"
+            "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
+            "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"]
         )
-        video += final
-        novo = ("### 📸 PROMPT DE IMAGEM\n" + sec["prompt_imagem"] + "\n\n"
-                "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
-                "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"])
         conferido = extrair_blocos_roteiro(novo)
-        if conferido["prompt_imagem"] != sec["prompt_imagem"]:
-            raise ValueError("V16.8.37: imagem modificada pelo módulo de logo.")
-        if conferido["secao_seo_texto"] != sec["secao_seo_texto"]:
-            raise ValueError("V16.8.37: SEO modificado pelo módulo de logo.")
+        if conferido["prompt_imagem"] != sec["prompt_imagem"] or conferido["secao_seo_texto"] != sec["secao_seo_texto"]:
+            raise ValueError("V17.0.6: integridade da imagem/SEO foi alterada pela assinatura.")
+        if marca not in conferido["prompt_video"] or nome_limpo not in conferido["prompt_video"]:
+            raise ValueError("V17.0.6: assinatura final não foi inserida corretamente.")
         return novo
+
 
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
@@ -7851,6 +7857,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 conteudo_texto = elevo_v10_fisica_video_apenas_v16836(
                     conteudo_texto,
                     modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
+                etapa_formato_elevo = "deduplicar_regras_360_produto_3s"
+                conteudo_texto = elevo_deduplicar_regras_v1706(conteudo_texto)
                 etapa_formato_elevo = "quality_gate_360_produto_3s"
                 elevo_quality_gate_v1700(
                     conteudo_texto, scan_17,
@@ -8101,23 +8109,21 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     etapa_formato_elevo = "v92_fisica_video_v10"
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
-                    # V16.8.38: logo editável / nome aplicado SOMENTE no fim da V9.2.
+                    etapa_formato_elevo = "deduplicar_regras_v92"
+                    conteudo_v92 = elevo_deduplicar_regras_v1706(conteudo_v92)
+                    # V17.0.6: assinatura ligada = assinatura obrigatória; sem falha silenciosa.
                     etapa_formato_elevo = "v92_assinatura_final"
-                    # V16.8.45: assinatura é acabamento opcional; nunca pode invalidar
-                    # os prompts de imagem/vídeo já gerados. A saída é preservada se
-                    # qualquer validação estrita do módulo de assinatura falhar.
-                    try:
-                        conteudo_v92 = elevo_logo_final_video_v92_v16837(
-                            conteudo_v92,
-                            habilitado=bool(v92_logo_ativo_v16837),
-                            nome=v92_logo_nome_v16837,
-                            arquivo='',
-                            efeito=v92_logo_efeito_v16837,
-                            segundos=segundos_video_v16829)
-                    except Exception as exc_logo_v92:
-                        logging.getLogger("elevo.geracao").exception(
-                            "V9.2: assinatura final opcional não aplicada; "
-                            "prompts preservados (%s)", type(exc_logo_v92).__name__)
+                    conteudo_v92 = elevo_logo_final_video_v92_v16837(
+                        conteudo_v92,
+                        habilitado=bool(v92_logo_ativo_v16837),
+                        nome=v92_logo_nome_v16837,
+                        arquivo='',
+                        efeito=v92_logo_efeito_v16837,
+                        segundos=segundos_video_v16829)
+                    if v92_logo_ativo_v16837:
+                        _sec_logo_v1706 = extrair_blocos_roteiro(conteudo_v92)
+                        if "[ÉLÉVO V17.0.6 — V9.2 FINAL BRAND SIGNATURE — REQUIRED]" not in _sec_logo_v1706["prompt_video"]:
+                            raise ValueError("V17.0.6: V9.2 não pode ser aprovada sem a assinatura final.")
                     etapa_formato_elevo = "quality_gate_v92"
                     elevo_quality_gate_v1700(conteudo_v92, scan_v92, modo="v9.2")
                     etapa_formato_elevo = "v92_salvar_estado_sessao"
