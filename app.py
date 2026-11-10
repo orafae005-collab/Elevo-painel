@@ -7416,14 +7416,31 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         video = sec['prompt_video']
         trava_escala = ('[CRITICAL: 1:1 real-world scale, strictly realistic product '
                         'size and proportions, exact match to reference, do not oversize]')
-        marcadores = (
+        # V17.0.1: a matriz restaurada V16.8.24 usa o novo lock universal
+        # [ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK], não os três
+        # marcadores antigos do molde pré-restauração. Aceitar ambos os formatos
+        # válidos evita uma regressão de compatibilidade sem afrouxar a proteção.
+        lock_universal = '[ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK]'
+        lock_escala_universal = '[CRITICAL 1:1 SCALE — NO RECONSTRUCTION — NO SUBSTITUTION]'
+        marcadores_base = (
             '[MULTI-PRODUCT KIT LOCK',
-            '[CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]',
-            trava_escala,
             '[BRANDING INTEGRITY LOCK]',
         )
-        if any(imagem.count(m) != 1 for m in marcadores):
-            raise ValueError('V16.8.36: falta ou duplicação das travas aprovadas de imagem.')
+        if any(imagem.count(m) != 1 for m in marcadores_base):
+            raise ValueError('V16.8.36: falta ou duplicação das travas-base de imagem.')
+        tem_lock_antigo = (
+            imagem.count('[CRITICAL PIXEL-PERFECT CLONE LOCK & SCALING]') == 1
+            and imagem.count(trava_escala) == 1
+        )
+        tem_lock_novo = (
+            imagem.count(lock_universal) == 1
+            and imagem.count(lock_escala_universal) == 1
+        )
+        if not (tem_lock_antigo or tem_lock_novo):
+            raise ValueError(
+                'V16.8.36: trava de fidelidade/escala ausente, duplicada ou incompatível '
+                'com a matriz de produto ativa.'
+            )
         if sum(imagem.count(m) for m in rotulos.values()) != 1 or imagem.count(rotulos[modo]) != 1:
             raise ValueError('V16.8.36: proteção de identidade ausente, duplicada ou de outro modo.')
         if ('[ÉLÉVO V16.8.35 — ORIGINAL PRODUCT PHOTO / IMMUTABLE SOURCE]' in imagem
