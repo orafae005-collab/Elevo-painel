@@ -105,113 +105,33 @@ except KeyError:
 
 
 # ==========================================================
-# V16.8.39 — GPT-6.1 TERRA COMO MOTOR PRINCIPAL, SEM ALTERAR OS OITO PROMPTS.
-# O fluxo Chat Completions permanece; GPT-4o mini é fallback.
-# Reversão instantânea opcional nos Secrets: ELEVO_AI_MODEL = "gpt-4o-mini"
+# V16.8.45 — GPT-4o-mini COMO MOTOR PRINCIPAL DE PRODUÇÃO.
+# Modelo único selecionado para reduzir incompatibilidades e estabilizar geração.
 # ==========================================================
 ELEVO_MODELO_FALLBACK_V1686 = "gpt-4o-mini"
-ELEVO_MODELO_PRETENDIDO_V1686 = str(st.secrets.get("ELEVO_AI_MODEL", "gpt-6.1-terra")).strip()
-if ELEVO_MODELO_PRETENDIDO_V1686 not in {"gpt-6.1-terra", "gpt-4o-mini"}:
-    ELEVO_MODELO_PRETENDIDO_V1686 = ELEVO_MODELO_FALLBACK_V1686
-# Mantém o nome da variável usada nas oito chamadas originais (sem alterar suas funções).
-ELEVO_MODELO_PRODUCAO_V1685 = ELEVO_MODELO_PRETENDIDO_V1686
+ELEVO_MODELO_PRETENDIDO_V1686 = "gpt-4o-mini"
+ELEVO_MODELO_PRODUCAO_V1685 = "gpt-4o-mini"
 ELEVO_MODELOS_CANDIDATOS_V1685 = {
-    "Motor principal (Terra)": "gpt-6.1-terra",
-    "Leitura de fotos (Terra)": "gpt-6.1-terra",
-    "Auditoria (Astra)": "gpt-6-astra",
+    "Motor principal": "gpt-4o-mini",
+    "Leitura de fotos": "gpt-4o-mini",
+    "Auditoria": "gpt-4o-mini",
 }
 ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685 = {
     "gpt-4o-mini": (0.15, 0.60),
-    "gpt-6.1-terra": (1.00, 5.00),
-    "gpt-6-astra": (10.00, 50.00),
 }
 
-def _elevo_terra_parametros_v1686(kwargs):
-    """Adapta somente parâmetros técnicos; nenhum prompt é modificado."""
-    p = dict(kwargs)
-    p["model"] = "gpt-6.1-terra"
-    # O modo none conserva a variação dos prompts legados e o Chat Completions.
-    p["reasoning_effort"] = "none"
-    if "max_tokens" in p:
-        p["max_completion_tokens"] = p.pop("max_tokens")
-    return p
-
-def _elevo_terra_erro_compatibilidade_v1686(erro):
-    """Retorna True só para falhas de modelo/parâmetro/serviço, não moderação."""
-    status = int(getattr(erro, "status_code", 0) or 0)
-    if status in (403, 404, 429, 500, 502, 503, 504):
-        return True
-    if status != 400:
-        return False
-    txt = str(erro).lower()
-    if any(x in txt for x in ("content_filter", "safety", "policy", "moderation")):
-        return False
-    return any(x in txt for x in (
-        "model", "not supported", "unsupported", "invalid parameter",
-        "max_tokens", "max_completion_tokens", "temperature", "reasoning_effort",
-        "permission", "access", "not found", "does not exist",
-    ))
-
-def _elevo_terra_resposta_incompleta_v1686(resposta):
-    """Não deixa uma saída vazia/truncada seguir para os validadores de roteiro."""
-    try:
-        escolha = resposta.choices[0]
-        # Não substituir recusas ou filtragem de conteúdo por outro modelo.
-        if str(getattr(escolha, "finish_reason", "")) in ("content_filter", "refusal"):
-            return False
-        conteudo = getattr(escolha.message, "content", None)
-        return not conteudo or str(getattr(escolha, "finish_reason", "")) == "length"
-    except (AttributeError, IndexError, TypeError):
-        return True
-
 def elevo_chat_create_v1685(**kwargs):
-    """Compatível com a API anterior e com todos os validadores existentes.
-
-    GPT-6.1 Terra é testado como motor principal. Em caso de incompatibilidade
-    ou resposta vazia/truncada, tenta uma única vez o modelo funcional anterior.
-    Não reescreve os comandos e não retorna conteúdo do usuário nos logs.
-    """
+    """Executa as chamadas de produção diretamente no GPT-4o-mini."""
     pedido = dict(kwargs)
-    modelo_solicitado = str(pedido.get("model", ELEVO_MODELO_PRODUCAO_V1685))
-    usa_terra = (modelo_solicitado == "gpt-6.1-terra"
-                 and not st.session_state.get("elevo_terra_indisponivel_v1686", False))
-    modelo_real = ELEVO_MODELO_FALLBACK_V1686
-    if usa_terra:
-        try:
-            resposta = cliente_openai.chat.completions.create(
-                **_elevo_terra_parametros_v1686(pedido)
-            )
-            if _elevo_terra_resposta_incompleta_v1686(resposta):
-                # A saída truncada não deve virar um roteiro inválido.
-                st.session_state["elevo_terra_fallback_motivo_v1686"] = "Resposta incompleta"
-                resposta = cliente_openai.chat.completions.create(
-                    **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
-                )
-            else:
-                modelo_real = "gpt-6.1-terra"
-        except APIStatusError as erro:
-            if not _elevo_terra_erro_compatibilidade_v1686(erro):
-                raise
-            st.session_state["elevo_terra_indisponivel_v1686"] = True
-            st.session_state["elevo_terra_fallback_motivo_v1686"] = "Incompatibilidade ou indisponibilidade"
-            resposta = cliente_openai.chat.completions.create(
-                **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
-            )
-    else:
-        resposta = cliente_openai.chat.completions.create(
-            **{**pedido, "model": ELEVO_MODELO_FALLBACK_V1686}
-        )
-    st.session_state["elevo_ai_ultimo_modelo_v1686"] = modelo_real
-    if usa_terra and modelo_real == ELEVO_MODELO_FALLBACK_V1686:
-        st.session_state["elevo_ai_fallback_count_v1686"] = (
-            int(st.session_state.get("elevo_ai_fallback_count_v1686", 0)) + 1
-        )
+    pedido["model"] = "gpt-4o-mini"
+    resposta = cliente_openai.chat.completions.create(**pedido)
+    st.session_state["elevo_ai_ultimo_modelo_v1686"] = "gpt-4o-mini"
     try:
         uso = getattr(resposta, "usage", None)
         n_in = int(getattr(uso, "prompt_tokens", 0) or 0)
         n_out = int(getattr(uso, "completion_tokens", 0) or 0)
-        tarifa = ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685.get(modelo_real)
-        if tarifa and (n_in or n_out):
+        tarifa = ELEVO_TARIFA_ESTIMADA_USD_MILHAO_V1685["gpt-4o-mini"]
+        if n_in or n_out:
             custo = (n_in * tarifa[0] + n_out * tarifa[1]) / 1_000_000
             st.session_state["elevo_ai_est_usd_v1"] = (
                 float(st.session_state.get("elevo_ai_est_usd_v1", 0.0)) + custo
@@ -223,7 +143,7 @@ def elevo_chat_create_v1685(**kwargs):
                 int(st.session_state.get("elevo_ai_chamadas_v1", 0)) + 1
             )
     except (TypeError, ValueError, AttributeError, RuntimeError):
-        pass  # A telemetria nunca pode interromper uma geração bem-sucedida.
+        pass
     return resposta
 
 def chamar_ia_global(prompt, sistema_contexto="Você é um assistente estratégico."):
@@ -7889,13 +7809,21 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         conteudo_v92, modo='v9.2')
                     # V16.8.38: logo editável / nome aplicado SOMENTE no fim da V9.2.
                     etapa_formato_elevo = "v92_assinatura_final"
-                    conteudo_v92 = elevo_logo_final_video_v92_v16837(
-                        conteudo_v92,
-                        habilitado=bool(v92_logo_ativo_v16837),
-                        nome=v92_logo_nome_v16837,
-                        arquivo='',
-                        efeito=v92_logo_efeito_v16837,
-                        segundos=segundos_video_v16829)
+                    # V16.8.45: assinatura é acabamento opcional; nunca pode invalidar
+                    # os prompts de imagem/vídeo já gerados. A saída é preservada se
+                    # qualquer validação estrita do módulo de assinatura falhar.
+                    try:
+                        conteudo_v92 = elevo_logo_final_video_v92_v16837(
+                            conteudo_v92,
+                            habilitado=bool(v92_logo_ativo_v16837),
+                            nome=v92_logo_nome_v16837,
+                            arquivo='',
+                            efeito=v92_logo_efeito_v16837,
+                            segundos=segundos_video_v16829)
+                    except Exception as exc_logo_v92:
+                        logging.getLogger("elevo.geracao").exception(
+                            "V9.2: assinatura final opcional não aplicada; "
+                            "prompts preservados (%s)", type(exc_logo_v92).__name__)
                     etapa_formato_elevo = "v92_salvar_estado_sessao"
                     st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
                     st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
