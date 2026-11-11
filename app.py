@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.56 — VÍDEO: TAMANHO DO PRODUTO IGUAL AO DA IMAGEM (3 MOTORES) | BASE V16.8.55
+# ÉLÉVO V16.8.57 — FALA NA MEDIDA (10/12/15s) + TOQUE HACKER NA PLATAFORMA | BASE V16.8.56
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -1294,6 +1294,18 @@ _nome_topo_v16853 = html_std.escape(_nome_completo_topo_v16853.split(" ")[0])
 _email_topo_v16853 = str(st.session_state.get("email_usuario", "")).strip().lower()
 _ceo_topo_v16853 = _email_topo_v16853 == str(EMAIL_MESTRE).strip().lower()
 _perfil_topo_v16853 = "CEO • ACESSO TOTAL" if _ceo_topo_v16853 else "CONTA VIP"
+
+# V16.8.57 — barra de terminal acima do topo (somente visual).
+_cmd_term_v16857 = "./elevo --iniciar --modo=vip --criptografia=aes256"
+st.markdown(
+    '<div class="elevo-term" aria-hidden="true">'
+    '<span class="elevo-term-dots"><i></i><i></i><i></i></span>'
+    '<span class="elevo-term-cmd"><b>root@elevo</b>:<em>~/painel</em>$ '
+    f'<span class="elevo-term-typed" style="--n:{len(_cmd_term_v16857)}">{_cmd_term_v16857}</span>'
+    '<i class="elevo-term-cur"></i></span>'
+    '<span class="elevo-term-sts"><span>● SISTEMA ONLINE</span><span>SEC · AES-256</span>'
+    f'<span>MOTORES 3/3</span><span>{_agora_topo_v16853.strftime("%H:%M")}</span></span>'
+    '</div>', unsafe_allow_html=True)
 
 with st.container(border=True, key="elevo_topbar_v16853"):
     _tb_info_v16853, _tb_tema_v16853, _tb_conta_v16853, _tb_sair_v16853 = st.columns(
@@ -6569,7 +6581,7 @@ with _elevo_area_criacao_v16823:
             key="elevo_duracao_video_v16829",
         )
         st.caption("A ÉLÉVO adapta a fala e os movimentos ao tempo escolhido, sem alterar a imagem.")
-    faixas_fala_v16829 = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+    faixas_fala_v16829 = {10: (20, 25), 12: (28, 31), 15: (36, 39)}  # V16.8.57
     min_palavras_video_v16829, max_palavras_video_v16829 = faixas_fala_v16829[int(segundos_video_v16829)]
 
     # V16.8.21: terceiro modo opcional, reutiliza o Bloco 17; não altera seu motor de imagem.
@@ -6994,7 +7006,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         duracao = int(segundos)
         if duracao not in (10, 12, 15):
             duracao = 10
-        faixas = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+        # V16.8.57 — 10s mantém a faixa aprovada; 12s fala 11–12s; 15s fala 14–15s.
+        faixas = {10: (20, 25), 12: (28, 31), 15: (36, 39)}
         etapas = {
             10: ("00:00–00:03", "00:03–00:06", "00:06–00:08", "00:08–00:10"),
             12: ("00:00–00:03", "00:03–00:06", "00:06–00:09", "00:09–00:12"),
@@ -7011,12 +7024,125 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
             f"The historical 9-second spoken scripts and fixed 10-second visual examples are templates, NOT the target duration. "
             f"FINAL runtime is EXACTLY {duracao}s, no cut/black tail. "
             f"Narration in natural Brazilian Portuguese: {inicio}–{fim} SPOKEN words (exclude ASMR cues, titles and instructions), "
+            f"The voice must fill about {max(duracao - 1, 9)}–{duracao} seconds of the clip (not only 9–10s). "
             "realistically paced with breath and no time compression; new words must add useful insight, not filler. "
+            "NO REPETITION: never repeat a sentence, expression, key word or idea — each sentence moves forward "
+            "(hook → pain → turn/solution → sensory proof → invitation). "
             "Keep the opening pain/hook, credible solution and natural invitation; no invented discounts, stock or claims. "
             f"Timeline: product hook {e1}; same influencer enters {e2}; one real interaction {e3}; "
             f"natural stable closing {e4}. If product-first-3s mode is selected, ONLY the product is on-screen for the entire first 3s. "
             "All original kit units, backdrop, labels and influencer identity remain consistent from image to final frame."
         )
+
+    # ==========================================================
+    # V16.8.57 — FALA NA MEDIDA DA DURAÇÃO + SEM REPETIÇÃO (somente a fala).
+    # Confere a contagem real de palavras; se estiver fora da faixa ou repetitiva,
+    # pede à IA para reescrever APENAS a fala. Imagem, cenas, SEO e texto na tela
+    # não são tocados. Qualquer falha mantém a fala original (nunca quebra a geração).
+    # ==========================================================
+    def _elevo_fala_limpa_v16857(texto):
+        t = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", str(texto or ""))
+        return re.sub(r"\s+", " ", t).strip()
+
+    def _elevo_fala_palavras_v16857(texto):
+        return re.findall(r"[A-Za-zÀ-ÿ0-9]+(?:[-'][A-Za-zÀ-ÿ0-9]+)*", _elevo_fala_limpa_v16857(texto))
+
+    def _elevo_fala_repetida_v16857(texto):
+        p = [w.casefold() for w in _elevo_fala_palavras_v16857(texto)]
+        tri = [tuple(p[i:i + 3]) for i in range(len(p) - 2)]
+        if len(tri) != len(set(tri)):
+            return True
+        contagem = {}
+        for w in p:
+            if len(w) >= 5:
+                contagem[w] = contagem.get(w, 0) + 1
+        return any(v >= 3 for v in contagem.values())
+
+    def _elevo_fala_localizar_v16857(video):
+        """Devolve (início, fim, texto) da fala entre aspas na seção de áudio."""
+        m_ini = re.search(r"(?m)^\s*(?:🎙️|🔊|Áudio\b|Fala\b)", video)
+        if not m_ini:
+            return None
+        resto = video[m_ini.end():]
+        m_fim = re.search(r"(?m)^\s*(?:📝|🎞️|🏁|🔑|###|\[ÉLÉVO)", resto)
+        limite = m_ini.end() + (m_fim.start() if m_fim else len(resto))
+        trecho = video[m_ini.start():limite]
+        candidatos = []
+        for m in re.finditer(r'"([^"]{12,})"|“([^”]{12,})”', trecho):
+            grupo = 1 if m.group(1) is not None else 2
+            txt = m.group(grupo)
+            n = len(_elevo_fala_palavras_v16857(txt))
+            if n >= 6:
+                candidatos.append((n, m_ini.start() + m.start(grupo), m_ini.start() + m.end(grupo), txt))
+        if not candidatos:
+            return None
+        _, ini, fim, txt = max(candidatos)
+        return ini, fim, txt
+
+    def elevo_ajustar_fala_duracao_v16857(roteiro, segundos):
+        import logging
+        log = logging.getLogger("elevo.fala")
+        try:
+            duracao, (minimo, maximo), _ = elevo_tempo_roteiro_v16829(segundos)
+            sec = extrair_blocos_roteiro(roteiro)
+            video = sec.get("prompt_video") or ""
+            loc = _elevo_fala_localizar_v16857(video)
+            if not loc:
+                return roteiro
+            ini, fim, fala = loc
+            n_atual = len(_elevo_fala_palavras_v16857(fala))
+            if minimo <= n_atual <= maximo and not _elevo_fala_repetida_v16857(fala):
+                return roteiro
+            pedido = (
+                f"Fala atual (vídeo de {duracao} segundos):\n{_elevo_fala_limpa_v16857(fala)}\n\n"
+                f"Reescreva a fala para ocupar de {max(duracao - 1, 9)} a {duracao} segundos falados em ritmo "
+                f"natural: entre {minimo} e {maximo} palavras (conte com cuidado). "
+                "Mantenha o mesmo gancho de abertura, a mesma dor, a mesma solução e o mesmo convite final "
+                "para a sacolinha, com tom de amiga e português do Brasil natural. "
+                "Cada frase traz informação nova: não repita palavras, expressões ou ideias e não use enchimento. "
+                "Não invente preço, desconto, estoque, prazo, marca ou benefício que não esteja na fala atual. "
+                "Sem colchetes, sem aspas, sem emojis e sem marcações de som. "
+                'Responda somente em JSON: {"fala": "..."}'
+            )
+            melhor, melhor_dist = None, None
+            for _tentativa in range(2):
+                validar_cota_ia()
+                resp = elevo_chat_create_v1685(
+                    model=ELEVO_MODELO_PRODUCAO_V1685,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": "Você é roteirista de vídeos UGC brasileiros curtos. Responda apenas JSON."},
+                        {"role": "user", "content": pedido},
+                    ],
+                    max_tokens=500, temperature=0.55)
+                try:
+                    nova = str(json.loads(resp.choices[0].message.content or "{}").get("fala", "")).strip()
+                except (json.JSONDecodeError, AttributeError, IndexError, TypeError):
+                    nova = ""
+                nova = re.sub(r'["“”\[\]]', "", nova).strip()
+                if not nova or _elevo_fala_repetida_v16857(nova):
+                    continue
+                k = len(_elevo_fala_palavras_v16857(nova))
+                dist = 0 if minimo <= k <= maximo else min(abs(k - minimo), abs(k - maximo))
+                if melhor is None or dist < melhor_dist:
+                    melhor, melhor_dist = nova, dist
+                if dist == 0:
+                    break
+            # Só troca se a nova fala estiver na faixa (tolerância de 2 palavras).
+            if melhor is None or melhor_dist > 2:
+                log.warning("Fala mantida: ajuste fora da faixa (atual=%s, faixa=%s-%s)", n_atual, minimo, maximo)
+                return roteiro
+            cue = re.match(r"\s*(\[[^\]]{1,80}\])", fala)
+            novo_video = video[:ini] + ((cue.group(1) + " ") if cue else "") + melhor + video[fim:]
+            resultado = _trocar_so_video_v12(roteiro, novo_video)
+            conf = extrair_blocos_roteiro(resultado)
+            if (conf["prompt_imagem"] != sec["prompt_imagem"]
+                    or conf["secao_seo_texto"] != sec["secao_seo_texto"]):
+                return roteiro
+            return resultado
+        except Exception:
+            log.warning("Ajuste de fala ignorado; fala original preservada.", exc_info=True)
+            return roteiro
 
     # V16.8.30 — camada pequena, aplicada SOMENTE ao prompt de VÍDEO final.
     # Ritmos são sugestões naturais, não comandos rígidos ou ações extras obrigatórias.
@@ -7092,8 +7218,9 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                 f'EXACT TOTAL LENGTH: {duracao} seconds (9:16). TIMELINE: {p1} product hook, '
                 f'{p2} reveal the same presenter, {p3} one grounded hand interaction, '
                 f'{p4} natural continuous final scene. Do not end at 9 or 10 seconds when a longer duration is selected. '
-                f'Audio voiceover: {minimo}–{maximo} spoken Portuguese words, comfortable human pace, '
-                'without squeezing delivery or extending with artificial silence. '
+                f'Audio voiceover: {minimo}–{maximo} spoken Portuguese words that fill about '
+                f'{max(duracao - 1, 9)}–{duracao}s, comfortable human pace, '
+                'without squeezing delivery, repeating phrases or extending with artificial silence. '
                 'FRAME-TO-FRAME PRODUCT IDENTITY: the APPROVED IMAGE and the separately uploaded '
                 'product reference govern one unchanged physical item per original unit. '
                 'Carry forward exactly the same silhouette, material, original printed graphics, '
@@ -8960,7 +9087,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
             Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da {nome_inf_ativa}:
-            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha, sem inventar lote, estoque, desconto ou preço numérico]"
+            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha; cada frase traz informação nova, sem repetir palavras, expressões ou ideias; sem inventar lote, estoque, desconto ou preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
             ⚠️ [PERGUNTA CURTA E FORTE SOBRE A DOR]? 🛑
             ✨ [SENSAÇÃO / SOLUÇÃO IMEDIATA]
@@ -9024,6 +9151,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
                     # A imagem/fala/SEO do Bloco 17 permanecem literalmente intactos.
                     conteudo_texto = elevo_video_produto_3s_v16821(conteudo_texto)
+                # V16.8.57 — fala na medida da duração escolhida, sem repetição.
+                etapa_formato_elevo = "fala_duracao"
+                conteudo_texto = elevo_ajustar_fala_duracao_v16857(conteudo_texto, segundos_video_v16829)
                 # Última etapa universal: nenhuma influenciadora transfere atributos ao produto.
                 conteudo_texto = restaurar_matriz_v9_tres_criacoes_v16824(
                     conteudo_texto, scan_17, nome_inf_ativa, visual_inf_isolado_v16811,
@@ -9137,7 +9267,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
 
                 🎙️ Áudio (Gancho V9.2 — {segundos_video_v16829} Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA, SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA; CADA FRASE TRAZ INFORMAÇÃO NOVA, SEM REPETIR PALAVRAS, EXPRESSÕES OU IDEIAS; SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
@@ -9248,6 +9378,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                             exc_info=True,
                         )
                     # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
+                    # V16.8.57 — fala na medida da duração escolhida, sem repetição.
+                    etapa_formato_elevo = "v92_fala_duracao"
+                    conteudo_v92 = elevo_ajustar_fala_duracao_v16857(conteudo_v92, segundos_video_v16829)
                     etapa_formato_elevo = "v92_restaurar_matriz_identidade"
                     conteudo_v92 = restaurar_matriz_v9_tres_criacoes_v16824(
                         conteudo_v92, scan_v92, nome_inf_ativa, visual_inf_isolado_v16811,
@@ -11083,3 +11216,165 @@ _css_v16855 = """
 for _k_v16855, _v_v16855 in _tk_v16855.items():
     _css_v16855 = _css_v16855.replace(_k_v16855, _v_v16855)
 st.markdown(_css_v16855, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.57 — TOQUE HACKER: chuva de código sutil + feixe de varredura no fundo.
+# Somente visual, sem cliques (pointer-events:none). Mesma paleta do app.
+# Respeita "reduzir movimento" e pausa quando a aba não está visível.
+# ==========================================================
+_elevo_fx_v16857 = st.components.v2.component(
+    name="elevo_hacker_fx_v16857",
+    html='<canvas id="fx" aria-hidden="true"></canvas><div id="beam" aria-hidden="true"></div>',
+    css=r"""
+#fx{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2;opacity:.075;mix-blend-mode:screen}
+#fx.claro{opacity:.06;mix-blend-mode:multiply}
+#beam{position:fixed;left:0;right:0;top:-140px;height:140px;pointer-events:none;z-index:3;
+  background:linear-gradient(180deg,transparent,rgba(84,216,245,.045) 55%,rgba(84,216,245,.09) 50%,transparent);
+  animation:beam 11s linear infinite}
+#beam.claro{background:linear-gradient(180deg,transparent,rgba(19,99,214,.035),transparent)}
+@keyframes beam{0%{top:-140px}70%,100%{top:100vh}}
+@media (prefers-reduced-motion:reduce){#fx,#beam{display:none}}
+""",
+    js=r"""
+export default function(c){
+  const {parentElement:P,data}=c;
+  const cv=P.querySelector('#fx'),beam=P.querySelector('#beam');
+  if(!cv)return;
+  const claro=!!(data&&data.claro);
+  cv.classList.toggle('claro',claro);beam.classList.toggle('claro',claro);
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const x=cv.getContext('2d');
+  const G='ÉLÉVO01アイウエオカキクケコサシスセソタチツテト<>/{}[]#$%&*+=01AES256';
+  let W=0,H=0,fs=14,cols=[],act=[],raf=0,last=0,dpr=1;
+  const resize=()=>{dpr=Math.min(1.5,window.devicePixelRatio||1);W=innerWidth*dpr;H=innerHeight*dpr;cv.width=W;cv.height=H;
+    fs=14*dpr;const n=Math.ceil(W/fs);cols=Array.from({length:n},()=>Math.random()*-H/fs);act=Array.from({length:n},()=>Math.random()<.45);};
+  resize();addEventListener('resize',resize);
+  const loop=t=>{raf=requestAnimationFrame(loop);
+    if(document.hidden||t-last<70)return;last=t;
+    x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,.16)';
+    x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over';
+    x.font=fs+'px monospace';
+    for(let i=0;i<cols.length;i++){
+      if(!act[i])continue;
+      const y=cols[i]*fs;
+      if(y>0){x.fillStyle=Math.random()<.05?(claro?'#B8862F':'#D8B66A'):(claro?'#1457A1':'#54D8F5');
+        x.fillText(G[(Math.random()*G.length)|0],i*fs,y);}
+      if(y>H&&Math.random()>.97){cols[i]=0;act[i]=Math.random()<.5;}else cols[i]+=1;
+    }
+  };
+  raf=requestAnimationFrame(loop);
+  return()=>{cancelAnimationFrame(raf);removeEventListener('resize',resize);};
+}
+""",
+)
+with st.container(key="elevo_hacker_fx_wrap_v16857"):
+    _elevo_fx_v16857(key="elevo_hacker_fx_v16857", data={"claro": bool(modo_claro)})
+
+_tk_v16857 = ({
+    "__CY__": "#1457A1", "__CYA__": "rgba(20,87,161,", "__TXT__": "#0B2A55", "__MUT__": "#566F90",
+    "__TERMBG__": "linear-gradient(90deg,rgba(255,255,255,.92),rgba(236,245,255,.92))", "__TERMBR__": "#CADDF5",
+    "__SCAN__": "rgba(10,40,90,.016)",
+} if modo_claro else {
+    "__CY__": "#54D8F5", "__CYA__": "rgba(84,216,245,", "__TXT__": "#EAF2FF", "__MUT__": "#8FA6C4",
+    "__TERMBG__": "linear-gradient(90deg,rgba(4,10,20,.94),rgba(8,20,36,.94))", "__TERMBR__": "rgba(84,216,245,.22)",
+    "__SCAN__": "rgba(255,255,255,.022)",
+})
+_css_v16857 = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap');
+.st-key-elevo_hacker_fx_wrap_v16857 {height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;}
+.st-key-elevo_hacker_fx_wrap_v16857 * {margin:0!important;}
+
+/* Linhas de varredura CRT em toda a plataforma (bem sutis, não bloqueiam cliques). */
+.stApp::after {content:"";position:fixed;inset:0;pointer-events:none;z-index:999990;
+  background:repeating-linear-gradient(0deg,__SCAN__ 0 1px,transparent 1px 3px);}
+
+/* ---------- BARRA DE TERMINAL ---------- */
+.elevo-term {display:flex;align-items:center;gap:14px;min-width:0;margin:0 0 12px;padding:9px 14px;border-radius:14px;
+  background:__TERMBG__;border:1px solid __TERMBR__;font:500 .74rem/1.2 'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color:__MUT__!important;box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden;}
+.elevo-term-dots {display:flex;gap:6px;flex:0 0 auto;}
+.elevo-term-dots i {width:9px;height:9px;border-radius:50%;background:#FF5F6D;}
+.elevo-term-dots i:nth-child(2) {background:#D8B66A;} .elevo-term-dots i:nth-child(3) {background:#2FD39A;}
+.elevo-term-cmd {flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;color:__TXT__!important;}
+.elevo-term-cmd b {color:#2FD39A!important;font-weight:700;} .elevo-term-cmd em {color:__CY__!important;font-style:normal;}
+.elevo-term-typed {display:inline-block;vertical-align:bottom;overflow:hidden;white-space:nowrap;width:0;
+  animation:elevo-term-digita 2.4s steps(var(--n,40)) .4s forwards;}
+@keyframes elevo-term-digita {to {width:calc(var(--n,40) * 1ch);}}
+.elevo-term-cur {display:inline-block;width:.6em;height:1em;margin-left:2px;vertical-align:-2px;background:__CY__;
+  animation:elevo-pisca 1s steps(2) infinite;}
+@keyframes elevo-pisca {50% {opacity:0;}}
+.elevo-term-sts {display:flex;gap:12px;flex:0 0 auto;white-space:nowrap;}
+.elevo-term-sts span {color:__MUT__!important;letter-spacing:.06em;}
+.elevo-term-sts span:first-child {color:#2FD39A!important;}
+
+/* ---------- RÓTULOS EM ESTILO COMANDO ---------- */
+.elevo-hero-kicker,.elevo-topbar-kicker,.elevo-res-kicker {font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace!important;letter-spacing:.12em!important;}
+.elevo-hero-kicker::before,.elevo-res-kicker::before {content:"> ";opacity:.7;}
+.elevo-hero-kicker::after {content:"_";margin-left:2px;animation:elevo-pisca 1.1s steps(2) infinite;}
+
+/* Título com "falha digital" ao passar o mouse. */
+.elevo-hero-sec:hover .elevo-hero-titulo {animation:elevo-glitch .45s steps(2) 1;}
+@keyframes elevo-glitch {
+  0% {text-shadow:2px 0 rgba(84,216,245,.8),-2px 0 rgba(216,182,106,.8);transform:translateX(0)}
+  33% {text-shadow:-2px 0 rgba(84,216,245,.8),2px 0 rgba(216,182,106,.8);transform:translateX(1px)}
+  66% {text-shadow:1px 0 rgba(84,216,245,.6),-1px 0 rgba(216,182,106,.6);transform:translateX(-1px)}
+  100% {text-shadow:none;transform:none}}
+
+/* Número da etapa com brilho de varredura. */
+.elevo-hero-num {overflow:hidden;}
+.elevo-hero-num::after {content:"";position:absolute;left:-60%;top:0;bottom:0;width:45%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:elevo-brilho 4.5s ease-in-out infinite;}
+@keyframes elevo-brilho {0%,60% {left:-60%} 100% {left:130%}}
+
+/* Cantos de mira (HUD) nos blocos principais. */
+.elevo-hero-sec::after,.elevo-card-v16855::after,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card::after {
+  content:"";position:absolute;inset:9px;pointer-events:none;border-radius:0;opacity:.7;
+  width:auto;height:auto;right:9px;top:9px;border:none;box-shadow:none;
+  background:
+    linear-gradient(__CY__,__CY__) top left/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) top left/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) top right/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) top right/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) bottom left/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) bottom left/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) bottom right/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) bottom right/1.5px 14px no-repeat;}
+.elevo-card-v16855,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card {position:relative!important;}
+.elevo-card-v16855::after,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card::after {opacity:0;transition:opacity .25s ease;z-index:3;}
+.elevo-card-v16855:hover::after,.elevo-card-v16855.ativo::after,
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover::after,
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card.ativo::after {opacity:.85;}
+
+/* Escaneamento do rosto: ao passar o mouse e contínuo na selecionada. */
+.elevo-card-v16855 .elevo-elenco-midia::after {content:"";position:absolute;left:0;right:0;top:-30%;height:30%;pointer-events:none;opacity:0;
+  background:linear-gradient(180deg,transparent,__CYA__.10) 70%,__CYA__.75) 98%,transparent);}
+.elevo-card-v16855:hover .elevo-elenco-midia::after,.elevo-card-v16855.ativo .elevo-elenco-midia::after {
+  opacity:1;animation:elevo-scan-rosto 2.6s cubic-bezier(.45,0,.55,1) infinite;}
+@keyframes elevo-scan-rosto {0% {top:-30%} 100% {top:100%}}
+
+/* Divisores como linha de dados. */
+hr {border:none!important;height:1px!important;background:linear-gradient(90deg,transparent,__CYA__.45),transparent)!important;}
+
+/* Seleção, cursor de digitação e barra de rolagem. */
+::selection {background:__CYA__.30);}
+input,textarea {caret-color:__CY__!important;}
+::-webkit-scrollbar {width:9px;height:9px;}
+::-webkit-scrollbar-track {background:transparent;}
+::-webkit-scrollbar-thumb {background:__CYA__.28);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover {background:__CYA__.5);background-clip:padding-box;}
+
+/* Botões com brilho de terminal ao passar o mouse. */
+.stButton > button:hover,[data-testid="stFormSubmitButton"] > button:hover {text-shadow:0 0 10px __CYA__.55);}
+
+@media (max-width:767px) {
+  .elevo-term {gap:10px;padding:8px 11px;font-size:.66rem;}
+  .elevo-term-sts span:not(:first-child) {display:none;}
+  .elevo-term-dots {display:none;}
+  .elevo-hero-sec::after {display:block!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .elevo-term-typed {animation:none;width:auto;}
+  .elevo-term-cur,.elevo-hero-kicker::after,.elevo-hero-num::after,.elevo-card-v16855 .elevo-elenco-midia::after {animation:none!important;}
+}
+</style>
+"""
+for _k_v16857, _v_v16857 in _tk_v16857.items():
+    _css_v16857 = _css_v16857.replace(_k_v16857, _v_v16857)
+st.markdown(_css_v16857, unsafe_allow_html=True)
