@@ -2517,7 +2517,19 @@ def elevo_gateway_checkout_v1(plano_id):
         timeout=25,
     )
     if resposta.status_code != 200:
-        raise RuntimeError("Não foi possível iniciar o pagamento. Tente novamente.")
+        try:
+            _retorno_gateway_v1 = resposta.json()
+        except Exception:
+            _retorno_gateway_v1 = {}
+        _motivo_gateway_v1 = str(
+            _retorno_gateway_v1.get("provider_message")
+            or _retorno_gateway_v1.get("error")
+            or "Gateway recusou a solicitação"
+        )
+        raise RuntimeError(
+            f"Não foi possível iniciar o pagamento (HTTP {resposta.status_code}): "
+            f"{_motivo_gateway_v1[:220]}"
+        )
     dados = resposta.json()
     url = str(dados.get("checkout_url", "")).strip()
     if not url.startswith("https://"):
