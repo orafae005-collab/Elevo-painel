@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.52 — ÉLÉVO NIGHT: REFINAMENTO VISUAL DO MODO ESCURO | BASE V16.8.51
+# ÉLÉVO V16.8.54 — TOPO COM SAIR EM DESTAQUE + PROFUNDIDADE + AURORA HOLOGRÁFICA DIÁRIA | BASE V16.8.52
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -1275,8 +1275,83 @@ def elevo_tema_padrao_celular_v168222():
     except (AttributeError, TypeError, ValueError):
         return False  # Se não for possível identificar, conserva o padrão desktop.
 
-col_vazia, col_tema = st.columns([8, 2])
-with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=elevo_tema_padrao_celular_v168222(), key="toggle_tema_principal_unico")
+# ==========================================================
+# V16.8.53 — TOPO PROFISSIONAL: saudação + data + tema + menu "Minha conta".
+# Somente apresentação. A lógica de logout é idêntica à versão anterior.
+# ==========================================================
+_agora_topo_v16853 = datetime.now(ZoneInfo("America/Sao_Paulo"))
+_dias_v16853 = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira",
+                "Sexta-feira", "Sábado", "Domingo"]
+_meses_v16853 = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
+                 "agosto", "setembro", "outubro", "novembro", "dezembro"]
+_data_topo_v16853 = (f"{_dias_v16853[_agora_topo_v16853.weekday()]}, "
+                     f"{_agora_topo_v16853.day} de {_meses_v16853[_agora_topo_v16853.month - 1]}")
+_hora_topo_v16853 = _agora_topo_v16853.hour
+_saudacao_topo_v16853 = ("Bom dia" if _hora_topo_v16853 < 12
+                         else "Boa tarde" if _hora_topo_v16853 < 18 else "Boa noite")
+_nome_completo_topo_v16853 = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+_nome_topo_v16853 = html_std.escape(_nome_completo_topo_v16853.split(" ")[0])
+_email_topo_v16853 = str(st.session_state.get("email_usuario", "")).strip().lower()
+_ceo_topo_v16853 = _email_topo_v16853 == str(EMAIL_MESTRE).strip().lower()
+_perfil_topo_v16853 = "CEO • ACESSO TOTAL" if _ceo_topo_v16853 else "CONTA VIP"
+
+with st.container(border=True, key="elevo_topbar_v16853"):
+    _tb_info_v16853, _tb_tema_v16853, _tb_conta_v16853, _tb_sair_v16853 = st.columns(
+        [4.6, 1.35, 1.3, 1.1], gap="small", vertical_alignment="center")
+
+    # O toggle precisa existir antes do CSS do tema (modo_claro é usado logo abaixo).
+    with _tb_tema_v16853:
+        modo_claro = st.toggle("☀️ Modo Claro", value=elevo_tema_padrao_celular_v168222(),
+                               key="toggle_tema_principal_unico")
+
+    with _tb_info_v16853:
+        _inicial_topo_v16854 = html_std.escape((_nome_completo_topo_v16853[:1] or "S").upper())
+        st.markdown(
+            '<div class="elevo-topbar-info">'
+            f'<div class="elevo-topbar-avatar" aria-hidden="true"><span>{_inicial_topo_v16854}</span><em></em></div>'
+            '<div class="elevo-topbar-textos">'
+            f'<span class="elevo-topbar-kicker">◈ ÉLÉVO • {_perfil_topo_v16853}</span>'
+            f'<div class="elevo-topbar-titulo">{_saudacao_topo_v16853}, {_nome_topo_v16853}</div>'
+            f'<div class="elevo-topbar-sub"><span>{_data_topo_v16853}</span>'
+            '<span class="elevo-topbar-chip"><i></i>Painel ativo</span></div>'
+            '</div></div>', unsafe_allow_html=True)
+
+    with _tb_conta_v16853:
+        with st.popover("👤 Minha conta", use_container_width=True, key="elevo_conta_pop_v16853"):
+            st.markdown(f"**{html_std.escape(_nome_completo_topo_v16853)}**")
+            st.caption(_email_topo_v16853)
+            st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
+            if GOOGLE_ATIVO and not (st.user.is_logged_in):
+                st.caption("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
+                if st.button("🌐 Vincular conta Google", key="btn_vincular_google_logado",
+                             use_container_width=True):
+                    st.login("google")
+            elif GOOGLE_ATIVO:
+                st.caption("✅ Conta Google vinculada e protegida pelo identificador Google.")
+            else:
+                st.caption("Login com Google ainda não configurado pelo administrador.")
+
+    # V16.8.54 — botão Sair visível e destacado no topo (lógica idêntica à anterior).
+    with _tb_sair_v16853:
+        if st.button("⏻  Sair", key="btn_logout", use_container_width=True,
+                     help="Encerrar a sessão com segurança"):
+            # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
+            # componente acontece no navegador, por isso o bloqueio de restauração.
+            sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
+            cookies.pop("login", None)
+            cookies.pop("elevo_bv_google_v16814", None)
+            cookies.pop("elevo_bv_login_v16814", None)
+            cookies.save()
+            # 2) Forçar explicitamente a tela de login. Não contém e-mail/token.
+            st.query_params["elevo_acesso"] = "novo"
+            # 3) Limpar apenas o estado do aplicativo.
+            limpar_sessao_ao_sair()
+            if sair_do_google:
+                # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
+                st.logout()
+                st.stop()
+            # Não usar sleep(): isso não espera uma confirmação do navegador.
+            st.rerun()
 
 if modo_claro:
     bg_color = "linear-gradient(180deg, #F4F6F9 0%, #E2E8F0 100%)"
@@ -1755,14 +1830,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 # ==========================================================
 st.markdown('<div id="ancora-topo"></div><div id="painel"></div>', unsafe_allow_html=True)
-nome_cabecalho = html_std.escape(str(st.session_state.get("nome_usuario", "Sócio")))
-st.markdown(f"""
-<section class="elevo-dash-header" aria-label="Boas-vindas ao ÉLÉVO">
- <div><div class="elevo-kicker">PAINEL ESTRATÉGICO • ÉLÉVO V16</div>
- <h1>Visão geral, {nome_cabecalho}</h1>
- <p>Inteligência, criação e suas operações em um só lugar.</p></div>
- <span class="elevo-status-chip">● PAINEL ATIVO</span>
-</section>""", unsafe_allow_html=True)
+# V16.8.53 — saudação movida para o topo profissional (elevo_topbar_v16853).
 
 # ==========================================================
 # 2.5. BOAS-VINDAS CINEMÁTICA (100% VINCULADA AO GMAIL ÚNICO)
@@ -2353,100 +2421,439 @@ if (st.session_state.get("usuario_logado")
         and st.session_state.get("elevo_vip_diaria_audio_v16840")
         and (not st.session_state.get("elevo_vip_diaria_exibida_v16840", False)
              or st.session_state.get("elevo_vip_preview_ceo_v16842", False))):
+    # V16.8.54 — AURORA HOLOGRÁFICA: personagem digital 3D em partículas que fala,
+    # boca sincronizada com a voz (Web Audio), boot de terminal, legendas palavra a palavra.
+    # Mesmo contrato da versão anterior: data{name, phrase, audio} -> trigger "closed".
     _vip = st.components.v2.component(
-        name="elevo_vip_daily_protocol_v16841",
-        html="""<main id="vip">
-        <div class="code-rain" aria-hidden="true">
-          <span>0100101<br>ACCESS_GRANTED<br>0xE1EVO<br>11001010<br>NEURAL_LINK<br>010101</span>
-          <span>AUTH::VALID<br>10100101<br>IDENTITY_SYNC<br>0x7F2A<br>11001010<br>CORE_ONLINE</span>
-          <span>01010110<br>ENCRYPTION_OK<br>11100010<br>PROTOCOL_VIP<br>01001101</span>
-          <span>SYS://ELEVO<br>11010010<br>BIOMETRIC_SCAN<br>01010101<br>ACCESS_GRANTED</span>
-          <span>10101001<br>NEURAL_CORE<br>01001010<br>SECURE_CHANNEL<br>11010100</span>
-        </div>
-        <div class="hud-grid" aria-hidden="true"></div>
-        <div class="scanline" aria-hidden="true"></div>
-        <section class="panel">
-          <div class="top"><span>ÉLÉVO <b>INTELLIGENCE</b></span><span class="secure"><i></i> SECURE SESSION</span></div>
-          <div class="stage">
-            <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
-            <div class="orbit orbit-c"></div><div class="target t1"></div><div class="target t2"></div>
-            <div class="core">
-              <div class="core-ring"></div><div class="core-glow"></div>
-              <svg class="sigil" viewBox="0 0 300 300" role="img" aria-label="Núcleo holográfico de inteligência">
-                <defs>
-                  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6ffff"/><stop offset=".45" stop-color="#26dfff"/><stop offset="1" stop-color="#b68b48"/></linearGradient>
-                  <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                </defs>
-                <g fill="none" stroke="url(#metal)" stroke-width="1.35" filter="url(#glow)">
-                  <path d="M150 25 220 65 258 135 238 220 175 267 105 267 45 220 25 135 65 65Z" opacity=".8"/>
-                  <path d="M150 45 205 77 232 135 216 205 170 244 110 244 64 205 48 135 75 77Z" opacity=".55"/>
-                  <path d="M150 52 125 76 108 115 112 164 132 205 150 229 168 205 188 164 192 115 175 76Z"/>
-                  <path d="M85 119 121 107 145 119 M155 119 179 107 215 119" stroke-width="2.4"/>
-                  <path d="M98 137 126 132 142 139 M158 139 174 132 202 137" stroke-width="2.2"/>
-                  <path d="M150 132 141 171 150 178 159 171Z"/>
-                  <path d="M123 197 Q150 211 177 197" stroke-width="2"/>
-                  <path d="M75 92 105 105 112 164 88 191 M225 92 195 105 188 164 212 191" opacity=".55"/>
-                  <path d="M150 25V52 M150 229V267 M25 135H48 M232 135H258" opacity=".7"/>
-                </g>
-                <g fill="#a9fbff"><circle cx="126" cy="137" r="2.5"/><circle cx="174" cy="137" r="2.5"/><circle cx="150" cy="25" r="3"/></g>
-              </svg>
-              <div class="core-label">AI // CORE</div>
-            </div>
-            <div class="crosshair ch1"></div><div class="crosshair ch2"></div>
-            <div class="readout r1">IDENTITY<br><b>VERIFIED</b></div>
-            <div class="readout r2">NEURAL LINK<br><b>ACTIVE</b></div>
-            <div class="readout r3">ENCRYPTION<br><b>AES-256</b></div>
-          </div>
-          <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
-          <h2 id="nome"></h2>
-          <div class="divider"><span></span><b>DAILY INTELLIGENCE BRIEFING</b><span></span></div>
-          <p id="frase"></p>
-          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div id="status">ESTABELECENDO CONEXÃO DE VOZ...</div>
-          <button id="play">▶ ATIVAR MENSAGEM</button>
-          <button id="close">ENTRAR NA ÉLÉVO <span>→</span></button>
-          <audio id="audio" preload="auto" playsinline></audio>
-        </section>
-        <div class="bottomline"><span>ÉLÉVO SYSTEMS</span><span>PROTECTED ENVIRONMENT • BRASIL</span><span>V.01 / ONLINE</span></div>
-        </main>""",
-        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 46%,#102c42 0%,#07111f 42%,#02050b 100%);color:#eafaff;display:grid;place-items:center;font-family:Arial,sans-serif;overflow:hidden}
-        #vip:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(0,222,255,.13),transparent 28%),linear-gradient(115deg,transparent 35%,rgba(0,229,255,.035) 50%,transparent 65%);pointer-events:none}
-        .hud-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,220,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.055) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 0%,transparent 78%);opacity:.55}
-        .code-rain{position:absolute;inset:-20% 0;display:flex;justify-content:space-around;gap:5vw;overflow:hidden;opacity:.25;pointer-events:none}
-        .code-rain span{font:10px/2.2 monospace;letter-spacing:3px;color:#20dff5;text-shadow:0 0 9px #00cfff;white-space:nowrap;writing-mode:vertical-rl;animation:codefall 13s linear infinite}
-        .code-rain span:nth-child(2){animation-delay:-7s;animation-duration:17s;color:#9bdbd7}.code-rain span:nth-child(3){animation-delay:-3s;animation-duration:15s}.code-rain span:nth-child(4){animation-delay:-10s;animation-duration:19s}.code-rain span:nth-child(5){animation-delay:-5s;animation-duration:14s}
-        .scanline{position:absolute;left:0;right:0;height:2px;top:-5%;background:linear-gradient(90deg,transparent,#00eaff88,#d6b46b88,transparent);box-shadow:0 0 24px #00dfff;animation:scan 6s ease-in-out infinite;opacity:.7}
-        .panel{position:relative;width:min(94vw,720px);max-height:96vh;overflow:auto;padding:clamp(16px,3vw,28px) clamp(16px,4vw,38px) 22px;text-align:center;border:1px solid rgba(49,218,239,.38);border-radius:22px;background:linear-gradient(145deg,rgba(7,22,37,.94),rgba(3,8,17,.97) 70%);box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 22px 90px #000b,0 0 65px #00c8ed22;backdrop-filter:blur(14px);animation:materialize 1s cubic-bezier(.16,1,.3,1)}
-        .top{font-size:10px;letter-spacing:3px;color:#a8eefa;display:flex;justify-content:space-between;gap:10px;text-align:left}.top b{color:#fff}.secure{color:#8de6c8;font-size:9px;letter-spacing:1.5px}.secure i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:6px}
-        .stage{height:clamp(225px,34vh,300px);position:relative;display:grid;place-items:center;margin:2px auto 0;max-width:470px;overflow:hidden}
-        .core{position:relative;width:180px;height:180px;display:grid;place-items:center;animation:corefloat 5s ease-in-out infinite}
-        .sigil{position:relative;width:100%;height:100%;z-index:3;filter:drop-shadow(0 0 12px #00dfff99);animation:sigilpulse 3s ease-in-out infinite}
-        .core-ring{position:absolute;inset:9px;border:1px solid #39eaff77;border-radius:50%;box-shadow:0 0 32px #00dfff33,inset 0 0 28px #00dfff22;animation:spin 16s linear infinite}
-        .core-ring:before,.core-ring:after{content:"";position:absolute;inset:-13px;border:1px dashed #3ceaff66;border-radius:50%}.core-ring:after{inset:20px;border-style:solid;border-color:#d6b46b66;animation:spin 9s linear infinite reverse}
-        .core-glow{position:absolute;width:110px;height:110px;border-radius:50%;background:#00cfff22;filter:blur(30px);animation:glow 2.5s ease-in-out infinite}
-        .core-label{position:absolute;bottom:4px;font:8px monospace;letter-spacing:4px;color:#b5faff;z-index:4}
-        .orbit{position:absolute;border:1px solid rgba(0,220,255,.32);border-radius:50%;transform:rotate(-24deg);width:290px;height:100px;box-shadow:0 0 16px #00cfff16}.orbit-a{animation:orbit 12s linear infinite}.orbit-b{width:340px;height:140px;transform:rotate(52deg);border-color:#d6b46b44;animation:orbit 18s linear infinite reverse}.orbit-c{width:390px;height:190px;transform:rotate(-65deg);border-style:dashed;opacity:.55;animation:orbit 25s linear infinite}
-        .target{position:absolute;width:7px;height:7px;border-radius:50%;background:#b9ffff;box-shadow:0 0 16px 4px #00dfff}.t1{top:24%;left:24%}.t2{bottom:20%;right:25%;background:#e4c27b;box-shadow:0 0 16px 4px #c79b4a}
-        .crosshair{position:absolute;width:16px;height:16px;border:1px solid #8defff88}.ch1{top:18%;right:22%;border-left:0;border-bottom:0}.ch2{bottom:18%;left:22%;border-right:0;border-top:0}
-        .readout{position:absolute;text-align:left;font:8px/1.7 monospace;letter-spacing:1.5px;color:#6baebb}.readout b{color:#c4faff;font-weight:600}.r1{top:24%;left:3%}.r2{top:30%;right:2%;text-align:right}.r3{bottom:19%;right:5%;text-align:right}
-        .kicker{font-size:9px;letter-spacing:4px;color:#d7b66e;font-weight:700;margin-top:0}#nome{font-size:clamp(20px,3vw,27px);letter-spacing:3px;margin:8px 0;color:#f2fcff;text-shadow:0 0 22px #00dfff55}
-        .divider{display:flex;align-items:center;gap:12px;justify-content:center;margin:12px 0 7px;color:#8ebdca;font:8px monospace;letter-spacing:2px}.divider span{height:1px;width:45px;background:linear-gradient(90deg,transparent,#36dff4)}.divider span:last-child{transform:rotate(180deg)}
-        #frase{font-size:clamp(14px,1.8vw,16px);line-height:1.7;color:#d1e5ec;max-width:570px;margin:8px auto 12px}
-        .wave{height:27px;display:flex;align-items:center;justify-content:center;gap:4px}.wave i{width:3px;height:4px;border-radius:4px;background:linear-gradient(#e4c27b,#00dfff);opacity:.8}
-        #vip.playing .wave i{animation:wave .42s ease-in-out infinite alternate}#vip.playing .wave i:nth-child(3n){animation-delay:.13s}#vip.playing .wave i:nth-child(2n){animation-delay:.25s}
-        #status{font:8px monospace;letter-spacing:2px;color:#78cbd8;margin:7px 0 10px}
-        button{border-radius:30px;padding:12px 22px;margin:4px;cursor:pointer;font-size:10px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(110deg,#07506a,#087d91);color:white;border:1px solid #40eaff;box-shadow:0 0 22px #00dfff22;transition:transform .2s,box-shadow .2s}button:hover{transform:translateY(-2px);box-shadow:0 0 28px #00dfff55}#close{display:none;background:linear-gradient(110deg,#9b783b,#d2b36e);color:#09121b;border-color:#f2d28c}#close span{font-size:15px;margin-left:8px}
-        .bottomline{position:absolute;bottom:12px;left:18px;right:18px;display:flex;justify-content:space-between;color:#47717f;font:7px monospace;letter-spacing:1.5px;pointer-events:none}
-        @keyframes codefall{from{transform:translateY(-20%)}to{transform:translateY(35%)}}@keyframes scan{0%{top:-5%}100%{top:105%}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes orbit{to{transform:rotate(336deg)}}@keyframes corefloat{50%{transform:translateY(-5px)}}@keyframes sigilpulse{50%{filter:drop-shadow(0 0 22px #00eaffcc);transform:scale(1.025)}}@keyframes glow{50%{opacity:.45;transform:scale(1.35)}}@keyframes wave{to{height:25px}}@keyframes materialize{from{opacity:0;transform:scale(.94) translateY(12px);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
-        @media(max-width:600px){.panel{padding:15px 14px 18px;border-radius:17px}.stage{height:220px}.core{width:150px;height:150px}.orbit-a{width:245px}.orbit-b{width:280px}.orbit-c{width:310px}.readout{font-size:7px}.r1{left:0}.r2{right:0}.bottomline{font-size:6px;left:8px;right:8px}.bottomline span:nth-child(2){display:none}}
-        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important;scroll-behavior:auto!important}}""",
-        js="""export default function(c){const {parentElement,data,setTriggerValue}=c;const root=parentElement.querySelector('#vip'),a=parentElement.querySelector('#audio'),p=parentElement.querySelector('#play'),x=parentElement.querySelector('#close'),s=parentElement.querySelector('#status');if(!root||!a||!data?.audio)return;
-        parentElement.querySelector('#nome').textContent=data.name||'IDENTIDADE RECONHECIDA';parentElement.querySelector('#frase').textContent=data.phrase||'';a.src='data:audio/mpeg;base64,'+data.audio;let done=false;
-        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .7s,filter .7s';root.style.opacity=0;root.style.filter='blur(8px)';setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},720)};
-        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='TRANSMISSÃO SEGURA • MENSAGEM EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
-        p.addEventListener('click',play);x.addEventListener('click',finish);a.addEventListener('ended',()=>{root.classList.remove('playing');s.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';x.style.display='inline-block';p.style.display='none'});
-        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';x.style.display='inline-block'});play();
-        return()=>{p.removeEventListener('click',play);x.removeEventListener('click',finish);a.pause()}}"""
+        name="elevo_vip_daily_protocol_v16854",
+        html=r"""<main id="vip" aria-label="Transmissão diária ÉLÉVO">
+  <canvas id="rain" aria-hidden="true"></canvas>
+  <div class="fx-grid" aria-hidden="true"></div>
+  <div class="fx-scan" aria-hidden="true"></div>
+  <div class="fx-vig" aria-hidden="true"></div>
+  <header class="hud hud-top">
+    <span class="brand">◈ ÉLÉVO <b>// NEURAL LINK</b></span>
+    <span class="sec"><i></i>CANAL CRIPTOGRAFADO</span>
+    <span id="clock" class="clock">--:--:--</span>
+  </header>
+  <section class="shell">
+    <div class="avatar">
+      <div class="ring ring-ticks"></div>
+      <div class="ring ring-a"></div>
+      <div class="ring ring-b"></div>
+      <canvas id="face" role="img" aria-label="Aurora, assistente digital da ÉLÉVO, falando"></canvas>
+      <div class="tag tl">ID<b>AUR-0X1E</b></div>
+      <div class="tag tr">VOZ<b id="tagvox">00%</b></div>
+      <div class="tag bl">SYNC<b id="tagsync">00%</b></div>
+      <div class="tag br">NÚCLEO<b>ONLINE</b></div>
+      <div class="who"><b>AURORA</b><span>INTELIGÊNCIA DIGITAL ÉLÉVO</span></div>
+    </div>
+    <div class="console">
+      <div class="term-head"><i></i><i></i><i></i><span>aurora@elevo-core:~$</span><button id="skip" type="button" class="skip">PULAR ⟶</button></div>
+      <pre id="boot" class="boot"></pre>
+      <div class="ident">
+        <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
+        <h2 id="nome" class="glitch" data-text=""></h2>
+      </div>
+      <div class="subs-label"><span></span>TRANSMISSÃO DO DIA<span></span></div>
+      <p id="frase" class="subs" aria-live="polite"></p>
+      <div class="meter"><div id="prog"></div></div>
+      <div id="status" class="status">INICIALIZANDO NÚCLEO...</div>
+      <div class="actions">
+        <button id="play" type="button">▶ ATIVAR TRANSMISSÃO</button>
+        <button id="close" type="button">ENTRAR NA ÉLÉVO <span>→</span></button>
+      </div>
+    </div>
+  </section>
+  <footer class="hud hud-bot"><span>ÉLÉVO SYSTEMS</span><span class="mid">AMBIENTE PROTEGIDO • BRASIL</span><span>V16.8.54 / ONLINE</span></footer>
+  <audio id="audio" preload="auto" playsinline></audio>
+</main>""",
+        css=r"""#vip,#vip *{box-sizing:border-box}
+#vip{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;overflow:hidden;color:#eafaff;
+  font-family:Montserrat,Inter,Arial,sans-serif;
+  background:radial-gradient(ellipse 60% 70% at 28% 48%,#0e2c45 0%,#07121f 48%,#02050b 100%);
+  animation:vin .7s ease both}
+#vip.out{animation:vout .75s ease forwards}
+#rain{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none}
+.fx-grid{position:absolute;inset:0;pointer-events:none;opacity:.5;
+  background-image:linear-gradient(rgba(0,220,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.05) 1px,transparent 1px);
+  background-size:48px 48px;mask-image:radial-gradient(ellipse at 30% 50%,#000 0%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 30% 50%,#000 0%,transparent 70%)}
+.fx-scan{position:absolute;inset:0;pointer-events:none;z-index:5;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px)}
+.fx-scan::after{content:"";position:absolute;left:0;right:0;height:120px;top:-120px;
+  background:linear-gradient(180deg,transparent,rgba(84,216,245,.06),transparent);animation:sweep 7s linear infinite}
+.fx-vig{position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.7) 100%)}
+.hud{position:relative;z-index:6;display:flex;justify-content:space-between;align-items:center;gap:12px;
+  padding:14px clamp(14px,3vw,28px);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.22em;color:#78c3d4}
+.hud b{color:#eafaff;font-weight:700}
+.sec{color:#8de6c8}.sec i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:8px;vertical-align:-1px;animation:blink 1.6s steps(2) infinite}
+.clock{color:#d8b66a}
+.hud-bot{color:#3f6b7a;font-size:8px}
+.shell{position:relative;z-index:6;flex:1;min-height:0;width:100%;max-width:1280px;margin:0 auto;
+  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:clamp(18px,4vw,60px);
+  padding:0 clamp(16px,4.5vw,64px)}
+.avatar{position:relative;justify-self:center;width:min(100%,64vh,580px);aspect-ratio:1/1;animation:rise 1s cubic-bezier(.16,1,.3,1) both}
+#face{position:absolute;inset:0;width:100%;height:100%;display:block}
+.ring{position:absolute;border-radius:50%;pointer-events:none}
+.ring-ticks{inset:1%;background:repeating-conic-gradient(from 0deg,rgba(84,216,245,.55) 0 .5deg,transparent .5deg 5deg);
+  -webkit-mask:radial-gradient(closest-side,transparent 95.5%,#000 96%,#000 99%,transparent 99.5%);
+  mask:radial-gradient(closest-side,transparent 95.5%,#000 96%,#000 99%,transparent 99.5%);animation:spin 60s linear infinite}
+.ring-a{inset:5%;border:1px solid rgba(84,216,245,.18);box-shadow:inset 0 0 60px rgba(0,200,255,.06)}
+.ring-b{inset:8%;border:2px solid transparent;border-top-color:rgba(216,182,106,.75);border-right-color:rgba(216,182,106,.18);
+  filter:drop-shadow(0 0 6px rgba(216,182,106,.5));animation:spin 10s linear infinite reverse}
+.tag{position:absolute;z-index:3;font:600 9px/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#5fa6b7;
+  padding:6px 9px;border:1px solid rgba(84,216,245,.18);background:rgba(3,12,22,.55);border-radius:8px;backdrop-filter:blur(6px)}
+.tag b{display:block;color:#c9fbff;font-weight:700;letter-spacing:.12em}
+.tl{top:9%;left:0}.tr{top:9%;right:0;text-align:right}.bl{bottom:13%;left:0}.br{bottom:13%;right:0;text-align:right}
+.tr b,.bl b{color:#d8b66a}
+.who{position:absolute;left:50%;bottom:0;transform:translateX(-50%);text-align:center;z-index:3;white-space:nowrap}
+.who b{display:block;font:900 15px/1 Montserrat,sans-serif;letter-spacing:.5em;color:#eafaff;text-shadow:0 0 18px rgba(84,216,245,.7)}
+.who span{display:block;margin-top:6px;font:600 8px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#6fb8c8}
+.console{position:relative;max-height:calc(100vh - 110px);overflow:auto;border-radius:22px;
+  background:linear-gradient(150deg,rgba(9,26,44,.88),rgba(3,9,18,.93));border:1px solid rgba(49,218,239,.30);
+  box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03) inset,0 0 70px rgba(0,200,237,.13),inset 0 1px 0 rgba(255,255,255,.07);
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:rise 1s .15s cubic-bezier(.16,1,.3,1) both;scrollbar-width:none}
+.console::-webkit-scrollbar{display:none}
+.console::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(119,199,255,.6),rgba(216,182,106,.45),transparent)}
+.term-head{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(84,216,245,.12);
+  font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:#6fb8c8;background:rgba(0,0,0,.18)}
+.term-head i{width:9px;height:9px;border-radius:50%;background:#ff5f6d}.term-head i:nth-child(2){background:#d8b66a}.term-head i:nth-child(3){background:#55f0b4}
+.term-head span{margin-left:8px;flex:1}
+.boot{margin:14px 22px 4px;min-height:7.6em;font:500 11.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#6fe3f5;white-space:pre-wrap;word-break:break-word}
+.boot .ok{color:#55f0b4}.boot .gd{color:#d8b66a}
+.boot .cur{display:inline-block;width:7px;height:13px;background:#6fe3f5;vertical-align:-2px;animation:blink 1s steps(2) infinite}
+.ident{padding:4px 22px 0}
+.kicker{font:800 9.5px Montserrat,sans-serif;letter-spacing:.38em;color:#d8b66a}
+.glitch{position:relative;margin:8px 0 2px;font:900 clamp(24px,3.4vw,40px)/1.08 Montserrat,sans-serif;letter-spacing:.04em;color:#f2fcff;
+  text-shadow:0 0 26px rgba(0,223,255,.45);overflow-wrap:anywhere}
+.glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none}
+.glitch::before{color:#54d8f5;transform:translate(2px,0);clip-path:inset(0 0 100% 0);animation:g1 3.6s infinite steps(1)}
+.glitch::after{color:#d8b66a;transform:translate(-2px,0);clip-path:inset(100% 0 0 0);animation:g2 3.6s infinite steps(1)}
+.subs-label{display:flex;align-items:center;gap:12px;margin:16px 22px 6px;font:700 8.5px ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#8ebdca}
+.subs-label span{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(54,223,244,.6))}
+.subs-label span:last-child{transform:scaleX(-1)}
+.subs{margin:6px 22px 14px;font:500 clamp(15px,1.55vw,18px)/1.7 Montserrat,Inter,sans-serif;color:rgba(209,229,236,.26);min-height:3.4em}
+.subs span{transition:color .25s,text-shadow .25s}
+.subs span.on{color:#dcedf3}
+.subs span.now{color:#fff;text-shadow:0 0 16px rgba(84,216,245,.85)}
+.meter{margin:0 22px;height:3px;border-radius:9px;background:rgba(84,216,245,.12);overflow:hidden}
+.meter div{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#26dfff,#4b91f2,#d8b66a);box-shadow:0 0 12px #26dfff;transition:width .2s linear}
+.status{margin:12px 22px 4px;font:600 9px ui-monospace,Menlo,monospace;letter-spacing:.22em;color:#78cbd8}
+.actions{display:flex;flex-wrap:wrap;gap:10px;padding:10px 22px 22px}
+.actions button{display:none;align-items:center;justify-content:center;gap:10px;border-radius:999px;padding:14px 24px;cursor:pointer;
+  font:800 11px Montserrat,sans-serif;letter-spacing:.16em;transition:transform .2s,box-shadow .2s,filter .2s}
+.actions button:hover{transform:translateY(-2px);filter:brightness(1.08)}
+#play{background:linear-gradient(110deg,#07506a,#0a8aa0);color:#fff;border:1px solid #40eaff;box-shadow:0 0 26px rgba(0,223,255,.3)}
+#close{background:linear-gradient(110deg,#9b783b,#d8b66a 55%,#f0d495);color:#09121b;border:1px solid #f2d28c;
+  box-shadow:0 12px 34px rgba(216,182,106,.38),0 0 30px rgba(216,182,106,.22);animation:pulse 2.2s ease-in-out infinite}
+#close span{font-size:16px}
+.skip{opacity:0;pointer-events:none;border:1px solid rgba(84,216,245,.25);background:transparent;color:#8ebdca;border-radius:999px;
+  padding:5px 11px;font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.16em;cursor:pointer;transition:opacity .4s,color .2s,border-color .2s}
+.skip.show{opacity:1;pointer-events:auto}.skip:hover{color:#fff;border-color:#54d8f5}
+@keyframes vin{from{opacity:0}to{opacity:1}}
+@keyframes vout{to{opacity:0;transform:scale(1.04);filter:blur(10px)}}
+@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.97);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes blink{50%{opacity:0}}
+@keyframes sweep{to{top:100%}}
+@keyframes pulse{50%{box-shadow:0 12px 40px rgba(216,182,106,.55),0 0 44px rgba(216,182,106,.32)}}
+@keyframes g1{0%,86%,100%{clip-path:inset(0 0 100% 0)}88%{clip-path:inset(12% 0 58% 0);transform:translate(4px,-1px)}91%{clip-path:inset(62% 0 8% 0);transform:translate(-3px,1px)}94%{clip-path:inset(30% 0 44% 0);transform:translate(3px,0)}}
+@keyframes g2{0%,87%,100%{clip-path:inset(100% 0 0 0)}89%{clip-path:inset(48% 0 22% 0);transform:translate(-4px,1px)}92%{clip-path:inset(8% 0 70% 0);transform:translate(3px,-1px)}95%{clip-path:inset(70% 0 4% 0);transform:translate(-2px,0)}}
+@media (max-width:860px){
+  #vip{overflow-y:auto}
+  .shell{display:flex;flex-direction:column;flex:none;gap:6px;padding:0 14px 18px}
+  .avatar{width:min(84vw,44vh,360px)}
+  .console{max-height:none;overflow:visible;width:100%;max-width:560px}
+  .tag{font-size:7.5px;padding:4px 6px}
+  .tl,.tr{top:4%}.bl,.br{bottom:12%}
+  .who b{font-size:12px}
+  .boot{min-height:6.4em;font-size:10.5px;margin:12px 16px 2px}
+  .ident,.subs-label,.subs,.meter,.status{margin-left:16px;margin-right:16px}.ident{padding:0 16px;margin:0}
+  .actions{padding:10px 16px 18px}.actions button{flex:1 1 100%}
+  .hud{padding:12px 14px;font-size:8.5px;letter-spacing:.14em}.hud-top .sec{display:none}.hud-bot .mid{display:none}
+}
+@media (prefers-reduced-motion:reduce){#vip *,#vip{animation:none!important;transition:none!important}}""",
+        js=r"""export default function(c){
+  const {parentElement:P,data,setTriggerValue}=c;
+  const $=s=>P.querySelector(s);
+  const root=$('#vip'),a=$('#audio'),pb=$('#play'),cb=$('#close'),sk=$('#skip'),st=$('#status'),fr=$('#frase'),
+        pg=$('#prog'),bootEl=$('#boot'),nm=$('#nome'),face=$('#face'),rain=$('#rain'),clk=$('#clock'),tv=$('#tagvox'),ts=$('#tagsync');
+  if(!root||!a||!face||!data||!data.audio)return;
+  const RM=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const name=String(data.name||'IDENTIDADE RECONHECIDA');
+  nm.textContent=name;nm.setAttribute('data-text',name);
+
+  /* ---------- legendas sincronizadas ---------- */
+  const words=String(data.phrase||'').split(/\s+/).filter(Boolean);
+  fr.textContent='';
+  const spans=words.map(w=>{const s=document.createElement('span');s.textContent=w+' ';fr.appendChild(s);return s;});
+  const wts=words.map(w=>w.length+3),tot=wts.reduce((x,y)=>x+y,0)||1;let acc=0;const cum=wts.map(w=>(acc+=w)/tot);
+  let lastIdx=-2;
+  const setWords=idx=>{if(idx===lastIdx)return;lastIdx=idx;spans.forEach((s,k)=>{s.classList.toggle('on',k<idx);s.classList.toggle('now',k===idx);});};
+  a.src='data:audio/mpeg;base64,'+data.audio;
+
+  let fc=0,done=false,playing=false,raf=0,ctx=null,an=null,tbuf=null,fbuf=null,amp=0,t0=performance.now(),timers=[];
+  let yaw=0,pitch=0,tYaw=0,tPitch=0,blinkAt=performance.now()+2600,blinkT=0,glitchAt=performance.now()+3000;
+  const T=(fn,ms)=>{const id=setTimeout(fn,ms);timers.push(id);return id;};
+
+  /* ---------- áudio + analisador (boca reage à voz real) ---------- */
+  async function tryAnalyser(){
+    if(an)return true;
+    try{
+      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
+      if(!ctx)ctx=new AC();
+      if(ctx.state!=='running'){await Promise.race([ctx.resume(),new Promise(r=>setTimeout(r,250))]);}
+      if(ctx.state!=='running')return false;
+      const src=ctx.createMediaElementSource(a);an=ctx.createAnalyser();an.fftSize=512;an.smoothingTimeConstant=.72;
+      src.connect(an);an.connect(ctx.destination);
+      tbuf=new Uint8Array(an.fftSize);fbuf=new Uint8Array(an.frequencyBinCount);return true;
+    }catch(e){an=null;return false;}
+  }
+  const showBtn=(b,on)=>{b.style.display=on?'inline-flex':'none';};
+  async function play(){
+    if(done)return;
+    await tryAnalyser();
+    try{await a.play();playing=true;root.classList.add('playing');showBtn(pb,false);st.textContent='TRANSMISSÃO SEGURA • AURORA FALANDO';}
+    catch(e){st.textContent='TOQUE EM ATIVAR TRANSMISSÃO PARA OUVIR';showBtn(pb,true);}
+  }
+  const onPlayClick=()=>{play();};
+  const finish=()=>{
+    if(done)return;done=true;try{a.pause();}catch(e){}
+    root.classList.add('out');
+    T(()=>{root.style.display='none';cancelAnimationFrame(raf);setTriggerValue('closed',true);},760);
+  };
+  const onEnded=()=>{playing=false;root.classList.remove('playing');setWords(words.length);pg.style.width='100%';ts.textContent='100%';
+    st.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';showBtn(cb,true);showBtn(pb,false);};
+  const onErr=()=>{playing=false;st.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';setWords(words.length);showBtn(cb,true);showBtn(pb,false);};
+  pb.addEventListener('click',onPlayClick);cb.addEventListener('click',finish);sk.addEventListener('click',finish);
+  a.addEventListener('ended',onEnded);a.addEventListener('error',onErr);
+
+  /* ---------- sequência de boot estilo terminal ---------- */
+  const lines=[
+    ['> núcleo neural ÉLÉVO ','OK','ok'],
+    ['> handshake criptográfico [AES-256] ','OK','ok'],
+    ['> identidade: ',name,'gd'],
+    ['> materializando AURORA ','100%','ok'],
+    ['> canal de voz aberto. transmitindo','','']
+  ];
+  const esc=s=>s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
+  function renderBoot(li,ci,full){
+    let h='';
+    for(let i=0;i<lines.length;i++){
+      if(i>li)break;const [txt,res,cls]=lines[i];
+      if(i<li||full){h+=esc(txt)+(res?'<span class="'+cls+'">'+esc(res)+'</span>':'')+'\n';}
+      else{h+=esc(txt.slice(0,ci));}
+    }
+    bootEl.innerHTML=h+'<span class="cur"></span>';
+  }
+  function runBoot(done_){
+    if(RM){renderBoot(lines.length-1,0,true);done_();return;}
+    let li=0,ci=0;
+    const step=()=>{
+      if(done)return;
+      const txt=lines[li][0];
+      if(ci<=txt.length){renderBoot(li,ci,false);ci+=2;T(step,14);return;}
+      let h='';for(let i=0;i<=li;i++){const [t,r,cl]=lines[i];h+=esc(t)+(r?'<span class="'+cl+'">'+esc(r)+'</span>':'')+'\n';}
+      bootEl.innerHTML=h+'<span class="cur"></span>';
+      li++;ci=0;
+      if(li<lines.length)T(step,120);else T(done_,200);
+    };
+    step();
+  }
+
+  /* ---------- modelo 3D da cabeça holográfica (nuvem de pontos) ---------- */
+  const pts=[];const ROWS=62,COLS=74;
+  const gauss=(dx,dy,sx,sy)=>Math.exp(-((dx*dx)/sx+(dy*dy)/sy));
+  for(let i=1;i<ROWS;i++){
+    const phi=i/ROWS*Math.PI;
+    for(let j=0;j<COLS;j++){
+      const th=(j+(i%2)*.5)/COLS*Math.PI*2;
+      let y=Math.cos(phi)*1.0,r=Math.sin(phi),x=r*Math.sin(th)*.74,z=r*Math.cos(th)*.84;
+      if(y<-.3){const k=Math.min(1,(-y-.3)/.7);x*=1-.36*k*k-.08*k;z*=1-.14*k;}
+      if(y>.35){x*=1+.05*(y-.35);}
+      const fr_=Math.max(0,Math.cos(th));
+      z-=fr_*.085*(gauss(x-.25,y-.1,.011,.005)+gauss(x+.25,y-.1,.011,.005));
+      z+=fr_*.045*gauss(0,y-.22,1,.004)*(Math.abs(x)<.46?1:0);
+      z+=fr_*.2*gauss(x,y+.06,.006,.03);
+      z+=fr_*.035*(gauss(x-.33,y+.12,.02,.02)+gauss(x+.33,y+.12,.02,.02));
+      z+=fr_*.05*gauss(x,y+.35,.03,.004);
+      const jaw=(y<-.355&&fr_>.25&&Math.abs(x)<.5)?Math.min(1,(fr_-.25)*2.2):0;
+      pts.push({x,y,z,jaw,fr:fr_,g:Math.random()<.05,
+        sx:(Math.random()-.5)*7,sy:(Math.random()-.5)*7,sz:(Math.random()-.5)*7,d:Math.random()*.45});
+    }
+  }
+  /* pescoço, ombros e cabelo: transformam a cabeça em personagem */
+  const add=(x,y,z,g,dim)=>pts.push({x,y,z,jaw:0,fr:0,g:!!g,dim:dim||1,
+    sx:(Math.random()-.5)*7,sy:(Math.random()-.5)*7,sz:(Math.random()-.5)*7,d:Math.random()*.45});
+  for(let i=0;i<14;i++){const y=-.78-i*.032;for(let j=0;j<40;j++){const th=j/40*Math.PI*2;add(Math.sin(th)*.27,y,Math.cos(th)*.25-.05,0,.8);}}
+  for(let i=0;i<20;i++){const v=i/19,y=-1.22-v*.42;const w=.32+Math.sqrt(v)*1.05;
+    for(let j=0;j<70;j++){const u=j/69*2-1;const x=u*w;const z=Math.sqrt(Math.max(0,1-u*u))*(.32+.1*v)-.08;
+      if(Math.abs(u)<.22&&v<.18)continue;add(x,y-(Math.abs(u)>.7?(Math.abs(u)-.7)*.25:0),z,Math.random()<.04,.85);}}
+  for(let i=0;i<46;i++){const v=i/45,phi=.05+v*1.9;
+    for(let j=0;j<46;j++){const th=Math.PI*(.5+j/45*1.0)+((i%2)*.03);
+      let y=Math.cos(Math.min(phi,Math.PI))*1.08,r=Math.sin(Math.min(phi,Math.PI*.98));
+      if(phi>Math.PI*.55){y=-.25-(phi-Math.PI*.55)*.95;r=1.0+(phi-Math.PI*.55)*.25;}
+      const x=Math.sin(th)*.84*r,z=Math.cos(th)*.9*r-.04;
+      if(z>.12&&y<.62)continue;add(x+(Math.random()-.5)*.02,y,z,Math.random()<.18,.7);}}
+  const near=(tx,ty)=>{let b=0,bd=1e9;pts.forEach((p,k)=>{if(p.fr<.6)return;const d=(p.x-tx)**2+(p.y-ty)**2;if(d<bd){bd=d;b=k;}});return pts[b];};
+  const eyeL=near(-.25,.1),eyeR=near(.25,.1),mouth=near(0,-.355);
+
+  /* ---------- canvas ---------- */
+  const fx=face.getContext('2d'),rx=rain.getContext('2d');
+  let W=0,H=0,DPR=1,RW=0,RH=0,cols=[],fs=14;
+  const glyphs='ÉLÉVO01アイウエオカキクケコサシスセソ<>/{}#$%&*+=AURORA0110';
+  function resize(){
+    DPR=Math.min(2,window.devicePixelRatio||1);
+    const r=face.getBoundingClientRect();W=Math.max(10,r.width*DPR);H=Math.max(10,r.height*DPR);face.width=W;face.height=H;
+    RW=Math.max(10,root.clientWidth*DPR);RH=Math.max(10,root.clientHeight*DPR);rain.width=RW;rain.height=RH;
+    fs=13*DPR;cols=Array.from({length:Math.ceil(RW/fs)},()=>Math.random()*RH/fs);
+    rx.fillStyle='#02050b';rx.fillRect(0,0,RW,RH);
+  }
+  resize();
+  const ro=(typeof ResizeObserver!=='undefined')?new ResizeObserver(resize):null;if(ro)ro.observe(root);
+  window.addEventListener('resize',resize);
+  const onMove=e=>{const r=root.getBoundingClientRect();tYaw=((e.clientX-r.left)/r.width-.5)*.7;tPitch=((e.clientY-r.top)/r.height-.5)*.3;};
+  root.addEventListener('pointermove',onMove);
+
+  let lastRain=0;
+  function drawRain(now){
+    if(now-lastRain<45)return;lastRain=now;
+    rx.fillStyle='rgba(2,5,11,.14)';rx.fillRect(0,0,RW,RH);
+    rx.font=fs+'px monospace';
+    for(let i=0;i<cols.length;i++){
+      const ch=glyphs[(Math.random()*glyphs.length)|0],y=cols[i]*fs;
+      rx.fillStyle=Math.random()<.04?'#d8b66a':(Math.random()<.12?'#bff8ff':'#1fb9d6');
+      rx.fillText(ch,i*fs,y);
+      if(y>RH&&Math.random()>.975)cols[i]=0;else cols[i]+=1;
+    }
+  }
+
+  const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
+  function proj(x,y,z,CX,CY,R){
+    const cy_=Math.cos(yaw),sy_=Math.sin(yaw);const x1=x*cy_+z*sy_,z1=-x*sy_+z*cy_;
+    const cp=Math.cos(pitch),sp=Math.sin(pitch);const y1=y*cp-z1*sp,z2=y*sp+z1*cp;
+    const s=3.4/(3.4-z2);return [CX+x1*s*R,CY-y1*s*R,z2,s];
+  }
+
+  function frame(now){
+    raf=requestAnimationFrame(frame);fc++;
+    const t=(now-t0)/1000;
+    if(!RM)drawRain(now);
+
+    /* amplitude da voz */
+    let target=0;
+    if(playing&&an){an.getByteTimeDomainData(tbuf);let s=0;for(let i=0;i<tbuf.length;i++){const v=(tbuf[i]-128)/128;s+=v*v;}
+      target=Math.min(1,Math.sqrt(s/tbuf.length)*4.6);an.getByteFrequencyData(fbuf);}
+    else if(playing){const g=Math.sin(t*2.7)>-.55?1:.15;target=g*Math.max(0,.5*Math.abs(Math.sin(t*10.7))*(.55+.45*Math.sin(t*3.3))+.18*Math.random());}
+    amp+=(target-amp)*(target>amp?.5:.22);
+    if(tv&&fc%6===0)tv.textContent=String(Math.round(amp*100)).padStart(2,'0')+'%';
+
+    /* legendas e progresso */
+    if(a.duration&&isFinite(a.duration)&&playing){
+      const p=a.currentTime/a.duration;pg.style.width=(p*100).toFixed(1)+'%';ts.textContent=String(Math.round(p*100)).padStart(2,'0')+'%';
+      let idx=cum.findIndex(v=>v>=p);if(idx<0)idx=words.length-1;setWords(idx);
+    }
+
+    /* movimento da cabeça */
+    const idleY=Math.sin(t*.45)*.22+Math.sin(t*.17)*.08,idleP=Math.sin(t*.6)*.05-.04;
+    yaw+=((RM?0:idleY+tYaw)-yaw)*.04;pitch+=((RM?0:idleP+tPitch)-pitch)*.04;
+    const nod=playing?amp*.04:0;
+
+    const CX=W/2,CY=H*.38,R=Math.min(W,H)*.235;
+    fx.clearRect(0,0,W,H);
+    fx.globalCompositeOperation='lighter';
+
+    /* projetor holográfico */
+    const cone=fx.createLinearGradient(0,CY+R*1.6,0,H*.97);
+    cone.addColorStop(0,'rgba(38,223,255,0)');cone.addColorStop(1,'rgba(38,223,255,.16)');
+    fx.fillStyle=cone;fx.beginPath();fx.moveTo(CX-R*1.4,CY+R*1.62);fx.lineTo(CX+R*1.4,CY+R*1.62);fx.lineTo(CX+R*1.7,H*.95);fx.lineTo(CX-R*1.7,H*.95);fx.closePath();fx.fill();
+    fx.save();fx.translate(CX,H*.95);fx.scale(1,.18);
+    const base=fx.createRadialGradient(0,0,0,0,0,R*1.15);base.addColorStop(0,'rgba(120,240,255,.55)');base.addColorStop(1,'rgba(38,223,255,0)');
+    fx.fillStyle=base;fx.beginPath();fx.arc(0,0,R*1.15,0,Math.PI*2);fx.fill();fx.restore();
+
+    /* halo de espectro ao redor da cabeça */
+    const N=96,hr=R*1.62;
+    for(let i=0;i<N;i++){
+      const ang=i/N*Math.PI*2-Math.PI/2;
+      let v=fbuf&&playing?fbuf[(i<N/2?i:N-i)*2+2]/255:(playing?amp*(.4+.6*Math.abs(Math.sin(i*.7+t*6))):.04+.03*Math.sin(i*.5+t*2));
+      const L=R*(.03+v*.32);
+      fx.strokeStyle=i%8===0?'rgba(216,182,106,'+(.35+v*.6)+')':'rgba(84,216,245,'+(.18+v*.7)+')';
+      fx.lineWidth=Math.max(1,1.6*DPR);
+      fx.beginPath();fx.moveTo(CX+Math.cos(ang)*hr,CY+Math.sin(ang)*hr);fx.lineTo(CX+Math.cos(ang)*(hr+L),CY+Math.sin(ang)*(hr+L));fx.stroke();
+    }
+
+    /* nuvem de pontos */
+    const asm=RM?1:ease((t-.25)/1.9);
+    const band=((t*.35)%1.6)-.8;
+    const jawDrop=amp*.15;
+    for(let k=0;k<pts.length;k++){
+      const p=pts[k];
+      const e=RM?1:ease((t-.25-p.d)/1.6);
+      let x=p.x,y=p.y-(p.jaw*jawDrop)-nod,z=p.z;
+      if(e<1){x=p.sx+(x-p.sx)*e;y=p.sy+(y-p.sy)*e;z=p.sz+(z-p.sz)*e;}
+      const q=proj(x,y,z,CX,CY,R);
+      const depth=(q[2]+1)/2;
+      let al=(.05+.75*depth*depth)*(p.dim||1);
+      if(Math.abs(p.y-band)<.035)al=Math.min(1,al+.6);
+      if(!RM&&Math.random()<.002)al=1;
+      fx.globalAlpha=al*(.25+.75*asm);
+      fx.fillStyle=p.g?'#e4c27b':(depth>.8?'#c9fbff':'#26dfff');
+      const sz=(1.15+depth*.9)*DPR*q[3]*.9;
+      fx.fillRect(q[0]-sz/2,q[1]-sz/2,sz,sz);
+    }
+    fx.globalAlpha=1;
+
+    /* olhos com piscar */
+    if(now>blinkAt){blinkT=now;blinkAt=now+2600+Math.random()*3200;}
+    const bk=now-blinkT<140?Math.max(.08,Math.abs((now-blinkT)/70-1)):1;
+    [eyeL,eyeR].forEach(ep=>{
+      const q=proj(ep.x,ep.y-nod,ep.z+.02,CX,CY,R);
+      const ew=R*.13*q[3],eh=R*.045*q[3]*bk;
+      fx.save();fx.translate(q[0],q[1]);
+      const g=fx.createRadialGradient(0,0,0,0,0,ew*1.6);g.addColorStop(0,'rgba(170,250,255,.55)');g.addColorStop(1,'rgba(38,223,255,0)');
+      fx.fillStyle=g;fx.beginPath();fx.ellipse(0,0,ew*1.6,ew*1.0,0,0,Math.PI*2);fx.fill();
+      fx.strokeStyle='rgba(200,252,255,.95)';fx.lineWidth=1.4*DPR;fx.beginPath();fx.ellipse(0,0,ew,eh,0,0,Math.PI*2);fx.stroke();
+      if(bk>.5){fx.fillStyle='#e9feff';fx.shadowColor='#26dfff';fx.shadowBlur=14*DPR;
+        fx.beginPath();fx.arc(yaw*ew*.6,pitch*eh*2,Math.max(1.5,eh*.75),0,Math.PI*2);fx.fill();fx.shadowBlur=0;}
+      fx.restore();
+    });
+
+    /* boca luminosa */
+    {
+      const q=proj(mouth.x,mouth.y-nod-jawDrop*.45,mouth.z+.02,CX,CY,R);
+      const mw=R*(.16+amp*.03)*q[3],mh=Math.max(1.2*DPR,R*amp*.11*q[3]);
+      fx.save();fx.translate(q[0],q[1]);
+      const g=fx.createRadialGradient(0,0,0,0,0,mw*1.4);g.addColorStop(0,'rgba(120,240,255,'+(.25+amp*.55)+')');g.addColorStop(1,'rgba(38,223,255,0)');
+      fx.fillStyle=g;fx.beginPath();fx.ellipse(0,0,mw*1.4,mw*.6+mh,0,0,Math.PI*2);fx.fill();
+      fx.strokeStyle='rgba(215,252,255,.95)';fx.lineWidth=1.5*DPR;fx.shadowColor='#26dfff';fx.shadowBlur=12*DPR;
+      fx.beginPath();fx.moveTo(-mw,0);fx.quadraticCurveTo(0,-mh*.6-1.5*DPR,mw,0);fx.quadraticCurveTo(0,mh*1.4+1.5*DPR,-mw,0);fx.stroke();
+      fx.restore();
+    }
+    fx.globalCompositeOperation='source-over';
+
+    /* glitch holográfico ocasional */
+    if(!RM&&now>glitchAt){
+      const n=3+((Math.random()*4)|0);
+      for(let i=0;i<n;i++){const sh=(Math.random()*H*.06)|0,sy=(Math.random()*(H-sh))|0,dx=((Math.random()-.5)*W*.05)|0;
+        if(sh>2)fx.drawImage(face,0,sy,W,sh,dx,sy,W,sh);}
+      if(Math.random()<.35)glitchAt=now+2500+Math.random()*4000;
+    }
+
+    /* relógio */
+    if(clk&&fc%30===1){const d=new Date();clk.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');}
+  }
+  raf=requestAnimationFrame(frame);
+
+  runBoot(()=>{if(done)return;st.textContent='ESTABELECENDO CONEXÃO DE VOZ...';sk.classList.add('show');play();});
+
+  return()=>{
+    done=true;cancelAnimationFrame(raf);timers.forEach(clearTimeout);
+    pb.removeEventListener('click',onPlayClick);cb.removeEventListener('click',finish);sk.removeEventListener('click',finish);
+    a.removeEventListener('ended',onEnded);a.removeEventListener('error',onErr);root.removeEventListener('pointermove',onMove);
+    window.removeEventListener('resize',resize);if(ro)ro.disconnect();
+    try{a.pause();}catch(e){}try{if(ctx)ctx.close();}catch(e){}
+  };
+}"""
     )
     _vip(key="elevo_vip_daily_overlay_v16841",
          data={"name": _vip_nome.upper(),
@@ -2458,7 +2865,7 @@ if (st.session_state.get("usuario_logado")
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
-st.markdown("<h3 style='text-align: center; color: #00BFA5; margin-bottom: 5px;'>⚡ Central de Operação</h3>", unsafe_allow_html=True)
+st.markdown('<div class="elevo-secao-titulo"><span>⚡</span> Central de Operação</div>', unsafe_allow_html=True)
 
 E_O_CEO = st.session_state.get("email_usuario") == EMAIL_MESTRE
 
@@ -2676,42 +3083,11 @@ else:
     st.markdown("""
     <nav class="elevo-shortcut-grid" aria-label="Acesso rápido às ferramentas">
       <a href="#criacao">▣ Criação 360º<span>Imagem e vídeo: gerar e copiar prompts</span></a>
-      <a href="#aurora">✧ Aurora IA<span>Orientações e comandos por voz</span></a>
+      <a href="#elenco-elevo">◈ Elenco<span>Escolha sua influenciadora</span></a>
       <a href="#missoes">◷ Missões<span>Hábitos e progresso</span></a>
     </nav>""", unsafe_allow_html=True)
 
-with st.expander("🔐 Minha Conta e Google", expanded=False):
-    st.caption("Identidade atual: " + str(st.session_state.get("email_usuario", "")))
-    st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
-    if GOOGLE_ATIVO and not (st.user.is_logged_in):
-        st.info("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
-        if st.button("🌐 Vincular minha conta Google", key="btn_vincular_google_logado"):
-            st.login("google")
-    elif GOOGLE_ATIVO:
-        st.success("Conta Google autenticada. Vínculo protegido pelo identificador Google.")
-    else:
-        st.caption("O administrador ainda precisa configurar Google OAuth para liberar esta opção.")
-
-if st.button("Sair da Conta (Logout)", key="btn_logout"):
-    # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
-    # componente acontece no navegador, por isso o bloqueio de restauração.
-    sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
-    cookies.pop("login", None)
-    cookies.pop("elevo_bv_google_v16814", None)
-    cookies.pop("elevo_bv_login_v16814", None)
-    cookies.save()
-    # 2) Forçar explicitamente a tela de login, mesmo que o cookie antigo
-    # ainda esteja no browser por alguns instantes. Não contém e-mail/token.
-    st.query_params["elevo_acesso"] = "novo"
-    # 3) Limpar apenas o estado do aplicativo e preservar os componentes
-    # internos que precisam continuar montados para excluir o cookie.
-    limpar_sessao_ao_sair()
-    if sair_do_google:
-        # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
-        st.logout()
-        st.stop()
-    # Não usar sleep(): isso não espera uma confirmação do navegador.
-    st.rerun()
+# V16.8.53 — conta, vínculo Google e logout movidos para o menu "Minha conta" do topo.
 
 # V16.8.23 — Criação em primeiro lugar para contas comuns.
 if not E_O_CEO:
@@ -10327,3 +10703,159 @@ li[role="option"]:hover,li[aria-selected="true"] {color:white!important;backgrou
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.54 — CAMADA FINAL: ORGANIZAÇÃO + PROFUNDIDADE "UAU"
+# Mesma paleta do app (azul/ciano/dourado/verde-água). Só layout, sombra e brilho.
+# ==========================================================
+_tokens_v16854 = ({
+    "__TEXT__": "#092853", "__MUTED__": "#566F90", "__ACCENT__": "#1457A1",
+    "__TOPBG__": "radial-gradient(ellipse at 96% 0%,rgba(25,125,255,.13),transparent 46%),linear-gradient(118deg,#FFFFFF,#F3F9FF 70%,#E3F1FF)",
+    "__TOPBORDER__": "#CADDF5",
+    "__TOPSHADOW__": "0 1px 2px rgba(15,45,95,.06),0 12px 28px rgba(22,77,147,.10),0 30px 60px -22px rgba(25,110,230,.28),inset 0 1px 0 #FFFFFF",
+    "__AVBG__": "#FFFFFF",
+    "__CARDSHADOW__": "0 1px 2px rgba(15,45,95,.05),0 10px 24px rgba(22,77,147,.08),0 26px 50px -24px rgba(22,77,147,.22)",
+    "__CARDSHADOW_H__": "0 2px 4px rgba(15,45,95,.06),0 16px 34px rgba(22,77,147,.12),0 34px 64px -26px rgba(25,110,230,.32)",
+    "__BTNSHADOW__": "0 1px 2px rgba(15,45,95,.08),0 6px 16px rgba(22,77,147,.10)",
+    "__BTNSHADOW_H__": "0 2px 4px rgba(15,45,95,.08),0 12px 26px rgba(25,110,230,.22)",
+    "__FOCUS__": "0 0 0 3px rgba(25,125,255,.20)",
+} if modo_claro else {
+    "__TEXT__": "#EAF2FF", "__MUTED__": "#9AAEC8", "__ACCENT__": "#8CCBFF",
+    "__TOPBG__": ("radial-gradient(ellipse at 92% 10%,rgba(62,151,226,.22),transparent 43%),"
+                  "radial-gradient(ellipse at 0% 100%,rgba(216,182,106,.07),transparent 40%),"
+                  "linear-gradient(118deg,rgba(17,37,64,.98),rgba(10,22,39,.96) 58%,rgba(16,35,56,.96))"),
+    "__TOPBORDER__": "rgba(100,174,231,.32)",
+    "__TOPSHADOW__": ("0 26px 60px rgba(0,0,0,.42),0 0 0 1px rgba(84,216,245,.05),"
+                      "0 0 46px rgba(49,132,204,.16),inset 0 1px 0 rgba(229,243,255,.10)"),
+    "__AVBG__": "#0B1628",
+    "__CARDSHADOW__": "0 20px 46px rgba(0,0,0,.34),0 6px 16px rgba(0,0,0,.22),0 0 30px rgba(45,137,207,.06),inset 0 1px 0 rgba(225,240,255,.08)",
+    "__CARDSHADOW_H__": "0 28px 60px rgba(0,0,0,.42),0 0 38px rgba(45,137,207,.16),inset 0 1px 0 rgba(225,240,255,.11)",
+    "__BTNSHADOW__": "0 8px 20px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06)",
+    "__BTNSHADOW_H__": "0 12px 28px rgba(0,0,0,.36),0 0 22px rgba(84,216,245,.22)",
+    "__FOCUS__": "0 0 0 3px rgba(84,216,245,.22),0 0 18px rgba(84,216,245,.18)",
+})
+_css_v16854 = """
+<style>
+/* =================== TOPO =================== */
+.st-key-elevo_topbar_v16853 {
+  position:relative!important;overflow:hidden!important;
+  margin:0 0 24px!important;padding:16px 20px!important;border-radius:24px!important;
+  background:__TOPBG__!important;border:1px solid __TOPBORDER__!important;box-shadow:__TOPSHADOW__!important;}
+/* Feixe de luz percorrendo a borda superior. */
+.st-key-elevo_topbar_v16853::after {
+  content:"";position:absolute;top:0;left:-40%;width:40%;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);
+  box-shadow:0 0 14px rgba(84,216,245,.7);animation:elevo-topo-feixe 6.5s cubic-bezier(.6,0,.4,1) infinite;}
+@keyframes elevo-topo-feixe {0%{left:-40%}60%,100%{left:110%}}
+.elevo-topbar-info {display:flex;align-items:center;gap:16px;min-width:0;padding:2px 2px;}
+.elevo-topbar-textos {display:flex;flex-direction:column;gap:5px;min-width:0;}
+.elevo-topbar-avatar {position:relative;flex:0 0 58px;width:58px;height:58px;border-radius:50%;
+  display:grid;place-items:center;isolation:isolate;
+  box-shadow:0 10px 26px rgba(25,110,230,.30),0 0 22px rgba(84,216,245,.22);}
+.elevo-topbar-avatar::before {content:"";position:absolute;inset:0;border-radius:50%;z-index:-2;
+  background:conic-gradient(from 0deg,#54D8F5,#1363D6,#D8B66A,#54D8F5);animation:elevo-avatar-giro 7s linear infinite;}
+.elevo-topbar-avatar::after {content:"";position:absolute;inset:3px;border-radius:50%;z-index:-1;background:__AVBG__;}
+.elevo-topbar-avatar span {font:900 1.45rem Montserrat,sans-serif;line-height:1;
+  background:linear-gradient(135deg,#54D8F5,#1363D6 55%,#D8B66A);-webkit-background-clip:text;background-clip:text;
+  color:transparent!important;-webkit-text-fill-color:transparent!important;}
+.elevo-topbar-avatar em {position:absolute;right:1px;bottom:3px;width:13px;height:13px;border-radius:50%;
+  background:#2FD39A;border:2.5px solid __AVBG__;box-shadow:0 0 10px #2FD39A;}
+@keyframes elevo-avatar-giro {to{transform:rotate(360deg)}}
+.elevo-topbar-kicker {font:800 .64rem Montserrat,sans-serif;letter-spacing:.18em;color:__ACCENT__!important;text-transform:uppercase;}
+.elevo-topbar-titulo {font:850 clamp(1.3rem,2.5vw,1.85rem)/1.12 Montserrat,sans-serif!important;
+  color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;letter-spacing:-.022em;margin:0!important;padding:0!important;
+  overflow-wrap:anywhere;}
+.elevo-topbar-sub {display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:.78rem;}
+.elevo-topbar-sub > span:first-child {color:__MUTED__!important;}
+.elevo-topbar-chip {display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;
+  border:1px solid rgba(71,220,169,.32);background:rgba(33,180,133,.09);
+  font:700 .66rem Montserrat,sans-serif;letter-spacing:.06em;color:#3FBF8F!important;}
+.elevo-topbar-chip i {width:7px;height:7px;border-radius:50%;background:#2FD39A;box-shadow:0 0 8px #2FD39A;
+  animation:elevo-pulso-on 2.2s ease-in-out infinite;}
+@keyframes elevo-pulso-on {50%{box-shadow:0 0 0 5px rgba(47,211,154,0),0 0 14px #2FD39A}}
+.st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] {display:flex;justify-content:flex-end;}
+.st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] p {font-weight:650!important;font-size:.82rem!important;white-space:nowrap;}
+.st-key-elevo_conta_pop_v16853 button,
+.st-key-elevo_topbar_v16853 [data-testid="stPopover"] button {min-height:46px!important;border-radius:14px!important;
+  font-weight:750!important;box-shadow:__BTNSHADOW__!important;}
+
+/* Botão SAIR: presente, sólido e com brilho de alerta. */
+.st-key-btn_logout button {
+  min-height:46px!important;border-radius:14px!important;border:1px solid rgba(255,140,160,.55)!important;
+  background:linear-gradient(135deg,#FF5A78 0%,#FF496B 45%,#D62A4E 100%)!important;
+  color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;font-weight:850!important;letter-spacing:.03em!important;
+  box-shadow:0 10px 24px rgba(255,73,107,.36),0 0 0 1px rgba(255,73,107,.10),inset 0 1px 0 rgba(255,255,255,.28)!important;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease!important;}
+.st-key-btn_logout button * {color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;font-weight:850!important;}
+.st-key-btn_logout button:hover {transform:translateY(-2px)!important;filter:brightness(1.06);
+  box-shadow:0 16px 34px rgba(255,73,107,.48),0 0 26px rgba(255,73,107,.30),inset 0 1px 0 rgba(255,255,255,.32)!important;}
+.st-key-btn_logout button:active {transform:translateY(0)!important;}
+.st-key-btn_logout button:focus-visible {outline:none!important;box-shadow:0 0 0 3px rgba(255,73,107,.35),0 10px 24px rgba(255,73,107,.36)!important;}
+
+/* =================== PROFUNDIDADE GERAL =================== */
+[data-testid="stVerticalBlockBorderWrapper"],[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stMetric"] {
+  box-shadow:__CARDSHADOW__!important;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease!important;}
+[data-testid="stVerticalBlockBorderWrapper"]:hover,[data-testid="stMetric"]:hover {
+  box-shadow:__CARDSHADOW_H__!important;}
+[data-testid="stMetric"]:hover {transform:translateY(-2px);}
+.stButton > button,[data-testid="stFormSubmitButton"] > button,[data-testid="stDownloadButton"] > button {
+  box-shadow:__BTNSHADOW__!important;transition:transform .18s ease,box-shadow .18s ease!important;}
+.stButton > button:hover,[data-testid="stFormSubmitButton"] > button:hover,[data-testid="stDownloadButton"] > button:hover {
+  transform:translateY(-1px);box-shadow:__BTNSHADOW_H__!important;}
+.stButton > button[kind="primary"],[data-testid="stFormSubmitButton"] > button[kind="primary"] {
+  box-shadow:0 10px 26px rgba(19,99,214,.34),inset 0 1px 0 rgba(255,255,255,.22)!important;}
+.stButton > button[kind="primary"]:hover,[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {
+  box-shadow:0 16px 34px rgba(19,99,214,.44),0 0 24px rgba(84,216,245,.25),inset 0 1px 0 rgba(255,255,255,.26)!important;}
+[data-testid="stTextInput"] input:focus,[data-testid="stTextArea"] textarea:focus,
+[data-baseweb="select"] > div:focus-within {box-shadow:__FOCUS__!important;}
+[data-testid="stPopoverBody"],[data-baseweb="popover"] > div {box-shadow:0 24px 60px rgba(0,0,0,.28),0 0 0 1px rgba(84,216,245,.10)!important;border-radius:16px!important;}
+
+/* Atalhos rápidos com elevação e brilho. */
+.elevo-shortcut-grid a {box-shadow:__CARDSHADOW__!important;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease!important;}
+.elevo-shortcut-grid a:hover {transform:translateY(-3px)!important;box-shadow:__CARDSHADOW_H__!important;}
+
+/* =================== RITMO DAS SEÇÕES =================== */
+.elevo-secao-titulo {display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 16px;
+  font:800 clamp(1.02rem,2vw,1.24rem) Montserrat,sans-serif;letter-spacing:.03em;color:#00BFA5!important;
+  -webkit-text-fill-color:#00BFA5!important;}
+.elevo-secao-titulo::before,.elevo-secao-titulo::after {content:"";height:1px;width:clamp(28px,8vw,90px);
+  background:linear-gradient(90deg,transparent,rgba(0,191,165,.6));}
+.elevo-secao-titulo::after {transform:scaleX(-1);}
+.elevo-secao-titulo span {filter:drop-shadow(0 0 7px rgba(0,191,165,.45));}
+[data-testid="stMainBlockContainer"] h3 {margin-top:.4rem!important;margin-bottom:.6rem!important;}
+hr {margin:1.6rem 0!important;opacity:.75;}
+.st-key-elevo_boas_vindas_v16824 {margin-bottom:2px;}
+
+/* =================== COMPUTADOR =================== */
+@media (min-width:1000px) {
+  .block-container {padding-top:1.4rem!important;}
+}
+
+/* =================== CELULAR =================== */
+@media (max-width:767px) {
+  .st-key-elevo_topbar_v16853 {padding:14px 13px!important;border-radius:20px!important;margin-bottom:16px!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] {flex-wrap:wrap!important;gap:.6rem!important;}
+  /* Linha 1: avatar + saudação. Linha 2: tema. Linha 3: conta e sair lado a lado. */
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1),
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
+    flex:1 1 100%!important;width:100%!important;min-width:100%!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3),
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) {
+    flex:1 1 calc(50% - .3rem)!important;width:calc(50% - .3rem)!important;min-width:0!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] {justify-content:flex-start;}
+  .elevo-topbar-avatar {flex-basis:50px;width:50px;height:50px;}
+  .elevo-topbar-avatar span {font-size:1.25rem;}
+  .elevo-topbar-titulo {font-size:1.3rem!important;}
+  .elevo-shortcut-grid {gap:10px!important;margin-bottom:18px!important;}
+  .elevo-shortcut-grid a {padding:14px 15px!important;}
+  [data-testid="stMetric"]:hover,.elevo-shortcut-grid a:hover {transform:none!important;}
+  hr {margin:1.1rem 0!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .st-key-elevo_topbar_v16853::after,.elevo-topbar-avatar::before,.elevo-topbar-chip i {animation:none!important;}
+}
+</style>
+"""
+for _tk_v16854, _tv_v16854 in _tokens_v16854.items():
+    _css_v16854 = _css_v16854.replace(_tk_v16854, _tv_v16854)
+st.markdown(_css_v16854, unsafe_allow_html=True)
