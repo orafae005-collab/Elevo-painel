@@ -2493,6 +2493,42 @@ border-color:rgba(39,222,238,.65)!important;box-shadow:0 4px 20px rgba(0,184,221
 </style>
 """, unsafe_allow_html=True)
 
+# ==========================================================
+ELEVO_PLANOS_PAGAMENTO_V1 = {
+    "bronze": {"nome": "Bronze", "preco": 9.90, "creditos": 1000},
+    "ouro": {"nome": "Ouro", "preco": 19.90, "creditos": 3000},
+    "diamante_vip": {"nome": "Diamante VIP", "preco": 39.90, "creditos": 7000},
+    "diamante_supremo": {"nome": "Diamante Supremo VIP", "preco": 99.90, "creditos": 10000},
+}
+
+def elevo_gateway_checkout_v1(plano_id):
+    plano = ELEVO_PLANOS_PAGAMENTO_V1.get(str(plano_id))
+    email = elevo_email_v16813()
+    if not plano or not email or not st.session_state.get("usuario_logado"):
+        raise ValueError("Plano ou sessão inválida.")
+    gateway = str(st.secrets.get("ELEVO_GATEWAY_URL", "")).strip().rstrip("/")
+    segredo = str(st.secrets.get("ELEVO_GATEWAY_SECRET", "")).strip()
+    if not gateway or not segredo:
+        raise RuntimeError("Gateway ainda não configurado no Streamlit Secrets.")
+    resposta = requests.post(
+        gateway + "/checkout",
+        json={"plan_id": plano_id, "email": email},
+        headers={"Authorization": "Bearer " + segredo, "Content-Type": "application/json"},
+        timeout=25,
+    )
+    if resposta.status_code != 200:
+        raise RuntimeError("Não foi possível iniciar o pagamento. Tente novamente.")
+    dados = resposta.json()
+    url = str(dados.get("checkout_url", "")).strip()
+    if not url.startswith("https://"):
+        raise RuntimeError("O gateway não retornou um endereço seguro de pagamento.")
+    return url
+
+
+# ÉLÉVO PAGAMENTOS V1 — CHECKOUT MERCADO PAGO
+# Integração isolada; créditos só entram após confirmação do Worker.
+# Secrets necessários no Streamlit: ELEVO_GATEWAY_URL e ELEVO_GATEWAY_SECRET.
+
 _elevo_email_painel_v16813 = elevo_email_v16813()
 _elevo_nome_painel_v16813 = html_std.escape(str(st.session_state.get("nome_usuario", "Usuário")))
 _elevo_avatar_b64_v16813 = ""
@@ -2564,7 +2600,25 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
                         "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
-    # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
+    # Checkout Mercado Pago — pacotes pré-pagos, sem recarga automática.
+    with st.container(key="elevo_checkout_creditos_v1"):
+        with st.expander("💳 Comprar créditos", expanded=False):
+            st.caption("Pagamento seguro pelo Mercado Pago. Os créditos são adicionados após a confirmação do pagamento.")
+            _cols_planos_v1 = st.columns(2)
+            for _idx_v1, (_plano_id_v1, _plano_v1) in enumerate(ELEVO_PLANOS_PAGAMENTO_V1.items()):
+                with _cols_planos_v1[_idx_v1 % 2]:
+                    st.markdown(
+                        f"**{_plano_v1['nome']}**  \n"
+                        f"R$ {_plano_v1['preco']:.2f} • {_plano_v1['creditos']:,} créditos".replace(",", ".")
+                    )
+                    if st.button(f"Comprar {_plano_v1['nome']}", key=f"elevo_buy_{_plano_id_v1}", use_container_width=True):
+                        try:
+                            _url_checkout_v1 = elevo_gateway_checkout_v1(_plano_id_v1)
+                            st.link_button("Ir para pagamento", _url_checkout_v1, use_container_width=True)
+                        except Exception as _erro_checkout_v1:
+                            st.error(str(_erro_checkout_v1) if isinstance(_erro_checkout_v1, (ValueError, RuntimeError)) else
+                                     "Falha ao iniciar pagamento. Tente novamente.")
+    # V16.8.24: fluxo antigo de solicitação ao CEO preservado.
     with st.container(key="elevo_painel_creditos_v16824"):
         with st.expander("▤ Pedir créditos ao CEO", expanded=False):
             st.caption("Seu pedido será exibido no painel do CEO. Não há recarga automática.")
@@ -9504,6 +9558,11 @@ if not modo_claro:
     </style>
     """, unsafe_allow_html=True)
 
+
+
+# ==========================================================
+
+
 # ==========================================================
 # ÉLÉVO V16.8.24 — ACABAMENTO VIP APROVADO / SOMENTE INTERFACE
 # Regras tardias para evitar sobreposição de estilos antigos do Streamlit.
@@ -10327,4 +10386,3 @@ li[role="option"]:hover,li[aria-selected="true"] {color:white!important;backgrou
 }
 </style>
 """, unsafe_allow_html=True)
-
