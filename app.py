@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.55 — ESTÚDIO REORGANIZADO (ELENCO, AMBIENTES, CRIAÇÃO) + CORREÇÃO CÉREBRO CEO | BASE V16.8.54
+# ÉLÉVO V16.8.56 — VÍDEO: TAMANHO DO PRODUTO IGUAL AO DA IMAGEM (3 MOTORES) | BASE V16.8.55
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -7028,7 +7028,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                  "Do not force a grab-lift-demonstrate-return sequence into two seconds."),
             12: ("12s: use 00:06–00:09 for ONE continuous, believable hand interaction. "
                  "Allow finger pressure, realistic object mass, a natural wrist correction "
-                 "and one modest focus adjustment; lift and return ONLY if unhurried and fully supported."),
+                 "and one modest focus adjustment; lift and return ONLY if unhurried, fully supported "
+                 "and at the same distance from the lens."),
             15: ("15s: from 00:06–00:10, develop ONE coherent demonstration with "
                  "natural hand contact; from 00:10–00:13, allow a small nonrepeated "
                  "reaction from the EXISTING person or environment, then 00:13–00:15 "
@@ -7097,8 +7098,10 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                 'product reference govern one unchanged physical item per original unit. '
                 'Carry forward exactly the same silhouette, material, original printed graphics, '
                 'relative hand-to-product scale and surface details; no new object interpretation '
-                'when the hand moves or camera reframes. Only perspective and illumination may '
-                'change naturally. No product redraw, shape drift, label shimmer or duplicates. '
+                'when the hand moves. Only illumination may change naturally; the product keeps '
+                'exactly the same on-screen size it has in the APPROVED IMAGE in every frame '
+                '(never slightly larger, never closer to the lens). '
+                'No product redraw, shape drift, label shimmer or duplicates. '
                 'Never invent physical packaging descriptions in this prompt.\n'
                 + elevo_microfisica_adaptativa_v16830(
                     duracao, modo=modo, produto_primeiro_3s=produto_primeiro_3s)
@@ -7384,7 +7387,10 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
             "make it a hero prop, zoom into it, or let it expand during a hand gesture. No product rotation "
             "greater than a tiny natural stabilization (maximum about 3 degrees); no tilt-to-camera, "
             "no label-facing showcase. If the presenter speaks or gestures, the product stays at its "
-            "original location and scale. If exact scale cannot be maintained, keep the product still.",
+            "original location and scale. If exact scale cannot be maintained, keep the product still. "
+            "SIZE REFERENCE = THE APPROVED STILL, NOT THE PRODUCT PHOTO: match the still's on-screen size "
+            "exactly; the separately uploaded product photo only defines identity and must never make "
+            "the item render larger.",
             f"INVENTORY LOCK: exactly {qtd} original source unit(s), each continuously present, "
             "separate and unchanged. Unhandled units remain fixed on their original support. "
             "No duplication, merging, disappearance, substitution, shape drift, label shimmer or resizing.",
@@ -8457,7 +8463,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             shot1 = (
                 'Shot 1 (00:00–00:03, PRODUCT FIRST): For the first FULL three seconds, '
             'keep the exact existing photo-referenced unit(s) in a natural product-led '
-            'shot with unchanged 1:1 proportions. The face stays outside the frame; '
+            'shot with unchanged 1:1 proportions. The face stays outside the frame by aiming '
+            'the phone slightly lower at the SAME distance and lens as the approved still '
+            '(a tilt down, never moving closer or cropping in), so the product keeps exactly '
+            'its on-screen size from the approved still; '
             'hands, if already present, must belong to the same selected presenter. '
             'Camera and original supports stay physically grounded; no macro crop, '
             'digital zoom, artificial enlargement, package reconstruction or hidden '
@@ -8470,11 +8479,29 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             'her supporting hand in the same real environment. One authentic glance '
             'or small hand adjustment may happen; keep the exact 1:1 physical size, '
             'actual source inventory, realistic focus, existing supports and reflections. '
+            'The product keeps exactly the on-screen size of the approved still. '
             'No product hero enlargement, extreme macro or artificial showcase angle.'
             )
+        # V16.8.56 — o produto no VÍDEO deve ter exatamente o mesmo tamanho em tela
+        # da IMAGEM aprovada. Somente texto do vídeo; a imagem não é alterada.
+        trava_tamanho_video_v16856 = (
+            '[ÉLÉVO V16.8.56 — IMAGE-TO-VIDEO PRODUCT SIZE MATCH / FRAME 0 IS THE SIZE AUTHORITY]: '
+            'The approved still (frame 0) defines the on-screen SIZE of every product unit. '
+            'In every video frame each unit keeps EXACTLY the same apparent size it has in the approved '
+            'still: the same share of frame width and height, and the same size relative to the presenter\'s '
+            'face, hand, torso and the surrounding furniture. The separately attached product photo defines '
+            'IDENTITY ONLY (shape, artwork, label, material) — never its size, crop or distance; do not '
+            're-render the item at the scale of that reference photo. Do not make it even slightly larger '
+            'for clarity, label readability or emphasis. Keep the still\'s camera distance, lens field of view '
+            'and crop; the presenter does not lean toward the lens and the hand never brings the product '
+            'closer to the camera than in frame 0. Any small lift happens sideways or upward at the same '
+            'distance from the lens. No push-in, dolly-in, crop-in, digital zoom or perspective change '
+            'that enlarges the product.'
+        )
         video_visual = (
             '🎬 [ÉLÉVO V9 REALITY ENGINE — FINAL VISUAL DIRECTION / ONE SOURCE OF TRUTH]\n'
             + produto_comum + '\n'
+            + trava_tamanho_video_v16856 + '\n'
             + f'[KIT INVENTORY — {qtd_str} ORIGINAL UNIT(S)]: {inventario_imagem} '
         'Maintain every ORIGINAL unit as a distinct rigid object from 00:00 to the final frame. '
         'No disappearance, duplicate, morph, relabeling, change of geometry or extra hand.\n'
@@ -8488,15 +8515,23 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         'voice and natural mannerisms as the still. Changing her identity must NEVER '
         'change any source-referenced product unit, label or scale.\n'
             + shot1 + '\n'
-            + '🎥 Shot 2 (00:03–00:06, THE GOSSIP LEAN): Gently reframe to the SAME '
-        'selected presenter’s face, not a jump cut or different character; a brief '
-        'natural smartphone autofocus settle follows a small real camera tilt. '
-        'Authentic eye contact, a tiny expressive eyebrow movement, imperfect '
+            + ('🎥 Shot 2 (00:03–00:06, PRESENTER REVEAL): Tilt the phone back up at the SAME '
+        'distance and lens to the approved still\'s exact framing, revealing the SAME selected '
+        'presenter — no lean, push-in or crop toward her face, not a jump cut or different character; '
+        'a brief natural smartphone autofocus settle follows the tilt. '
+               if produto_primeiro_3s else
+               '🎥 Shot 2 (00:03–00:06, THE GOSSIP MOMENT): Keep the approved still\'s framing and '
+        'camera distance. The SAME selected presenter connects with the lens through eyes and '
+        'expression only — no lean toward the camera, no reframe or push toward her face, not a '
+        'jump cut or different character; a brief natural smartphone autofocus settle is allowed. ')
+        + 'Authentic eye contact, a tiny expressive eyebrow movement, imperfect '
         'breath timing and plausible hair drift; real skin pores and minor sensor '
         'noise stay intact. Keep every referenced unit in its physically continuous '
-        'location or trace its visible trajectory if the framing changes.\n'
+        'location and at its frame-0 on-screen size.\n'
             + '🫱 Interaction (00:06–00:08, NATURAL PHYSICAL ACTION): One subtle human '
         'gesture appropriate to the actual object and supported by the image. '
+        'Any lift stays at the same distance from the lens (sideways or upward only, never '
+        'toward the camera) so the product keeps its frame-0 on-screen size. '
         'Before any lift, the same anatomically correct fingers visibly establish '
         'a secure grip; wrist and forearm compensate naturally for real mass and '
         'inertia. Only physically permitted motion occurs; gravity, friction, '
@@ -8708,9 +8743,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             'FRAME ZERO = THE APPROVED STILL IMAGE. Preserve its real room geometry, existing everyday clutter, '
             'the same person, product-unit count, positions, lighting and all visible object identities. '
             'ONE NON-REPEATING ACTION ARC: read the actual initial hand/product contact before moving anything; '
-            'if already holding the item, keep that SAME secure grip and allow only ONE small purposeful presentation '
-            'tilt or natural stabilization; if supported, optionally establish ONE visible grip, make ONE short '
-            'physically possible move, then settle ONCE. Never reset to the start pose, regrip without cause, '
+            'if already holding the item, keep that SAME secure grip and allow only ONE tiny natural '
+            'stabilization (never tilted or brought toward the lens); if supported, optionally establish ONE '
+            'visible grip, make ONE short physically possible move at the same distance from the lens, then '
+            'settle ONCE. The product keeps the exact on-screen size of the approved still. '
+            'Never reset to the start pose, regrip without cause, '
             'repeat a display cycle, repeatedly point/tap/wave, reverse the same move or loop facial expressions. '
             'HUMAN MECHANICS: EXACTLY two arms and two hands, with persistent left/right identity. A hand '
             'holding a product cannot simultaneously touch hair or appear twice. Hair touch is allowed only '
