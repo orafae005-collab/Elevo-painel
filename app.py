@@ -1,4 +1,4 @@
-# ÉLÉVO V16.8.54 — TOPO COM SAIR EM DESTAQUE + PROFUNDIDADE + AURORA HOLOGRÁFICA DIÁRIA | BASE V16.8.52
+# ÉLÉVO V16.8.55 — ESTÚDIO REORGANIZADO (ELENCO, AMBIENTES, CRIAÇÃO) + CORREÇÃO CÉREBRO CEO | BASE V16.8.54
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -4097,14 +4097,33 @@ def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=
 
 
 # ==========================================================
+# V16.8.55 — CABEÇALHO DE ETAPA (somente apresentação).
+# ==========================================================
+def elevo_secao_hero_v16855(numero, kicker, titulo, texto, chips=()):
+    chips_html = "".join(f"<span>{html_std.escape(str(c))}</span>" for c in chips)
+    st.markdown(
+        '<section class="elevo-hero-sec">'
+        f'<div class="elevo-hero-num"><small>ETAPA</small>{html_std.escape(str(numero))}</div>'
+        '<div class="elevo-hero-txt">'
+        f'<span class="elevo-hero-kicker">{html_std.escape(kicker)}</span>'
+        f'<div class="elevo-hero-titulo">{html_std.escape(titulo)}</div>'
+        f'<p>{html_std.escape(texto)}</p>'
+        f'<div class="elevo-hero-chips">{chips_html}</div>'
+        '</div></section>', unsafe_allow_html=True)
+
+
+# ==========================================================
 # ÉLÉVO V16.4 — ELENCO DIGITAL (substitui SOMENTE Laboratório + 9s)
 # Retratos originais embarcados no app.py; não necessita upload de imagens.
 # ==========================================================
 with _elevo_area_criacao_v16823:
     st.divider()
     st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
-    st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
-    st.caption("Oito influenciadoras oficiais e a identidade do CEO, mais os perfis adicionados pelo administrador. Suas próprias criações ficam visíveis só no seu login; a ficha segue com a foto para os Blocos 17 e 17.2.")
+    elevo_secao_hero_v16855(
+        "01", "ELENCO DE INFLUENCIADORAS VIRTUAIS", "Escolha quem vai apresentar o seu produto",
+        "Oito influenciadoras oficiais e a identidade do CEO, mais os perfis adicionados pelo administrador. "
+        "Suas próprias criações ficam visíveis só no seu login; a ficha segue com a foto para os Blocos 17 e 17.2.",
+        ("✦ Perfis oficiais", "🔒 Privado por login", "→ Imagem, vídeo e fala"))
 
     INFLUENCIADORAS_ELEVO_V164 = {
         'ana': {
@@ -4622,14 +4641,21 @@ with _elevo_area_criacao_v16823:
                     if foto_card and re.fullmatch(r"[A-Za-z0-9+/=]+", foto_card)
                     else '<div class="elevo-elenco-foto" style="display:grid;place-items:center;background:#dceaff;color:#183b71">📷 Foto não disponível</div>'
                 )
+                # V16.8.55 — card retrato: nome sobre a foto, nicho e resumo abaixo.
                 st.markdown(
-                    f'<div class="elevo-elenco-card{classe_ativo}">'
+                    f'<div class="elevo-elenco-card elevo-card-v16855{classe_ativo}">'
+                    '<div class="elevo-elenco-midia">'
                     f'{imagem_html}'
+                    '<div class="elevo-elenco-sombra"></div>'
+                    f'{selo_ativo}'
+                    '<div class="elevo-elenco-legenda">'
                     f'<div class="elevo-elenco-nome">{html_std.escape(str(card["nome"]))}</div>'
                     f'<div class="elevo-elenco-idade">{html_std.escape(idade_txt)}</div>'
+                    '</div></div>'
+                    '<div class="elevo-elenco-corpo">'
                     f'<div class="elevo-elenco-nicho">{html_std.escape(str(card["nicho"]))}</div>'
                     f'<div class="elevo-elenco-desc">{html_std.escape(str(card["resumo"]))}</div>'
-                    f'{selo_ativo}</div>', unsafe_allow_html=True
+                    '</div></div>', unsafe_allow_html=True
                 )
                 if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{card['id']}",
                              type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
@@ -4871,8 +4897,11 @@ with _elevo_area_criacao_v16823:
     # ==========================================================
     st.markdown('<div id="ambientes"></div>', unsafe_allow_html=True)
     st.divider()
-    st.markdown('### 🌍 Estúdio de Ambientes · ÉLÉVO | 22 matrizes')
-    st.caption('São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes). A mesma cena permanece na imagem e no vídeo, nos Blocos 17 e 17.2.')
+    elevo_secao_hero_v16855(
+        "02", "ESTÚDIO DE AMBIENTES · 22 MATRIZES", "Defina o cenário da cena",
+        "São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes). "
+        "A mesma cena permanece na imagem e no vídeo, nos Blocos 17 e 17.2.",
+        ("🌍 22 matrizes", "♾️ Modo Infinito", "🎬 Mesma cena na imagem e no vídeo"))
 
     AMBIENTES_ELEVO_V165 = {'banheiro': {'nome': 'Banheiro Caótico', 'icone': '🚿', 'categoria': 'Interior', 'resumo': 'Espelho embaçado, toalha úmida e luz real de janela.', 'elementos': 'a lived-in Brazilian bathroom with a partly fogged mirror, a towel hanging off-center, a closed hair dryer on a DRY shelf away from water, subtle soap marks and a small porcelain sink', 'luz': 'soft daylight entering from a real side window, reflected with realistic falloff on wet and dry tiles', 'fisica': 'steam only where warm running water is explicitly present, condensation sliding slowly on the mirror, one damp towel corner moving only if a draft exists', 'som': 'distant ventilation hum and occasional water drip only if the tap is visible', 'animal': 'no animal'}, 'varanda': {'nome': 'Varanda Tropical', 'icone': '🌿', 'categoria': 'Natureza', 'resumo': 'Varanda tropical com vento, chuva eventual e folhas de bananeira em movimento.', 'elementos': 'a lived-in Brazilian covered tropical veranda with worn wood railings, a small ceramic mug and casually coiled phone cable on a rustic side table, hanging ferns and broad banana leaves outside under a roof edge; a cotton towel sits over the railing', 'luz': 'authentic overcast daylight with slightly warm reflected light from indoors; only rain if actively visible in this preset', 'fisica': 'outdoor banana leaves flutter with plausible inertia, hanging fern tips react asymmetrically to the same breeze; if rain is visible beyond the roof edge, droplets follow real gravity and the towel darkens only where wetted', 'som': 'light wind through leaves and rain on the roof only if raining', 'animal': 'a small bird sheltered in rafters only if introduced in the first still image'}, 'penteadeira': {'nome': 'Penteadeira Golden Hour', 'icone': '🪞', 'categoria': 'Interior', 'resumo': 'Maquiagem usada, espelho real e luz dourada de fim de tarde.', 'elementos': 'an everyday Brazilian vanity table with a softly smudged mirror, a few makeup brushes out of alignment, open compact powder, a hair clip and a slightly wrinkled cotton cloth', 'luz': 'low-angle golden hour sunlight crossing the tabletop with physically accurate mirror reflections', 'fisica': 'single floating dust motes near the window, faint cloth motion only under a real fan or draft, makeup tools staying in place', 'som': 'soft indoor room tone and distant street ambience', 'animal': 'no animal'}, 'servico': {'nome': 'Área de Serviço Raiz', 'icone': '🧺', 'categoria': 'Casa', 'resumo': 'Varal com roupas, tanque de cimento e piso com marcas de uso.', 'elementos': 'a humble Brazilian laundry area with a concrete utility sink, an upright blue bucket, a clothesline with two damp garments, a folded detergent box and authentic worn tile grout', 'luz': 'diffuse late-morning sun from an open patio side, consistent shadows under hanging laundry', 'fisica': 'wet sleeves dripping sparsely into the sink and fabric moving slowly only from an existing breeze; water keeps plausible gravity', 'som': 'distant domestic ambience, occasional isolated drip and cloth rustle', 'animal': 'no animal'}, 'jardim': {'nome': 'Jardim Rústico', 'icone': '🪴', 'categoria': 'Natureza', 'resumo': 'Costela-de-adão, mangueira no chão e folhas com marcas naturais.', 'elementos': 'a small rustic Brazilian garden with lush Monstera, irregular stepping stones, a coiled garden hose, leaf litter and terracotta pots showing realistic soil and water marks', 'luz': 'overcast daylight with naturally mottled shadow from real nearby leaves', 'fisica': 'independent foliage sway, a hose tip releasing water only if its tap is open, a few droplets soaking real soil', 'som': 'subtle garden insects, distant birds and leaf movement', 'animal': 'no animal unless explicitly included in image'}, 'cachoeira': {'nome': 'Cachoeira Secreta', 'icone': '💧', 'categoria': 'Natureza', 'resumo': 'Pedras molhadas, musgo, névoa e correnteza real.', 'elementos': 'a reachable natural cascade with moss-covered wet stones, a safe flat standing platform above the spray, textured bark, sparse fallen leaves and one folded linen towel on dry ground', 'luz': 'natural canopy-filtered daylight reflecting realistically off flowing water and wet rock', 'fisica': 'unbroken water stream with turbulence and splash, soft spray drifting with direction of air, towel staying dry outside the splash zone', 'som': 'continuous nearby running water with varying intensity', 'animal': 'no animal'}, 'cozinha': {'nome': 'Cozinha Afetiva', 'icone': '☕', 'categoria': 'Casa', 'resumo': 'Café passando, pano de prato e bancada que parece usada.', 'elementos': 'a real Brazilian home kitchen with a wooden counter, fresh coffee dripping into a pot, a slightly wrinkled checkered tablecloth, a spoon, an open recipe notebook and a half-used sponge', 'luz': 'soft morning daylight from the kitchen window, warm reflected light on ceramic mugs and metal handles', 'fisica': 'visible coffee drips only while the coffee maker operates, faint vapor near the hot pot, cloth responding to touch rather than floating', 'som': 'coffee drip, kettle clicks if present and gentle household ambience', 'animal': 'no animal'}, 'quarto': {'nome': 'Quarto Desarrumado', 'icone': '🛏️', 'categoria': 'Interior', 'resumo': 'Edredom amassado, roupa na cadeira e luz suave.', 'elementos': 'an authentic lived-in bedroom with imperfectly made bed, a sweater on a chair, one open drawer, a phone charging cable and partly open cotton curtains', 'luz': 'soft window daylight mixed with a low-intensity practical lamp, consistent warm and cool lighting', 'fisica': 'curtain edge moving with a real breeze, quilt compressing where touched, loose strands of hair moving with natural body motion', 'som': 'quiet bedroom ambience and distant outdoor noise', 'animal': 'a sleeping cat only if already present in image'}, 'quintal': {'nome': 'Quintal de Terra', 'icone': '🐕', 'categoria': 'Natureza', 'resumo': 'Terra batida, poeira leve e cachorro descansando ao fundo.', 'elementos': 'a sunlit Brazilian backyard with dry packed earth, a worn garden bench, slightly displaced flip-flops, a water bowl and a shaded corner under a fruit tree', 'luz': 'strong but realistic midday sun casting grounded coherent tree shadows', 'fisica': 'tiny dust particles lifting only from real footfalls, branches moving with breeze, water bowl remaining stable', 'som': 'distant neighborhood ambience and light dry leaves rustling', 'animal': 'one calm caramel-colored dog lying far in the background only if shown in image'}, 'piscina': {'nome': 'Deck de Piscina', 'icone': '🏖️', 'categoria': 'Lazer', 'resumo': 'Água refletindo luz, toalha no banco e respingos discretos.', 'elementos': 'an ordinary swimming pool deck with weathered planks, a striped towel on a solid chair, sunglasses resting on a bench and a clear glass safely away from the pool edge', 'luz': 'bright daytime sun and moving water-caustic reflections linked to actual pool surface', 'fisica': 'real non-repeating water ripples from a gentle breeze, towel fringe moving slightly, no floating props', 'som': 'soft pool water movement and ambient birds', 'animal': 'no animal'}, 'estufa': {'nome': 'Estufa Caseira', 'icone': '🌱', 'categoria': 'Natureza', 'resumo': 'Vasos com terra, samambaias e umidade nas superfícies.', 'elementos': 'a practical backyard greenhouse with hanging ferns, potted herbs, garden labels on stakes, a handheld sprayer and damp soil in terracotta containers', 'luz': 'diffused daylight through translucent roof panels with correct soft shadows', 'fisica': 'fine droplets on cold glass only where humidity makes sense, subtle leaves moving only where air enters and a single sprayer drip', 'som': 'greenhouse room tone, faint ventilation and occasional water droplet', 'animal': 'no animal'}, 'garagem': {'nome': 'Garagem Aberta', 'icone': '🧰', 'categoria': 'Urbano', 'resumo': 'Caixas, ferramentas, marcas de uso e luz dura do dia.', 'elementos': 'a genuinely used Brazilian residential garage with half-open rolling shutter, cardboard boxes stacked safely to one side, small scattered but grounded hand tools on an old workbench, a bicycle leaning on a wall and fine concrete-floor dust', 'luz': 'hard midday sun entering through the open door and casting sharp physically consistent shadows into softer interior light', 'fisica': 'a small draft shifts a piece of loose paper only, sun-lit dust motes visible in the light beam, bicycle and tools remain stationary and grounded, shutter vibrates slightly only if wind acts on it', 'som': 'distant street noise and light garage reverberation', 'animal': 'no animal'}, 'sala': {'nome': 'Sala de Estar Noturna', 'icone': '📺', 'categoria': 'Interior', 'resumo': 'TV acesa, manta no sofá e reflexos azuis discretos.', 'elementos': 'a lived-in Brazilian living room at night, an operating television, a folded throw loosely on the couch arm, a low coffee table with a remote and a small practical side lamp', 'luz': 'the television casts soft changing cool light aligned with the on-screen content and fixed warm lamp fill', 'fisica': 'the throw settles naturally after touch, illumination fluctuates only with the television, objects remain physically supported', 'som': 'quiet room tone and low TV hum without copyrighted content', 'animal': 'no animal'}, 'banheira': {'nome': 'Banheira Vintage', 'icone': '🛁', 'categoria': 'Interior', 'resumo': 'Azulejos antigos, espuma discreta e torneira pingando.', 'elementos': 'a vintage tiled bathroom with an old porcelain tub, weathered brass faucet, folded cotton towel, worn grout and a little foam where bath water actually touches the tub', 'luz': 'warm practical light reflecting realistically in porcelain and brass', 'fisica': 'a single faucet droplet gathering and falling at irregular intervals, mild water surface ripples only where water exists', 'som': 'isolated faucet drip and softly reverberant bathroom room tone', 'animal': 'no animal'}, 'praia': {'nome': 'Praia Deserta (Final de Tarde)', 'icone': '🌊', 'categoria': 'Lazer', 'resumo': 'Areia com marcas reais, vento marítimo e ondas ao fundo.', 'elementos': 'a nearly deserted Brazilian beach in late afternoon, a woven tote and flip-flops supported on dry upper sand away from surf, sparse coastal plants on dunes, visible foamy ocean waves and a single faded cotton beach towel weighted down at its corners', 'luz': 'late-afternoon directional golden sunlight with a real sea-horizon haze and soft shadows matching sun angle', 'fisica': 'wind ruffles the towel edge realistically but not the weighted corners; distant foam advances and recedes following wave cycles; loose beach hair and dune grasses move with the same breeze; sand grains shift only in a plausible gust', 'som': 'natural waves and sea breeze, no soundtrack', 'animal': 'a distant gull only if already visible in the image'}, 'escritorio': {'nome': 'Mesa de Escritório', 'icone': '💻', 'categoria': 'Trabalho', 'resumo': 'Home office real com LED discreto, papéis, caneca e planta.', 'elementos': 'a Brazilian home-office desk with scuffed wood grain, a slightly crumpled stack of papers, an open notebook, black computer mouse, small Monstera pot, a cup with old coffee ring, a practical desk lamp and a soft cyan LED reflected on the wall', 'luz': 'natural window daylight blended with a restrained warm desk lamp and low cyan LED without impossible color changes', 'fisica': 'a page corner shifts only if a real draft enters, a plant leaf moves subtly in the airflow, glass condensation falls only if a cold drink is present, lamp and cable remain physically fixed', 'som': 'quiet room tone, low computer fan and soft street noise', 'animal': 'no animal'}, 'carro_chuva': {'nome': 'Janela do Carro (Chuva)', 'icone': '🚗', 'categoria': 'Urbano', 'resumo': 'Gotas no vidro, carros passando e luzes da cidade.', 'elementos': 'a securely parked Brazilian car interior on a rainy evening, side window covered with distinct rolling water droplets, realistic street lamps and distant neon reflections on wet glass, a folded cotton jacket on passenger seat and a simple dashboard', 'luz': 'muted evening light with real reflections from street lamps and signage outside, no invented cinematic strobe', 'fisica': 'water droplets merge and move down the glass by gravity, background cars create coherent perspective motion, reflections slide with camera angle and window curvature, interior objects stay still', 'som': 'soft rain tapping car roof, passing traffic at distance and interior room tone', 'animal': 'no animal'}, 'leitura': {'nome': 'Canto da Leitura', 'icone': '📚', 'categoria': 'Interior', 'resumo': 'Poltrona de tecido, páginas abertas e feixe de luz.', 'elementos': 'an intimate reading corner with a textured armchair, a paperback open on the side table, a knitted throw, a ceramic tea cup and books with imperfectly aligned spines', 'luz': 'angled window light catching faint atmospheric dust, soft falloff into the room', 'fisica': 'pages shift only with touch or a real breeze, throw compresses under a hand, cup stays still on the table', 'som': 'soft room ambience and distant passing wind', 'animal': 'no animal'}, 'lavabo': {'nome': 'Lavabo Luxo Decadente', 'icone': '🧼', 'categoria': 'Interior', 'resumo': 'Mármore usado, manchas discretas de água e luz dourada.', 'elementos': 'an elegant but lived-in Brazilian lavabo with slightly worn marble countertop, tiny dried water stains near brushed brass tap, subtly imperfect mirror, rolled cotton hand towel, used soap dish and warm pendant lighting', 'luz': 'warm intimate pendant light with coherent light falloff across marble and mirror', 'fisica': 'micro-reflections follow camera motion, towel fibers settle after actual contact, real water droplets only when water source is active, reflections stay spatially consistent', 'som': 'low indoor room tone and faucet water only if running', 'animal': 'no animal'}, 'calcada': {'nome': 'Calçada Chuvosa', 'icone': '🏙️', 'categoria': 'Urbano', 'resumo': 'Piso molhado, poste aceso e reflexos de rua à noite.', 'elementos': 'a Brazilian urban sidewalk at dusk after rain, patterned concrete pavers with wet seams, a metal bench with weathered paint, reflective shallow puddles near curb, a lit street lamp and rain-darkened storefront shutters in the distance', 'luz': 'believable cool dusk and warm street lamp reflections that follow actual puddle geometry', 'fisica': 'individual raindrops only if rain is still falling; water ripples radiate from actual drops, one breeze lifts loose hair and clothing gently, distant pedestrian parallax remains consistent', 'som': 'distant wet-traffic hiss, realistic footsteps and rain if ongoing', 'animal': 'no animal'}, 'infinito': {'nome': 'Ambiente 21 — Infinito', 'icone': '♾️', 'categoria': 'Aleatório', 'resumo': 'Escolhe entre 21 matrizes, com variações sutis e sem repetir a cena recente.', 'elementos': 'sorteio de ambiente real com objetos, iluminação e clima contextualizados', 'luz': 'a definida pela matriz sorteada', 'fisica': 'a definida pela matriz sorteada', 'som': 'o da matriz sorteada', 'animal': 'somente se a cena sorteada permitir'}, 'brasil_tropical': {'nome': 'Ambiente 22 — Brasil Tropical', 'icone': '🌴', 'categoria': 'Natureza', 'resumo': 'Refúgio brasileiro entre mata verde e brisa do litoral. Madeira rústica, plantas vivas e passarinho ao fundo.', 'elementos': 'a real open-air wooden deck of a modest Brazilian coastal eco-retreat, surrounded by lush native Atlantic Forest vegetation; a weathered timber railing, a stable wooden side table, a narrow stone-and-wood path leading into shaded greenery, broad banana leaves and slender palm fronds framing a distant glimpse of the sea; a lightweight linen hammock tied securely between two real wooden supports; absolutely no fantasy resort architecture, waterfalls or beach props unless they are visible from this exact set; one single coherent location from first still image through final video frame', 'luz': 'natural warm late-afternoon Brazilian daylight filtered through real palm and banana leaves; irregular soft dappled shadows match visible canopy and the real sun angle; no glam studio flash, no unnaturally saturated neon green', 'fisica': 'coastal breeze moves palm fronds, banana leaves, the edges of the hammock and loose hair with different realistic masses, velocities and lag; hammock sways only a little when wind actually acts on it and cannot float; loose leaves stay grounded or move only with gusts, soft skin and fabric have realistic inertia, sandals press firmly against the wooden deck, all shadows remain stable and physically coherent; the distant bird performs only a subtle blink, head turn or small wing adjustment without duplicating or teleporting', 'som': 'believable light ocean breeze rustling actual palm leaves, a distant native bird call, faint real outdoor background ambience; no artificial looping soundtrack', 'animal': 'one small Brazilian songbird, perched naturally on a distant stable leafy branch, visible discreetly in the first still image and remaining the same bird throughout the video; never add a second animal'}}
 
@@ -5351,7 +5380,11 @@ with _elevo_area_criacao_v16823:
     # 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / LEMA DOR & SOLUÇÃO + BANCO DE MEMÓRIA 17.3)
     # ==========================================================
     st.divider()
-    st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V12 — Imagem Original + Vídeo Física Viva)</h3>", unsafe_allow_html=True)
+    elevo_secao_hero_v16855(
+        "03", "MÁQUINA DE CRIAÇÃO 360º · V12", "Gere os prompts de imagem e vídeo",
+        "Imagem original preservada + vídeo com física viva. Escolha a duração e o motor, "
+        "envie a foto do produto e a ÉLÉVO monta o pacote completo.",
+        ("⚙️ 360º", "🧬 V9.2", "🎥 Produto 3S", "🔑 Títulos SEO"))
 
     if "roteiro_temporario" not in st.session_state: 
         st.session_state["roteiro_temporario"] = None
@@ -6682,14 +6715,12 @@ with _elevo_area_criacao_v16823:
             texto_brain_atual = str(st.session_state.get("roteiro_temporario") or "")
             hash_brain_atual = hashlib.sha256(texto_brain_atual.encode("utf-8")).hexdigest() if texto_brain_atual else ""
             if st.button("🧠 Registrar feedback no cérebro", type="primary", use_container_width=True, key="elevo_brain_salvar_v1708"):
-                try:
-                    salvo_brain = elevo_ceo_brain_salvar_v1708(tipo_brain, polaridade_brain, modo_brain, licao_brain, hash_brain_atual)
-                    if salvo_brain:
-                        st.success("Lição registrada na memória global e considerada nas próximas gerações compatíveis.")
-                    else:
-                        st.info("Essa mesma lição já estava registrada; nenhuma duplicidade foi criada.")
-                except Exception as erro_brain:
-                    st.error("Não foi possível registrar o feedback: " + str(erro_brain))
+                # V16.8.55 — CORREÇÃO: a função de gravação é definida mais abaixo no
+                # arquivo; antes isso causava NameError e a lição nunca era salva.
+                # O pedido fica pendente e é processado logo após a definição.
+                st.session_state["elevo_brain_pendente_v16855"] = (
+                    tipo_brain, polaridade_brain, modo_brain, licao_brain, hash_brain_atual)
+            _elevo_brain_slot_v16855 = st.empty()
 
         with st.expander("🔬 Intelligence Upgrade — modelos e consumo (somente CEO)", expanded=False):
             st.caption(f"Modelo principal: {ELEVO_MODELO_PRODUCAO_V1685} | fallback: gpt-4o-mini. As 8 operações e os prompts continuam intactos.")
@@ -8181,6 +8212,17 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             logging.getLogger("elevo.ceo_brain").warning("Memória global CEO indisponível", exc_info=False)
             return ""
 
+    # V16.8.55 — grava o feedback do CEO agora que as funções existem.
+    _brain_pendente_v16855 = st.session_state.pop("elevo_brain_pendente_v16855", None)
+    if _brain_pendente_v16855 and E_O_CEO and "_elevo_brain_slot_v16855" in globals():
+        try:
+            if elevo_ceo_brain_salvar_v1708(*_brain_pendente_v16855):
+                _elevo_brain_slot_v16855.success("Lição registrada na memória global e considerada nas próximas gerações compatíveis.")
+            else:
+                _elevo_brain_slot_v16855.info("Essa mesma lição já estava registrada; nenhuma duplicidade foi criada.")
+        except Exception as erro_brain:
+            _elevo_brain_slot_v16855.error("Não foi possível registrar o feedback: " + str(erro_brain))
+
     # ==========================================================
     # V16.8.21 — AJUSTES EXCLUSIVAMENTE DE VÍDEO (IMAGEM/FALA/SEO INALTERADOS)
     # ==========================================================
@@ -9415,12 +9457,18 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
     if st.session_state["roteiro_temporario"]:
         with st.container(border=True, key="elevo_resultado_v16812"):
             partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
+            st.markdown(
+                '<div class="elevo-res-topo"><div class="elevo-res-selo">✦</div><div>'
+                '<span class="elevo-res-kicker">PACOTE GERADO</span>'
+                '<div class="elevo-res-titulo">Seu criativo está pronto</div>'
+                f'<small>Vídeo de {int(st.session_state.get("elevo_ultima_duracao_gerada_v16829", 10))}s · '
+                'copie cada parte com um toque</small></div></div>', unsafe_allow_html=True)
         
             if partes_roteiro["prompt_imagem"] and partes_roteiro["prompt_video"]:
                 # 1. SEÇÃO PROMPT DE IMAGEM + BOTÃO À DIREITA
                 col_tit_img, col_btn_img = st.columns([7, 3])
                 with col_tit_img:
-                    st.markdown("### 📸 PROMPT DE IMAGEM")
+                    st.markdown('<div class="elevo-res-bloco"><span class="ic">📸</span><div><b>Prompt de imagem</b><small>Cole no gerador de imagem</small></div></div>', unsafe_allow_html=True)
                 with col_btn_img:
                     render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
@@ -9430,7 +9478,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 # 2. SEÇÃO PROMPT DE VÍDEO (ATÉ TEXTO NA TELA) + BOTÃO À DIREITA
                 col_tit_vid, col_btn_vid = st.columns([7, 3])
                 with col_tit_vid:
-                    st.markdown("### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO")
+                    st.markdown('<div class="elevo-res-bloco"><span class="ic">🎬</span><div><b>Prompt de vídeo completo</b><small>Use com a imagem aprovada</small></div></div>', unsafe_allow_html=True)
                 with col_btn_vid:
                     render_botao_copiar_vip(partes_roteiro["prompt_video"], "📋 Copiar Vídeo", "copy_vid_360")
                 
@@ -9442,11 +9490,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.divider()
             
                 # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
-                st.markdown("### 🔑 TÍTULOS SEO (Separados)")
+                st.markdown('<div class="elevo-res-bloco"><span class="ic">🔑</span><div><b>Títulos SEO</b><small>Três versões prontas para publicar</small></div></div>', unsafe_allow_html=True)
                 with st.expander("▸ Ver os 3 títulos SEO completos", expanded=False):
                     st.markdown(partes_roteiro["secao_seo_texto"])
             
-                st.markdown("<p style='font-size: 0.85rem; color: #00E5FF; font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>📲 Cópia Rápida de Títulos (Celular/PC):</p>", unsafe_allow_html=True)
+                st.markdown('<div class="elevo-res-rapida">📲 Cópia rápida de títulos</div>', unsafe_allow_html=True)
                 col_t1, col_t2, col_t3 = st.columns(3)
                 with col_t1:
                     render_botao_copiar_vip(partes_roteiro["titulo_1"], "📋 Botão 1 (Título 1)", "copy_t1")
@@ -10859,3 +10907,142 @@ hr {margin:1.6rem 0!important;opacity:.75;}
 for _tk_v16854, _tv_v16854 in _tokens_v16854.items():
     _css_v16854 = _css_v16854.replace(_tk_v16854, _tv_v16854)
 st.markdown(_css_v16854, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.55 — ESTÚDIO: ETAPAS, ELENCO, AMBIENTES E RESULTADO (somente visual)
+# ==========================================================
+_tk_v16855 = ({
+    "__TEXT__": "#0B2A55", "__MUTED__": "#4E6788", "__ACCENT__": "#1457A1",
+    "__HERO__": "radial-gradient(ellipse at 100% 0%,rgba(25,125,255,.12),transparent 50%),linear-gradient(120deg,#FFFFFF,#F3F8FF)",
+    "__CARD__": "linear-gradient(180deg,#FFFFFF,#F6FAFF)",
+    "__BORDER__": "#D3E2F5", "__CHIPBG__": "rgba(25,125,255,.07)", "__CHIPBORDER__": "rgba(25,125,255,.22)",
+    "__SH__": "0 1px 2px rgba(15,45,95,.05),0 12px 28px rgba(22,77,147,.09),0 30px 56px -28px rgba(22,77,147,.25)",
+    "__SHH__": "0 2px 4px rgba(15,45,95,.06),0 20px 40px rgba(22,77,147,.15),0 40px 70px -30px rgba(25,110,230,.35)",
+    "__TILE__": "linear-gradient(135deg,#E8F2FF,#D7E8FF)",
+} if modo_claro else {
+    "__TEXT__": "#EAF2FF", "__MUTED__": "#9AAEC8", "__ACCENT__": "#8CCBFF",
+    "__HERO__": ("radial-gradient(ellipse at 100% 0%,rgba(62,151,226,.20),transparent 50%),"
+                 "linear-gradient(120deg,rgba(17,37,64,.97),rgba(9,20,36,.97))"),
+    "__CARD__": "linear-gradient(165deg,#132A4A,#0A1730 78%)",
+    "__BORDER__": "rgba(100,174,231,.28)", "__CHIPBG__": "rgba(84,216,245,.08)", "__CHIPBORDER__": "rgba(84,216,245,.24)",
+    "__SH__": "0 20px 44px rgba(0,0,0,.36),0 0 26px rgba(45,137,207,.07),inset 0 1px 0 rgba(225,240,255,.08)",
+    "__SHH__": "0 28px 58px rgba(0,0,0,.45),0 0 36px rgba(84,216,245,.16),inset 0 1px 0 rgba(225,240,255,.12)",
+    "__TILE__": "linear-gradient(135deg,rgba(84,216,245,.18),rgba(19,99,214,.22))",
+})
+_css_v16855 = """
+<style>
+/* ---------- CABEÇALHO DE ETAPA ---------- */
+.elevo-hero-sec {position:relative;overflow:hidden;display:flex;gap:18px;align-items:flex-start;
+  padding:22px 24px 16px 26px;margin:6px 0 18px;border-radius:22px;background:__HERO__;
+  border:1px solid __BORDER__;box-shadow:__SH__;}
+.elevo-hero-sec::before {content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,#54D8F5,#1363D6 55%,#D8B66A);}
+.elevo-hero-sec::after {content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border-radius:50%;
+  border:1px solid rgba(84,216,245,.16);box-shadow:0 0 0 22px rgba(84,216,245,.035),0 0 0 48px rgba(84,216,245,.02);pointer-events:none;}
+.elevo-hero-num {position:relative;flex:0 0 64px;height:64px;border-radius:18px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font:900 1.55rem/1 Montserrat,sans-serif;color:#FFFFFF!important;
+  background:linear-gradient(135deg,#1363D6,#22A8E0);box-shadow:0 12px 26px rgba(19,99,214,.36),inset 0 1px 0 rgba(255,255,255,.32);}
+.elevo-hero-num small {font:800 .48rem Montserrat,sans-serif;letter-spacing:.22em;opacity:.85;margin-bottom:4px;color:#FFFFFF!important;}
+.elevo-hero-txt {position:relative;min-width:0;}
+.elevo-hero-kicker {font:800 .64rem Montserrat,sans-serif;letter-spacing:.18em;color:__ACCENT__!important;}
+.elevo-hero-titulo {font:850 clamp(1.2rem,2.3vw,1.68rem)/1.15 Montserrat,sans-serif;letter-spacing:-.02em;
+  color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;margin:5px 0 7px;}
+.elevo-hero-txt p {font-size:.84rem!important;line-height:1.58!important;color:__MUTED__!important;margin:0 0 11px!important;max-width:780px;}
+.elevo-hero-chips {display:flex;flex-wrap:wrap;gap:7px;}
+.elevo-hero-chips span {display:inline-flex;align-items:center;padding:5px 11px;border-radius:99px;
+  font:700 .68rem Montserrat,sans-serif;color:__TEXT__!important;background:__CHIPBG__;border:1px solid __CHIPBORDER__;}
+
+/* ---------- CARDS DO ELENCO (retrato) ---------- */
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 {
+  height:332px!important;padding:0!important;display:flex!important;flex-direction:column;overflow:hidden!important;
+  border-radius:20px!important;background:__CARD__!important;border:1px solid __BORDER__!important;box-shadow:__SH__!important;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover {transform:translateY(-4px);
+  box-shadow:__SHH__!important;border-color:rgba(84,216,245,.55)!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855.ativo {border-color:#54D8F5!important;
+  box-shadow:0 0 0 2px rgba(84,216,245,.55),0 18px 40px rgba(19,99,214,.30),0 0 32px rgba(84,216,245,.25)!important;}
+.elevo-card-v16855 .elevo-elenco-midia {position:relative;flex:0 0 206px;height:206px;overflow:hidden;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-foto {width:100%!important;height:100%!important;
+  flex:none!important;border-radius:0!important;object-fit:cover;object-position:center 22%;transition:transform .6s ease;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover .elevo-elenco-foto {transform:scale(1.06);}
+.elevo-card-v16855 .elevo-elenco-sombra {position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(4,10,22,0) 42%,rgba(4,10,22,.55) 70%,rgba(4,10,22,.92) 100%);}
+.elevo-card-v16855 .elevo-elenco-legenda {position:absolute;left:13px;right:13px;bottom:11px;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-legenda .elevo-elenco-nome {
+  margin:0!important;font:850 1rem/1.2 Montserrat,sans-serif!important;color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+  text-shadow:0 2px 12px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-legenda .elevo-elenco-idade {
+  margin-top:2px;font-size:.72rem!important;color:rgba(235,244,255,.85)!important;-webkit-text-fill-color:rgba(235,244,255,.85)!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-status {position:absolute;top:10px;left:10px;margin:0!important;
+  padding:4px 10px;border-radius:99px;font:800 .6rem Montserrat,sans-serif;letter-spacing:.1em;
+  background:rgba(3,22,30,.78);border:1px solid rgba(117,242,207,.65);color:#75F2CF!important;-webkit-text-fill-color:#75F2CF!important;
+  box-shadow:0 0 14px rgba(117,242,207,.35);backdrop-filter:blur(6px);}
+.elevo-card-v16855 .elevo-elenco-corpo {display:flex;flex-direction:column;gap:7px;padding:11px 13px 12px;min-height:0;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-nicho {margin:0!important;min-height:0!important;align-self:flex-start;
+  max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:3px 10px;border-radius:99px;
+  font-size:.66rem!important;font-weight:750!important;color:__ACCENT__!important;-webkit-text-fill-color:__ACCENT__!important;
+  background:__CHIPBG__;border:1px solid __CHIPBORDER__;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-desc {font-size:.72rem!important;line-height:1.47!important;
+  color:__MUTED__!important;-webkit-text-fill-color:__MUTED__!important;-webkit-line-clamp:4;max-height:none!important;}
+.st-key-elevo_carrossel_influenciadoras .stButton>button {min-height:42px!important;border-radius:13px!important;font-weight:750!important;}
+
+/* ---------- CARDS DE AMBIENTE ---------- */
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card {height:200px!important;padding:15px 15px 13px!important;border-radius:20px!important;
+  background:__CARD__!important;border:1px solid __BORDER__!important;box-shadow:__SH__!important;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover {transform:translateY(-4px);box-shadow:__SHH__!important;border-color:rgba(84,216,245,.55)!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card.ativo {border-color:#54D8F5!important;
+  box-shadow:0 0 0 2px rgba(84,216,245,.5),0 16px 36px rgba(19,99,214,.26),0 0 28px rgba(84,216,245,.22)!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .icone {width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  font-size:24px!important;margin-bottom:10px!important;background:__TILE__;border:1px solid __CHIPBORDER__;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .nome {font-size:.9rem!important;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .tag {display:inline-block;padding:2px 8px;border-radius:99px;
+  background:__CHIPBG__;border:1px solid __CHIPBORDER__;color:__ACCENT__!important;-webkit-text-fill-color:__ACCENT__!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .descricao {color:__MUTED__!important;-webkit-text-fill-color:__MUTED__!important;}
+.st-key-elevo_carrossel_ambientes .stButton>button {min-height:42px!important;border-radius:13px!important;font-weight:750!important;}
+
+/* Barra de "deslize" dos carrosséis. */
+.elevo-carrossel-instrucao {border-radius:14px!important;padding:9px 14px!important;box-shadow:__SH__;}
+
+/* ---------- SELETOR DE MOTOR ---------- */
+.st-key-btn_sel_17 button,.st-key-btn_sel_172 button,.st-key-btn_sel_produto_3s_v16821 button {
+  min-height:58px!important;border-radius:16px!important;font-weight:800!important;letter-spacing:.01em;white-space:normal!important;line-height:1.25!important;}
+.st-key-btn_sel_17 button[kind="primary"],.st-key-btn_sel_172 button[kind="primary"],.st-key-btn_sel_produto_3s_v16821 button[kind="primary"] {
+  box-shadow:0 0 0 2px rgba(84,216,245,.45),0 14px 32px rgba(19,99,214,.38),0 0 26px rgba(84,216,245,.22)!important;}
+.st-key-btn_gerar_360_ativo button,.st-key-btn_v92_ativo button {min-height:56px!important;border-radius:16px!important;
+  font-size:1rem!important;font-weight:850!important;letter-spacing:.04em!important;}
+[data-testid="stFileUploaderDropzone"] {border-radius:16px!important;border-style:dashed!important;border-width:1.5px!important;}
+
+/* ---------- RESULTADO ---------- */
+.st-key-elevo_resultado_v16812 {border-radius:22px!important;}
+.elevo-res-topo {display:flex;align-items:center;gap:14px;padding:4px 2px 14px;margin-bottom:6px;border-bottom:1px solid __BORDER__;}
+.elevo-res-selo {flex:0 0 48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:1.3rem;color:#FFFFFF!important;
+  background:linear-gradient(135deg,#1363D6,#22A8E0 60%,#D8B66A);box-shadow:0 10px 24px rgba(19,99,214,.35);}
+.elevo-res-kicker {font:800 .62rem Montserrat,sans-serif;letter-spacing:.18em;color:#2FD39A!important;}
+.elevo-res-titulo {font:850 1.2rem/1.2 Montserrat,sans-serif;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;margin:2px 0;}
+.elevo-res-topo small,.elevo-res-bloco small {display:block;font-size:.74rem;color:__MUTED__!important;}
+.elevo-res-bloco {display:flex;align-items:center;gap:11px;padding:4px 0;}
+.elevo-res-bloco .ic {flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.1rem;
+  background:__TILE__;border:1px solid __CHIPBORDER__;}
+.elevo-res-bloco b {display:block;font:800 1rem Montserrat,sans-serif;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;}
+.elevo-res-rapida {margin:12px 0 6px;font:750 .8rem Montserrat,sans-serif;color:__ACCENT__!important;letter-spacing:.02em;}
+.elevo-prompt-previa-v16812 {border-radius:14px!important;border-left:3px solid #54D8F5!important;}
+
+/* ---------- CELULAR ---------- */
+@media (max-width:767px) {
+  .elevo-hero-sec {gap:13px;padding:17px 15px 12px 18px;border-radius:18px;}
+  .elevo-hero-num {flex-basis:50px;height:50px;border-radius:15px;font-size:1.2rem;}
+  .elevo-hero-txt p {font-size:.8rem!important;}
+  .elevo-hero-sec::after {display:none;}
+  .st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover,
+  .st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover {transform:none;}
+  .st-key-btn_sel_17 button,.st-key-btn_sel_172 button,.st-key-btn_sel_produto_3s_v16821 button {min-height:50px!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-foto {transition:none!important;}
+}
+</style>
+"""
+for _k_v16855, _v_v16855 in _tk_v16855.items():
+    _css_v16855 = _css_v16855.replace(_k_v16855, _v_v16855)
+st.markdown(_css_v16855, unsafe_allow_html=True)
