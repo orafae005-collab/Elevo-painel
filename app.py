@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.65 — CARTEIRA VIP REDESENHADA + CHECKOUT DENTRO DO APP (Pix com QR Code e cartão seguro)
 # ÉLÉVO V16.8.64 — Mercado Pago: modo teste/produção pelo Secrets (credencial de teste nova também é APP_USR-)
 # ÉLÉVO V16.8.63 — CADASTRO ABERTO DE NOVO + PLANOS (Start/Pro/Elite) + CHECKOUT MERCADO PAGO (Pix e cartão)
 # ÉLÉVO V16.8.62 — MICROFONE PROFISSIONAL: só em campos de escrever, ditado contínuo e texto confirmado no app
@@ -1497,7 +1498,19 @@ def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
     headers.update(kwargs.pop("headers", {}))
     resp = requests.request(metodo, ELEVO_MP_API_V16863 + caminho, headers=headers, timeout=20, **kwargs)
     if resp.status_code >= 400:
-        logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, resp.status_code)
+        try:
+            msg_mp = str((resp.json() or {}).get("message", ""))[:200]
+        except Exception:
+            msg_mp = ""
+        logging.warning("MERCADOPAGO %s %s -> %s %s", metodo, caminho, resp.status_code, msg_mp)
+        baixo = msg_mp.lower()
+        if "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
+            raise ElevoCreditoErroV16813("Pix indisponível: a conta Mercado Pago da ÉLÉVO ainda não tem chave Pix "
+                                         "cadastrada. Use o cartão ou tente mais tarde.")
+        if "identification" in baixo or "cpf" in baixo:
+            raise ElevoCreditoErroV16813("O Mercado Pago recusou o CPF informado. Confira e tente de novo.")
+        if "token" in baixo and caminho == "/v1/payments":
+            raise ElevoCreditoErroV16813("Os dados do cartão expiraram. Preencha o formulário novamente.")
         raise ElevoCreditoErroV16813("O Mercado Pago não respondeu agora. Tente de novo em instantes.")
     return resp.json()
 
@@ -1630,6 +1643,155 @@ def elevo_checkout_confirmar_v16863(payment_id=None):
         meus.pop(pedido, None)
         creditados.append({"plano": reg.get("Plano"), "creditos": creditos})
     return creditados
+
+
+# ==========================================================
+# V16.8.65 — CHECKOUT TRANSPARENTE (pagamento DENTRO do app)
+# Pix: o app gera o QR Code e o "copia e cola" (nome + CPF).
+# Cartão: formulário seguro oficial do Mercado Pago (Card Payment Brick)
+# embutido na página; o cartão vira um token no navegador e só o token chega
+# ao app. Valor SEMPRE definido aqui pelo plano, nunca pelo navegador.
+# Secrets: [mercadopago] access_token, public_key (para cartão), app_url, modo.
+# ==========================================================
+ELEVO_CARTAO_RECUSA_V16865 = {
+    "cc_rejected_insufficient_amount": "Limite insuficiente no cartão.",
+    "cc_rejected_bad_filled_security_code": "Código de segurança (CVV) inválido.",
+    "cc_rejected_bad_filled_date": "Data de validade inválida.",
+    "cc_rejected_bad_filled_card_number": "Número do cartão inválido.",
+    "cc_rejected_bad_filled_other": "Confira os dados do cartão.",
+    "cc_rejected_call_for_authorize": "O banco pediu autorização: libere a compra no app do seu banco e tente de novo.",
+    "cc_rejected_card_disabled": "Cartão desativado. Fale com o banco ou use outro cartão.",
+    "cc_rejected_duplicated_payment": "Pagamento repetido. Confira se a primeira compra já entrou.",
+    "cc_rejected_high_risk": "Recusado pela análise de segurança. Tente o Pix.",
+    "cc_rejected_max_attempts": "Muitas tentativas com este cartão. Use outro cartão ou o Pix.",
+    "cc_rejected_blacklist": "Este cartão não pode ser usado. Tente o Pix.",
+}
+
+
+def elevo_cpf_valido_v16865(cpf):
+    cpf = re.sub(r"\D", "", str(cpf or ""))
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return ""
+    for tam in (9, 10):
+        soma = sum(int(cpf[i]) * (tam + 1 - i) for i in range(tam))
+        dig = (soma * 10) % 11 % 10
+        if dig != int(cpf[tam]):
+            return ""
+    return cpf
+
+
+def _elevo_pedido_registrar_v16865(plano, metodo):
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email:
+        raise PermissionError("Entre na sua conta para comprar créditos.")
+    if elevo_admin_v16813():
+        raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
+    if plano not in ELEVO_PACOTES_V16859 or float(ELEVO_PACOTES_V16859[plano]["preco"]) <= 0:
+        raise ValueError("Plano indisponível.")
+    if elevo_status_v16813(email, fresco=True) != "ATIVO":
+        raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
+    if not elevo_mp_ativo_v16863():
+        raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
+    pacote = ELEVO_PACOTES_V16859[plano]
+    pedido = "elv_" + secrets.token_hex(10)
+    creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
+    elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, preco, "PENDENTE", "", "",
+                                         "", elevo_agora_v16813(), "", metodo])
+    return {"pedido": pedido, "email": email, "creditos": creditos, "preco": preco,
+            "titulo": f"ÉLÉVO {plano} — {format(creditos, ',').replace(',', '.')} créditos"}
+
+
+def _elevo_pedido_anotar_pagamento_v16865(pedido, payment_id):
+    try:
+        aba = elevo_vendas_aba_v16863()
+        for i, r in enumerate(aba.get_all_records()):
+            if str(r.get("Id")) == pedido:
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("PaymentId") + 1, str(payment_id))
+                break
+    except Exception:
+        logging.warning("ELEVO_VENDA: não anotou o pagamento %s no pedido %s", payment_id, pedido)
+
+
+def elevo_pix_criar_v16865(plano, nome, cpf):
+    nome = re.sub(r"\s+", " ", str(nome or "")).strip()
+    if len(nome) < 3 or not re.search(r"[A-Za-zÀ-ÿ]", nome):
+        raise ValueError("Informe o seu nome completo.")
+    cpf_ok = elevo_cpf_valido_v16865(cpf)
+    if not cpf_ok:
+        raise ValueError("CPF inválido. Confira os 11 números.")
+    ped = _elevo_pedido_registrar_v16865(plano, "pix")
+    partes = nome.split(" ", 1)
+    expira = datetime.now(ZoneInfo("America/Sao_Paulo")) + timedelta(minutes=30)
+    corpo = {
+        "transaction_amount": ped["preco"],
+        "description": ped["titulo"],
+        "payment_method_id": "pix",
+        "external_reference": ped["pedido"],
+        "date_of_expiration": expira.strftime("%Y-%m-%dT%H:%M:%S.000%z")[:-2] + ":" + expira.strftime("%z")[-2:],
+        "payer": {"email": ped["email"], "first_name": partes[0][:60],
+                  "last_name": (partes[1] if len(partes) > 1 else partes[0])[:60],
+                  "identification": {"type": "CPF", "number": cpf_ok}},
+    }
+    pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    dados = ((pg.get("point_of_interaction") or {}).get("transaction_data") or {})
+    if not dados.get("qr_code"):
+        raise ElevoCreditoErroV16813("O Pix não foi gerado. Tente novamente em instantes.")
+    _elevo_pedido_anotar_pagamento_v16865(ped["pedido"], pg.get("id"))
+    return {"id": str(pg.get("id")), "pedido": ped["pedido"], "plano": plano, "valor": ped["preco"],
+            "creditos": ped["creditos"], "qr_code": dados.get("qr_code"),
+            "qr_base64": dados.get("qr_code_base64", ""), "ticket_url": dados.get("ticket_url", ""),
+            "expira": expira.strftime("%H:%M")}
+
+
+def elevo_cartao_pagar_v16865(plano, form):
+    """Recebe o formData do Card Payment Brick (só token, nunca o número do cartão)."""
+    form = form if isinstance(form, dict) else {}
+    token = str(form.get("token", "") or "")
+    metodo = str(form.get("payment_method_id", "") or "")
+    try:
+        parcelas = int(form.get("installments") or 1)
+    except (TypeError, ValueError):
+        parcelas = 1
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", token) or not re.fullmatch(r"[a-z_]{2,30}", metodo):
+        raise ValueError("Dados do cartão incompletos. Preencha o formulário novamente.")
+    parcelas = max(1, min(12, parcelas))
+    pagador = form.get("payer") if isinstance(form.get("payer"), dict) else {}
+    ident = pagador.get("identification") if isinstance(pagador.get("identification"), dict) else {}
+    ped = _elevo_pedido_registrar_v16865(plano, "cartao")
+    email_pag = str(pagador.get("email") or ped["email"]).strip()[:120]
+    if not re.fullmatch(ELEVO_EMAIL_RE_V16859, email_pag):
+        email_pag = ped["email"]
+    corpo = {
+        "transaction_amount": ped["preco"],  # valor do plano no servidor
+        "token": token,
+        "description": ped["titulo"],
+        "installments": parcelas,
+        "payment_method_id": metodo,
+        "external_reference": ped["pedido"],
+        "statement_descriptor": "ELEVO",
+        "payer": {"email": email_pag},
+    }
+    if form.get("issuer_id"):
+        corpo["issuer_id"] = str(form.get("issuer_id"))
+    if ident.get("number"):
+        corpo["payer"]["identification"] = {"type": str(ident.get("type") or "CPF")[:10],
+                                            "number": re.sub(r"\D", "", str(ident.get("number")))[:20]}
+    pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    _elevo_pedido_anotar_pagamento_v16865(ped["pedido"], pg.get("id"))
+    status = str(pg.get("status", ""))
+    creditados = elevo_checkout_confirmar_v16863(pg.get("id")) if status == "approved" else []
+    return {"status": status, "detalhe": str(pg.get("status_detail", "")), "creditados": creditados,
+            "plano": plano, "creditos": ped["creditos"]}
+
+
+def elevo_pagamento_status_v16865(payment_id):
+    """Consulta um pagamento e credita se aprovado. Retorna (status, creditados)."""
+    if not str(payment_id or "").isdigit():
+        return "", []
+    pg = _elevo_mp_req_v16863("GET", f"/v1/payments/{int(payment_id)}")
+    status = str(pg.get("status", ""))
+    creditados = elevo_checkout_confirmar_v16863(payment_id) if status == "approved" else []
+    return status, creditados
 
 # V16.8.16 — Verificação sem bloquear o login por oscilação do Sheets.
 # Saldo e permissões de geração continuam fail-closed nas operações cobradas.
@@ -3382,159 +3544,391 @@ if st.session_state.get("elevo_banco_indisponivel_v16816"):
                "O saldo fica indisponível e nenhuma nova geração será cobrada ou liberada "
                "sem confirmação. Use 'Atualizar saldo' quando o serviço voltar.")
 
-with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
-    # V16.8.24: dados originais e saldos intactos; dois cards responsivos.
-    # A foto já salva permanece disponível na conta. Não será usada como mascote flutuante.
-    col_info_v16813, col_saldo_v16813 = st.columns([2.5, 1.35], gap="small", vertical_alignment="center")
-    with col_info_v16813:
-        st.markdown(
-            f"<div class='elevo-conta-vip-v16813 elevo-vip-perfil-v16824'>"
-            "<div class='elevo-identidade-v16825'>"
-            f"<span class='elevo-avatar-joia-v16825'>{_elevo_avatar_miolo_v16827}</span>"
-            "<div class='elevo-identidade-texto-v16825'>"
-            f"<div class='eyebrow'>♛ ÉLÉVO • CONTA VIP</div>"
-            f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
-            f"<div class='mail'>{html_std.escape(_elevo_email_painel_v16813)}</div>"
-            "</div></div>"
-            "<div class='elevo-medalha-v16824' aria-hidden='true'><span>💎</span><strong>VIP</strong></div>"
-            "</div>", unsafe_allow_html=True)
-    with col_saldo_v16813:
-        if E_O_CEO:
-            st.markdown("<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
-                        "<div class='eyebrow'>👑 CEO</div>"
-                        "<div class='balance'>∞</div><div class='small'>Criações ilimitadas</div></div>",
-                        unsafe_allow_html=True)
-        else:
-            st.markdown(f"<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
-                        f"<div class='eyebrow'>◇ MEU SALDO</div>"
-                        f"<div class='balance'>{int(_elevo_saldo_v16813) if _elevo_saldo_v16813 is not None else '—'}<span style='font-size:12px'> CR</span></div>"
-                        "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
+# ==========================================================
+# V16.8.65 — CARTEIRA VIP + CHECKOUT DENTRO DO APP
+# Referência de organização: apps de banco/infoproduto (cartão único de
+# saldo + barra de ações + checkout em etapas: plano → Pix ou cartão).
+# Mesmos dados e regras de antes; só a organização e o visual mudaram.
+# ==========================================================
+_wal_tk = ({
+    "__FUNDO__": "linear-gradient(135deg,#FFFFFF 0%,#F3F8FF 55%,#EAF2FF 100%)",
+    "__BORDA__": "#D6E3F5", "__TXT__": "#0B2A55", "__SUB__": "#5A6F8C", "__ACENTO__": "#1457A1",
+    "__OURO__": "#B8862F", "__SOMBRA__": "0 18px 44px rgba(20,60,120,.10)",
+    "__CARD__": "#FFFFFF", "__CARDBORDA__": "#DCE6F3", "__SEL__": "linear-gradient(180deg,#FFF8E6,#FFFFFF)",
+    "__BTN2__": "#FFFFFF", "__BTN2TXT__": "#0B2A55", "__BTN2BORDA__": "#CFDDF0",
+    "__GLOW__": "radial-gradient(circle at 85% 0%,rgba(20,87,161,.12),transparent 55%)",
+} if modo_claro else {
+    "__FUNDO__": "linear-gradient(135deg,#101B2E 0%,#0A1322 55%,#070D18 100%)",
+    "__BORDA__": "rgba(120,170,230,.18)", "__TXT__": "#F2F6FC", "__SUB__": "#93A7C2", "__ACENTO__": "#54D8F5",
+    "__OURO__": "#E2C47E", "__SOMBRA__": "0 22px 50px rgba(0,0,0,.40)",
+    "__CARD__": "rgba(255,255,255,.035)", "__CARDBORDA__": "rgba(120,170,230,.18)",
+    "__SEL__": "linear-gradient(180deg,rgba(216,182,106,.16),rgba(216,182,106,.03))",
+    "__BTN2__": "rgba(255,255,255,.05)", "__BTN2TXT__": "#EAF2FF", "__BTN2BORDA__": "rgba(255,255,255,.14)",
+    "__GLOW__": "radial-gradient(circle at 85% 0%,rgba(216,182,106,.16),transparent 55%)",
+})
+_wal_css = """<style>
+.st-key-elevo_carteira_v16865 {border-radius:26px!important; padding:clamp(1rem,2.6vw,1.6rem)!important;
+  background:__GLOW__,__FUNDO__!important; border:1px solid __BORDA__!important; box-shadow:__SOMBRA__!important;
+  position:relative; overflow:hidden; margin-bottom:.6rem;}
+.wal-topo {display:flex; align-items:center; gap:14px;}
+.wal-avatar {width:58px; height:58px; flex:0 0 58px; border-radius:50%; padding:3px;
+  background:conic-gradient(from 200deg,#F4DC9A,#54D8F5,#1457A1,#F4DC9A); display:grid; place-items:center;}
+.wal-avatar > * {width:52px; height:52px; border-radius:50%; object-fit:cover; display:grid; place-items:center;
+  background:__CARD__; color:__ACENTO__;}
+.wal-avatar svg {width:26px; height:26px;}
+.wal-quem {min-width:0; flex:1;}
+.wal-quem b {display:block; color:__TXT__; font:800 1.12rem Montserrat,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.wal-quem span {display:block; color:__SUB__; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.wal-chip {flex:0 0 auto; font:800 .62rem Montserrat,sans-serif; letter-spacing:.14em; padding:6px 11px; border-radius:30px;
+  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-saldo {margin-top:1.1rem; padding-top:1rem; border-top:1px dashed __BORDA__; display:flex; align-items:flex-end;
+  justify-content:space-between; gap:12px; flex-wrap:wrap;}
+.wal-rot {color:__SUB__; font:700 .68rem Montserrat,sans-serif; letter-spacing:.16em; text-transform:uppercase;}
+.wal-num {color:__TXT__; font:900 clamp(2.3rem,7vw,3.1rem)/1 Montserrat,sans-serif; letter-spacing:-.02em; margin-top:.25rem;}
+.wal-num small {font-size:.95rem; color:__OURO__; margin-left:6px; letter-spacing:.04em;}
+.wal-info {color:__SUB__; font-size:.82rem; margin-top:.35rem;}
+.wal-pill {font:700 .72rem Montserrat,sans-serif; padding:7px 12px; border-radius:30px; white-space:nowrap;}
+.wal-pill.ok {color:#13865F; background:rgba(47,211,154,.12); border:1px solid rgba(47,211,154,.35);}
+.wal-pill.baixo {color:#C2410C; background:rgba(251,146,60,.12); border:1px solid rgba(251,146,60,.4);}
+.wal-pill.ceo {color:__OURO__; background:rgba(216,182,106,.12); border:1px solid rgba(216,182,106,.4);}
+.st-key-elevo_carteira_acoes_v16865 {margin-top:1rem;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button, .st-key-elevo_checkout_v16865 .stButton button,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button {
+  min-height:48px!important; border-radius:14px!important; font-weight:800!important;
+  background:__BTN2__!important; border:1px solid __BTN2BORDA__!important; box-shadow:none!important;
+  transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button p, .st-key-elevo_checkout_v16865 .stButton button p,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button p {color:__BTN2TXT__!important; font-weight:800!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button:hover, .st-key-elevo_checkout_v16865 .stButton button:hover {
+  transform:translateY(-1px); border-color:__ACENTO__!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button[kind*="rimary"], .st-key-elevo_checkout_v16865 .stButton button[kind*="rimary"],
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button[kind*="rimary"] {
+  border:none!important; background:linear-gradient(100deg,#B88A2E 0%,#D8B66A 45%,#F4DC9A 100%)!important;
+  box-shadow:0 10px 26px rgba(184,138,47,.30),inset 0 1px rgba(255,255,255,.45)!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button[kind*="rimary"] p, .st-key-elevo_checkout_v16865 .stButton button[kind*="rimary"] p,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button[kind*="rimary"] p {color:#120D03!important;}
+.st-key-elevo_checkout_v16865 {border-radius:24px!important; padding:clamp(1rem,2.4vw,1.5rem)!important;
+  background:__FUNDO__!important; border:1px solid __BORDA__!important; box-shadow:__SOMBRA__!important; margin-bottom:.8rem;}
+.st-key-elevo_checkout_v16865 [data-testid="stMarkdownContainer"] p, .st-key-elevo_checkout_v16865 label p,
+.st-key-elevo_checkout_v16865 [data-testid="stCaptionContainer"] p {color:__SUB__!important;}
+.wal-etapa {display:flex; align-items:center; gap:10px; margin:.2rem 0 .7rem; color:__TXT__; font:800 1rem Montserrat,sans-serif;}
+.wal-etapa i {font-style:normal; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:.8rem;
+  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-plano {border-radius:18px; padding:1rem .9rem .85rem; text-align:center; background:__CARD__;
+  border:1.5px solid __CARDBORDA__; transition:border-color .2s ease, transform .2s ease;}
+.wal-plano.sel {border-color:#D8B66A; background:__SEL__; box-shadow:0 12px 30px rgba(184,138,47,.16); transform:translateY(-2px);}
+.wal-plano .selo {display:inline-block; font:800 .58rem Montserrat,sans-serif; letter-spacing:.13em; text-transform:uppercase;
+  padding:4px 9px; border-radius:20px; color:__ACENTO__; background:rgba(84,160,245,.10); margin-bottom:.45rem;}
+.wal-plano.sel .selo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-plano .nome {color:__TXT__; font:800 .95rem Montserrat,sans-serif; letter-spacing:.08em;}
+.wal-plano .cr {color:__OURO__; font:900 1.5rem Montserrat,sans-serif; margin-top:.15rem;}
+.wal-plano .cr small {font-size:.7rem;}
+.wal-plano .preco {color:__TXT__; font:800 1.2rem Montserrat,sans-serif; margin-top:.25rem;}
+.wal-plano .preco sup {font-size:.62rem; margin-right:2px;}
+.wal-plano .desc {color:__SUB__; font-size:.75rem;}
+.wal-resumo {display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:1rem 0 .4rem;
+  padding:.8rem 1rem; border-radius:16px; background:__CARD__; border:1px solid __CARDBORDA__; color:__TXT__; font-size:.88rem;}
+.wal-resumo b {font:900 1.15rem Montserrat,sans-serif;}
+.wal-pix {display:flex; gap:16px; align-items:center; flex-wrap:wrap; padding:1rem; border-radius:18px;
+  background:__CARD__; border:1px solid __CARDBORDA__;}
+.wal-pix img {width:190px; height:190px; border-radius:14px; background:#fff; padding:8px; flex:0 0 auto;}
+.wal-pix .t {flex:1; min-width:200px; color:__TXT__;}
+.wal-pix .t > b {display:block; font:800 1.05rem Montserrat,sans-serif; margin-bottom:.35rem;}
+.wal-pix .t span b {color:__TXT__; font-weight:800;}
+.wal-pix .t span {display:block; color:__SUB__; font-size:.84rem; line-height:1.55;}
+.wal-seg {display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin-top:.9rem; color:__SUB__; font-size:.74rem;}
+.st-key-elevo_checkout_v16865 [role="tablist"] {display:grid!important; grid-template-columns:repeat(3,1fr); gap:6px!important;}
+.st-key-elevo_checkout_v16865 [role="tab"] {justify-content:center!important;}
+@media (max-width:640px) {.wal-pix img {width:100%; height:auto; max-width:260px; margin:0 auto;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stHorizontalBlock"] {flex-direction:row!important; flex-wrap:wrap!important; gap:.55rem!important;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stColumn"] {flex:1 1 calc(50% - .3rem)!important; width:calc(50% - .3rem)!important; min-width:0!important;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stColumn"]:first-child {flex:1 1 100%!important; width:100%!important;}}
+</style>"""
+for _wal_k, _wal_v in _wal_tk.items():
+    _wal_css = _wal_css.replace(_wal_k, _wal_v)
+st.markdown(_wal_css, unsafe_allow_html=True)
 
-if not E_O_CEO:
-    _evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
-    if _evp_sucesso:
-        _evp_total = sum(int(x.get("creditos", 0)) for x in _evp_sucesso)
-        st.success(f"🎉 Pagamento aprovado! **+{format(_evp_total, ',').replace(',', '.')} créditos** já estão no seu saldo. Boas criações!")
-        st.balloons()
-    # ==========================================================
-    # V16.8.63 — LOJA DE CRÉDITOS (planos + checkout Mercado Pago)
-    # ==========================================================
-    st.markdown("""<style>
-    .st-key-elevo_loja_v16863 {border-radius:22px!important; padding:1rem 1rem .6rem!important; position:relative; overflow:hidden;
-      background:radial-gradient(ellipse 60% 90% at 100% 0%,rgba(216,182,106,.16),transparent 65%),
-                 linear-gradient(155deg,#0E1828,#070C16)!important; border:1px solid rgba(216,182,106,.36)!important;}
-    .st-key-elevo_loja_v16863 [data-testid="stMarkdownContainer"] p, .st-key-elevo_loja_v16863 [data-testid="stCaptionContainer"] p {color:#A9BAD1!important;}
-    .evp-topo {display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:.7rem;}
-    .evp-titulo {color:#F4F7FC; font:800 1.15rem Montserrat,sans-serif;}
-    .evp-badge {font:700 .64rem 'JetBrains Mono',monospace; letter-spacing:.14em; color:#2FD39A; padding:5px 10px; border-radius:30px;
-      background:rgba(47,211,154,.08); border:1px solid rgba(47,211,154,.3);}
-    .evp-card {position:relative; border-radius:18px; padding:1.05rem .95rem .8rem; height:100%; text-align:center;
-      background:rgba(255,255,255,.03); border:1px solid rgba(84,216,245,.18);}
-    .evp-card.destaque {border-color:#D8B66A; background:linear-gradient(180deg,rgba(216,182,106,.14),rgba(216,182,106,.03));
-      box-shadow:0 12px 30px rgba(216,182,106,.14);}
-    .evp-selo {display:inline-block; font:800 .6rem Montserrat,sans-serif; letter-spacing:.12em; text-transform:uppercase;
-      padding:4px 9px; border-radius:20px; color:#9FD0FF; background:rgba(84,216,245,.1); margin-bottom:.45rem;}
-    .evp-card.destaque .evp-selo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
-    .evp-nome {color:#EAF2FF; font:800 1rem Montserrat,sans-serif; letter-spacing:.06em;}
-    .evp-cred {color:#F4DC9A; font:900 1.55rem Montserrat,sans-serif; margin:.2rem 0 0;}
-    .evp-cred small {font-size:.7rem; color:#C9B27A;}
-    .evp-preco {color:#F4F7FC; font:800 1.25rem Montserrat,sans-serif; margin:.35rem 0 .1rem;}
-    .evp-preco sup {font-size:.65rem; vertical-align:top; margin-right:2px;}
-    .evp-desc {color:#8FA6C4; font-size:.76rem;}
-    .evp-seg {display:flex; justify-content:center; flex-wrap:wrap; gap:6px 14px; margin-top:.75rem; color:#8FA6C4; font-size:.72rem;}
-    .st-key-elevo_loja_v16863 .stButton button, .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a {
-      border-radius:12px!important; min-height:44px!important; font-weight:800!important;
-      background:rgba(255,255,255,.04)!important; border:1px solid rgba(84,216,245,.3)!important;}
-    .st-key-elevo_loja_v16863 .stButton button p {color:#EAF2FF!important; font-weight:800!important;}
-    .st-key-elevo_loja_v16863 .stButton button:hover {border-color:#54D8F5!important; background:rgba(84,216,245,.08)!important;}
-    .st-key-elevo_loja_v16863 .stButton button[kind="primary"] {border:none!important;
-      background:linear-gradient(100deg,#B88A2E,#D8B66A 45%,#F4DC9A)!important; box-shadow:0 8px 22px rgba(216,182,106,.25)!important;}
-    .st-key-elevo_loja_v16863 .stButton button[kind="primary"] p {color:#120D03!important;}
-    .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a p, .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a span {color:#fff!important;}
-    .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a {background:linear-gradient(100deg,#00A650,#2FD39A)!important;
-      color:#fff!important; border:none!important;}
-    </style>""", unsafe_allow_html=True)
+_evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
+if _evp_sucesso and not E_O_CEO:
+    _evp_total = sum(int(x.get("creditos", 0)) for x in _evp_sucesso)
+    st.success(f"🎉 Pagamento aprovado! **+{format(_evp_total, ',').replace(',', '.')} créditos** já estão no seu saldo. Boas criações!")
+    st.balloons()
 
-    _evp_retorno = str(st.query_params.get("elevo_pg", "") or "")
-    _evp_aberta = bool(_evp_retorno) or (isinstance(_elevo_saldo_v16813, int) and _elevo_saldo_v16813 < 50)
-    with st.container(key="elevo_loja_v16863"):
-        with st.expander("💎 Comprar créditos • Pix ou cartão", expanded=_evp_aberta):
-            st.markdown('<div class="evp-topo"><div class="evp-titulo">Escolha seu plano</div><div class="evp-badge">● PAGAMENTO SEGURO</div></div>',
-                        unsafe_allow_html=True)
-            if _evp_retorno == "pendente":
-                st.info("⏳ Pagamento em processamento. Assim que o Mercado Pago aprovar, os créditos entram. "
-                        "Use **Já paguei, verificar** em instantes.")
-            elif _evp_retorno == "falhou":
-                st.warning("O pagamento não foi concluído. Nenhum valor foi cobrado; você pode tentar de novo.")
-            _evp_cols = st.columns(len(ELEVO_PACOTES_V16859))
-            for _evp_col, (_evp_nome, _evp_p) in zip(_evp_cols, ELEVO_PACOTES_V16859.items()):
-                with _evp_col:
-                    _evp_dest = "destaque" if _evp_nome == "Pro" else ""
-                    _evp_preco = f"{float(_evp_p['preco']):.2f}".replace(".", ",")
-                    st.markdown(
-                        f"<div class='evp-card {_evp_dest}'><div class='evp-selo'>{html_std.escape(_evp_p.get('selo', ''))}</div>"
-                        f"<div class='evp-nome'>{html_std.escape(_evp_nome.upper())}</div>"
-                        f"<div class='evp-cred'>{format(int(_evp_p['creditos']), ',').replace(',', '.')}<small> CR</small></div>"
-                        f"<div class='evp-preco'><sup>R$</sup>{_evp_preco}</div>"
-                        f"<div class='evp-desc'>{html_std.escape(_evp_p['desc'])}</div></div>",
-                        unsafe_allow_html=True)
-                    _evp_link = st.session_state.get("elevo_checkout_link_v16863", {})
-                    if _evp_link.get("plano") == _evp_nome:
-                        st.link_button("Pagar agora ➜", _evp_link["link"], use_container_width=True)
-                    elif st.button(f"Quero o {_evp_nome}", key=f"elevo_comprar_{_evp_nome}_v16863",
-                                   use_container_width=True, type="primary" if _evp_dest else "secondary"):
-                        try:
-                            with st.spinner("Abrindo pagamento seguro..."):
-                                _evp_res = elevo_checkout_criar_v16863(_evp_nome)
-                            st.session_state["elevo_checkout_link_v16863"] = {"plano": _evp_nome, "link": _evp_res["link"]}
-                            st.rerun()
-                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _evp_exc:
-                            st.warning(str(_evp_exc))
-                        except Exception:
-                            st.warning("Não foi possível abrir o pagamento agora. Tente novamente.")
-            if st.session_state.get("elevo_checkout_link_v16863"):
-                st.caption("O pagamento abre numa nova aba do Mercado Pago. Pagou com Pix? Volte aqui e toque em "
-                           "**Já paguei, verificar**.")
-            if not elevo_mp_ativo_v16863():
-                st.caption("🛠️ Pagamentos em configuração. Enquanto isso, use **Pedir créditos ao CEO** logo abaixo.")
-            elif st.button("✓ Já paguei, verificar", key="elevo_checkout_verificar_v16863", use_container_width=True):
-                try:
-                    with st.spinner("Conferindo com o Mercado Pago..."):
-                        _evp_ok = elevo_checkout_confirmar_v16863()
-                    if _evp_ok:
-                        st.session_state.pop("elevo_checkout_link_v16863", None)
-                        st.session_state["elevo_checkout_sucesso_v16863"] = _evp_ok
-                        elevo_invalidar_leituras_v16816()
-                        st.rerun()
-                    else:
-                        st.info("Ainda não encontramos pagamento aprovado. No Pix a aprovação costuma levar poucos segundos; "
-                                "no cartão, até alguns minutos.")
-                except Exception:
-                    st.warning("Não foi possível conferir agora. Tente de novo em instantes.")
-            st.markdown("<div class='evp-seg'><span>🔒 Mercado Pago</span><span>⚡ Pix na hora</span>"
-                        "<span>💳 Cartão</span><span>♾️ Créditos não expiram</span></div>", unsafe_allow_html=True)
+_wal_ret = str(st.query_params.get("elevo_pg", "") or "")
+if _wal_ret and not E_O_CEO:
+    st.session_state["elevo_carteira_painel_v16865"] = "recarga"
+_wal_painel = st.session_state.get("elevo_carteira_painel_v16865")
 
-if not E_O_CEO:
-    # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
-    with st.container(key="elevo_painel_creditos_v16824"):
-        with st.expander("▤ Pedir créditos ao CEO", expanded=False):
-            st.caption("Prefere combinar direto? Seu pedido aparece no painel do CEO. Para recarga na hora, use 💎 Comprar créditos.")
-            qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
-                                                value=100, step=10, key="elevo_pedido_qtd_v16813")
-            msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
-                                             placeholder="Quero criar mais roteiros neste mês.",
-                                             key="elevo_pedido_msg_v16813")
-            if st.button("✈ Enviar pedido ao CEO", key="elevo_pedido_enviar_v16813", type="primary",
-                         use_container_width=True):
-                try:
-                    elevo_pedir_creditos_v16813(int(qtd_pedido_v16813), msg_pedido_v16813)
-                    st.success("Pedido enviado! Aguarde a análise do CEO.")
-                except Exception as exc:
-                    st.warning(str(exc) if isinstance(exc, (ElevoCreditoErroV16813, ValueError)) else
-                               "O pedido não foi enviado. Verifique a conexão do banco.")
-        if st.button("↻ Atualizar saldo", key="elevo_saldo_refresh_v16813", use_container_width=True):
+with st.container(key="elevo_carteira_v16865"):
+    if E_O_CEO:
+        _wal_bloco = ("<div><div class='wal-rot'>Saldo</div><div class='wal-num'>∞<small>CR</small></div>"
+                      "<div class='wal-info'>Criações ilimitadas para o CEO</div></div>"
+                      "<span class='wal-pill ceo'>👑 CEO</span>")
+    else:
+        _wal_s = int(_elevo_saldo_v16813) if isinstance(_elevo_saldo_v16813, int) else None
+        _wal_cri = (_wal_s // ELEVO_CUSTO_PROMPT_V16813) if _wal_s is not None else None
+        _wal_pill = ("<span class='wal-pill baixo'>⚠ Saldo baixo</span>" if (_wal_s is not None and _wal_s < 50)
+                     else "<span class='wal-pill ok'>● Conta ativa</span>")
+        _wal_bloco = ("<div><div class='wal-rot'>Saldo disponível</div>"
+                      f"<div class='wal-num'>{format(_wal_s, ',').replace(',', '.') if _wal_s is not None else '—'}<small>CR</small></div>"
+                      f"<div class='wal-info'>{('≈ ' + format(_wal_cri, ',').replace(',', '.') + ' criações') if _wal_cri is not None else 'Saldo indisponível no momento'}"
+                      f" • criação {ELEVO_CUSTO_PROMPT_V16813} CR • ferramentas IA {ELEVO_CUSTO_FERRAMENTA_V16813} CR</div></div>" + _wal_pill)
+    st.markdown(
+        "<div class='wal-topo'>"
+        f"<div class='wal-avatar'>{_elevo_avatar_miolo_v16827}</div>"
+        f"<div class='wal-quem'><b>{_elevo_nome_painel_v16813}</b><span>{html_std.escape(_elevo_email_painel_v16813)}</span></div>"
+        "<span class='wal-chip'>💎 VIP</span></div>"
+        f"<div class='wal-saldo'>{_wal_bloco}</div>", unsafe_allow_html=True)
+    if not E_O_CEO:
+        with st.container(key="elevo_carteira_acoes_v16865"):
+            _wa1, _wa2, _wa3 = st.columns([1.35, 1, 1])
+            with _wa1:
+                if st.button("💎 Recarregar créditos" if _wal_painel != "recarga" else "✕ Fechar recarga",
+                             key="elevo_wal_recarga_v16865", type="primary", use_container_width=True):
+                    st.session_state["elevo_carteira_painel_v16865"] = None if _wal_painel == "recarga" else "recarga"
+                    if _wal_painel == "recarga" and "elevo_pg" in st.query_params:
+                        del st.query_params["elevo_pg"]
+                    st.rerun()
+            with _wa2:
+                if st.button("↻ Atualizar", key="elevo_saldo_refresh_v16813", use_container_width=True):
+                    elevo_invalidar_leituras_v16816()
+                    st.rerun()
+            with _wa3:
+                if st.button("✉ Pedir ao CEO" if _wal_painel != "pedido" else "✕ Fechar pedido",
+                             key="elevo_wal_pedido_v16865", use_container_width=True):
+                    st.session_state["elevo_carteira_painel_v16865"] = None if _wal_painel == "pedido" else "pedido"
+                    st.rerun()
+
+if not E_O_CEO and _wal_painel == "pedido":
+    with st.container(key="elevo_checkout_v16865"):
+        st.markdown("<div class='wal-etapa'><i>✉</i>Pedir créditos ao CEO</div>", unsafe_allow_html=True)
+        st.caption("Prefere combinar direto? Seu pedido aparece no painel do CEO.")
+        qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
+                                            value=100, step=10, key="elevo_pedido_qtd_v16813")
+        msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
+                                         placeholder="Quero criar mais roteiros neste mês.",
+                                         key="elevo_pedido_msg_v16813")
+        if st.button("✈ Enviar pedido ao CEO", key="elevo_pedido_enviar_v16813", type="primary",
+                     use_container_width=True):
+            try:
+                elevo_pedir_creditos_v16813(int(qtd_pedido_v16813), msg_pedido_v16813)
+                st.success("Pedido enviado! Aguarde a análise do CEO.")
+            except Exception as exc:
+                st.warning(str(exc) if isinstance(exc, (ElevoCreditoErroV16813, ValueError)) else
+                           "O pedido não foi enviado. Verifique a conexão do banco.")
+
+if not E_O_CEO and _wal_painel == "recarga":
+    _elevo_brick_cartao_v16865 = st.components.v2.component(
+        name="elevo_mp_cartao_v16865",
+        html="<div class='evk-wrap'><div class='evk-box'></div><p class='evk-status'>Carregando formulário seguro do Mercado Pago…</p></div>",
+        css=".evk-wrap{min-height:120px}.evk-status{font-size:.85rem;margin:.6rem 0 0;text-align:center;color:#7C8FA9}",
+        js="""
+export default function (component) {
+  const {parentElement, data, setTriggerValue} = component;
+  const box = parentElement.querySelector('.evk-box');
+  const status = parentElement.querySelector('.evk-status');
+  box.id = 'evkBrick_' + String(data.chave || 'x').replace(/[^a-zA-Z0-9_]/g, '_');
+  let controle = null, cancelado = false;
+  const carregar = () => new Promise((ok, falha) => {
+    if (window.MercadoPago) return ok();
+    let s = document.querySelector('script[data-elevo-mp]');
+    if (!s) { s = document.createElement('script'); s.src = 'https://sdk.mercadopago.com/js/v2';
+              s.setAttribute('data-elevo-mp', '1'); document.head.appendChild(s); }
+    s.addEventListener('load', () => ok()); s.addEventListener('error', () => falha());
+    setTimeout(() => window.MercadoPago ? ok() : null, 50);
+  });
+  carregar().then(async () => {
+    if (cancelado) return;
+    const mp = new window.MercadoPago(data.publicKey, {locale: 'pt-BR'});
+    controle = await mp.bricks().create('cardPayment', box.id, {
+      initialization: {amount: data.valor, payer: {email: data.email}},
+      customization: {visual: {style: {theme: data.tema}, texts: {formSubmit: 'Pagar ' + data.valorTexto}},
+                      paymentMethods: {maxInstallments: 12}},
+      callbacks: {
+        onReady: () => { status.textContent = '🔒 Seus dados vão direto para o Mercado Pago, criptografados.'; },
+        onSubmit: (dados) => new Promise((resolver) => { setTriggerValue('pagar', dados); resolver(); }),
+        onError: () => { status.textContent = 'Confira os dados do cartão.'; }
+      }
+    });
+  }).catch(() => { status.textContent = 'Não foi possível carregar o Mercado Pago. Verifique a internet e tente de novo.'; });
+  return () => { cancelado = true; try { controle && controle.unmount(); } catch (e) {} };
+}
+""",
+        isolate_styles=False)
+
+    @st.fragment(run_every=5)
+    def _elevo_pix_aguardar_v16865():
+        pix = st.session_state.get("elevo_pix_ativo_v16865")
+        if not pix:
+            return
+        if time.time() - float(pix.get("criado", 0)) > 1900:
+            st.warning("⌛ Este Pix expirou. Gere um novo QR Code.")
+            return
+        try:
+            situacao, creditados = elevo_pagamento_status_v16865(pix["id"])
+        except Exception:
+            situacao, creditados = "", []
+        if situacao == "approved":
+            st.session_state["elevo_checkout_sucesso_v16863"] = creditados or [{"creditos": pix["creditos"]}]
+            st.session_state.pop("elevo_pix_ativo_v16865", None)
+            st.session_state["elevo_carteira_painel_v16865"] = None
             elevo_invalidar_leituras_v16816()
-            st.rerun()
+            st.rerun(scope="app")
+        elif situacao in ("cancelled", "rejected", "refunded"):
+            st.warning("Este Pix foi cancelado ou expirou. Gere um novo QR Code.")
+        else:
+            st.caption("⏳ Aguardando o pagamento… a confirmação aparece aqui sozinha em poucos segundos.")
+
+    with st.container(key="elevo_checkout_v16865"):
+        if _wal_ret == "pendente":
+            st.info("⏳ Pagamento em processamento. Assim que for aprovado, os créditos entram sozinhos.")
+        elif _wal_ret == "falhou":
+            st.warning("O pagamento não foi concluído. Nenhum valor foi cobrado; tente de novo.")
+        st.markdown("<div class='wal-etapa'><i>1</i>Escolha o plano</div>", unsafe_allow_html=True)
+        st.session_state.setdefault("elevo_wal_plano_v16865", "Pro")
+        _wal_sel = st.session_state["elevo_wal_plano_v16865"]
+        _wal_cols = st.columns(len(ELEVO_PACOTES_V16859))
+        for _wal_c, (_wal_nome, _wal_p) in zip(_wal_cols, ELEVO_PACOTES_V16859.items()):
+            with _wal_c:
+                _wal_ativo = _wal_nome == _wal_sel
+                st.markdown(
+                    f"<div class='wal-plano{' sel' if _wal_ativo else ''}'><div class='selo'>{html_std.escape(_wal_p.get('selo', ''))}</div>"
+                    f"<div class='nome'>{html_std.escape(_wal_nome.upper())}</div>"
+                    f"<div class='cr'>{format(int(_wal_p['creditos']), ',').replace(',', '.')}<small> CR</small></div>"
+                    f"<div class='preco'><sup>R$</sup>{('%.2f' % float(_wal_p['preco'])).replace('.', ',')}</div>"
+                    f"<div class='desc'>{html_std.escape(_wal_p['desc'])}</div></div>", unsafe_allow_html=True)
+                if st.button("✓ Selecionado" if _wal_ativo else "Escolher", key=f"elevo_wal_sel_{_wal_nome}_v16865",
+                             type="primary" if _wal_ativo else "secondary", use_container_width=True):
+                    st.session_state["elevo_wal_plano_v16865"] = _wal_nome
+                    st.session_state.pop("elevo_pix_ativo_v16865", None)
+                    st.rerun()
+        _wal_pk = ELEVO_PACOTES_V16859[_wal_sel]
+        _wal_valor_txt = "R$ " + ("%.2f" % float(_wal_pk["preco"])).replace(".", ",")
+        st.markdown(
+            f"<div class='wal-resumo'><span>Plano <b style='font-size:.95rem'>{html_std.escape(_wal_sel)}</b> • "
+            f"{format(int(_wal_pk['creditos']), ',').replace(',', '.')} créditos</span><b>{_wal_valor_txt}</b></div>",
+            unsafe_allow_html=True)
+
+        st.markdown("<div class='wal-etapa'><i>2</i>Forma de pagamento</div>", unsafe_allow_html=True)
+        if not elevo_mp_ativo_v16863():
+            st.info("🛠️ Pagamentos em configuração. Enquanto isso, use **✉ Pedir ao CEO**.")
+        else:
+            _wal_t_pix, _wal_t_cartao, _wal_t_outros = st.tabs(["⚡ Pix", "💳 Cartão", "🧾 Boleto e outros"])
+            with _wal_t_pix:
+                _wal_pix = st.session_state.get("elevo_pix_ativo_v16865")
+                if _wal_pix and _wal_pix.get("plano") == _wal_sel:
+                    _wal_img = (f"<img alt='QR Code Pix' src='data:image/png;base64,{_wal_pix['qr_base64']}'/>"
+                                if re.fullmatch(r"[A-Za-z0-9+/=]+", str(_wal_pix.get("qr_base64", ""))) else "")
+                    st.markdown(
+                        f"<div class='wal-pix'>{_wal_img}<div class='t'><b>Pague {_wal_valor_txt} com Pix</b>"
+                        "<span>1. Abra o app do seu banco e escolha <b>Pix → Ler QR Code</b>.<br>"
+                        "2. Ou copie o código abaixo em <b>Pix copia e cola</b>.<br>"
+                        f"3. Os créditos entram sozinhos aqui. Válido até <b>{html_std.escape(_wal_pix['expira'])}</b>.</span>"
+                        "</div></div>", unsafe_allow_html=True)
+                    st.caption("Pix copia e cola (toque no ícone para copiar):")
+                    st.code(_wal_pix["qr_code"], language=None, wrap_lines=True)
+                    _elevo_pix_aguardar_v16865()
+                    if st.button("Gerar outro Pix", key="elevo_pix_novo_v16865", use_container_width=True):
+                        st.session_state.pop("elevo_pix_ativo_v16865", None)
+                        st.rerun()
+                else:
+                    with st.form("elevo_pix_form_v16865", clear_on_submit=False):
+                        _wal_nome_pix = st.text_input("Nome completo", max_chars=80, placeholder="Como está no seu documento")
+                        _wal_cpf_pix = st.text_input("CPF", max_chars=14, placeholder="000.000.000-00")
+                        _wal_gerar = st.form_submit_button(f"⚡ Gerar Pix de {_wal_valor_txt}", type="primary",
+                                                           use_container_width=True)
+                    if _wal_gerar:
+                        try:
+                            with st.spinner("Gerando o seu Pix..."):
+                                _wal_novo = elevo_pix_criar_v16865(_wal_sel, _wal_nome_pix, _wal_cpf_pix)
+                            _wal_novo["criado"] = time.time()
+                            st.session_state["elevo_pix_ativo_v16865"] = _wal_novo
+                            st.rerun()
+                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                            st.warning(str(_wal_exc))
+                        except Exception:
+                            st.warning("Não foi possível gerar o Pix agora. Tente novamente.")
+                    st.caption("Aprovação na hora, 24h por dia. O CPF é exigido pelo Banco Central para Pix.")
+            with _wal_t_cartao:
+                _wal_public = ""
+                try:
+                    _wal_public = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+                except Exception:
+                    _wal_public = ""
+                _wal_res = st.session_state.pop("elevo_cartao_res_v16865", None)
+                if _wal_res and _wal_res.get("msg"):
+                    st.error("❌ " + _wal_res["msg"])
+                elif _wal_res:
+                    if _wal_res["status"] == "in_process" or _wal_res["status"] == "pending":
+                        st.info("⏳ Pagamento em análise pelo Mercado Pago. Os créditos entram assim que for aprovado "
+                                "(normalmente em poucos minutos).")
+                    elif _wal_res["status"] == "rejected":
+                        st.error("❌ " + ELEVO_CARTAO_RECUSA_V16865.get(
+                            _wal_res["detalhe"], "Pagamento recusado. Tente outro cartão ou o Pix."))
+                if not _wal_public:
+                    st.info("💳 Cartão em configuração. Use o **Pix** enquanto isso.")
+                else:
+                    st.session_state.setdefault("elevo_cartao_tentativa_v16865", 0)
+                    _wal_chave = f"{_wal_sel}_{st.session_state['elevo_cartao_tentativa_v16865']}"
+                    _wal_ret_brick = _elevo_brick_cartao_v16865(
+                        key=f"elevo_brick_{_wal_chave}_v16865",
+                        data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
+                              "email": _elevo_email_painel_v16813, "tema": "default" if modo_claro else "dark",
+                              "chave": _wal_chave})
+                    _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
+                    if _wal_form:
+                        try:
+                            with st.spinner("Processando o pagamento com segurança..."):
+                                _wal_r = elevo_cartao_pagar_v16865(_wal_sel, dict(_wal_form))
+                            if _wal_r["status"] == "approved":
+                                st.session_state["elevo_checkout_sucesso_v16863"] = (
+                                    _wal_r["creditados"] or [{"creditos": _wal_r["creditos"]}])
+                                st.session_state["elevo_carteira_painel_v16865"] = None
+                                elevo_invalidar_leituras_v16816()
+                            else:
+                                st.session_state["elevo_cartao_res_v16865"] = _wal_r
+                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                            st.session_state["elevo_cartao_res_v16865"] = {"status": "rejected", "detalhe": "",
+                                                                           "msg": str(_wal_exc)}
+                            st.warning(str(_wal_exc))
+                        except Exception:
+                            st.warning("Não foi possível processar o cartão agora. Nada foi cobrado; tente de novo.")
+                        st.session_state["elevo_cartao_tentativa_v16865"] += 1
+                        st.rerun()
+                    st.caption("Até 12x. O número do cartão é digitado no formulário seguro do Mercado Pago "
+                               "e nunca passa pelo servidor da ÉLÉVO.")
+            with _wal_t_outros:
+                st.caption("Boleto, saldo Mercado Pago ou Linha de Crédito: abre a página do Mercado Pago.")
+                _wal_link = st.session_state.get("elevo_checkout_link_v16863", {})
+                if _wal_link.get("plano") == _wal_sel:
+                    st.link_button("Abrir pagamento no Mercado Pago ➜", _wal_link["link"], use_container_width=True)
+                elif st.button("Gerar link de pagamento", key="elevo_wal_link_v16865", use_container_width=True):
+                    try:
+                        with st.spinner("Abrindo pagamento seguro..."):
+                            _wal_l = elevo_checkout_criar_v16863(_wal_sel)
+                        st.session_state["elevo_checkout_link_v16863"] = {"plano": _wal_sel, "link": _wal_l["link"]}
+                        st.rerun()
+                    except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                        st.warning(str(_wal_exc))
+                    except Exception:
+                        st.warning("Não foi possível abrir o pagamento agora.")
+                if st.button("✓ Já paguei, verificar", key="elevo_checkout_verificar_v16863", use_container_width=True):
+                    try:
+                        with st.spinner("Conferindo com o Mercado Pago..."):
+                            _wal_ok = elevo_checkout_confirmar_v16863()
+                        if _wal_ok:
+                            st.session_state["elevo_checkout_sucesso_v16863"] = _wal_ok
+                            st.session_state["elevo_carteira_painel_v16865"] = None
+                            elevo_invalidar_leituras_v16816()
+                            st.rerun()
+                        else:
+                            st.info("Ainda não encontramos pagamento aprovado. Boleto pode levar até 3 dias úteis.")
+                    except Exception:
+                        st.warning("Não foi possível conferir agora. Tente de novo em instantes.")
+        st.markdown("<div class='wal-seg'><span>🔒 Mercado Pago</span><span>⚡ Pix na hora</span>"
+                    "<span>💳 Até 12x</span><span>♾️ Créditos não expiram</span></div>", unsafe_allow_html=True)
+
+if not E_O_CEO:
     try:
         _pedidos_usuario_v16813 = [r for r in elevo_pedidos_v16813()
                                    if str(r.get("Email", "")).strip().lower() == _elevo_email_painel_v16813]
@@ -6133,6 +6527,12 @@ if E_O_CEO:
         else:
             st.success("✅ Checkout ativo em PRODUÇÃO. Os usuários já podem comprar créditos.")
         try:
+            _evv_pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+        except Exception:
+            _evv_pk = ""
+        if _evv_cfg["token"] and not _evv_pk:
+            st.caption("💳 Cartão dentro do app desligado: falta a **public_key** nos Secrets (o Pix funciona).")
+        try:
             _evv_regs = elevo_vendas_aba_v16863().get_all_records()
         except Exception:
             _evv_regs = []
@@ -6162,7 +6562,8 @@ if E_O_CEO:
             "1. Crie ou acesse sua conta em **mercadopago.com.br** e abra **Suas integrações** (área de desenvolvedor).\n"
             "2. Crie uma aplicação do tipo **Checkout Pro** e copie o **Access Token de produção** (começa com `APP_USR-`).\n"
             "3. No Streamlit, abra o app → **Settings → Secrets** e cole:\n"
-            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\n```\n"
+            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\npublic_key = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\n```\n"
+            "A **public_key** liga o pagamento com cartão dentro do app; sem ela, o Pix continua funcionando.\n"
             "4. Salve. No teste, compre com uma conta comum do app (o CEO não compra) e pague com uma "
             "**conta de teste comprador** do Mercado Pago. Para vender de verdade, troque o token pelo de "
             "**produção** e mude para `modo = \"producao\"`.\n"
