@@ -11228,11 +11228,8 @@ _elevo_fx_v16857 = st.components.v2.component(
     css=r"""
 #fx{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2;opacity:.075;mix-blend-mode:screen}
 #fx.claro{opacity:.06;mix-blend-mode:multiply}
-#beam{position:fixed;left:0;right:0;top:-140px;height:140px;pointer-events:none;z-index:3;
-  background:linear-gradient(180deg,transparent,rgba(84,216,245,.045) 55%,rgba(84,216,245,.09) 50%,transparent);
-  animation:beam 11s linear infinite}
-#beam.claro{background:linear-gradient(180deg,transparent,rgba(19,99,214,.035),transparent)}
-@keyframes beam{0%{top:-140px}70%,100%{top:100vh}}
+/* V16.8.58 — Faixa gigante de varredura que descia a tela DESLIGADA. */
+#beam{display:none!important;animation:none!important}
 @media (prefers-reduced-motion:reduce){#fx,#beam{display:none}}
 """,
     js=r"""
@@ -11285,9 +11282,8 @@ _css_v16857 = """
 .st-key-elevo_hacker_fx_wrap_v16857 {height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;}
 .st-key-elevo_hacker_fx_wrap_v16857 * {margin:0!important;}
 
-/* Linhas de varredura CRT em toda a plataforma (bem sutis, não bloqueiam cliques). */
-.stApp::after {content:"";position:fixed;inset:0;pointer-events:none;z-index:999990;
-  background:repeating-linear-gradient(0deg,__SCAN__ 0 1px,transparent 1px 3px);}
+/* V16.8.58 — Linhas de varredura CRT (listras de TV) DESLIGADAS na tela principal. */
+.stApp::after {content:none!important;display:none!important;background:none!important;}
 
 /* ---------- BARRA DE TERMINAL ---------- */
 .elevo-term {display:flex;align-items:center;gap:14px;min-width:0;margin:0 0 12px;padding:9px 14px;border-radius:14px;
