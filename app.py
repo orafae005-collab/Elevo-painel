@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + CONTAS LIBERADAS SÓ PELO CEO (com créditos) | BASE V16.8.58
+# Cadastro público removido; CEO cria contas no painel; Aurora, créditos e motores preservados.
+# V16.8.58 — listras de TV e faixa de varredura do fundo desligadas.
 # ÉLÉVO V16.8.57 — FALA NA MEDIDA (10/12/15s) + TOQUE HACKER NA PLATAFORMA | BASE V16.8.56
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
@@ -596,7 +599,7 @@ if (not st.session_state["usuario_logado"]
 
 if not st.session_state["usuario_logado"]:
     if ELEVO_MOSTRAR_LOGIN:
-        st.success("✅ Você saiu da conta. Entre com outra conta ou crie uma nova.")
+        st.success("✅ Você saiu da conta. Entre novamente quando quiser.")
     # V16.8.22.1 — APENAS TELA DE LOGIN: dois videos MP4 fornecidos pelo usuario.
     # Ficam fora do painel autenticado. Nenhum fluxo de cadastro e alterado.
     from pathlib import Path as _ElevoIntroPath
@@ -640,98 +643,181 @@ if not st.session_state["usuario_logado"]:
             st.video(_elevo_intro_cel, autoplay=True, muted=True, loop=True,
                      alt="Abertura cinematografica vertical do portal ELEVO")
 
-    # Visual V13: somente apresentação; nenhuma mudança na lógica de credenciais/cookies.
+    # ==========================================================
+    # V16.8.59 — NOVA PORTARIA VIP (somente visual + sem autocadastro).
+    # A lógica de senha, cookies, Google e Aurora é a MESMA de antes.
+    # Contas novas agora são liberadas apenas pelo CEO no painel administrativo.
+    # ==========================================================
     st.markdown("""
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
       [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, header { display:none !important; }
       [data-testid="stAppViewContainer"] {
-        background: radial-gradient(ellipse 85% 70% at 48% -18%, rgba(0,229,255,.12), transparent 73%),
-                    radial-gradient(circle at 90% 90%, rgba(212,175,55,.07), transparent 45%),
-                    #0B0E14 !important;
+        background:
+          radial-gradient(ellipse 70% 55% at 15% -10%, rgba(84,216,245,.16), transparent 70%),
+          radial-gradient(ellipse 55% 50% at 100% 105%, rgba(216,182,106,.13), transparent 70%),
+          linear-gradient(160deg,#070C16 0%,#060A12 55%,#04070D 100%) !important;
       }
-      .block-container {max-width: 1050px; padding-top: clamp(1.3rem,3.5vw,3rem); padding-bottom: 2rem;}
-      .elevo-login-hero {text-align:center; position:relative; margin: 0 auto 1.55rem; padding: 0 10px;}
-      .elevo-login-eagle {position:relative; margin:0 auto 10px; width:82px; height:82px; display:grid;
-        place-items:center; border:1px solid rgba(0,229,255,.32); border-radius:25px;
-        background:linear-gradient(145deg,rgba(20,30,43,.98),rgba(8,12,19,.96));
-        box-shadow: 0 0 0 6px rgba(0,229,255,.035), 0 16px 42px rgba(0,0,0,.3), 0 0 35px rgba(0,229,255,.11);
-        animation: elevo-login-float 5.5s ease-in-out infinite;}
-      .elevo-login-eagle:before {content:""; position:absolute; inset:-9px; border-radius:30px;
-        background:conic-gradient(from 10deg,transparent,rgba(0,229,255,.27),transparent,rgba(212,175,55,.22),transparent);
-        filter:blur(10px); z-index:-1; animation:elevo-login-ring 16s linear infinite;}
-      .elevo-login-eagle span {font-size:39px; filter:drop-shadow(0 0 8px rgba(0,255,157,.35));}
-      .elevo-login-brand {font-family:Montserrat, sans-serif !important; font-size:clamp(3rem,7vw,4.65rem);
-        font-weight:900; line-height:1.1; letter-spacing:.13em; margin:0; padding-left:.13em;
-        background:linear-gradient(110deg,#D4AF37 4%,#00FF9D 28%,#00E5FF 51%,#8cc0ff 75%,#D4AF37 97%);
-        background-size:230% 100%; -webkit-background-clip:text; background-clip:text;
-        -webkit-text-fill-color:transparent; animation:elevo-login-spectrum 9s ease infinite;
-        filter:drop-shadow(0 2px 13px rgba(0,229,255,.16));}
-      .elevo-login-kicker {color:#A4B3C3 !important; font-size:.74rem; letter-spacing:.21em;
-        font-weight:600; text-transform:uppercase; margin:8px 0 10px;}
-      .elevo-login-chip {display:inline-flex; gap:7px; align-items:center; padding:6px 13px;
-        border-radius:30px; font:600 .68rem Montserrat,sans-serif; letter-spacing:.1em;
-        color:#A7FDE1; background:rgba(0,255,157,.06); border:1px solid rgba(0,255,157,.24);}
-      .elevo-login-dot {display:inline-block; height:7px;width:7px; border-radius:50%; background:#00FF9D;
-        box-shadow:0 0 9px #00FF9D; animation:elevo-login-blink 2.7s ease-in-out infinite;}
-      div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-login-card-mark) {
-        border-radius:24px !important; border:1px solid rgba(0,229,255,.32) !important;
-        background: linear-gradient(140deg,rgba(28,34,48,.93),rgba(9,14,22,.95)) !important;
-        box-shadow: 0 16px 60px rgba(0,0,0,.36),0 0 28px rgba(0,229,255,.065),inset 0 1px rgba(255,255,255,.06) !important;
-        backdrop-filter:blur(16px);}
-      .elevo-login-card-mark {margin:0 0 4px; color:#94A3B8; letter-spacing:.17em;
-        text-transform:uppercase; font:600 .65rem Montserrat,sans-serif; text-align:center;}
-      [data-testid="stForm"] {background:rgba(6,11,19,.18) !important; border-radius:16px !important;
-        border:1px solid rgba(0,229,255,.13) !important;}
-      .stTextInput input {border:1px solid rgba(0,229,255,.23) !important;
-        background:rgba(7,12,21,.7) !important; color:#F1F5F9 !important;
-        border-radius:11px !important; min-height:45px !important;}
-      .stTextInput input:focus {border-color:#00E5FF !important; box-shadow:0 0 0 2px rgba(0,229,255,.10) !important;}
-      [data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(105deg,#002B5B,#065a7e) !important;
-        color:white !important; border:1px solid #00E5FF !important; border-radius:12px !important;
-        min-height:46px !important; box-shadow:0 8px 24px rgba(0,229,255,.14) !important; font-weight:800 !important;}
-      [data-testid="stFormSubmitButton"] button[kind="primary"]:hover {filter:brightness(1.14); transform:translateY(-1px);}
-      [data-baseweb="tab-list"] {gap:.3rem !important; background:rgba(0,0,0,.12) !important;
-        padding:.35rem; border-radius:12px;}
-      [data-baseweb="tab"] {border-radius:10px;}
-      @keyframes elevo-login-spectrum {0%,100% {background-position:0% 50%} 50% {background-position:100% 50%}}
-      @keyframes elevo-login-float {0%,100% {transform:translateY(0)} 50% {transform:translateY(-4px)}}
-      @keyframes elevo-login-ring {to {transform:rotate(360deg)}}
-      @keyframes elevo-login-blink {0%,100% {opacity:1} 50% {opacity:.38}}
-      @media(max-width:750px) {
-        .block-container {padding:1rem .9rem 2rem;}
-        .elevo-login-eagle {width:67px;height:67px;border-radius:22px;}
-        .elevo-login-eagle span {font-size:32px;}
-        .elevo-login-kicker {font-size:.62rem;letter-spacing:.13em;}
-        .elevo-login-hero {margin-bottom:1.15rem;}
-        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:not(:has(.elevo-login-card-mark)) {display:none !important;}
-        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:has(.elevo-login-card-mark) {flex:1 1 100% !important;width:100% !important;min-width:0 !important;}
+      [data-testid="stAppViewContainer"]::before {
+        content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+        background-image:linear-gradient(rgba(116,169,222,.05) 1px,transparent 1px),
+                         linear-gradient(90deg,rgba(116,169,222,.05) 1px,transparent 1px);
+        background-size:52px 52px; mask-image:radial-gradient(ellipse 80% 70% at 50% 30%,black,transparent 80%);
       }
-      @media(prefers-reduced-motion:reduce) {
-        .elevo-login-eagle,.elevo-login-eagle:before,.elevo-login-brand,.elevo-login-dot {animation:none !important;}
+      .block-container {max-width:1120px; padding-top:clamp(1.2rem,3.4vw,2.8rem); padding-bottom:2.2rem; position:relative; z-index:1;}
+
+      /* ---------- Cabeçalho da marca ---------- */
+      .evl-hero {text-align:center; margin:0 auto clamp(1.1rem,2.6vw,1.9rem);}
+      .evl-badge {display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:40px;
+        font:700 .64rem 'JetBrains Mono',monospace; letter-spacing:.18em; color:#D8B66A;
+        background:rgba(216,182,106,.08); border:1px solid rgba(216,182,106,.34);}
+      .evl-badge i {width:7px; height:7px; border-radius:50%; background:#2FD39A; box-shadow:0 0 10px #2FD39A;
+        animation:evl-blink 2.4s ease-in-out infinite;}
+      .evl-brand {font-family:Montserrat,sans-serif !important; font-weight:900; margin:.55rem 0 0;
+        font-size:clamp(2.9rem,7.4vw,5rem); line-height:1.02; letter-spacing:.14em; padding-left:.14em;
+        background:linear-gradient(110deg,#F4DC9A 0%,#D8B66A 22%,#54D8F5 52%,#9FD0FF 74%,#D8B66A 100%);
+        background-size:240% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+        animation:evl-spectrum 10s ease infinite; filter:drop-shadow(0 4px 22px rgba(84,216,245,.18));}
+      .evl-sub {color:#8FA6C4 !important; margin:.5rem 0 0; font:600 .74rem Montserrat,sans-serif;
+        letter-spacing:.3em; text-transform:uppercase;}
+
+      /* ---------- Painel lateral de apresentação ---------- */
+      .evl-side {height:100%; min-height:100%; box-sizing:border-box; padding:clamp(1.3rem,2.6vw,2.1rem);
+        border-radius:26px; position:relative; overflow:hidden;
+        background:linear-gradient(155deg,rgba(17,29,48,.92),rgba(7,12,22,.94));
+        border:1px solid rgba(84,216,245,.20); box-shadow:0 22px 60px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.05);}
+      .evl-side::after {content:""; position:absolute; right:-90px; top:-90px; width:260px; height:260px; border-radius:50%;
+        background:radial-gradient(circle,rgba(216,182,106,.20),transparent 68%); pointer-events:none;}
+      .evl-term {display:flex; align-items:center; gap:8px; margin:0 0 1.2rem; font:500 .7rem 'JetBrains Mono',monospace; color:#8FA6C4;}
+      .evl-term b {color:#2FD39A; font-weight:700;} .evl-term em {color:#54D8F5; font-style:normal;}
+      .evl-term .dots {display:flex; gap:5px; margin-right:4px;}
+      .evl-term .dots span {width:8px; height:8px; border-radius:50%; background:#FF5F6D;}
+      .evl-term .dots span:nth-child(2) {background:#D8B66A;} .evl-term .dots span:nth-child(3) {background:#2FD39A;}
+      .evl-side h2 {font-family:Montserrat,sans-serif !important; color:#EAF2FF !important; margin:0 0 .55rem !important;
+        font-size:clamp(1.35rem,2.4vw,1.85rem) !important; line-height:1.18 !important; font-weight:800 !important; padding:0 !important;}
+      .evl-side h2 span {color:#D8B66A;}
+      .evl-side p.evl-lead {color:#A9BAD1 !important; font-size:.93rem; line-height:1.6; margin:0 0 1.3rem;}
+      .evl-feat {display:flex; gap:12px; align-items:flex-start; padding:.72rem 0; border-top:1px solid rgba(84,216,245,.10);}
+      .evl-feat:first-of-type {border-top:none;}
+      .evl-ico {flex:0 0 38px; height:38px; border-radius:12px; display:grid; place-items:center; font-size:1.05rem;
+        background:rgba(84,216,245,.08); border:1px solid rgba(84,216,245,.22);}
+      .evl-feat strong {display:block; color:#EAF2FF; font:700 .86rem Montserrat,sans-serif; margin-bottom:2px;}
+      .evl-feat small {color:#8FA6C4; font-size:.8rem; line-height:1.45;}
+      .evl-invite {margin-top:1.15rem; padding:.85rem 1rem; border-radius:16px; display:flex; gap:10px; align-items:center;
+        background:linear-gradient(100deg,rgba(216,182,106,.13),rgba(216,182,106,.04));
+        border:1px solid rgba(216,182,106,.32); color:#F1DFAF; font-size:.82rem; line-height:1.45;}
+      .evl-invite b {color:#F4DC9A;}
+
+      /* ---------- Cartão de login ---------- */
+      .st-key-elevo_login_card_v16859 {
+        border-radius:26px !important; padding:clamp(1.25rem,2.6vw,2rem) clamp(1.1rem,2.4vw,1.9rem) !important;
+        background:linear-gradient(160deg,rgba(15,24,40,.96),rgba(6,10,18,.97)) !important;
+        border:1px solid rgba(216,182,106,.34) !important; position:relative; overflow:hidden;
+        box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(84,216,245,.05),0 0 46px rgba(216,182,106,.07),inset 0 1px rgba(255,255,255,.06) !important;}
+      .st-key-elevo_login_card_v16859::before {content:""; position:absolute; left:0; right:0; top:0; height:2px;
+        background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);}
+      .evl-card-head {text-align:center; margin:0 0 1rem;}
+      .evl-lock {width:58px; height:58px; margin:0 auto .7rem; border-radius:18px; display:grid; place-items:center; font-size:1.6rem;
+        background:linear-gradient(145deg,rgba(216,182,106,.18),rgba(84,216,245,.08)); border:1px solid rgba(216,182,106,.4);
+        box-shadow:0 0 0 6px rgba(216,182,106,.05),0 12px 30px rgba(0,0,0,.35); animation:evl-float 5s ease-in-out infinite;}
+      .evl-card-head h3 {font-family:Montserrat,sans-serif !important; color:#EAF2FF !important; margin:0 !important; padding:0 !important;
+        font-size:1.32rem !important; font-weight:800 !important; letter-spacing:.02em;}
+      .evl-card-head p {color:#8FA6C4 !important; margin:.3rem 0 0; font-size:.84rem;}
+      .st-key-elevo_login_card_v16859 [data-testid="stForm"] {border:none !important; padding:0 !important; background:transparent !important;}
+      .st-key-elevo_login_card_v16859 label, .st-key-elevo_login_card_v16859 label p,
+      .st-key-elevo_login_card_v16859 [data-testid="stWidgetLabel"] p {color:#C9D6E8 !important; font-weight:600 !important; font-size:.82rem !important; letter-spacing:.02em;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="input"], .st-key-elevo_login_card_v16859 [data-baseweb="base-input"] {
+        background:rgba(4,8,15,.75) !important; border-radius:13px !important; border-color:rgba(84,216,245,.22) !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input {background:transparent !important; color:#F1F5F9 !important;
+        min-height:48px !important; font-size:.95rem !important; caret-color:#54D8F5;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="input"]:focus-within {border-color:#54D8F5 !important;
+        box-shadow:0 0 0 3px rgba(84,216,245,.12) !important;}
+      /* Campos escuros em qualquer versão do Streamlit (baseweb ou react-aria). */
+      .st-key-elevo_login_card_v16859 .stTextInput div:has(> input) {background-color:rgba(4,8,15,.8) !important; border:1px solid rgba(84,216,245,.24) !important; border-radius:13px !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput div:has(> input):focus-within {border-color:#54D8F5 !important; box-shadow:0 0 0 3px rgba(84,216,245,.12) !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input {color:#F1F5F9 !important; -webkit-text-fill-color:#F1F5F9 !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input::placeholder {color:#5F7594 !important; -webkit-text-fill-color:#5F7594 !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput button {background:transparent !important; color:#8FA6C4 !important; border:none !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput button svg {fill:#8FA6C4 !important; color:#8FA6C4 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stCheckbox"] p {color:#A9BAD1 !important; font-size:.82rem !important; font-weight:500 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button {
+        min-height:52px !important; border-radius:14px !important; border:none !important; margin-top:.35rem;
+        background:linear-gradient(100deg,#B88A2E 0%,#D8B66A 45%,#F4DC9A 100%) !important; color:#120D03 !important;
+        font:800 .92rem Montserrat,sans-serif !important; letter-spacing:.16em !important;
+        box-shadow:0 12px 32px rgba(216,182,106,.30),inset 0 1px rgba(255,255,255,.45) !important; transition:transform .15s ease, filter .15s ease;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button p {color:#120D03 !important; font-weight:800 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button:hover {filter:brightness(1.07); transform:translateY(-1px);}
+      .st-key-elevo_login_card_v16859 .stButton button {min-height:48px !important; border-radius:14px !important;
+        background:rgba(255,255,255,.03) !important; border:1px solid rgba(84,216,245,.28) !important; color:#EAF2FF !important; font-weight:700 !important;}
+      .st-key-elevo_login_card_v16859 .stButton button:hover {border-color:#54D8F5 !important; background:rgba(84,216,245,.07) !important;}
+      .evl-or {display:flex; align-items:center; gap:12px; color:#5F7594; font:600 .68rem 'JetBrains Mono',monospace;
+        letter-spacing:.2em; margin:.95rem 0 .7rem;}
+      .evl-or::before, .evl-or::after {content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(84,216,245,.25),transparent);}
+      .evl-foot {display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:1.05rem; padding-top:.9rem;
+        border-top:1px solid rgba(84,216,245,.10); color:#5F7594 !important; font:500 .68rem 'JetBrains Mono',monospace; letter-spacing:.08em;}
+      .evl-foot span::before {content:"● "; color:#2FD39A;}
+      .evl-help {text-align:center; color:#8FA6C4 !important; font-size:.8rem; margin:.85rem 0 0; line-height:1.5;}
+      .evl-help b {color:#D8B66A;}
+
+      @keyframes evl-spectrum {0%,100% {background-position:0% 50%} 50% {background-position:100% 50%}}
+      @keyframes evl-float {0%,100% {transform:translateY(0)} 50% {transform:translateY(-4px)}}
+      @keyframes evl-blink {0%,100% {opacity:1} 50% {opacity:.35}}
+      @media (max-width:900px) {
+        .st-key-elevo_login_cols_v16859 > div[data-testid="stHorizontalBlock"] {flex-direction:column-reverse !important; gap:1rem !important;}
+        .st-key-elevo_login_cols_v16859 [data-testid="stColumn"] {width:100% !important; flex:1 1 100% !important; min-width:0 !important;}
+      }
+      @media (max-width:640px) {
+        .block-container {padding:1rem .8rem 2rem;}
+        .evl-sub {font-size:.6rem; letter-spacing:.2em;}
+        .evl-side {display:none;}
+        .evl-help-mobile {display:block !important;}
+      }
+      @media (prefers-reduced-motion:reduce) {
+        .evl-brand, .evl-lock, .evl-badge i {animation:none !important;}
       }
     </style>
-    <section class="elevo-login-hero" aria-label="Portal ÉLÉVO">
-      <div class="elevo-login-eagle" aria-hidden="true"><span>💎</span></div>
-      <h1 class="elevo-login-brand">ÉLÉVO</h1>
-      <p class="elevo-login-kicker">Inteligência • Vendas • Criação</p>
-      <div class="elevo-login-chip"><span class="elevo-login-dot"></span> PORTAL DE ACESSO VIP</div>
+    <section class="evl-hero" aria-label="Portal ÉLÉVO">
+      <div class="evl-badge"><i></i> PORTAL PRIVADO • ACESSO VIP</div>
+      <h1 class="evl-brand">ÉLÉVO</h1>
+      <p class="evl-sub">Inteligência • Vendas • Criação</p>
     </section>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.container(border=True):
-            st.markdown('<div class="elevo-login-card-mark">IDENTIFICAÇÃO SEGURA • ÉLÉVO</div>', unsafe_allow_html=True)
+    with st.container(key="elevo_login_cols_v16859"):
+        _evl_col_info, _evl_col_form = st.columns([1.05, 1], gap="large")
+
+    with _evl_col_info:
+        st.markdown("""
+        <aside class="evl-side">
+          <div class="evl-term"><div class="dots"><span></span><span></span><span></span></div>
+            <b>root@elevo</b>:<em>~/portal</em>$ acesso --vip</div>
+          <h2>Sua central de <span>criação e vendas</span> com inteligência artificial.</h2>
+          <p class="evl-lead">Roteiros, imagens, vídeos e estratégia em um só lugar, num ambiente reservado para membros.</p>
+          <div class="evl-feat"><div class="evl-ico">🎬</div><div><strong>Criação com IA</strong>
+            <small>Influenciadoras, cenas e roteiros prontos para publicar.</small></div></div>
+          <div class="evl-feat"><div class="evl-ico">📈</div><div><strong>Radar de vendas</strong>
+            <small>Oportunidades e missões diárias para crescer com método.</small></div></div>
+          <div class="evl-feat"><div class="evl-ico">💎</div><div><strong>Créditos sob controle</strong>
+            <small>Seu saldo acompanha cada criação, com transparência.</small></div></div>
+          <div class="evl-invite">🔐 <div><b>Acesso somente por convite.</b> As contas são liberadas
+            pela administração da ÉLÉVO.</div></div>
+        </aside>
+        """, unsafe_allow_html=True)
+
+    with _evl_col_form:
+        with st.container(key="elevo_login_card_v16859"):
             if GOOGLE_ATIVO and ident_google and st.session_state.get("google_pendente"):
-                st.markdown("### 🔗 Finalizar acesso com Google")
-                st.info(f"Google autenticado: **{ident_google['email']}**. Confirme o vínculo ou crie seu primeiro acesso.")
+                st.markdown("""<div class="evl-card-head"><div class="evl-lock">🔗</div>
+                    <h3>Finalizar acesso com Google</h3>
+                    <p>Confirme que esta conta Google é sua.</p></div>""", unsafe_allow_html=True)
+                st.info(f"Google autenticado: **{ident_google['email']}**")
                 try:
                     conta_google_atual = usuario_cadastrado_por_email(ident_google["email"])
                     if conta_google_atual:
                         st.caption("Este e-mail já possui conta ÉLÉVO. Confirme a senha atual para vincular com segurança.")
                         with st.form("vinculo_google_seguro"):
                             senha_de_vinculo = st.text_input("Senha atual da sua conta ÉLÉVO", type="password")
-                            confirmar_vinculo = st.form_submit_button("🔗 Vincular minha conta Google", use_container_width=True)
+                            confirmar_vinculo = st.form_submit_button("🔗 VINCULAR MINHA CONTA GOOGLE", use_container_width=True)
                         if confirmar_vinculo:
                             senha_ok = (hmac.compare_digest(senha_de_vinculo, SENHA_MESTRA)
                                         if ident_google["email"] == EMAIL_MESTRE.strip().lower()
@@ -746,96 +832,67 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("Senha atual inválida. Vínculo não autorizado.")
                     else:
-                        st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
-                        if st.button("✨ Criar meu acesso com Google", use_container_width=True):
-                            try:
-                                if st.query_params.get("elevo_acesso") == "novo":
-                                    del st.query_params["elevo_acesso"]
-                                st.session_state.pop("elevo_logout_pendente", None)
-                                # Senha aleatória não entregue ao usuário; login por OIDC.
-                                # Primeiro registra o vínculo. Se o cadastro de usuário
-                                # falhar, a mesma identidade Google poderá concluir depois.
-                                if not gravar_vinculo_google(ident_google, ident_google["email"]):
-                                    raise RuntimeError("Falha ao vincular")
-                                cadastrado = conectar_banco_usuarios("salvar", ident_google["email"], ident_google["nome"], secrets.token_urlsafe(48))
-                                if not cadastrado:
-                                    raise RuntimeError("Falha ao criar conta")
-                                ativar_identidade(ident_google["email"], ident_google["nome"], "google")
-                                st.rerun()
-                            except Exception:
-                                st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
+                        # V16.8.59 — Sem autocadastro: o Google não cria conta nova.
+                        st.warning("Este e-mail ainda não tem acesso liberado à ÉLÉVO. "
+                                   "Fale com a administração para receber o seu convite VIP.")
                 except Exception:
                     st.error("O banco de usuários está indisponível. Acesso Google não foi liberado.")
-                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente"):
+                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente",
+                             use_container_width=True):
                     st.logout()
                 st.stop()
             if st.session_state.get("google_erro"):
                 st.error(st.session_state["google_erro"])
-                if st.button("Sair da conta Google atual"):
+                if st.button("Sair da conta Google atual", use_container_width=True):
                     st.logout()
                 st.stop()
-            aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
-            with aba_login:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
-                with st.form("form_login"):
-                    email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
-                    senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
-                    lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
-                    submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
-                
-                if submit_login:
-                    email_clean = email_input.strip().lower()
-                    if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
-                        entrar_usuario(EMAIL_MESTRE, "Sócio")
-                        if not lembrar_dados: cookies.pop("login", None); cookies.save()
-                        st.rerun()
-                    elif email_clean and senha_input:
-                        with st.spinner("A verificar credenciais no servidor..."):
-                            usuarios = conectar_banco_usuarios("ler")
-                            if usuarios is not None:
-                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
-                                if usuario_encontrado:
-                                    entrar_usuario(email_clean, str(usuario_encontrado.get("Nome", "Usuário")))
-                                    if not lembrar_dados: cookies.pop("login", None); cookies.save()
-                                    if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
-                                        conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
-                                    st.rerun()
-                                else: st.error("🚨 Conta não encontrada ou senha incorreta!")
-                            else: st.error("🚨 Erro de conexão com o banco de dados.")
-                    else: st.warning("⚠️ Preencha o e-mail e a senha.")
-                if GOOGLE_ATIVO:
-                    st.caption("────────── ou ──────────")
-                    if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
-                        # Clique explícito: permita a nova autenticação Google.
-                        if st.query_params.get("elevo_acesso") == "novo":
-                            del st.query_params["elevo_acesso"]
-                        st.session_state.pop("elevo_logout_pendente", None)
-                        cookies.pop("elevo_bv_google_v16814", None)
-                        cookies.save()
-                        st.login("google")
-                else:
-                    st.caption("🔒 Acesso Google disponível após configurar OAuth nos Secrets.")
 
-            with aba_cadastro:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
-                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
-                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
-                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
-                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
-                    email_clean = novo_email.strip().lower()
-                    if not novo_nome or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
-                    elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
-                    elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
-                    elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
-                    else:
-                        with st.spinner("A forjar a sua conta..."):
-                            usuarios = conectar_banco_usuarios("ler")
-                            if usuarios is not None:
-                                if any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios): st.error("🚨 Este e-mail já está cadastrado!")
-                                else:
-                                    if conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha): st.success(f"✅ Conta criada, {novo_nome}!")
-                                    else: st.error("❌ Falha ao gravar no servidor.")
-                            else: st.error("❌ Falha de conexão com o banco.")
+            st.markdown("""<div class="evl-card-head"><div class="evl-lock">💎</div>
+                <h3>Bem-vindo de volta</h3>
+                <p>Entre com o e-mail e a senha do seu convite.</p></div>""", unsafe_allow_html=True)
+            with st.form("form_login"):
+                email_input = st.text_input("E-mail", placeholder="seuemail@gmail.com")
+                senha_input = st.text_input("Senha", type="password", placeholder="Sua senha de acesso")
+                lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
+                submit_login = st.form_submit_button("ENTRAR NA CENTRAL", use_container_width=True, type="primary")
+
+            if submit_login:
+                email_clean = email_input.strip().lower()
+                if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
+                    entrar_usuario(EMAIL_MESTRE, "Sócio")
+                    if not lembrar_dados: cookies.pop("login", None); cookies.save()
+                    st.rerun()
+                elif email_clean and senha_input:
+                    with st.spinner("Verificando suas credenciais..."):
+                        usuarios = conectar_banco_usuarios("ler")
+                        if usuarios is not None:
+                            usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
+                            if usuario_encontrado:
+                                entrar_usuario(email_clean, str(usuario_encontrado.get("Nome", "Usuário")))
+                                if not lembrar_dados: cookies.pop("login", None); cookies.save()
+                                if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
+                                    conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
+                                st.rerun()
+                            else: st.error("E-mail ou senha incorretos. Confira os dados do seu convite.")
+                        else: st.error("Não foi possível conectar ao servidor. Tente novamente em instantes.")
+                else: st.warning("Preencha o e-mail e a senha.")
+
+            if GOOGLE_ATIVO:
+                st.markdown('<div class="evl-or">OU</div>', unsafe_allow_html=True)
+                if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
+                    # Clique explícito: permita a nova autenticação Google.
+                    if st.query_params.get("elevo_acesso") == "novo":
+                        del st.query_params["elevo_acesso"]
+                    st.session_state.pop("elevo_logout_pendente", None)
+                    cookies.pop("elevo_bv_google_v16814", None)
+                    cookies.save()
+                    st.login("google")
+
+            st.markdown("""
+            <p class="evl-help">Ainda não tem acesso? <b>As contas são liberadas pela administração</b>.<br>
+            Esqueceu a senha? Fale com quem enviou o seu convite.</p>
+            <div class="evl-foot"><span>Conexão protegida</span><span>Senha criptografada</span><span>Sessão de 30 dias</span></div>
+            """, unsafe_allow_html=True)
     st.stop()
 
 # Solução para browsers mobile/Streamlit Cloud que montam o player só após F5:
@@ -1227,6 +1284,105 @@ def elevo_excluir_conta_v16813(email):
             aba.delete_rows(alvo)
         # O histórico financeiro permanece para auditoria; demais dados pessoais
         # de influenciadoras e memórias não são excluídos automaticamente.
+
+# ==========================================================
+# V16.8.59 — CRIAÇÃO DE CONTAS PELO CEO (sem autocadastro público)
+# ----------------------------------------------------------
+# GUIA PARA O FUTURO PAINEL DE VENDAS / COMPRAS:
+#  1. Pacotes ficam em ELEVO_PACOTES_V16859 (nome -> créditos e preço).
+#     O painel de vendas deve ler essa mesma lista para exibir os planos.
+#  2. Cliente NOVO que pagou: chame
+#        elevo_criar_conta_vip_v16859(email, nome, senha, creditos,
+#                                     plano="Pro", origem="VENDA",
+#                                     referencia="venda:<id do pagamento>")
+#     A "referencia" impede conta/crédito em dobro se o aviso de pagamento
+#     chegar duas vezes.
+#  3. Cliente ANTIGO comprando mais créditos (recarga): chame
+#        elevo_credito_admin_v16813(email, qtd, "ADD", "venda:<id do pagamento>")
+#  4. Tudo fica registrado na aba "Elevo_Contas_V1" (origem, plano, preço,
+#     referência), pronta para relatórios de vendas.
+#  Hoje as duas funções exigem a sessão do CEO. Quando o pagamento automático
+#  existir, o ponto de entrada (webhook) deve validar a assinatura do provedor
+#  de pagamento ANTES de chamar essas funções.
+# ==========================================================
+ELEVO_PACOTES_V16859 = {
+    "Start":  {"creditos": 100,  "preco": 0.0, "desc": "Para conhecer a plataforma"},
+    "Pro":    {"creditos": 300,  "preco": 0.0, "desc": "Criação frequente"},
+    "Elite":  {"creditos": 1000, "preco": 0.0, "desc": "Volume alto e escala"},
+    "Black":  {"creditos": 3000, "preco": 0.0, "desc": "Operação profissional"},
+}
+ELEVO_CONTAS_COLS_V16859 = ["Id", "Email", "Nome", "Plano", "Creditos", "Preco", "Origem",
+                            "Referencia", "Observacao", "CriadoEm", "Autor"]
+ELEVO_EMAIL_RE_V16859 = r"[^@\s]+@[^@\s]+\.[^@\s]+"
+
+
+def elevo_gerar_senha_v16859(tamanho=12):
+    # Sem caracteres ambíguos (0/O, 1/l/I) para facilitar o envio por mensagem.
+    alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+    while True:
+        senha = "".join(secrets.choice(alfabeto) for _ in range(tamanho))
+        if (any(c.isupper() for c in senha) and any(c.islower() for c in senha)
+                and any(c.isdigit() for c in senha)):
+            return senha
+
+
+def elevo_contas_registro_v16859():
+    return elevo_aba_v16813("Elevo_Contas_V1", ELEVO_CONTAS_COLS_V16859).get_all_records()
+
+
+def elevo_criar_conta_vip_v16859(email, nome, senha, creditos, plano="Personalizado",
+                                 origem="MANUAL_CEO", referencia="", observacao="", preco=0.0):
+    """Cria a conta, libera o acesso e define o saldo inicial escolhido.
+
+    Retorna um dicionário com o resultado. Lança ValueError com mensagem
+    amigável quando os dados não permitem criar a conta.
+    """
+    if not elevo_admin_v16813():
+        raise PermissionError("Somente o CEO pode criar contas.")
+    email = str(email or "").strip().lower()
+    nome = str(nome or "").strip()
+    senha = str(senha or "")
+    if not nome:
+        raise ValueError("Informe o nome da pessoa.")
+    if not re.fullmatch(ELEVO_EMAIL_RE_V16859, email):
+        raise ValueError("Informe um e-mail válido.")
+    if email == EMAIL_MESTRE.strip().lower():
+        raise ValueError("Este e-mail é reservado ao CEO.")
+    if len(senha) < 8:
+        raise ValueError("A senha precisa ter pelo menos 8 caracteres.")
+    creditos = int(creditos)
+    if not (0 <= creditos <= 1000000):
+        raise ValueError("Escolha entre 0 e 1.000.000 créditos.")
+    referencia = str(referencia or "").strip() or ("manual:" + secrets.token_hex(10))
+    with elevo_credito_lock_v16813():
+        registro = elevo_aba_v16813("Elevo_Contas_V1", ELEVO_CONTAS_COLS_V16859)
+        if any(str(r.get("Referencia", "")).strip() == referencia for r in registro.get_all_records()):
+            # Mesmo pagamento/clique repetido: não cria de novo.
+            return {"email": email, "nome": nome, "creditos": creditos, "plano": plano,
+                    "duplicado": True, "aviso_credito": ""}
+        usuarios = conectar_banco_usuarios("ler")
+        if usuarios is None:
+            raise ElevoCreditoErroV16813("Banco de usuários sem conexão. Nenhuma conta foi criada.")
+        if any(str(u.get("Email", "")).strip().lower() == email for u in usuarios):
+            raise ValueError("Este e-mail já tem conta. Use 'Editar créditos' na lista de usuários.")
+        # Conta removida antes pode ser liberada de novo: perfil volta a ATIVO.
+        elevo_perfil_atualizar_v16813(email, status="ATIVO")
+        if not conectar_banco_usuarios("salvar", email, nome, senha):
+            raise ElevoCreditoErroV16813("Falha ao gravar a conta no servidor. Tente novamente.")
+        aviso_credito = ""
+        try:
+            elevo_credito_admin_v16813(email, creditos, "SET", "conta:" + referencia)
+        except Exception:
+            aviso_credito = ("A conta foi criada, mas o saldo não foi confirmado. "
+                             "Ajuste em 'Editar créditos' na lista de usuários.")
+        try:
+            registro.append_row([secrets.token_hex(12), email, nome, str(plano), creditos,
+                                 float(preco or 0), str(origem), referencia,
+                                 str(observacao or "")[:250], elevo_agora_v16813(), elevo_email_v16813()])
+        except Exception:
+            logging.warning("ELEVO_CONTAS_REGISTRO: falha ao anotar conta criada")
+    return {"email": email, "nome": nome, "creditos": creditos, "plano": plano,
+            "duplicado": False, "aviso_credito": aviso_credito}
 
 # V16.8.16 — Verificação sem bloquear o login por oscilação do Sheets.
 # Saldo e permissões de geração continuam fail-closed nas operações cobradas.
@@ -5209,6 +5365,185 @@ if E_O_CEO:
                     "pt-BR-DonatoNeural; a voz reserva do primeiro acesso/Aurora não participa."
                 )
     st.divider()
+    # ==========================================================
+    # V16.8.59 — ESTÚDIO VIP DE CONTAS (o CEO libera cada acesso)
+    # ==========================================================
+    st.markdown("""
+    <style>
+    .st-key-elevo_ceo_contas_v16859 {
+      border-radius:24px !important; padding:clamp(1.1rem,2.4vw,1.8rem) !important; position:relative; overflow:hidden;
+      background:radial-gradient(ellipse 60% 80% at 100% 0%,rgba(216,182,106,.16),transparent 65%),
+                 linear-gradient(155deg,#0E1828 0%,#070C16 100%) !important;
+      border:1px solid rgba(216,182,106,.38) !important;
+      box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 40px rgba(216,182,106,.08),inset 0 1px rgba(255,255,255,.06) !important;}
+    .st-key-elevo_ceo_contas_v16859::before {content:""; position:absolute; left:0; right:0; top:0; height:2px;
+      background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);}
+    .evc-top {display:flex; align-items:center; gap:14px; margin-bottom:.4rem;}
+    .evc-crown {flex:0 0 52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:1.5rem;
+      background:linear-gradient(145deg,rgba(216,182,106,.25),rgba(216,182,106,.06)); border:1px solid rgba(216,182,106,.45);}
+    .evc-kick {font:700 .62rem 'JetBrains Mono',monospace; letter-spacing:.2em; color:#D8B66A !important; margin:0;}
+    .evc-title {font-family:Montserrat,sans-serif !important; color:#F4F7FC !important; margin:.15rem 0 0 !important; padding:0 !important;
+      font-size:clamp(1.2rem,2.2vw,1.55rem) !important; font-weight:800 !important;}
+    .evc-lead {color:#A9BAD1 !important; font-size:.86rem; margin:.2rem 0 .9rem; line-height:1.5;}
+    .evc-steps {display:flex; flex-wrap:wrap; gap:8px; margin:0 0 1rem;}
+    .evc-steps span {padding:5px 11px; border-radius:30px; font:600 .7rem Montserrat,sans-serif; color:#CFE6F5;
+      background:rgba(84,216,245,.07); border:1px solid rgba(84,216,245,.22);}
+    .evc-steps b {color:#D8B66A; margin-right:4px;}
+    .evc-packs {display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin:.2rem 0 1rem;}
+    .evc-pack {padding:.75rem .85rem; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(84,216,245,.16);}
+    .evc-pack b {display:block; color:#F4DC9A; font:800 .84rem Montserrat,sans-serif; letter-spacing:.06em;}
+    .evc-pack strong {display:block; color:#EAF2FF; font:800 1.2rem Montserrat,sans-serif; margin:.15rem 0;}
+    .evc-pack small {color:#8FA6C4; font-size:.72rem;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stForm"] {border:1px solid rgba(84,216,245,.14) !important;
+      background:rgba(3,7,13,.35) !important; border-radius:18px !important; padding:1rem 1rem .6rem !important;}
+    .st-key-elevo_ceo_contas_v16859 label, .st-key-elevo_ceo_contas_v16859 label p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stWidgetLabel"] p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCaptionContainer"] p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stMarkdownContainer"] p {color:#C9D6E8 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-baseweb="input"], .st-key-elevo_ceo_contas_v16859 [data-baseweb="base-input"],
+    .st-key-elevo_ceo_contas_v16859 [data-baseweb="textarea"] {background:rgba(4,8,15,.8) !important;
+      border-color:rgba(84,216,245,.24) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 input, .st-key-elevo_ceo_contas_v16859 textarea {color:#F1F5F9 !important;
+      background:transparent !important; -webkit-text-fill-color:#F1F5F9 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] button {background:rgba(84,216,245,.08) !important; color:#EAF2FF !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button {min-height:50px !important; border:none !important;
+      border-radius:14px !important; background:linear-gradient(100deg,#B88A2E,#D8B66A 45%,#F4DC9A) !important;
+      box-shadow:0 10px 28px rgba(216,182,106,.28),inset 0 1px rgba(255,255,255,.45) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button p {color:#120D03 !important;
+      font:800 .88rem Montserrat,sans-serif !important; letter-spacing:.14em !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button {border-color:rgba(216,182,106,.35) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button p {color:#EAF2FF !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[aria-checked="true"],
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[kind*="Active"] {
+      background:linear-gradient(100deg,rgba(216,182,106,.32),rgba(216,182,106,.14)) !important; border-color:#D8B66A !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput div:has(> input), .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] div:has(> input),
+    .st-key-elevo_ceo_contas_v16859 .stTextArea div:has(> textarea) {background-color:rgba(4,8,15,.85) !important;
+      border:1px solid rgba(84,216,245,.24) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 input::placeholder, .st-key-elevo_ceo_contas_v16859 textarea::placeholder {color:#5F7594 !important; -webkit-text-fill-color:#5F7594 !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput button {background:transparent !important; border:none !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput button svg {fill:#8FA6C4 !important; color:#8FA6C4 !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button {background:rgba(4,8,15,.85) !important; border-color:rgba(216,182,106,.35) !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button span {color:#C9D6E8 !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] {background:linear-gradient(100deg,#B88A2E,#D8B66A) !important; border-color:#F4DC9A !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] span {color:#120D03 !important; font-weight:800 !important;}
+    .st-key-elevo_ceo_contas_v16859 .stButton button {background:rgba(255,255,255,.04) !important; border:1px solid rgba(84,216,245,.3) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 .stButton button p {color:#EAF2FF !important; font-weight:700 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"], .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] pre {background:#050A12 !important; border-radius:14px !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] {border:1px dashed rgba(216,182,106,.45) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code, .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code span {color:#EAF2FF !important;}
+    .evc-ok {margin:.9rem 0 .5rem; padding:1rem 1.1rem; border-radius:18px;
+      background:linear-gradient(110deg,rgba(47,211,154,.13),rgba(47,211,154,.03)); border:1px solid rgba(47,211,154,.38);}
+    .evc-ok h4 {color:#7CF0C5 !important; margin:0 0 .35rem !important; padding:0 !important; font:800 1rem Montserrat,sans-serif !important;}
+    .evc-ok p {color:#CFEFE3 !important; margin:0; font-size:.85rem; line-height:1.55;}
+    .evc-ok code {color:#F4DC9A !important; background:rgba(0,0,0,.3) !important;}
+    .st-key-elevo_ceo_contas_v16859 details {border-color:rgba(84,216,245,.18) !important; background:rgba(3,7,13,.3) !important; border-radius:14px !important;}
+    .st-key-elevo_ceo_contas_v16859 details summary p {color:#EAF2FF !important; font-weight:700 !important;}
+    .st-key-elevo_ceo_contas_v16859 li {color:#C9D6E8 !important;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container(key="elevo_ceo_contas_v16859"):
+        _evc_packs_html = "".join(
+            f"<div class='evc-pack'><b>{html_std.escape(_n)}</b>"
+            f"<strong>{format(int(_p['creditos']), ',').replace(',', '.')} CR</strong>"
+            f"<small>{html_std.escape(_p['desc'])}</small></div>"
+            for _n, _p in ELEVO_PACOTES_V16859.items())
+        st.markdown(f"""
+        <div class="evc-top"><div class="evc-crown">👑</div><div>
+          <p class="evc-kick">ÉLÉVO • ESTÚDIO DE ACESSOS VIP</p>
+          <h3 class="evc-title">Criar nova conta VIP</h3></div></div>
+        <p class="evc-lead">O cadastro público foi desligado. Só entra quem você liberar aqui, já com o saldo de créditos que você escolher.</p>
+        <div class="evc-steps"><span><b>1</b>Dados da pessoa</span><span><b>2</b>Pacote de créditos</span><span><b>3</b>Enviar o convite</span></div>
+        <div class="evc-packs">{_evc_packs_html}</div>
+        """, unsafe_allow_html=True)
+
+        _evc_versao = int(st.session_state.get("elevo_ceo_conta_form_v16859", 0))
+        _evc_opcoes = list(ELEVO_PACOTES_V16859.keys()) + ["Personalizado"]
+        with st.form(f"elevo_ceo_nova_conta_v16859_{_evc_versao}"):
+            _evc_c1, _evc_c2 = st.columns(2)
+            with _evc_c1:
+                _evc_nome = st.text_input("👤 Nome da pessoa", placeholder="Como ela será chamada no app", max_chars=60)
+            with _evc_c2:
+                _evc_email = st.text_input("📧 E-mail de acesso", placeholder="pessoa@gmail.com", max_chars=120)
+            _evc_senha = st.text_input("🔑 Senha", type="password", max_chars=64,
+                                       placeholder="Deixe em branco para gerar uma senha forte automaticamente")
+            _evc_pacote = st.segmented_control("💎 Pacote de créditos", _evc_opcoes, default="Start",
+                                               selection_mode="single", required=True)
+            _evc_c3, _evc_c4 = st.columns([1, 1.6])
+            with _evc_c3:
+                _evc_custom = st.number_input("Créditos (se Personalizado)", min_value=0, max_value=1000000,
+                                              value=150, step=10)
+            with _evc_c4:
+                _evc_obs = st.text_input("📝 Observação interna (opcional)", max_chars=250,
+                                         placeholder="Ex.: indicação, cortesia, cliente de março...")
+            st.caption(f"Custos de uso: 360º e V9.2 = {ELEVO_CUSTO_PROMPT_V16813} créditos • "
+                       f"outras ferramentas de IA = {ELEVO_CUSTO_FERRAMENTA_V16813} créditos.")
+            _evc_enviar = st.form_submit_button("✦ LIBERAR ACESSO VIP", use_container_width=True, type="primary")
+
+        if _evc_enviar:
+            _evc_plano = _evc_pacote or "Start"
+            _evc_cred = (int(_evc_custom) if _evc_plano == "Personalizado"
+                         else int(ELEVO_PACOTES_V16859[_evc_plano]["creditos"]))
+            _evc_preco = (0.0 if _evc_plano == "Personalizado"
+                          else float(ELEVO_PACOTES_V16859[_evc_plano]["preco"]))
+            _evc_senha_final = _evc_senha or elevo_gerar_senha_v16859()
+            try:
+                with st.spinner("Liberando o acesso VIP..."):
+                    _evc_res = elevo_criar_conta_vip_v16859(
+                        _evc_email, _evc_nome, _evc_senha_final, _evc_cred,
+                        plano=_evc_plano, origem="MANUAL_CEO", observacao=_evc_obs, preco=_evc_preco)
+                _evc_res["senha"] = _evc_senha_final
+                st.session_state["elevo_ceo_conta_criada_v16859"] = _evc_res
+                st.session_state["elevo_ceo_conta_form_v16859"] = _evc_versao + 1  # limpa o formulário
+                elevo_invalidar_painel_v16814()
+                st.rerun()
+            except (ValueError, PermissionError) as _evc_exc:
+                st.warning(str(_evc_exc))
+            except ElevoCreditoErroV16813 as _evc_exc:
+                st.error(str(_evc_exc))
+            except Exception:
+                st.error("Não foi possível criar a conta agora. Nada foi cobrado; tente novamente.")
+
+        _evc_ok = st.session_state.get("elevo_ceo_conta_criada_v16859")
+        if _evc_ok:
+            try:
+                _evc_link = str(getattr(st.context, "url", "") or "").split("?")[0]
+            except Exception:
+                _evc_link = ""
+            st.markdown(f"""
+            <div class="evc-ok"><h4>✅ Acesso liberado para {html_std.escape(_evc_ok['nome'])}</h4>
+            <p>E-mail: <code>{html_std.escape(_evc_ok['email'])}</code> • Pacote: <b>{html_std.escape(str(_evc_ok['plano']))}</b>
+            • Saldo inicial: <b>{int(_evc_ok['creditos'])} créditos</b></p></div>
+            """, unsafe_allow_html=True)
+            if _evc_ok.get("aviso_credito"):
+                st.warning(_evc_ok["aviso_credito"])
+            st.caption("Mensagem pronta para copiar e enviar (WhatsApp, e-mail ou direct). "
+                       "A senha aparece só agora; depois ela fica protegida por criptografia.")
+            st.code(
+                f"Olá, {_evc_ok['nome']}! 💎\n"
+                f"Seu acesso VIP à ÉLÉVO foi liberado.\n\n"
+                + (f"🔗 Acesse: {_evc_link}\n" if _evc_link else "")
+                + f"📧 E-mail: {_evc_ok['email']}\n"
+                f"🔑 Senha: {_evc_ok['senha']}\n"
+                f"⚡ Saldo inicial: {int(_evc_ok['creditos'])} créditos\n\n"
+                f"Bem-vindo(a) à central!",
+                language=None)
+            if st.button("✓ Já enviei, ocultar dados", key="elevo_ceo_conta_ok_fechar_v16859"):
+                st.session_state.pop("elevo_ceo_conta_criada_v16859", None)
+                st.rerun()
+
+        with st.expander("🧭 Guia rápido: como isso se liga ao futuro painel de vendas", expanded=False):
+            st.markdown(
+                "- **Pacotes:** os planos acima (Start, Pro, Elite, Black) ficam em `ELEVO_PACOTES_V16859` "
+                "no código. Para mudar créditos ou colocar preço, edite só essa lista. O painel de vendas vai usar a mesma.\n"
+                "- **Venda para cliente novo:** quando o pagamento for aprovado, o sistema chama "
+                "`elevo_criar_conta_vip_v16859(...)` com `origem=\"VENDA\"` e `referencia=\"venda:<id do pagamento>\"`. "
+                "A referência impede conta ou crédito em dobro.\n"
+                "- **Recarga para cliente antigo:** `elevo_credito_admin_v16813(email, qtd, \"ADD\", \"venda:<id>\")`.\n"
+                "- **Relatórios:** toda conta criada fica anotada na aba **Elevo_Contas_V1** da sua planilha "
+                "(plano, créditos, preço, origem, referência, data e quem criou).\n"
+                "- **Pedidos de crédito** dos usuários continuam chegando na Gestão de usuários, logo abaixo.")
+    st.divider()
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
                 "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
@@ -5286,7 +5621,7 @@ if E_O_CEO:
                 _usuarios_filtrados_v16813 = [u for u in _usuarios_v16813
                                              if _busca_admin_v16813.strip().lower() in
                                              (str(u.get("Nome", ""))+" "+str(u.get("Email", ""))).lower()]
-                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: 100 • "
+                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: definidos por você ao criar a conta • "
                            "360º e V9.2: 10 • Radar/outras solicitações de IA: 3.")
                 for _u_v16813 in _usuarios_filtrados_v16813[:100]:
                     _email_u_v16813 = str(_u_v16813.get("Email", "")).strip().lower()
