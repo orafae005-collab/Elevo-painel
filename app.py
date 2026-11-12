@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.61 — PRODUTO DE MODA: A INFLUÊNCIA VESTE O PRODUTO NOS 3 MOTORES (sem conflito de roupa)
 # ÉLÉVO V16.8.60 — 4º MOTOR MÃOS VIRAL + AMBIENTES VIVOS + LOOK DA INFLUÊNCIA + TEXTURAS VIP | BASE V16.8.59
 # Mãos Viral: só as mãos, gancho viral, ASMR, fala 10/12/15s. 22 ambientes com vento, física e vida real nos 4 motores.
 # ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + CONTAS LIBERADAS SÓ PELO CEO (com créditos) | BASE V16.8.58
@@ -9782,6 +9783,182 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         return novo
 
     # ==========================================================
+    # V16.8.61 — PRODUTO DE VESTIR: A INFLUÊNCIA VESTE O PRODUTO
+    # Aplicado no FINAL do 360º, V9.2 e Produto 3S, só quando o scanner
+    # identifica roupa, calçado ou acessório de vestir. Troca cada frase de
+    # "segurar/apoiar" pela versão "vestindo", ajusta o enquadramento à parte
+    # do corpo e anula a roupa da ficha/look APENAS na área que o produto cobre.
+    # Rosto, cabelo, pele e identidade continuam vindo da influência.
+    # ==========================================================
+    _ELEVO_VESTIR_ZONAS_V16861 = (
+        ("full", r"vestido|macac[ãa]o|jardineira|pijama|biqu[ií]ni|mai[ôo]|sa[ií]da de praia|"
+                 r"dress|jumpsuit|overalls|romper|matching set|pyjamas?|pajamas?|bikini|swimsuit|swimwear"),
+        ("bottom", r"cal[çc]a|short|bermuda|saia|legging|jeans|pantalona|pants|trousers|shorts|skirt|leggings|joggers?"),
+        ("shoes", r"t[êe]nis|sand[áa]lia|sapato|sapatilha|bota|chinelo|rasteirinha|scarpin|sneakers?|"
+                  r"shoes?|boots?|sandals?|high heels|slippers?|flip-?flops?|loafers?"),
+        ("head", r"bon[ée]|chap[ée]u|gorro|[óo]culos|tiara|bandana|baseball cap|bucket hat|hat|beanie|sunglasses|eyeglasses|headband"),
+        ("jewelry", r"colar|brinco|pulseira|rel[óo]gio|anel|tornozeleira|necklace|earrings?|bracelet|"
+                    r"wristwatch|watch|anklet|pendant|choker"),
+        ("top", r"camiseta|camisa|camisete|blusa|cropped|regata|moletom|jaqueta|casaco|cardigan|su[ée]ter|colete|"
+                r"blazer|t-?shirt|tee|shirt|blouse|tank top|hoodie|sweatshirt|jacket|overcoat|trench coat|sweater|bodysuit"),
+    )
+    # Não é para vestir: peça infantil/masculina (a influenciadora adulta apresenta, não veste)
+    # e produtos PARA roupa/calçado (limpeza, cosmético, cabide, decoração).
+    _ELEVO_VESTIR_EXCLUI_V16861 = re.compile(
+        r"(?i)\b(?:infantil|beb[êe]s?|kids?|baby|crian[çc]as?|menin[oa]s?|juvenil|masculin[oa]s?|men's|homem|"
+        r"for men|boys?|girls?|limpa\w*|limpador\w*|cleaner|polish|graxa|spray|creme|cream|lotion|lo[çc][ãa]o|"
+        r"perfume|escova|brush|organizador\w*|organizer|cabides?|hangers?|sab[ãa]o|detergente|amaciante|"
+        r"tira-?manchas?|tinta|dye|esmalte|parede|despertador|wall|alarm|capa para|case|suporte|miniatura|"
+        r"chaveiro|keychain|estampa para|adesivo|sticker)\b")
+    _ELEVO_VESTIR_TEXTO_V16861 = {
+        "top": ("upper body (torso and arms)",
+                "a handheld smartphone selfie at arm's length or a friend's phone, vertical 9:16, HEAD-TO-HIPS framing so "
+                "the whole worn garment, its neckline, sleeves and hem are fully visible on her body",
+                "the lower body (if visible) uses a simple neutral complementary piece"),
+        "bottom": ("lower body (waist, hips and legs)",
+                   "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                   "HEAD-TO-FEET framing so the whole worn garment, waistband, fit and length are fully visible",
+                   "the upper body uses a simple neutral complementary top that does not compete with the product"),
+        "full": ("whole body",
+                 "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                 "HEAD-TO-FEET framing so the whole worn piece or set is fully visible",
+                 "no other garment competes with it; only simple footwear and discreet accessories"),
+        "shoes": ("feet",
+                  "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                  "HEAD-TO-FEET framing with the worn footwear clearly visible and in focus at the bottom of the frame",
+                  "the rest of the outfit is simple and neutral so the footwear stands out"),
+        "head": ("head",
+                 "a handheld smartphone selfie at arm's length, vertical 9:16, HEAD-AND-SHOULDERS framing with the "
+                 "worn item clearly visible",
+                 "the clothing is simple and neutral so the worn item stands out"),
+        "jewelry": ("the natural spot for this piece (neck, ears, wrist or fingers)",
+                    "a handheld smartphone selfie at arm's length, vertical 9:16, HEAD-TO-CHEST framing; if the piece is "
+                    "worn on the wrist or fingers, that hand rests naturally near the chest so the piece is visible",
+                    "the clothing is simple and neutral so the piece stands out"),
+    }
+
+    def elevo_vestir_zona_v16861(scan):
+        """Zona do corpo que o produto ocupa, ou '' quando não é para vestir."""
+        texto = " ".join(str((scan or {}).get(k, "")) for k in ("nome_pt", "tipo_embalagem"))
+        if not texto.strip() or _ELEVO_VESTIR_EXCLUI_V16861.search(texto):
+            return ""
+        achadas = [zona for zona, padrao in _ELEVO_VESTIR_ZONAS_V16861
+                   if re.search(r"(?i)\b(?:" + padrao + r")s?\b", texto)]
+        if not achadas:
+            return ""
+        if "full" in achadas or ("top" in achadas and "bottom" in achadas):
+            return "full"  # vestido, macacão ou conjunto parte de cima + parte de baixo
+        return achadas[0]
+
+    def elevo_vestir_produto_v16861(roteiro, scan, modo="360"):
+        """Converte a matriz final de 'segurar' para 'vestir' sem tocar fala, legendas ou SEO."""
+        zona = elevo_vestir_zona_v16861(scan)
+        if not zona:
+            return roteiro
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+            raise ValueError("V16.8.61: roteiro incompleto antes do ajuste de produto de vestir.")
+        area, enquadramento, complemento = _ELEVO_VESTIR_TEXTO_V16861[zona]
+        try:
+            qtd = max(1, min(30, int((scan or {}).get("qtd", 1))))
+        except (ValueError, TypeError):
+            qtd = 1
+        if qtd == 1:
+            uso = (f"She WEARS the single original referenced item on her {area}, correctly sized for her body and "
+                   "worn the way it is designed to be worn. It is NOT held in the hand, NOT folded on furniture and "
+                   "NOT hung nearby.")
+        else:
+            uso = (f"She WEARS exactly ONE of the {qtd} original referenced units on her {area}; the remaining "
+                   f"{qtd - 1} unit(s) are neatly laid flat or hung on the existing furniture in the same scene, each "
+                   "individually visible, never merged, duplicated or recolored.")
+        bloco = (
+            "[ÉLÉVO V16.8.61 — WEARABLE PRODUCT: THE PRESENTER WEARS IT — HIGHEST PRIORITY]: "
+            "The referenced product is a wearable fashion item. " + uso + " "
+            "IDENTITY vs. CLOTHING: from the selected presenter take ONLY her face, hair, skin, eyes, body type, age "
+            "and personality. Any clothing mentioned in her person description, reference photo or WARDROBE request "
+            f"is VOID for the {area}: there the ONLY garment is the referenced product. Other body areas may follow "
+            f"that WARDROBE request only if it does not compete with the product; otherwise {complemento}. "
+            "FIT REALISM: true fabric drape, weight, folds, seams and stretch on a real body; natural creases at "
+            "joints; the print, color, cut, length, logos and details copied exactly from the product reference, "
+            "never redesigned or merged with another garment. "
+            f"FRAMING: {enquadramento}. "
+            "Any wording elsewhere about holding, gripping, lifting or resting the product on a surface does NOT "
+            "apply to the worn unit."
+        )
+        imagem = sec["prompt_imagem"]
+        video = sec["prompt_video"]
+        trocas_imagem = [
+            ("cinematic mid-shot POV handheld mobile phone selfie, vertical 9:16, chest-to-waist framing",
+             "authentic smartphone fashion UGC shot: " + enquadramento),
+            ("Physically correct grip, weight, gravity, true support and small contact shadows.",
+             "Physically correct fit, drape, fabric weight, gravity and natural body contact shadows."),
+            ("If handheld, keep it naturally close to the presenter torso; if not physically hand-holdable, "
+             "rest it on the original stable support. ", "It is worn by the presenter, not held or placed on a support. "),
+        ]
+        for velho, novo in trocas_imagem:
+            imagem = imagem.replace(velho, novo)
+        imagem = re.sub(r"Preserve her selected face, exact hair, skin, eyes and everyday wardrobe \(when a WARDROBE.*?video\);",
+                        "Preserve her selected face, exact hair, skin and eyes; her clothing follows the WEARABLE PRODUCT rule above;",
+                        imagem, count=1, flags=re.S)
+        imagem = imagem.replace("without bringing the held item unnaturally toward the phone lens",
+                                "without bringing the item unnaturally toward the phone lens")
+        # Inventário de kit: mesma frase usada no 360º/V9.2/3S (imagem e vídeo).
+        imagem = re.sub(r"Exactly ONE original referenced unit is shown, in a natural grip only if its actual size "
+                        r"permits; otherwise it rests firmly on the existing stable surface\.", uso, imagem)
+        imagem = re.sub(r"Only ONE may be held naturally if physically feasible; the remaining \d+ rest on an existing "
+                        r"stable support\. If holding is not practical, all remain supported\.", "", imagem)
+        imagem = re.sub(r"If physically hand-holdable, place at most ONE original item in one natural hand at torso "
+                        r"depth and put the remaining (\d+) original unit\(s\) individually on the same existing stable "
+                        r"support; otherwise support all items\. ",
+                        lambda m: f"The presenter wears ONE item; the remaining {m.group(1)} original unit(s) rest "
+                                  "individually laid flat or hung on the same existing furniture. ", imagem)
+        imagem = bloco + "\n" + imagem
+
+        video = re.sub(r"Exactly ONE original referenced unit is shown, in a natural grip only if its actual size "
+                       r"permits; otherwise it rests firmly on the existing stable surface\.", uso, video)
+        video = re.sub(r"Only ONE may be held naturally if physically feasible; the remaining \d+ rest on an existing "
+                       r"stable support\. If holding is not practical, all remain supported\.", "", video)
+        video = video.replace("Maintain every ORIGINAL unit as a distinct rigid object from 00:00 to the final frame.",
+                              "Maintain every ORIGINAL unit as the same distinct physical item from 00:00 to the final "
+                              "frame; the worn unit stays worn the whole time.")
+        video = re.sub(r"(10|12|15)s: (?:between|use|from) .*?(?= (?:Produto 3S: the product remains|Preserve the existing product-led opening))",
+                       lambda m: m.group(1) + "s: ONE unhurried fit movement while WEARING the product (a half-turn, a step or "
+                                 "smoothing the fabric); it is never taken off or held in the hand.",
+                       video, count=1, flags=re.S)
+        video = video.replace("hands never merge with packaging or lose continuous grip.",
+                              "hands never merge with the fabric or the body.")
+        video = re.sub(
+            r"(Shot 1 \(00:00–00:03, NATURAL V9 HOOK\)): .*?(?=\n)",
+            lambda m: m.group(1) + ": A candid smartphone shot opens on the presenter WEARING the referenced item, "
+                      "framed so the whole worn piece is visible, in the same real environment. One natural, small "
+                      "movement (a half-turn, a step or a hand smoothing the fabric) shows the fit; the product keeps "
+                      "exactly its look and on-screen size from the approved still.",
+            video, count=1, flags=re.S)
+        video = re.sub(
+            r"(🫱 Interaction \([^,]*), NATURAL PHYSICAL ACTION\): .*?(?=\n🎞️ Closing)",
+            lambda m: m.group(1) + ", WEARABLE FIT DEMONSTRATION): ONE natural, unhurried move that shows the worn "
+                      "product: a slow quarter-turn to show the side and fit, a hand smoothing the fabric, a light "
+                      "pinch showing thickness and stretch, or a short step showing movement and drape. The garment "
+                      "moves with real weight, inertia and stretch and settles back; it is never taken off, swapped "
+                      "or re-colored. Existing leaves and fabric respond only to a believable breeze; if an animal "
+                      "already exists in this approved scene, only it makes a discreet natural living micro-motion.",
+            video, count=1, flags=re.S)
+        video = re.sub(
+            r"ONE NON-REPEATING ACTION ARC: .*?The product keeps the exact on-screen size of the approved still\. ",
+            "ONE NON-REPEATING ACTION ARC: the product is WORN for the whole clip; she makes ONE natural fit "
+            "movement (quarter-turn, step or smoothing the fabric) and settles ONCE; both hands stay free. "
+            "The worn product keeps the exact look and on-screen size of the approved still. ",
+            video, count=1, flags=re.S)
+        video = bloco + "\n" + video
+        novo = ("### 📸 PROMPT DE IMAGEM\n" + imagem + "\n\n"
+                "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
+                "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"])
+        conferido = extrair_blocos_roteiro(novo)
+        if conferido["secao_seo_texto"] != sec["secao_seo_texto"]:
+            raise ValueError("V16.8.61: alteração indevida no SEO.")
+        return novo
+
+    # ==========================================================
     # V16.8.37 — LOGO FINAL DA V9.2: UMA EXCEÇÃO EXPLÍCITA, NUNCA NA IMAGEM.
     # Esta função não altera o 360º, Produto 3S, imagem, SEO ou fala.
     # Aplicar SOMENTE depois dos reforços estáveis de imagem e vídeo.
@@ -9994,6 +10171,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 instrucao_ouro += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                 if licoes_mem_17:
                     instrucao_ouro += "\n\n" + licoes_mem_17
+                if elevo_vestir_zona_v16861(scan_17):
+                    instrucao_ouro += ("\n\n[V16.8.61 — PRODUTO DE VESTIR] A {0} está VESTINDO o produto (não segura na mão). "
+                                       "A fala e o texto na tela falam como quem está usando: caimento, conforto, tecido, como fica no corpo. "
+                                       "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                 # Sempre ao FINAL: prevalece sobre exemplos históricos fixados em 9/10 s.
                 instrucao_ouro += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
                 validar_cota_ia()
@@ -10046,6 +10227,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 # V16.8.36: imagem final V33/34 preservada; V10 SOMENTE no vídeo.
                 conteudo_texto = elevo_v10_fisica_video_apenas_v16836(
                     conteudo_texto,
+                    modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
+                # V16.8.61 — produto de vestir: a influência VESTE o produto (sem conflito de roupa).
+                etapa_formato_elevo = "vestir_produto_360_produto_3s"
+                conteudo_texto = elevo_vestir_produto_v16861(
+                    conteudo_texto, scan_17,
                     modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
                 etapa_formato_elevo = "deduplicar_regras_360_produto_3s"
                 conteudo_texto = elevo_deduplicar_regras_v1706(conteudo_texto)
@@ -10184,6 +10370,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                     if licoes_mem_92:
                         instrucao_v92 += "\n\n" + licoes_mem_92
+                    if elevo_vestir_zona_v16861(scan_v92):
+                        instrucao_v92 += ("\n\n[V16.8.61 — PRODUTO DE VESTIR] A {0} está VESTINDO o produto (não segura na mão). "
+                                          "A fala e o texto na tela falam como quem está usando: caimento, conforto, tecido, como fica no corpo. "
+                                          "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                     instrucao_v92 += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
                     validar_cota_ia()
                     etapa_formato_elevo = "geracao_inicial_recuperacao"
@@ -10268,6 +10458,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     etapa_formato_elevo = "v92_fisica_video_v10"
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
+                    # V16.8.61 — produto de vestir: a influência VESTE o produto (sem conflito de roupa).
+                    etapa_formato_elevo = "v92_vestir_produto"
+                    conteudo_v92 = elevo_vestir_produto_v16861(conteudo_v92, scan_v92, modo='v9.2')
                     etapa_formato_elevo = "deduplicar_regras_v92"
                     conteudo_v92 = elevo_deduplicar_regras_v1706(conteudo_v92)
                     # V17.0.6: assinatura ligada = assinatura obrigatória; sem falha silenciosa.
