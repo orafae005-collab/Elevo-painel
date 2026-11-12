@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.67 — modo teste preenche test@testuser.com no cartão
 # ÉLÉVO V16.8.66 — CARTÃO: instância única do Mercado Pago (corrige "Dado obrigatório" nos campos seguros)
 # ÉLÉVO V16.8.65 — CARTEIRA VIP REDESENHADA + CHECKOUT DENTRO DO APP (Pix com QR Code e cartão seguro)
 # ÉLÉVO V16.8.64 — Mercado Pago: modo teste/produção pelo Secrets (credencial de teste nova também é APP_USR-)
@@ -3895,7 +3896,7 @@ export default function (component) {
                     _wal_ret_brick = _elevo_brick_cartao_v16865(
                         key=f"elevo_brick_{_wal_chave}_v16865",
                         data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
-                              "email": "" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813,
+                              "email": "test@testuser.com" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813,
                               "tema": "default" if modo_claro else "dark",
                               "chave": _wal_chave})
                     _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
@@ -3921,8 +3922,8 @@ export default function (component) {
                     st.caption("Até 12x. O número do cartão é digitado no formulário seguro do Mercado Pago "
                                "e nunca passa pelo servidor da ÉLÉVO.")
                     if elevo_mp_config_v16863()["teste"]:
-                        st.caption("🧪 Modo teste: use um cartão de teste, escreva **APRO** no nome do titular "
-                                   "(aprovado) e o e-mail da sua **conta de teste comprador**.")
+                        st.caption("🧪 Modo teste: use um cartão de teste e escreva **APRO** no nome do titular "
+                                   "(aprovado). O e-mail de teste do Mercado Pago (test@testuser.com) já vai preenchido.")
             with _wal_t_outros:
                 st.caption("Boleto, saldo Mercado Pago ou Linha de Crédito: abre a página do Mercado Pago.")
                 _wal_link = st.session_state.get("elevo_checkout_link_v16863", {})
