@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.62 — MICROFONE PROFISSIONAL: só em campos de escrever, ditado contínuo e texto confirmado no app
 # ÉLÉVO V16.8.61 — PRODUTO DE MODA: A INFLUÊNCIA VESTE O PRODUTO NOS 3 MOTORES (sem conflito de roupa)
 # ÉLÉVO V16.8.60 — 4º MOTOR MÃOS VIRAL + AMBIENTES VIVOS + LOOK DA INFLUÊNCIA + TEXTURAS VIP | BASE V16.8.59
 # Mãos Viral: só as mãos, gancho viral, ASMR, fala 10/12/15s. 22 ambientes com vento, física e vida real nos 4 motores.
@@ -10949,91 +10950,190 @@ components.html(r"""
   try {
     const doc = window.parent.document;
     const W = window.parent;
-    if (W.__elevoVoice1683 && W.__elevoVoice1683.install) {
-      W.__elevoVoice1683.install();
-      return;
-    }
-const MIC_1686='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/></svg>';
-    const STOP_1686='<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="3" fill="currentColor"/></svg>';
+    // V16.8.62 — microfone profissional. Instala uma única vez por página.
+    if (W.__elevoVoz16862 && W.__elevoVoz16862.install) { W.__elevoVoz16862.install(); return; }
+    // Desliga a versão antiga (1683) se ainda estiver ativa nesta aba.
+    try { doc.body.setAttribute('data-elevo-no-voice', '1'); } catch (e) {}
+    doc.querySelectorAll('.elevo-voz-btn-1683').forEach(b => b.remove());
+
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
-    let gravador = null;
-    let botaoAtivo = null;
+    const ICONE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg>';
+    const ONDAS = '<span class="evm-ondas" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+
+    // Somente campos de ESCREVER do Streamlit (lista branca): área de texto e campo de texto simples.
     function campoPermitido(el) {
-      if (!el || !el.matches || !el.matches('textarea, input')) return false;
-      const tipo = (el.getAttribute('type') || 'text').toLowerCase();
-      if (!['text','search','url'].includes(tipo)) return false;
-      if (el.disabled || el.readOnly || el.getAttribute('autocomplete') === 'one-time-code') return false;
-      if (el.closest('[data-elevo-no-voice]')) return false;
-      // V16.8.60 — listas de seleção, números e datas não recebem microfone.
-      if ((el.getAttribute('role') || '') === 'combobox' || el.getAttribute('aria-autocomplete')) return false;
-      if (el.closest('[data-testid="stSelectbox"], [data-testid="stMultiSelect"], [data-baseweb="select"], [data-testid="stNumberInput"], [data-testid="stDateInput"], [data-testid="stTimeInput"]')) return false;
+      if (!el || !el.matches) return false;
+      let ok = false;
+      if (el.tagName === 'TEXTAREA') ok = !!el.closest('[data-testid="stTextArea"], .stTextArea');
+      else if (el.tagName === 'INPUT') {
+        const tipo = (el.getAttribute('type') || 'text').toLowerCase();
+        ok = tipo === 'text' && !!el.closest('[data-testid="stTextInput"], .stTextInput');
+      }
+      if (!ok) return false;
+      if (el.closest('[data-testid="stSelectbox"], [data-testid="stMultiSelect"], [data-baseweb="select"], [role="listbox"], [data-baseweb="popover"], [data-testid="stNumberInput"], [data-testid="stDateInput"], [data-testid="stTimeInput"], [data-testid="stChatInput"]')) return false;
+      if ((el.getAttribute('role') || '') === 'combobox' || el.hasAttribute('aria-autocomplete')) return false;
+      if (el.disabled || el.readOnly) return false;
       const rotulo = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('placeholder') || '')).toLowerCase();
-      if (/senha|password|token|chave secreta|api.?key|email|e-mail|gmail|código de segurança/.test(rotulo)) return false;
-      if ((el.getAttribute('placeholder') || '').toLowerCase().includes('achado secreto ou minha loja')) return false;
+      if (/senha|password|token|chave secreta|api.?key|e-?mail|gmail|@|código de segurança|achado secreto ou minha loja|link|url|https?:/.test(rotulo)) return false;
       return true;
     }
-    function inserirTexto(el, texto) {
-      const antigo = el.value || '';
-      const novo = antigo.trim() ? antigo.replace(/\s+$/, '') + ' ' + texto.trim() : texto.trim();
+
+    // ---------- Aviso flutuante (estilo app profissional) ----------
+    let toast = null, toastTimer = null;
+    function aviso(texto, estado) {
+      if (!toast) {
+        toast = doc.createElement('div');
+        toast.className = 'evm-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        doc.body.appendChild(toast);
+      }
+      clearTimeout(toastTimer);
+      toast.dataset.estado = estado || 'info';
+      const titulo = estado === 'ouvindo' ? 'Ouvindo' : (estado === 'erro' ? 'Microfone' : 'Ditado');
+      toast.innerHTML = (estado === 'ouvindo' ? ONDAS : '<span class="evm-ico">' + ICONE + '</span>') +
+        '<div class="evm-txt"><b>' + titulo + '</b><span></span></div>' +
+        (estado === 'ouvindo' ? '<em>Toque no microfone para parar</em>' : '');
+      toast.querySelector('.evm-txt span').textContent = texto;
+      toast.classList.add('on');
+      if (estado !== 'ouvindo') toastTimer = setTimeout(() => toast && toast.classList.remove('on'), 3800);
+    }
+    function avisoTexto(texto) {
+      if (toast && toast.dataset.estado === 'ouvindo') {
+        const s = toast.querySelector('.evm-txt span');
+        if (s) s.textContent = texto;
+      }
+    }
+    function fecharAviso() { if (toast) toast.classList.remove('on'); }
+
+    // ---------- Escrita no campo + confirmação para o Streamlit ----------
+    function definirValor(el, valor) {
+      const max = parseInt(el.getAttribute('maxlength') || '0', 10);
+      if (max > 0 && valor.length > max) valor = valor.slice(0, max);
       const proto = el.tagName === 'TEXTAREA' ? W.HTMLTextAreaElement.prototype : W.HTMLInputElement.prototype;
-      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, novo);
-      el.dispatchEvent(new W.Event('input', {bubbles:true}));
-      el.dispatchEvent(new W.Event('change', {bubbles:true}));
-      el.focus();
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, valor);
+      el.dispatchEvent(new W.Event('input', { bubbles: true }));
     }
-    function stop() {
-      if (gravador) { try {gravador.stop();} catch(e){} }
-      if (botaoAtivo) {botaoAtivo.innerHTML=MIC_1686;botaoAtivo.removeAttribute('data-listening');botaoAtivo.title='Ditar texto em português (voz para texto)';}
-      gravador=null;botaoAtivo=null;
+    function confirmar(el) {
+      // O Streamlit só registra o texto quando o campo "perde o foco".
+      // Sem isso, o texto aparecia na tela mas a criação usava o valor antigo.
+      el.dispatchEvent(new W.Event('change', { bubbles: true }));
+      el.dispatchEvent(new W.FocusEvent('blur'));
+      el.dispatchEvent(new W.FocusEvent('focusout', { bubbles: true }));
     }
-    function toggle(el, btn) {
-      if (gravador) { stop(); return; }
-      if (!SR) { btn.title='Ditado não disponível. Use Chrome/Edge com acesso ao microfone.'; btn.textContent='⚠️';return; }
-      try {
-        gravador = new SR();
-        botaoAtivo = btn;
-        gravador.lang='pt-BR'; gravador.continuous=false; gravador.interimResults=false;
-        gravador.onstart=()=>{btn.innerHTML=STOP_1686;btn.setAttribute('data-listening','1');btn.title='Ouvindo… toque para parar';};
-        gravador.onresult=(event)=>{
-          let texto='';
-          for(let i=event.resultIndex;i<event.results.length;i++){
-            if(event.results[i].isFinal) texto += event.results[i][0].transcript + ' ';
-          }
-          if(texto.trim()) inserirTexto(el,texto);
-        };
-        gravador.onerror=()=>{btn.title='Verifique a permissão do microfone no navegador.';stop();};
-        gravador.onend=stop;
-        gravador.start();
-      } catch(e) {stop();btn.title='Microfone indisponível neste navegador.';}
+    function juntar(base, novo) {
+      novo = novo.replace(/\s+/g, ' ').trim();
+      if (!novo) return base;
+      const b = base.replace(/\s+$/, '');
+      if (!b || /[.!?]$/.test(b)) novo = novo.charAt(0).toUpperCase() + novo.slice(1);
+      return b ? b + ' ' + novo : novo;
     }
+
+    // ---------- Reconhecimento de voz ----------
+    let sessao = null; // {el, btn, rec, base, finais, parando, ultimo}
+    function encerrar(motivo) {
+      if (!sessao) return;
+      const s = sessao; sessao = null;
+      s.parando = true;
+      try { s.rec.stop(); } catch (e) {}
+      s.btn.removeAttribute('data-ouvindo');
+      s.btn.setAttribute('aria-pressed', 'false');
+      s.btn.title = 'Ditar por voz (português)';
+      s.btn.innerHTML = ICONE;
+      confirmar(s.el);
+      if (motivo) aviso(motivo, motivo.startsWith('✓') ? 'ok' : 'erro'); else fecharAviso();
+    }
+    function iniciar(el, btn) {
+      if (sessao) { const mesmo = sessao.el === el; encerrar(mesmo ? '✓ Texto inserido no campo.' : ''); if (mesmo) return; }
+      if (!SR) { aviso('Ditado por voz não é compatível com este navegador. Use Google Chrome ou Microsoft Edge.', 'erro'); return; }
+      const rec = new SR();
+      rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
+      const s = { el, btn, rec, base: el.value || '', finais: '', parando: false, ultimo: Date.now(), reinicios: 0 };
+      sessao = s;
+      rec.onstart = () => {
+        btn.setAttribute('data-ouvindo', '1');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.title = 'Parar o ditado';
+        btn.innerHTML = '<span class="evm-quadrado" aria-hidden="true"></span>';
+        aviso('Pode falar, estou escrevendo no campo…', 'ouvindo');
+      };
+      rec.onresult = (ev) => {
+        if (sessao !== s) return;
+        let provisorio = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const r = ev.results[i];
+          if (r.isFinal) s.finais = juntar(s.finais, r[0].transcript);
+          else provisorio += r[0].transcript;
+        }
+        s.ultimo = Date.now();
+        const texto = juntar(juntar(s.base, s.finais), provisorio);
+        definirValor(el, texto);
+        if (!provisorio) confirmar(el);
+        avisoTexto((provisorio || s.finais || '…').slice(-90));
+      };
+      rec.onerror = (e) => {
+        if (sessao !== s) return;
+        const msg = {
+          'not-allowed': 'Permita o uso do microfone: clique no cadeado ao lado do endereço do site e ative “Microfone”.',
+          'service-not-allowed': 'O navegador bloqueou o ditado. Use Google Chrome ou Microsoft Edge.',
+          'audio-capture': 'Nenhum microfone foi encontrado neste aparelho.',
+          'network': 'Sem conexão com o serviço de voz. Verifique a internet e tente de novo.',
+          'no-speech': 'Não ouvi nada. Toque no microfone e fale um pouco mais perto.',
+          'language-not-supported': 'Português não está disponível no ditado deste navegador.'
+        }[e.error];
+        if (e.error === 'no-speech' && s.finais) return; // pausa normal depois de já ter falado
+        if (e.error === 'aborted') return;
+        encerrar(msg || 'O ditado parou. Toque no microfone para tentar de novo.');
+      };
+      rec.onend = () => {
+        if (sessao !== s || s.parando) return;
+        // O Chrome encerra sozinho após pausas: retoma até 20 s sem fala ou o usuário parar.
+        if (Date.now() - s.ultimo < 20000 && s.reinicios < 30) {
+          s.reinicios++;
+          try { rec.start(); return; } catch (err) {}
+        }
+        encerrar(s.finais ? '✓ Texto inserido no campo.' : '');
+      };
+      try { rec.start(); }
+      catch (e) { sessao = null; aviso('Não foi possível ligar o microfone agora. Tente de novo.', 'erro'); }
+    }
+
+    // ---------- Botões ----------
     function instalar() {
-      doc.querySelectorAll('textarea, input').forEach(el=>{
-        if (!campoPermitido(el)) return;
+      doc.querySelectorAll('[data-testid="stTextArea"] textarea, .stTextArea textarea, [data-testid="stTextInput"] input, .stTextInput input').forEach(el => {
         const pai = el.parentElement;
-        if (!pai || pai.querySelector(':scope > .elevo-voz-btn-1683')) return;
-        el.dataset.elevoVoz1683='1';
-        pai.style.position='relative';
-        const b=doc.createElement('button');
-        b.type='button';b.innerHTML=MIC_1686;b.title='Ditar texto em português (voz para texto)';
-        b.setAttribute('aria-label','Ditar neste campo'); b.className='elevo-voz-btn-1683';
-        Object.assign(b.style,{position:'absolute',right:'10px',top:'8px',zIndex:'20',border:'1px solid #26718c',
-          borderRadius:'9px',background:'#10263c',color:'#dffaff',height:'32px',width:'35px',fontSize:'15px',
-          cursor:'pointer',padding:'0',lineHeight:'1'});
-        el.style.paddingRight='52px';
-        b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggle(el,b);});
+        if (!pai) return;
+        const existente = pai.querySelector(':scope > .evm-btn');
+        if (!campoPermitido(el)) { if (existente) existente.remove(); return; }
+        if (existente) return;
+        pai.style.position = 'relative';
+        const b = doc.createElement('button');
+        b.type = 'button';
+        b.className = 'evm-btn' + (el.tagName === 'TEXTAREA' ? ' evm-area' : ' evm-linha');
+        b.innerHTML = ICONE;
+        b.title = 'Ditar por voz (português)';
+        b.setAttribute('aria-label', 'Ditar por voz neste campo');
+        b.setAttribute('aria-pressed', 'false');
+        el.classList.add('evm-com-mic');
+        b.addEventListener('mousedown', ev => ev.preventDefault()); // não rouba o foco do campo
+        b.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); iniciar(el, b); });
         pai.appendChild(b);
       });
+      // Remove microfones órfãos (campo saiu da tela) e encerra ditado de campo removido.
+      doc.querySelectorAll('.evm-btn').forEach(b => {
+        if (!b.parentElement || !b.parentElement.querySelector('textarea, input')) b.remove();
+      });
+      if (sessao && !doc.body.contains(sessao.el)) encerrar('');
     }
-    W.__elevoVoice1683={install:instalar};
+    W.__elevoVoz16862 = { install: instalar };
     instalar();
-    let agendado=false;
-    const observer=new W.MutationObserver(()=>{
-      if(agendado) return;
-      agendado=true;
-      W.requestAnimationFrame(()=>{agendado=false;instalar();});
-    });
-    observer.observe(doc.body,{childList:true,subtree:true});
-  } catch(e) { /* Alguns navegadores isolam iframes; digitação manual continua disponível. */ }
+    let agendado = false;
+    new W.MutationObserver(() => {
+      if (agendado) return;
+      agendado = true;
+      W.requestAnimationFrame(() => { agendado = false; instalar(); });
+    }).observe(doc.body, { childList: true, subtree: true });
+  } catch (e) { /* Se o navegador isolar o iframe, a digitação manual continua normal. */ }
 })();
 </script>
 """, height=0, width=0)
@@ -12570,15 +12670,16 @@ _tk_v16860 = ({
     "__FOCO__": "#1457A1", "__FOCOA__": "rgba(20,87,161,.14)", "__TXT__": "#0B2A55",
     "__ABA__": "linear-gradient(180deg,#FFFFFF,#EEF4FC)", "__ABAATIVA__": "linear-gradient(180deg,#FFF8E6,#FCEFCB)",
     "__ABATXT__": "#3B5677", "__ABATXTATIVA__": "#6B4E12", "__OURO__": "#B8862F",
-    "__MIC__": "linear-gradient(145deg,#FFFFFF,#E7F0FC)", "__MICTXT__": "#1457A1", "__MICBORDA__": "#D8B66A",
+    "__MIC__": "#FFFFFF", "__MICTXT__": "#1457A1", "__MICBORDA__": "#D6E2F1",
+    "__TOAST__": "rgba(255,255,255,.96)", "__TOASTTXT__": "#0B2A55", "__TOASTBORDA__": "#DCE6F3",
     "__SOMBRA__": "0 3px 10px rgba(20,60,120,.07)", "__PH__": "#8193AB",
 } if modo_claro else {
     "__CAMPO__": "linear-gradient(165deg,rgba(15,26,44,.94) 0%,rgba(7,12,22,.96) 100%)", "__BORDA__": "rgba(84,216,245,.22)",
     "__FOCO__": "#54D8F5", "__FOCOA__": "rgba(84,216,245,.14)", "__TXT__": "#EAF2FF",
     "__ABA__": "linear-gradient(180deg,rgba(20,34,56,.92),rgba(9,15,27,.95))", "__ABAATIVA__": "linear-gradient(180deg,rgba(216,182,106,.24),rgba(216,182,106,.08))",
     "__ABATXT__": "#9FB3CC", "__ABATXTATIVA__": "#F4DC9A", "__OURO__": "#D8B66A",
-    "__MIC__": "radial-gradient(circle at 30% 22%,rgba(255,255,255,.16),transparent 46%),linear-gradient(145deg,#1B3552,#0A1524)",
-    "__MICTXT__": "#F4DC9A", "__MICBORDA__": "rgba(216,182,106,.6)",
+    "__MIC__": "rgba(255,255,255,.06)", "__MICTXT__": "#CFE3F7", "__MICBORDA__": "rgba(255,255,255,.14)",
+    "__TOAST__": "rgba(13,22,38,.94)", "__TOASTTXT__": "#EAF2FF", "__TOASTBORDA__": "rgba(255,255,255,.10)",
     "__SOMBRA__": "0 6px 18px rgba(0,0,0,.28)", "__PH__": "#7489A8",
 })
 _css_v16860 = """
@@ -12625,24 +12726,50 @@ _css_v16860 = """
 [data-testid="stExpander"] summary {border-radius:14px!important;}
 [data-testid="stExpander"] summary:hover {background:__FOCOA__!important;}
 
-/* ---------- Microfone de ditado ---------- */
-.elevo-voz-btn-1683 {
-  width:36px!important; height:36px!important; top:7px!important; right:9px!important;
-  display:grid!important; place-items:center!important; padding:0!important;
-  border-radius:12px!important; border:1px solid __MICBORDA__!important;
-  background:__MIC__!important; color:__MICTXT__!important;
-  box-shadow:0 4px 12px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.14)!important;
-  transition:transform .15s ease, box-shadow .2s ease, filter .2s ease!important;}
-.elevo-voz-btn-1683:hover {transform:translateY(-1px) scale(1.04); filter:brightness(1.08);
-  box-shadow:0 6px 16px rgba(0,0,0,.26),0 0 0 3px __FOCOA__!important;}
-.elevo-voz-btn-1683 svg {display:block; pointer-events:none;}
-.elevo-voz-btn-1683[data-listening] {
-  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.25),transparent 50%),linear-gradient(145deg,#E2384F,#8E1023)!important;
-  border-color:#FF8A96!important; color:#FFFFFF!important; animation:elevo-mic-pulso-v16860 1.25s ease-out infinite;}
-@keyframes elevo-mic-pulso-v16860 {
-  0% {box-shadow:0 0 0 0 rgba(255,95,109,.55),0 4px 12px rgba(0,0,0,.25);}
-  70% {box-shadow:0 0 0 11px rgba(255,95,109,0),0 4px 12px rgba(0,0,0,.25);}
-  100% {box-shadow:0 0 0 0 rgba(255,95,109,0),0 4px 12px rgba(0,0,0,.25);}}
+/* ---------- Microfone de ditado V16.8.62 (profissional) ---------- */
+textarea.evm-com-mic {padding-right:50px!important;}
+input.evm-com-mic {padding-right:46px!important;}
+.evm-btn {position:absolute!important; z-index:5; right:8px; width:32px; height:32px; padding:0; margin:0;
+  display:grid; place-items:center; cursor:pointer; border-radius:50%;
+  border:1px solid __MICBORDA__; background:__MIC__; color:__MICTXT__;
+  box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.10);
+  transition:transform .15s ease, box-shadow .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
+  opacity:.82;}
+.evm-btn.evm-area {top:8px;}
+.evm-btn.evm-linha {top:50%; transform:translateY(-50%); width:30px; height:30px;}
+.evm-btn:hover, .evm-btn:focus-visible {opacity:1; box-shadow:0 0 0 4px __FOCOA__,0 6px 16px rgba(0,0,0,.14); outline:none;}
+.evm-btn.evm-area:hover {transform:translateY(-1px);}
+.evm-btn.evm-linha:hover {transform:translateY(-50%) scale(1.05);}
+.evm-btn svg {display:block; pointer-events:none;}
+.evm-btn[data-ouvindo] {opacity:1; border-color:transparent; color:#fff;
+  background:linear-gradient(145deg,#F2495E,#C81E3A)!important; animation:evm-anel 1.6s ease-out infinite;}
+.evm-quadrado {width:10px; height:10px; border-radius:3px; background:#fff; display:block;}
+@keyframes evm-anel {
+  0% {box-shadow:0 0 0 0 rgba(242,73,94,.45),0 4px 12px rgba(200,30,58,.35);}
+  70% {box-shadow:0 0 0 10px rgba(242,73,94,0),0 4px 12px rgba(200,30,58,.35);}
+  100% {box-shadow:0 0 0 0 rgba(242,73,94,0),0 4px 12px rgba(200,30,58,.35);}}
+.evm-toast {position:fixed; left:50%; bottom:22px; z-index:1000001; transform:translate(-50%,18px); opacity:0; pointer-events:none;
+  display:flex; align-items:center; gap:12px; min-width:min(360px,92vw); max-width:92vw; padding:11px 16px 11px 13px;
+  border-radius:16px; background:__TOAST__; color:__TOASTTXT__; border:1px solid __TOASTBORDA__;
+  box-shadow:0 18px 44px rgba(0,0,0,.28); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  font:500 .86rem/1.35 'Source Sans Pro','Inter',system-ui,sans-serif; transition:opacity .22s ease, transform .22s ease;}
+.evm-toast.on {opacity:1; transform:translate(-50%,0);}
+.evm-toast .evm-txt {display:flex; flex-direction:column; min-width:0; flex:1;}
+.evm-toast .evm-txt b {font-weight:700; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:__OURO__;}
+.evm-toast .evm-txt span {white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.evm-toast em {font-style:normal; font-size:.72rem; opacity:.65; white-space:nowrap;}
+.evm-toast .evm-ico {width:30px; height:30px; flex:0 0 30px; border-radius:50%; display:grid; place-items:center;
+  background:__FOCOA__; color:__FOCO__;}
+.evm-toast[data-estado="erro"] .evm-ico {background:rgba(242,73,94,.14); color:#E5485D;}
+.evm-toast[data-estado="erro"] .evm-txt b {color:#E5485D;}
+.evm-toast[data-estado="ok"] .evm-ico {background:rgba(47,211,154,.16); color:#1FAF7E;}
+.evm-toast[data-estado="ok"] .evm-txt b {color:#1FAF7E;}
+.evm-ondas {display:flex; align-items:center; gap:3px; height:30px; width:30px; flex:0 0 30px; justify-content:center;
+  border-radius:50%; background:linear-gradient(145deg,#F2495E,#C81E3A);}
+.evm-ondas i {display:block; width:3px; height:8px; border-radius:2px; background:#fff; animation:evm-onda .9s ease-in-out infinite;}
+.evm-ondas i:nth-child(2) {animation-delay:.15s;} .evm-ondas i:nth-child(3) {animation-delay:.3s;} .evm-ondas i:nth-child(4) {animation-delay:.45s;}
+@keyframes evm-onda {0%,100% {height:6px;} 50% {height:15px;}}
+@media (max-width:767px) {.evm-toast em {display:none;} .evm-toast {bottom:14px;}}
 
 /* ---------- Seletor dos 4 motores ---------- */
 .st-key-elevo_seletor_motores_v16860 .stButton button {min-height:58px!important; border-radius:14px!important;
@@ -12655,7 +12782,7 @@ _css_v16860 = """
   color:__TXT__; background-image:__GRAO__,__CAMPO__; border:1px solid __BORDA__;}
 .elevo-vida-chip-v16860 b {color:__OURO__;}
 
-@media (prefers-reduced-motion:reduce) {.elevo-voz-btn-1683[data-listening] {animation:none!important;}}
+@media (prefers-reduced-motion:reduce) {.evm-btn[data-ouvindo], .evm-ondas i {animation:none!important;}}
 @media (max-width:767px) {
   .st-key-elevo_seletor_motores_v16860 .stButton button {min-height:50px!important; font-size:.82rem!important;}
 }
