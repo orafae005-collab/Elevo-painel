@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.66 — CARTÃO: instância única do Mercado Pago (corrige "Dado obrigatório" nos campos seguros)
 # ÉLÉVO V16.8.65 — CARTEIRA VIP REDESENHADA + CHECKOUT DENTRO DO APP (Pix com QR Code e cartão seguro)
 # ÉLÉVO V16.8.64 — Mercado Pago: modo teste/produção pelo Secrets (credencial de teste nova também é APP_USR-)
 # ÉLÉVO V16.8.63 — CADASTRO ABERTO DE NOVO + PLANOS (Start/Pro/Elite) + CHECKOUT MERCADO PAGO (Pix e cartão)
@@ -3727,21 +3728,34 @@ export default function (component) {
   const {parentElement, data, setTriggerValue} = component;
   const box = parentElement.querySelector('.evk-box');
   const status = parentElement.querySelector('.evk-status');
-  box.id = 'evkBrick_' + String(data.chave || 'x').replace(/[^a-zA-Z0-9_]/g, '_');
-  let controle = null, cancelado = false;
-  const carregar = () => new Promise((ok, falha) => {
-    if (window.MercadoPago) return ok();
+  const W = window;
+  // V16.8.66 — UM único SDK, UMA única instância do Mercado Pago e UM único formulário
+  // por vez. Instâncias repetidas faziam os campos seguros (número, validade, CVV)
+  // aparecerem preenchidos, mas o envio lia uma cópia vazia: "Dado obrigatório".
+  const G = W.__elevoMP16866 = W.__elevoMP16866 || {fila: Promise.resolve(), ctl: null, chave: '', mp: null, pk: ''};
+  const chave = String(data.chave || 'x').replace(/[^a-zA-Z0-9_]/g, '_');
+  box.id = 'evkBrick_' + chave;
+  let vivo = true;
+  const carregarSDK = () => new Promise((ok, falha) => {
+    if (W.MercadoPago) return ok();
     let s = document.querySelector('script[data-elevo-mp]');
     if (!s) { s = document.createElement('script'); s.src = 'https://sdk.mercadopago.com/js/v2';
               s.setAttribute('data-elevo-mp', '1'); document.head.appendChild(s); }
     s.addEventListener('load', () => ok()); s.addEventListener('error', () => falha());
-    setTimeout(() => window.MercadoPago ? ok() : null, 50);
+    const espera = setInterval(() => { if (W.MercadoPago) { clearInterval(espera); ok(); } }, 100);
+    setTimeout(() => clearInterval(espera), 20000);
   });
-  carregar().then(async () => {
-    if (cancelado) return;
-    const mp = new window.MercadoPago(data.publicKey, {locale: 'pt-BR'});
-    controle = await mp.bricks().create('cardPayment', box.id, {
-      initialization: {amount: data.valor, payer: {email: data.email}},
+  G.fila = G.fila.then(async () => {
+    await carregarSDK();
+    if (!vivo || !document.body.contains(box)) return;
+    if (G.ctl) { try { await G.ctl.unmount(); } catch (e) {} G.ctl = null; }
+    if (!G.mp || G.pk !== data.publicKey) { G.mp = new W.MercadoPago(data.publicKey, {locale: 'pt-BR'}); G.pk = data.publicKey; }
+    box.innerHTML = '';
+    const inicio = {amount: data.valor};
+    if (data.email) inicio.payer = {email: data.email};
+    G.chave = chave;
+    G.ctl = await G.mp.bricks().create('cardPayment', box.id, {
+      initialization: inicio,
       customization: {visual: {style: {theme: data.tema}, texts: {formSubmit: 'Pagar ' + data.valorTexto}},
                       paymentMethods: {maxInstallments: 12}},
       callbacks: {
@@ -3751,7 +3765,15 @@ export default function (component) {
       }
     });
   }).catch(() => { status.textContent = 'Não foi possível carregar o Mercado Pago. Verifique a internet e tente de novo.'; });
-  return () => { cancelado = true; try { controle && controle.unmount(); } catch (e) {} };
+  return () => {
+    vivo = false;
+    // Só desmonta se este formulário ainda for o ativo (evita apagar o novo).
+    G.fila = G.fila.then(async () => {
+      if (G.chave === chave && G.ctl && !document.body.contains(box)) {
+        try { await G.ctl.unmount(); } catch (e) {} G.ctl = null; G.chave = '';
+      }
+    });
+  };
 }
 """,
         isolate_styles=False)
@@ -3873,7 +3895,8 @@ export default function (component) {
                     _wal_ret_brick = _elevo_brick_cartao_v16865(
                         key=f"elevo_brick_{_wal_chave}_v16865",
                         data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
-                              "email": _elevo_email_painel_v16813, "tema": "default" if modo_claro else "dark",
+                              "email": "" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813,
+                              "tema": "default" if modo_claro else "dark",
                               "chave": _wal_chave})
                     _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
                     if _wal_form:
@@ -3897,6 +3920,9 @@ export default function (component) {
                         st.rerun()
                     st.caption("Até 12x. O número do cartão é digitado no formulário seguro do Mercado Pago "
                                "e nunca passa pelo servidor da ÉLÉVO.")
+                    if elevo_mp_config_v16863()["teste"]:
+                        st.caption("🧪 Modo teste: use um cartão de teste, escreva **APRO** no nome do titular "
+                                   "(aprovado) e o e-mail da sua **conta de teste comprador**.")
             with _wal_t_outros:
                 st.caption("Boleto, saldo Mercado Pago ou Linha de Crédito: abre a página do Mercado Pago.")
                 _wal_link = st.session_state.get("elevo_checkout_link_v16863", {})
