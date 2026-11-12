@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.60 — 4º MOTOR MÃOS VIRAL + AMBIENTES VIVOS + LOOK DA INFLUÊNCIA + TEXTURAS VIP | BASE V16.8.59
+# Mãos Viral: só as mãos, gancho viral, ASMR, fala 10/12/15s. 22 ambientes com vento, física e vida real nos 4 motores.
 # ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + CONTAS LIBERADAS SÓ PELO CEO (com créditos) | BASE V16.8.58
 # Cadastro público removido; CEO cria contas no painel; Aurora, créditos e motores preservados.
 # V16.8.58 — listras de TV e faixa de varredura do fundo desligadas.
@@ -235,7 +237,7 @@ SESSAO_DADOS_PRIVADOS = {
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
     "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
     "bv_recarregamento_login", "google_pendente", "google_erro",
-    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
+    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_look_modo_v16860", "elevo_inf_look_txt_v16860", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
     "elevo_ceo_identity_v1641_loaded", "elevo_ceo_original_v1682",
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
     "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
@@ -5060,6 +5062,92 @@ with _elevo_area_criacao_v16823:
                 st.info("Envie a foto acima para criar sua personagem. Nome e observações são opcionais.")
 
     # ==========================================================
+    # V16.8.60 — VISUAL DA INFLUÊNCIA NESTA CRIAÇÃO (roupa / estilo)
+    # Só muda o LOOK (roupa, acessórios, unhas, penteado preso/solto).
+    # Rosto, pele, idade e identidade continuam vindo da ficha da influência.
+    # Vale para os 4 motores. Não é salvo no banco (vale na sessão).
+    # ==========================================================
+    ELEVO_LOOKS_ALEATORIOS_V16860 = [
+        "a plain white cotton T-shirt with a slightly relaxed fit and light everyday creases",
+        "a soft heather-grey ribbed tank top with a thin open linen overshirt",
+        "a black fitted crew-neck T-shirt and small gold hoop earrings",
+        "a sage-green oversized cotton shirt with sleeves casually rolled to the forearm",
+        "a beige knit cardigan over a simple white top, natural fabric pilling",
+        "a navy-blue polo-neck knit top with a thin delicate gold chain",
+        "a light denim shirt open over a white tank top, sleeves rolled",
+        "a terracotta linen button-up blouse with natural linen wrinkles",
+        "a soft lilac cotton hoodie with the hood down, lived-in fabric texture",
+        "an off-white cropped cardigan buttoned up, with a small silver ring",
+        "a striped navy-and-white Breton cotton top",
+        "a mustard-yellow ribbed knit top with simple stud earrings",
+        "a black spaghetti-strap top under a light beige blazer",
+        "a coral cotton T-shirt with a small tied knot at the waist",
+    ]
+    _ELEVO_LOOK_FILTRO_V16860 = re.compile(
+        r"(?i)\b(?:product|packaging|container|branded|brand logo|reference outfit|bottle|pote|frasco|"
+        r"embalagem|produto|garrafa|cosmetic jar|cosmetic tub)\b")
+
+    def elevo_look_influencia_v16860():
+        """Texto em inglês do look desta criação, ou '' quando vale a roupa da foto."""
+        modo = str(st.session_state.get("elevo_inf_look_modo_v16860", "foto"))
+        if modo == "aleatorio":
+            escolha = random.choice(ELEVO_LOOKS_ALEATORIOS_V16860)
+            return ("WARDROBE FOR THIS CREATION (overrides only the outfit seen in the person reference photo; "
+                    "face, skin, hair colour, age and identity stay exactly the same): " + escolha + ".")
+        if modo == "descrever":
+            pedido = re.sub(r"[\[\]{}<>]", " ", str(st.session_state.get("elevo_inf_look_txt_v16860", "")))
+            pedido = _ELEVO_LOOK_FILTRO_V16860.sub(" ", pedido)
+            pedido = re.sub(r"\s+", " ", pedido).strip()[:420]
+            if pedido:
+                return ("WARDROBE AND STYLING REQUESTED BY THE USER FOR THIS CREATION (written in Portuguese; "
+                        "apply it literally to clothing, accessories, nails and hairstyle only, while face, skin, "
+                        "age and identity stay exactly the same as the person reference): “" + pedido + "”.")
+        return ""
+
+    st.markdown("""<style>
+    .st-key-elevo_look_painel_v16860 {border-radius:20px!important;padding:1rem 1.1rem!important;
+      border:1px solid rgba(216,182,106,.32)!important;position:relative;overflow:hidden;
+      background:radial-gradient(ellipse 55% 90% at 100% 0%,rgba(216,182,106,.12),transparent 70%),
+                 linear-gradient(150deg,rgba(18,30,50,.92),rgba(8,13,24,.94))!important;}
+    .st-key-elevo_look_painel_v16860 h4 {margin:0 0 .15rem!important;}
+    .st-key-elevo_look_painel_v16860 h4, .st-key-elevo_look_painel_v16860 label p,
+    .st-key-elevo_look_painel_v16860 [data-testid="stMarkdownContainer"] p {color:#EAF2FF!important;}
+    .st-key-elevo_look_painel_v16860 [data-testid="stCaptionContainer"] p {color:#9FB3CC!important;}
+    .elevo-look-ativo-v16860 {margin-top:.4rem;padding:.55rem .8rem;border-radius:12px;font-size:.8rem;
+      color:#F1DFAF;background:rgba(216,182,106,.10);border:1px solid rgba(216,182,106,.30);}
+    </style>""", unsafe_allow_html=True)
+    if modo_claro:
+        st.markdown("""<style>
+        .st-key-elevo_look_painel_v16860 {background:linear-gradient(150deg,#FFFFFF,#FBF6EA)!important;
+          border-color:#E7D5A8!important;box-shadow:0 6px 18px rgba(120,90,20,.07)!important;}
+        .st-key-elevo_look_painel_v16860 h4, .st-key-elevo_look_painel_v16860 label p,
+        .st-key-elevo_look_painel_v16860 [data-testid="stMarkdownContainer"] p {color:#1F2F45!important;}
+        .st-key-elevo_look_painel_v16860 [data-testid="stCaptionContainer"] p {color:#5A6B82!important;}
+        .elevo-look-ativo-v16860 {color:#6B4E12;background:#FFF7E3;border-color:#EAD39A;}
+        </style>""", unsafe_allow_html=True)
+    st.session_state.setdefault("elevo_inf_look_modo_v16860", "foto")
+    with st.container(key="elevo_look_painel_v16860"):
+        st.markdown("#### 👗 Visual da influência nesta criação")
+        st.caption("Rosto, pele e identidade continuam os da influência escolhida. Aqui você muda só o look: "
+                   "roupa, acessórios, unhas e penteado. Vale para os 4 motores (no Mãos Viral: unhas, anéis e mangas).")
+        st.radio("Roupa e estilo", options=["foto", "aleatorio", "descrever"],
+                 format_func={"foto": "📷 Igual à foto da influência",
+                              "aleatorio": "🎲 Roupa aleatória a cada criação",
+                              "descrever": "✍️ Quero descrever"}.get,
+                 horizontal=True, key="elevo_inf_look_modo_v16860")
+        if st.session_state["elevo_inf_look_modo_v16860"] == "descrever":
+            st.text_area("Como você quer a sua influência nesta criação?", key="elevo_inf_look_txt_v16860",
+                         max_chars=420, height=100,
+                         placeholder="Ex.: blusa de linho branca, cabelo preso em coque, unhas nude curtas, "
+                                     "brinco de argola dourada pequeno, relógio fino de couro...")
+            if str(st.session_state.get("elevo_inf_look_txt_v16860", "")).strip():
+                st.markdown('<div class="elevo-look-ativo-v16860">✓ Seu look será aplicado na imagem e no vídeo da próxima criação.</div>',
+                            unsafe_allow_html=True)
+        elif st.session_state["elevo_inf_look_modo_v16860"] == "aleatorio":
+            st.markdown('<div class="elevo-look-ativo-v16860">🎲 A cada criação, a ÉLÉVO sorteia um look casual brasileiro diferente, '
+                        'igual na imagem e no vídeo.</div>', unsafe_allow_html=True)
+
+    # ==========================================================
     # 15. MATRIZ DE AMBIENTES ÉLÉVO — 21 CENÁRIOS + MODO INFINITO
     # Substitui APENAS a conversa de voz. Boas-vindas por áudio seguem intactas.
     # ==========================================================
@@ -5067,8 +5155,8 @@ with _elevo_area_criacao_v16823:
     st.divider()
     elevo_secao_hero_v16855(
         "02", "ESTÚDIO DE AMBIENTES · 22 MATRIZES", "Defina o cenário da cena",
-        "São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes). "
-        "A mesma cena permanece na imagem e no vídeo, nos Blocos 17 e 17.2.",
+        "São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes), agora com vento, "
+        "física e vida real. A mesma cena permanece na imagem e no vídeo, nos 4 motores.",
         ("🌍 22 matrizes", "♾️ Modo Infinito", "🎬 Mesma cena na imagem e no vídeo"))
 
     AMBIENTES_ELEVO_V165 = {'banheiro': {'nome': 'Banheiro Caótico', 'icone': '🚿', 'categoria': 'Interior', 'resumo': 'Espelho embaçado, toalha úmida e luz real de janela.', 'elementos': 'a lived-in Brazilian bathroom with a partly fogged mirror, a towel hanging off-center, a closed hair dryer on a DRY shelf away from water, subtle soap marks and a small porcelain sink', 'luz': 'soft daylight entering from a real side window, reflected with realistic falloff on wet and dry tiles', 'fisica': 'steam only where warm running water is explicitly present, condensation sliding slowly on the mirror, one damp towel corner moving only if a draft exists', 'som': 'distant ventilation hum and occasional water drip only if the tap is visible', 'animal': 'no animal'}, 'varanda': {'nome': 'Varanda Tropical', 'icone': '🌿', 'categoria': 'Natureza', 'resumo': 'Varanda tropical com vento, chuva eventual e folhas de bananeira em movimento.', 'elementos': 'a lived-in Brazilian covered tropical veranda with worn wood railings, a small ceramic mug and casually coiled phone cable on a rustic side table, hanging ferns and broad banana leaves outside under a roof edge; a cotton towel sits over the railing', 'luz': 'authentic overcast daylight with slightly warm reflected light from indoors; only rain if actively visible in this preset', 'fisica': 'outdoor banana leaves flutter with plausible inertia, hanging fern tips react asymmetrically to the same breeze; if rain is visible beyond the roof edge, droplets follow real gravity and the towel darkens only where wetted', 'som': 'light wind through leaves and rain on the roof only if raining', 'animal': 'a small bird sheltered in rafters only if introduced in the first still image'}, 'penteadeira': {'nome': 'Penteadeira Golden Hour', 'icone': '🪞', 'categoria': 'Interior', 'resumo': 'Maquiagem usada, espelho real e luz dourada de fim de tarde.', 'elementos': 'an everyday Brazilian vanity table with a softly smudged mirror, a few makeup brushes out of alignment, open compact powder, a hair clip and a slightly wrinkled cotton cloth', 'luz': 'low-angle golden hour sunlight crossing the tabletop with physically accurate mirror reflections', 'fisica': 'single floating dust motes near the window, faint cloth motion only under a real fan or draft, makeup tools staying in place', 'som': 'soft indoor room tone and distant street ambience', 'animal': 'no animal'}, 'servico': {'nome': 'Área de Serviço Raiz', 'icone': '🧺', 'categoria': 'Casa', 'resumo': 'Varal com roupas, tanque de cimento e piso com marcas de uso.', 'elementos': 'a humble Brazilian laundry area with a concrete utility sink, an upright blue bucket, a clothesline with two damp garments, a folded detergent box and authentic worn tile grout', 'luz': 'diffuse late-morning sun from an open patio side, consistent shadows under hanging laundry', 'fisica': 'wet sleeves dripping sparsely into the sink and fabric moving slowly only from an existing breeze; water keeps plausible gravity', 'som': 'distant domestic ambience, occasional isolated drip and cloth rustle', 'animal': 'no animal'}, 'jardim': {'nome': 'Jardim Rústico', 'icone': '🪴', 'categoria': 'Natureza', 'resumo': 'Costela-de-adão, mangueira no chão e folhas com marcas naturais.', 'elementos': 'a small rustic Brazilian garden with lush Monstera, irregular stepping stones, a coiled garden hose, leaf litter and terracotta pots showing realistic soil and water marks', 'luz': 'overcast daylight with naturally mottled shadow from real nearby leaves', 'fisica': 'independent foliage sway, a hose tip releasing water only if its tap is open, a few droplets soaking real soil', 'som': 'subtle garden insects, distant birds and leaf movement', 'animal': 'no animal unless explicitly included in image'}, 'cachoeira': {'nome': 'Cachoeira Secreta', 'icone': '💧', 'categoria': 'Natureza', 'resumo': 'Pedras molhadas, musgo, névoa e correnteza real.', 'elementos': 'a reachable natural cascade with moss-covered wet stones, a safe flat standing platform above the spray, textured bark, sparse fallen leaves and one folded linen towel on dry ground', 'luz': 'natural canopy-filtered daylight reflecting realistically off flowing water and wet rock', 'fisica': 'unbroken water stream with turbulence and splash, soft spray drifting with direction of air, towel staying dry outside the splash zone', 'som': 'continuous nearby running water with varying intensity', 'animal': 'no animal'}, 'cozinha': {'nome': 'Cozinha Afetiva', 'icone': '☕', 'categoria': 'Casa', 'resumo': 'Café passando, pano de prato e bancada que parece usada.', 'elementos': 'a real Brazilian home kitchen with a wooden counter, fresh coffee dripping into a pot, a slightly wrinkled checkered tablecloth, a spoon, an open recipe notebook and a half-used sponge', 'luz': 'soft morning daylight from the kitchen window, warm reflected light on ceramic mugs and metal handles', 'fisica': 'visible coffee drips only while the coffee maker operates, faint vapor near the hot pot, cloth responding to touch rather than floating', 'som': 'coffee drip, kettle clicks if present and gentle household ambience', 'animal': 'no animal'}, 'quarto': {'nome': 'Quarto Desarrumado', 'icone': '🛏️', 'categoria': 'Interior', 'resumo': 'Edredom amassado, roupa na cadeira e luz suave.', 'elementos': 'an authentic lived-in bedroom with imperfectly made bed, a sweater on a chair, one open drawer, a phone charging cable and partly open cotton curtains', 'luz': 'soft window daylight mixed with a low-intensity practical lamp, consistent warm and cool lighting', 'fisica': 'curtain edge moving with a real breeze, quilt compressing where touched, loose strands of hair moving with natural body motion', 'som': 'quiet bedroom ambience and distant outdoor noise', 'animal': 'a sleeping cat only if already present in image'}, 'quintal': {'nome': 'Quintal de Terra', 'icone': '🐕', 'categoria': 'Natureza', 'resumo': 'Terra batida, poeira leve e cachorro descansando ao fundo.', 'elementos': 'a sunlit Brazilian backyard with dry packed earth, a worn garden bench, slightly displaced flip-flops, a water bowl and a shaded corner under a fruit tree', 'luz': 'strong but realistic midday sun casting grounded coherent tree shadows', 'fisica': 'tiny dust particles lifting only from real footfalls, branches moving with breeze, water bowl remaining stable', 'som': 'distant neighborhood ambience and light dry leaves rustling', 'animal': 'one calm caramel-colored dog lying far in the background only if shown in image'}, 'piscina': {'nome': 'Deck de Piscina', 'icone': '🏖️', 'categoria': 'Lazer', 'resumo': 'Água refletindo luz, toalha no banco e respingos discretos.', 'elementos': 'an ordinary swimming pool deck with weathered planks, a striped towel on a solid chair, sunglasses resting on a bench and a clear glass safely away from the pool edge', 'luz': 'bright daytime sun and moving water-caustic reflections linked to actual pool surface', 'fisica': 'real non-repeating water ripples from a gentle breeze, towel fringe moving slightly, no floating props', 'som': 'soft pool water movement and ambient birds', 'animal': 'no animal'}, 'estufa': {'nome': 'Estufa Caseira', 'icone': '🌱', 'categoria': 'Natureza', 'resumo': 'Vasos com terra, samambaias e umidade nas superfícies.', 'elementos': 'a practical backyard greenhouse with hanging ferns, potted herbs, garden labels on stakes, a handheld sprayer and damp soil in terracotta containers', 'luz': 'diffused daylight through translucent roof panels with correct soft shadows', 'fisica': 'fine droplets on cold glass only where humidity makes sense, subtle leaves moving only where air enters and a single sprayer drip', 'som': 'greenhouse room tone, faint ventilation and occasional water droplet', 'animal': 'no animal'}, 'garagem': {'nome': 'Garagem Aberta', 'icone': '🧰', 'categoria': 'Urbano', 'resumo': 'Caixas, ferramentas, marcas de uso e luz dura do dia.', 'elementos': 'a genuinely used Brazilian residential garage with half-open rolling shutter, cardboard boxes stacked safely to one side, small scattered but grounded hand tools on an old workbench, a bicycle leaning on a wall and fine concrete-floor dust', 'luz': 'hard midday sun entering through the open door and casting sharp physically consistent shadows into softer interior light', 'fisica': 'a small draft shifts a piece of loose paper only, sun-lit dust motes visible in the light beam, bicycle and tools remain stationary and grounded, shutter vibrates slightly only if wind acts on it', 'som': 'distant street noise and light garage reverberation', 'animal': 'no animal'}, 'sala': {'nome': 'Sala de Estar Noturna', 'icone': '📺', 'categoria': 'Interior', 'resumo': 'TV acesa, manta no sofá e reflexos azuis discretos.', 'elementos': 'a lived-in Brazilian living room at night, an operating television, a folded throw loosely on the couch arm, a low coffee table with a remote and a small practical side lamp', 'luz': 'the television casts soft changing cool light aligned with the on-screen content and fixed warm lamp fill', 'fisica': 'the throw settles naturally after touch, illumination fluctuates only with the television, objects remain physically supported', 'som': 'quiet room tone and low TV hum without copyrighted content', 'animal': 'no animal'}, 'banheira': {'nome': 'Banheira Vintage', 'icone': '🛁', 'categoria': 'Interior', 'resumo': 'Azulejos antigos, espuma discreta e torneira pingando.', 'elementos': 'a vintage tiled bathroom with an old porcelain tub, weathered brass faucet, folded cotton towel, worn grout and a little foam where bath water actually touches the tub', 'luz': 'warm practical light reflecting realistically in porcelain and brass', 'fisica': 'a single faucet droplet gathering and falling at irregular intervals, mild water surface ripples only where water exists', 'som': 'isolated faucet drip and softly reverberant bathroom room tone', 'animal': 'no animal'}, 'praia': {'nome': 'Praia Deserta (Final de Tarde)', 'icone': '🌊', 'categoria': 'Lazer', 'resumo': 'Areia com marcas reais, vento marítimo e ondas ao fundo.', 'elementos': 'a nearly deserted Brazilian beach in late afternoon, a woven tote and flip-flops supported on dry upper sand away from surf, sparse coastal plants on dunes, visible foamy ocean waves and a single faded cotton beach towel weighted down at its corners', 'luz': 'late-afternoon directional golden sunlight with a real sea-horizon haze and soft shadows matching sun angle', 'fisica': 'wind ruffles the towel edge realistically but not the weighted corners; distant foam advances and recedes following wave cycles; loose beach hair and dune grasses move with the same breeze; sand grains shift only in a plausible gust', 'som': 'natural waves and sea breeze, no soundtrack', 'animal': 'a distant gull only if already visible in the image'}, 'escritorio': {'nome': 'Mesa de Escritório', 'icone': '💻', 'categoria': 'Trabalho', 'resumo': 'Home office real com LED discreto, papéis, caneca e planta.', 'elementos': 'a Brazilian home-office desk with scuffed wood grain, a slightly crumpled stack of papers, an open notebook, black computer mouse, small Monstera pot, a cup with old coffee ring, a practical desk lamp and a soft cyan LED reflected on the wall', 'luz': 'natural window daylight blended with a restrained warm desk lamp and low cyan LED without impossible color changes', 'fisica': 'a page corner shifts only if a real draft enters, a plant leaf moves subtly in the airflow, glass condensation falls only if a cold drink is present, lamp and cable remain physically fixed', 'som': 'quiet room tone, low computer fan and soft street noise', 'animal': 'no animal'}, 'carro_chuva': {'nome': 'Janela do Carro (Chuva)', 'icone': '🚗', 'categoria': 'Urbano', 'resumo': 'Gotas no vidro, carros passando e luzes da cidade.', 'elementos': 'a securely parked Brazilian car interior on a rainy evening, side window covered with distinct rolling water droplets, realistic street lamps and distant neon reflections on wet glass, a folded cotton jacket on passenger seat and a simple dashboard', 'luz': 'muted evening light with real reflections from street lamps and signage outside, no invented cinematic strobe', 'fisica': 'water droplets merge and move down the glass by gravity, background cars create coherent perspective motion, reflections slide with camera angle and window curvature, interior objects stay still', 'som': 'soft rain tapping car roof, passing traffic at distance and interior room tone', 'animal': 'no animal'}, 'leitura': {'nome': 'Canto da Leitura', 'icone': '📚', 'categoria': 'Interior', 'resumo': 'Poltrona de tecido, páginas abertas e feixe de luz.', 'elementos': 'an intimate reading corner with a textured armchair, a paperback open on the side table, a knitted throw, a ceramic tea cup and books with imperfectly aligned spines', 'luz': 'angled window light catching faint atmospheric dust, soft falloff into the room', 'fisica': 'pages shift only with touch or a real breeze, throw compresses under a hand, cup stays still on the table', 'som': 'soft room ambience and distant passing wind', 'animal': 'no animal'}, 'lavabo': {'nome': 'Lavabo Luxo Decadente', 'icone': '🧼', 'categoria': 'Interior', 'resumo': 'Mármore usado, manchas discretas de água e luz dourada.', 'elementos': 'an elegant but lived-in Brazilian lavabo with slightly worn marble countertop, tiny dried water stains near brushed brass tap, subtly imperfect mirror, rolled cotton hand towel, used soap dish and warm pendant lighting', 'luz': 'warm intimate pendant light with coherent light falloff across marble and mirror', 'fisica': 'micro-reflections follow camera motion, towel fibers settle after actual contact, real water droplets only when water source is active, reflections stay spatially consistent', 'som': 'low indoor room tone and faucet water only if running', 'animal': 'no animal'}, 'calcada': {'nome': 'Calçada Chuvosa', 'icone': '🏙️', 'categoria': 'Urbano', 'resumo': 'Piso molhado, poste aceso e reflexos de rua à noite.', 'elementos': 'a Brazilian urban sidewalk at dusk after rain, patterned concrete pavers with wet seams, a metal bench with weathered paint, reflective shallow puddles near curb, a lit street lamp and rain-darkened storefront shutters in the distance', 'luz': 'believable cool dusk and warm street lamp reflections that follow actual puddle geometry', 'fisica': 'individual raindrops only if rain is still falling; water ripples radiate from actual drops, one breeze lifts loose hair and clothing gently, distant pedestrian parallax remains consistent', 'som': 'distant wet-traffic hiss, realistic footsteps and rain if ongoing', 'animal': 'no animal'}, 'infinito': {'nome': 'Ambiente 21 — Infinito', 'icone': '♾️', 'categoria': 'Aleatório', 'resumo': 'Escolhe entre 21 matrizes, com variações sutis e sem repetir a cena recente.', 'elementos': 'sorteio de ambiente real com objetos, iluminação e clima contextualizados', 'luz': 'a definida pela matriz sorteada', 'fisica': 'a definida pela matriz sorteada', 'som': 'o da matriz sorteada', 'animal': 'somente se a cena sorteada permitir'}, 'brasil_tropical': {'nome': 'Ambiente 22 — Brasil Tropical', 'icone': '🌴', 'categoria': 'Natureza', 'resumo': 'Refúgio brasileiro entre mata verde e brisa do litoral. Madeira rústica, plantas vivas e passarinho ao fundo.', 'elementos': 'a real open-air wooden deck of a modest Brazilian coastal eco-retreat, surrounded by lush native Atlantic Forest vegetation; a weathered timber railing, a stable wooden side table, a narrow stone-and-wood path leading into shaded greenery, broad banana leaves and slender palm fronds framing a distant glimpse of the sea; a lightweight linen hammock tied securely between two real wooden supports; absolutely no fantasy resort architecture, waterfalls or beach props unless they are visible from this exact set; one single coherent location from first still image through final video frame', 'luz': 'natural warm late-afternoon Brazilian daylight filtered through real palm and banana leaves; irregular soft dappled shadows match visible canopy and the real sun angle; no glam studio flash, no unnaturally saturated neon green', 'fisica': 'coastal breeze moves palm fronds, banana leaves, the edges of the hammock and loose hair with different realistic masses, velocities and lag; hammock sways only a little when wind actually acts on it and cannot float; loose leaves stay grounded or move only with gusts, soft skin and fabric have realistic inertia, sandals press firmly against the wooden deck, all shadows remain stable and physically coherent; the distant bird performs only a subtle blink, head turn or small wing adjustment without duplicating or teleporting', 'som': 'believable light ocean breeze rustling actual palm leaves, a distant native bird call, faint real outdoor background ambience; no artificial looping soundtrack', 'animal': 'one small Brazilian songbird, perched naturally on a distant stable leafy branch, visible discreetly in the first still image and remaining the same bird throughout the video; never add a second animal'}}
@@ -5110,6 +5198,117 @@ with _elevo_area_criacao_v16823:
         _cena['fisica'] += ('; physically grounded micro-reactions: existing leaves respond only to a plausible draft, '
                        'existing fabrics preserve weight and folds, the single background animal breathes or blinks subtly; '
                        'background stays secondary to the product and person')
+
+    # ==========================================================
+    # V16.8.60 — MUNDO REAL VIVO NOS 22 AMBIENTES
+    # Cada cena ganha: (1) vida VISÍVEL já na imagem (pessoas ao longe, carros,
+    # vizinhança, natureza, bichos silvestres distantes) e (2) MOVIMENTO físico
+    # (vento com direção, gravidade, inércia, água, luz que muda). Tudo é anexado
+    # aos campos 'elementos' e 'fisica', então entra AUTOMATICAMENTE no 360º,
+    # V9.2, Produto 3S e Mãos Viral, na imagem e no vídeo, sem trocar de cenário.
+    # Regras: vida sempre ao fundo, nunca toca o produto nem cobre a pessoa;
+    # nada aparece no vídeo que já não esteja na imagem; um único pet por cena.
+    # ==========================================================
+    VIDA_MUNDO_REAL_V16860 = {
+        'banheiro': (
+            'through the small frosted window, the soft silhouette of a neighbour\'s clothesline swaying; a half-squeezed toothpaste tube and a damp hair tie beside the sink; a few water beads on the shower glass',
+            'a steady light draft from the window ajar makes the shower curtain hem breathe slowly; water beads on the glass merge and slide down by gravity at irregular moments; daylight dims and brightens subtly as clouds pass; distant street sounds bleed through the window',
+            'Janela entreaberta com varal do vizinho balançando, gotas escorrendo no box, cortina respirando com a corrente de ar e luz mudando com as nuvens.'),
+        'varanda': (
+            'beyond the railing, a quiet residential street with a parked car, a neighbour watering plants on a distant balcony and a power line with a small flock of sparrows; a dry leaf on the floor tiles',
+            'gusts arrive in uneven waves: banana leaves flex and lag before recovering, fern tips flutter faster than the big leaves, the cloth on the railing lifts at the free edge only; sparrows on the wire hop and re-settle; a distant car passes with correct parallax; sun flecks drift across the floor as leaves move',
+            'Rua tranquila ao fundo com carro passando, vizinha regando plantas, pardais no fio e folhas de bananeira balançando em rajadas irregulares.'),
+        'penteadeira': (
+            'a window behind the mirror shows treetops and a slice of sky with a slow airplane contrail; a hair strand caught on the brush; a sheer curtain beside the window',
+            'the sheer curtain swells gently with a soft breeze and settles back with fabric weight; dust motes drift through the golden beam and change direction with the air; treetops sway softly outside; the light warms and lowers by a fraction over the shot',
+            'Cortina fina respirando com a brisa, poeira dourada flutuando no feixe de luz e copas de árvores balançando lá fora.'),
+        'servico': (
+            'over the low wall, the neighbouring back yard with another clothesline, a bicycle leaning on a wall and a rooftop with pigeons; a few clothespins scattered on the tank edge',
+            'damp garments on the line swing at different rates according to their weight, heavier jeans barely moving while a light T-shirt lifts; a pigeon on the distant rooftop walks and turns; sparse drips fall into the tank creating small irregular ripples; patches of sun shift on the wall as laundry moves',
+            'Varal com roupas balançando cada uma no seu peso, pombos no telhado vizinho, gotas caindo no tanque e sol mudando na parede.'),
+        'jardim': (
+            'butterflies and small bees around a flowering bush, a garden gate leading to the street with a passer-by walking a bicycle far away, fallen leaves on the stepping stones',
+            'a light breeze moves foliage asymmetrically, large Monstera leaves rocking slowly while small herb leaves tremble; one butterfly flutters with erratic natural flight between flowers and never touches the product; a bee hovers and leaves; leaf shadows dance on the stones; the distant cyclist crosses with correct perspective',
+            'Borboletas e abelhas nas flores, ciclista passando ao longe pelo portão, folhas grandes e pequenas balançando em ritmos diferentes.'),
+        'cachoeira': (
+            'dragonflies over a calm side pool, moss-covered trunks, a hiking trail in the distance with two small walkers, and leaves floating downstream',
+            'the falling water is continuous and non-repeating, foam swirls in the plunge pool, mist drifts with the air current and catches the light; floating leaves travel downstream and rotate at eddies; a dragonfly darts and hovers; ferns near the spray nod from the droplets; distant walkers move slowly along the trail',
+            'Libélulas sobre o poço, folhas descendo a correnteza, névoa dançando com o ar e trilheiros ao longe.'),
+        'cozinha': (
+            'the kitchen window shows a sunny back street with a neighbour\'s window, a delivery motorbike parked and a hanging plant; crumbs on the board and a half-cut lime',
+            'coffee steam rises in curling, irregular wisps bending with the air from the window; the dish towel edge sways gently; a motorbike passes in the street outside with matching sound; morning light flickers lightly through a moving tree outside',
+            'Vapor do café dançando com o ar da janela, moto passando na rua lá fora e luz da manhã tremulando através de uma árvore.'),
+        'quarto': (
+            'a window with the city or neighbourhood rooftops, a ceiling fan above, a water glass on the nightstand, slippers on the floor and a phone face-down on the duvet',
+            'the ceiling fan turns slowly and its airflow makes the curtain hem and loose duvet fibres move subtly; the duvet keeps real folds and compresses where weight rests; outside, a bird crosses the sky and a distant car passes; light shifts softly as clouds pass',
+            'Ventilador de teto girando devagar, cortina e fibras do edredom mexendo com o ar, pássaro cruzando o céu lá fora.'),
+        'quintal': (
+            'a low wall with a neighbour\'s mango tree hanging over, kids\' voices implied by a distant football against the wall, a kite in the sky and dry leaves on the packed earth',
+            'wind lifts small dust and dry leaves in a short swirl near the ground, then lets them settle by gravity; mango branches sway heavily and slowly; the kite string flexes in the distant sky; the resting dog breathes, twitches an ear and shifts its weight once',
+            'Redemoinho leve de folhas secas no chão, galhos de mangueira balançando pesados e pipa no céu.'),
+        'piscina': (
+            'palm trees beyond the wall, a pool noodle drifting in the corner, a neighbour\'s window and a small plane high in the sky',
+            'the pool surface ripples continuously from the breeze, the drifting noodle travels slowly and bumps the edge; caustic light patterns crawl across the pool floor in sync with the ripples; palm fronds flex at different frequencies; the striped towel fringe flutters while its folded body stays put',
+            'Ondinhas constantes na água, boia andando devagar, desenhos de luz no fundo da piscina e palmeiras balançando.'),
+        'estufa': (
+            'condensation patches on the panels, a ladybug on a basil leaf, garden tools hanging on a hook and the open door showing the yard',
+            'air entering through the open door makes leaves near the door move while deeper plants stay almost still; a condensation drop runs down a panel; the ladybug walks a few millimetres and lifts its wing cases once; fine humidity haze glows in the light',
+            'Ar entrando pela porta mexendo só as plantas próximas, gota escorrendo no vidro e joaninha caminhando na folha.'),
+        'garagem': (
+            'through the half-open shutter, a residential street with parked cars, a neighbour sweeping the sidewalk and a delivery motorbike passing; oil-free concrete with tyre marks',
+            'street life moves with correct perspective: a car passes slowly, the neighbour\'s broom moves rhythmically, leaves skitter on the sidewalk in a gust; dust motes swirl in the sun beam when the air moves; the shutter rattles faintly in the gust; a hanging extension cable sways a little',
+            'Rua viva pela porta aberta: carro passando, vizinho varrendo a calçada, folhas correndo no chão e poeira girando no raio de sol.'),
+        'sala': (
+            'a window with city lights and a few lit apartment windows across the street, a ceiling fan, a phone charging on the arm of the sofa and a half-full glass of water',
+            'the TV light flickers softly in sync with its content, the ceiling fan sends a gentle airflow that moves the throw\'s fringe and plant leaves; across the street, an apartment light switches on; a distant car\'s headlights sweep slowly across the ceiling once',
+            'Luz da TV tremulando, ventilador mexendo a franja da manta, luz de apartamento acendendo do outro lado da rua e farol de carro passando no teto.'),
+        'banheira': (
+            'a small window showing tree branches and sky, a candle with a flickering flame on a safe dry ledge far from water and a folded book on a wooden stool',
+            'the candle flame flickers with tiny air currents and its warm light trembles on the tiles; water surface ripples slowly and reflections wobble; a faucet drop forms, stretches and falls at irregular intervals; branches move outside the window',
+            'Chama de vela tremulando, reflexos balançando na água, gota se formando e caindo devagar, galhos mexendo na janela.'),
+        'praia': (
+            'distant beach walkers and a kite surfer far out at sea, a fishing boat on the horizon, footprints and a crab hole in the sand, beach umbrellas closed in the far distance',
+            'sea wind is constant with stronger gusts: dry sand grains slide along the surface in thin streams, dune grasses bend in waves, the towel edge flaps while weighted corners hold; waves build, break and the foam spreads and retreats with real timing; gulls glide and adjust their wings; distant walkers and the kite move naturally',
+            'Vento do mar com rajadas, areia correndo rente ao chão, ondas quebrando no tempo real, gaivotas planando e pessoas caminhando ao longe.'),
+        'escritorio': (
+            'a window with a street view: a bus stop, people passing and trees; sticky notes on the monitor, an open snack and a phone with a dark screen',
+            'a sticky note edge lifts slightly in the window draft and settles; leaves of the desk plant tremble; outside, pedestrians walk in different directions and a bus arrives and pauses with correct parallax; sunlight intensity shifts as clouds pass',
+            'Post-it levantando com o vento da janela, gente passando no ponto de ônibus lá fora e luz mudando com as nuvens.'),
+        'carro_chuva': (
+            'outside the window: wet street, pedestrians with umbrellas, a bus passing, traffic lights and shop signs reflected in puddles',
+            'raindrops hit the glass, merge and run down the side window in branching paths; outside, umbrellas bob with walking rhythm, a bus passes and its lights smear across the wet glass, traffic lights cycle from red to green once; puddles ripple with every drop; reflections slide with perspective',
+            'Gotas escorrendo e se juntando no vidro, guarda-chuvas passando, ônibus e semáforo refletindo na rua molhada.'),
+        'leitura': (
+            'a window with a tree and a bird feeder outside, a cup of tea with a thin steam line, reading glasses on the book',
+            'tea steam rises in a thin line that bends with the slight air movement; a small bird lands on the outside feeder, pecks and flies away; tree leaves move outside; a book page lifts slightly and settles; window light softly shifts',
+            'Vapor do chá subindo fino, passarinho pousando no comedouro lá fora e página do livro levantando de leve.'),
+        'lavabo': (
+            'a small high window with a plant silhouette, a scented reed diffuser, a folded hand towel with a slight crease and a soap bar with real wear',
+            'the reed diffuser sticks stay still while the plant silhouette in the window moves with outside wind; tiny water droplets on the marble catch light; the pendant light has a near-imperceptible sway from air movement; reflections in the mirror follow the camera exactly',
+            'Silhueta da planta mexendo na janela alta, gotinhas brilhando no mármore e reflexo do espelho acompanhando a câmera.'),
+        'calcada': (
+            'pedestrians with umbrellas, a bicycle courier, cars and a bus on the wet avenue, shop windows lit, pigeons under an awning and a street vendor\'s cart',
+            'wet-street life in motion: pedestrians cross at different speeds, a car passes and sprays a thin wake on the far curb, a bus pulls away; puddles ripple from drops falling from the awning; pigeons shuffle under cover; the street lamp light dances on wet pavement; a gust tilts umbrellas',
+            'Calçada viva: pessoas com guarda-chuva, ônibus saindo, carro espirrando água, pombos sob o toldo e reflexos dançando no chão molhado.'),
+        'brasil_tropical': (
+            'the distant sea shows small waves and a fishing boat, coconut palms, flowering bromeliads, a hummingbird near a red flower and a narrow path with a passer-by in the far distance',
+            'tropical breeze in layered motion: palm fronds whip lightly at the tips, banana leaves rock heavily, the hammock sways a few centimetres; the hummingbird hovers with blurred wings and darts away; sea waves break slowly on the horizon; sunlight flickers through leaves; the distant passer-by walks naturally',
+            'Brisa tropical em camadas, beija-flor parado no ar, rede balançando de leve, ondas ao longe e luz piscando entre as folhas.'),
+    }
+    _VIDA_REGRA_V16860 = (
+        'LIVING-WORLD RULES: all ambient life stays in the background, small in frame, never touches, '
+        'covers or blocks the product or the person, and is already visible in the first still; '
+        'tiny distant wildlife (birds in the sky, insects, gulls) is ambient life, not an added pet; '
+        'every motion has a real cause (wind direction, gravity, inertia, water flow, light change) and '
+        'never loops identically; people and vehicles in the distance move with correct perspective and speed'
+    )
+    for _ambiente_id, (_vida_cena, _vida_mov, _vida_pt) in VIDA_MUNDO_REAL_V16860.items():
+        if _ambiente_id not in AMBIENTES_ELEVO_V165:
+            continue
+        _cena = AMBIENTES_ELEVO_V165[_ambiente_id]
+        _cena['elementos'] += '. LIVING WORLD VISIBLE IN THE SCENE: ' + _vida_cena
+        _cena['fisica'] += '; LIVING-WORLD MOTION: ' + _vida_mov + '. ' + _VIDA_REGRA_V16860
+        _cena['vida_pt'] = _vida_pt
 
     # Sincroniza por Gmail quando possível, sem bloquear se Sheets estiver fora.
     def _planilha_ambiente_v165():
@@ -5245,6 +5444,9 @@ with _elevo_area_criacao_v16823:
                 st.caption(cena["resumo"])
                 # V16.8.23.1: a ficha completa é apenas recolhida na tela.
                 # Os atributos originais permanecem disponíveis para os geradores.
+                if cena.get("vida_pt"):
+                    st.markdown(f'<div class="elevo-vida-chip-v16860">🌬️ <b>Mundo vivo:</b> {html_std.escape(cena["vida_pt"])}</div>',
+                                unsafe_allow_html=True)
                 with st.expander("▸ Ver ficha cinematográfica completa", expanded=False):
                     st.markdown(f'**🌤 Luz:** {cena["luz"]}')
                     st.markdown(f'**🎭 Baguncinha:** {cena["elementos"]}')
@@ -5261,7 +5463,7 @@ with _elevo_area_criacao_v16823:
                         st.success('Cenário e detalhes salvos neste Gmail.')
                     else:
                         st.warning('Os detalhes valerão nesta sessão. O Google Sheets não confirmou o salvamento.')
-        st.caption('✅ A direção do ambiente alimenta os Blocos 17 e 17.2. O resultado visual depende do gerador externo: o ÉLÉVO não garante fidelidade de 100%.')
+        st.caption('✅ A direção do ambiente (com vento, física e vida real) alimenta os 4 motores: 360º, V9.2, Produto 3S e Mãos Viral. O resultado visual depende do gerador externo: o ÉLÉVO não garante fidelidade de 100%.')
     else:
         st.info('Nenhum ambiente escolhido. Se gerar um prompt agora, permanece o sorteio de cenários original. Para fixar um, clique em “Escolher cenário”.')
 
@@ -5729,9 +5931,9 @@ with _elevo_area_criacao_v16823:
     st.divider()
     elevo_secao_hero_v16855(
         "03", "MÁQUINA DE CRIAÇÃO 360º · V12", "Gere os prompts de imagem e vídeo",
-        "Imagem original preservada + vídeo com física viva. Escolha a duração e o motor, "
+        "Imagem original preservada + vídeo com física viva. Escolha a duração e um dos 4 motores, "
         "envie a foto do produto e a ÉLÉVO monta o pacote completo.",
-        ("⚙️ 360º", "🧬 V9.2", "🎥 Produto 3S", "🔑 Títulos SEO"))
+        ("⚙️ 360º", "🧬 V9.2", "🎥 Produto 3S", "🤲 Mãos Viral", "🔑 Títulos SEO"))
 
     if "roteiro_temporario" not in st.session_state: 
         st.session_state["roteiro_temporario"] = None
@@ -6185,6 +6387,13 @@ with _elevo_area_criacao_v16823:
     Dados persistidos, voz, nomes e cards não são alterados.
     """
         texto = str(descricao or "").strip()
+        # V16.8.60 — o look desta criação (roupa/estilo) vem pronto e já filtrado:
+        # fica separado para não ser cortado pelo limite nem pelo filtro de produto.
+        _look_v16860 = ""
+        _m_look_v16860 = re.search(r"WARDROBE (?:FOR THIS CREATION|AND STYLING REQUESTED)", texto)
+        if _m_look_v16860:
+            _look_v16860 = texto[_m_look_v16860.start():].strip()[:700]
+            texto = texto[:_m_look_v16860.start()].strip()
         # Perfis do catálogo contêm nicho, abordagem comercial, produto e referência
         # de roupa. Essas seções não são uma descrição física da influenciadora.
         marcador = "LOCKED PHYSICAL APPEARANCE AND PHOTO REFERENCE:"
@@ -6212,7 +6421,7 @@ with _elevo_area_criacao_v16823:
         texto = " ".join(frases).strip(" ;.\n\t")
         if not texto:
             texto = "Photorealistic adult Brazilian presenter with natural facial expression and realistic skin texture"
-        return texto[:1400]
+        return (texto[:1400].rstrip(" .") + ". " + _look_v16860) if _look_v16860 else texto[:1400]
 
 
     def neutralizar_descricao_variavel_do_produto_v16811(conteudo):
@@ -6890,6 +7099,10 @@ with _elevo_area_criacao_v16823:
 
     # Perfil ativo de texto permanece intacto; só a aparência visual vai ao prompt.
     visual_inf_isolado_v16811 = assinatura_visual_pessoa_sem_produto_v16811(desc_inf_ativa)
+    # V16.8.60 — look escolhido no painel "Visual da influência" (vale nos 4 motores).
+    _look_ativo_v16860 = elevo_look_influencia_v16860()
+    if _look_ativo_v16860:
+        visual_inf_isolado_v16811 = (visual_inf_isolado_v16811.rstrip(" .") + ". " + _look_ativo_v16860)
 
     # Dados legados de Logo_Marca continuam na planilha por compatibilidade,
     # mas não são exibidos, exigidos, atualizados nem usados na criação.
@@ -6903,7 +7116,298 @@ with _elevo_area_criacao_v16823:
     if "txt_diretrizes_360" not in st.session_state:
         st.session_state["txt_diretrizes_360"] = ""
 
-    # ÉLÉVO V16.8.29 — Uma duração para as três modalidades, antes de gerar.
+    # ==========================================================
+    # V16.8.60 — 4º MOTOR: MÃOS VIRAL (produto só nas mãos, sem rosto)
+    # Mesma arquitetura dos motores aprovados: a IA escreve SOMENTE a fala,
+    # o texto na tela e o SEO; a direção visual (imagem + vídeo) é uma matriz
+    # fixa da ÉLÉVO, com a mesma trava de produto, escala 1:1 e ambiente vivo.
+    # ==========================================================
+    ELEVO_MAOS_ESTILOS_V16860 = {
+        "surpresa": {"rotulo": "🎲 Surpresa (a ÉLÉVO escolhe)"},
+        "unboxing": {
+            "rotulo": "📦 Unboxing / revelação",
+            "som": "crisp tissue-paper crinkle, then a soft tap of a fingernail",
+            "geral": {
+                "hook": "SCROLL-STOPPER: in one quick, satisfying motion the hands lift a sheet of plain unbranded tissue paper and reveal the item lying underneath; the paper crinkles, bends with real stiffness and is pushed aside",
+                "reveal": "both hands pick the item up with a clear, secure grip and turn it a slow quarter-turn so its original front faces the lens, at the SAME distance from the camera",
+                "demo": "fingertips trace the edges and surfaces slowly; one fingernail taps it once for a crisp ASMR click; the item is tilted so the real light glides over it without any label shimmer",
+                "demo2": "the hands rotate the item to show its back and sides with continuous grip, then present the front again",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands pull the folded garment out of plain unbranded tissue paper and snap it open once in the air; the fabric unfurls with its real weight, then settles",
+                "reveal": "the hands lay the garment flat on the surface and spread it open, front facing the lens",
+                "demo": "fingers pinch the fabric and gently stretch it to show thickness and recovery, then rub it between thumb and index finger; the weave catches the light",
+                "demo2": "the hands turn one edge over to show the inner seams and stitching, then lay it back flat",
+            },
+        },
+        "dobrar": {
+            "rotulo": "👕 Abrir, alisar e dobrar (ideal p/ roupas)",
+            "som": "soft fabric whoosh, palms brushing cotton",
+            "geral": {
+                "hook": "SCROLL-STOPPER: one hand pulls a soft cotton cloth off the item in a single quick slide; the cloth drags with real friction and falls in natural folds",
+                "reveal": "the palms settle beside the item and slowly push it to the centre of the surface",
+                "demo": "the hands smooth the surface around the item, then a fingertip glides across it with a soft ASMR sound",
+                "demo2": "the item is lifted with both hands, turned once and set back in the same spot with visible contact",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: a fast, satisfying flick opens the folded garment over the surface; it billows, then lands flat with real cloth physics",
+                "reveal": "both palms smooth it flat from the centre outward; wrinkles relax, fibres and seams follow the hands",
+                "demo": "fingers pinch and gently stretch the fabric to show its stretch and recovery; one hand lifts the hem so it falls naturally",
+                "demo2": "a neat, satisfying fold: sleeves in, folded in thirds, and a final flat press with both palms",
+            },
+        },
+        "textura": {
+            "rotulo": "✨ Textura e detalhe ASMR",
+            "som": "close tactile ASMR: fingertip glide, nail tap, soft fabric or surface friction",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the very first frame is tactile: a fingertip presses slowly onto the item and a fingernail taps it twice with a crisp, satisfying sound",
+                "reveal": "the hands lift the item and tilt it so the real light rolls across every surface, at the same camera distance",
+                "demo": "fingertips glide along edges and details in slow motion-like real time; the grip shifts naturally between fingers",
+                "demo2": "the item is set down, tapped once more and turned to show another side",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: fingertips sink slowly into the fabric and drag across it, showing texture and softness in the first frame",
+                "reveal": "the hands lift one part of the garment so it drapes over the fingers with real weight",
+                "demo": "thumb and fingers rub and pinch the fabric, showing thickness, weave and recovery",
+                "demo2": "the hands brush a seam and a button or trim if the reference shows one, then smooth it flat",
+            },
+        },
+        "tamanho": {
+            "rotulo": "🤏 Tamanho real na mão",
+            "som": "soft skin-on-surface contact and a light tap",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the item lands in an open palm and the fingers close around it, instantly showing its TRUE size",
+                "reveal": "it is passed from one hand to the other with a visible, secure grip and no floating",
+                "demo": "the fingers are aligned along the item to compare length, then it is turned to show its depth",
+                "demo2": "the item is placed beside the hand on the surface for a still size comparison",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands hold the garment up by the shoulders/waistband so it hangs at full length in one move",
+                "reveal": "it is lowered onto the surface and spread out to its real size",
+                "demo": "a forearm is laid across the garment to show its real width and length",
+                "demo2": "the hands fold it once and show how compact it becomes",
+            },
+        },
+        "giro": {
+            "rotulo": "🔄 Giro 360 nas mãos",
+            "som": "gentle handling sounds, a soft tap at the end",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the item spins a quick half-turn between the fingers and stops, front perfectly facing the lens",
+                "reveal": "a slow, controlled full rotation shows every side with continuous grip",
+                "demo": "the hands stop at the most interesting detail and tilt it into the light",
+                "demo2": "a second slower rotation in the opposite direction, then a stable hold",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands lift the garment and turn it quickly from back to front",
+                "reveal": "it is held up and slowly turned to show front, sides and back",
+                "demo": "the hands pause at the best detail (neckline, seam, print) and touch it",
+                "demo2": "it is laid flat and smoothed in one stroke",
+            },
+        },
+        "rotina": {
+            "rotulo": "👜 Uso no dia a dia",
+            "som": "everyday handling sounds, a zipper or soft bag rustle",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the hands grab the item from the surface in one confident move, like someone in a hurry who cannot leave without it",
+                "reveal": "the item is shown front to the lens, then placed into a plain open tote bag lying on the surface",
+                "demo": "the hands take it back out and show how easily it is handled with one hand",
+                "demo2": "it returns to the hero spot on the surface beside the bag",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands throw the garment onto the surface and it lands open",
+                "reveal": "the hands build a quick flat-lay outfit around it with a pair of plain sneakers already present nearby",
+                "demo": "the garment is lifted, pressed against the forearm and smoothed",
+                "demo2": "the outfit is adjusted one last time, straight and tidy",
+            },
+        },
+    }
+
+    ELEVO_MAOS_SUPERFICIES_V16860 = {
+        "auto": {"rotulo": "✨ Automático pelo ambiente escolhido"},
+        "cama": {"rotulo": "🛏️ Em cima da cama",
+                 "en": "on top of a real lived-in bed: a slightly rumpled cotton duvet with natural folds and soft pilling, a pillow edge and part of the headboard visible; the duvet compresses realistically under the item's weight and under the palms"},
+        "sofa": {"rotulo": "🛋️ No sofá",
+                 "en": "on the seat cushion of a real fabric sofa with a casually folded throw, visible cushion seams and weave; the cushion dents slightly where weight rests"},
+        "bancada": {"rotulo": "🪵 Na bancada / mesa",
+                    "en": "on the real everyday counter or tabletop of this environment, with genuine surface grain, tiny scratches, a faint old ring mark and a soft contact shadow under the item"},
+        "mao": {"rotulo": "🤲 Só nas mãos (no ar)",
+                "en": "held in both hands in front of the camera, with the environment softly out of focus behind; the palms and fingers always support the full weight, never floating"},
+    }
+    _ELEVO_MAOS_SUPERFICIE_AUTO_V16860 = {
+        "quarto": "cama", "sala": "sofa", "leitura": "sofa", "penteadeira": "bancada", "cozinha": "bancada",
+        "banheiro": "bancada", "lavabo": "bancada", "banheira": "bancada", "escritorio": "bancada",
+        "servico": "bancada", "garagem": "bancada", "varanda": "bancada", "brasil_tropical": "bancada",
+        "estufa": "bancada", "jardim": "mao", "quintal": "mao", "piscina": "mao", "praia": "mao",
+        "cachoeira": "mao", "carro_chuva": "mao", "calcada": "mao",
+    }
+    _ELEVO_MAOS_ROUPA_RE_V16860 = re.compile(
+        r"(?i)\b(?:shirt|t-?shirt|tee|blouse|dress|shorts?|pants|trousers|jeans|skirt|hoodie|sweatshirt|jacket|"
+        r"coat|top|bikini|swimsuit|lingerie|bra|socks?|garment|clothing|apparel|towel|sheet|pyjamas?|pajamas?|"
+        r"leggings?|cardigan|sweater|crochet|knit|cropped|camis\w*|blusa|vestido|calça|saia|moletom|jaqueta|"
+        r"biqu[ií]ni|mai[ôo]|meias?|toalha|len[çc]ol|pijama|roupa|conjunto|body)\b")
+
+    def elevo_maos_categoria_v16860(scan):
+        texto = " ".join(str((scan or {}).get(k, "")) for k in ("tipo_embalagem", "nome_pt"))
+        return "roupa" if _ELEVO_MAOS_ROUPA_RE_V16860.search(texto) else "geral"
+
+    def elevo_maos_resolver_v16860(estilo, superficie, ambiente_id, categoria):
+        """Resolve 'surpresa' e 'auto' para escolhas concretas e coerentes."""
+        estilos = [k for k in ELEVO_MAOS_ESTILOS_V16860 if k != "surpresa"]
+        if estilo not in estilos:
+            preferidos = (["dobrar", "unboxing", "textura", "giro", "tamanho"] if categoria == "roupa"
+                          else ["unboxing", "textura", "tamanho", "giro", "rotina"])
+            recentes = st.session_state.setdefault("elevo_maos_hist_estilos_v16860", [])
+            livres = [k for k in preferidos if k not in recentes[-2:]] or preferidos
+            estilo = random.choice(livres)
+            recentes.append(estilo)
+            st.session_state["elevo_maos_hist_estilos_v16860"] = recentes[-6:]
+        if superficie not in ("cama", "sofa", "bancada", "mao"):
+            superficie = _ELEVO_MAOS_SUPERFICIE_AUTO_V16860.get(str(ambiente_id), "mao")
+        return estilo, superficie
+
+    def elevo_maos_linha_tempo_v16860(segundos):
+        duracao = int(segundos) if int(segundos) in (10, 12, 15) else 10
+        return duracao, {
+            10: ("00:00–00:01.5", "00:01.5–00:04", "00:04–00:08", None, "00:08–00:10"),
+            12: ("00:00–00:01.5", "00:01.5–00:04.5", "00:04.5–00:07.5", "00:07.5–00:10", "00:10–00:12"),
+            15: ("00:00–00:01.5", "00:01.5–00:05", "00:05–00:09", "00:09–00:12.5", "00:12.5–00:15"),
+        }[duracao]
+
+    def elevo_matriz_maos_v16860(roteiro, scan, nome_influencia, visual_influencia, ambiente_id,
+                                 estilo, superficie, segundos, observacao_ambiente="", categoria="geral"):
+        """Reconstrói imagem e vídeo como HANDS-ONLY; fala, texto na tela e SEO ficam byte a byte."""
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+            raise ValueError("O roteiro não contém os três blocos válidos da ÉLÉVO.")
+        try:
+            qtd = max(1, min(30, int((scan or {}).get("qtd", 1))))
+        except (ValueError, TypeError):
+            qtd = 1
+        nome = str(nome_influencia or "a influenciadora selecionada").strip()[:100]
+        pessoa = assinatura_visual_pessoa_sem_produto_v16811(visual_influencia)
+        cena = AMBIENTES_ELEVO_V165.get(str(ambiente_id or ""))
+        if not cena or str(ambiente_id) == "infinito":
+            raise ValueError("Ambiente original não confirmado: preservar o cenário escolhido.")
+        local = str(cena["elementos"])
+        obs = str(observacao_ambiente or "").strip()[:450]
+        if obs and not re.search(r"(?i)\b(?:produto|product|packaging|embalagem|rótulo|rotulo|\d+\s*(?:g|ml|kg)|jar|bottle|frasco|pote)\b", obs):
+            local += ". User-approved scene detail: " + obs
+        # Só mãos em cena: movimentos de cabelo/corpo da física do ambiente viram tecido solto.
+        fisica_maos = re.sub(r"(?i)\b(?:loose\s+)?(?:beach\s+)?hair(?:\s+strands)?\b", "loose fabric edges", str(cena["fisica"]))
+        fisica_maos = re.sub(r"(?i)[^,;.]*\bsandals?\b[^,;.]*[,;]?", "", fisica_maos)
+        estilo_def = ELEVO_MAOS_ESTILOS_V16860[estilo]
+        acoes = estilo_def["roupa" if categoria == "roupa" else "geral"]
+        sup_txt = ELEVO_MAOS_SUPERFICIES_V16860[superficie]["en"]
+        duracao, (t1, t2, t3, t4, t5) = elevo_maos_linha_tempo_v16860(segundos)
+        qtd_str = str(qtd)
+        inventario = (
+            "Exactly ONE original referenced unit is shown, " + (
+                "held securely in the hands." if superficie == "mao" else "resting on the surface and handled by the hands.")
+            if qtd == 1 else
+            f"Exactly {qtd_str} original referenced units are shown, individually distinguishable; the hands handle "
+            f"ONE at a time while the remaining {qtd - 1} rest on the surface in fixed positions."
+        )
+        produto_comum = (
+            "[ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK] "
+            "[CRITICAL 1:1 SCALE — NO RECONSTRUCTION — NO SUBSTITUTION] "
+            "The separately attached ORIGINAL PRODUCT/KIT REFERENCE IMAGE is the sole and absolute source of truth "
+            "for every product unit in the still and every video frame. Copy the exact photographed source objects, "
+            "not a text-based interpretation. Preserve exact unit count and every separate variant. Never change "
+            "category or silhouette. Preserve geometry, dimensions, proportions, closures, printed artwork, prints, "
+            "seams and label layout exactly as visible in the reference. Never invent, redraw, stylize, replace, "
+            "beautify, simplify, relabel, recolor, duplicate, merge or omit any unit. Do not describe the product in "
+            "words: no product/brand name, color, shape, material, label, logo, capacity or packaging details. The "
+            "attached image alone provides those facts. If the target generator cannot use the attached image as a "
+            "visual reference, do not generate. Maintain true 1:1 real-world scale relative to the hands and the "
+            "surface; never oversize as a hero prop, never use near-lens enlargement or perspective tricks. "
+        )
+        maos = (
+            "[HANDS-ONLY TALENT LOCK — NO FACE]: ONLY the adult presenter's two hands and forearms appear, entering "
+            "from the bottom and sides of the frame. Her face, head, hair, neck, shoulders and torso NEVER appear — "
+            "not in frame, not in mirrors, not in glass or screen reflections, not as a shadow that reveals a profile. "
+            f"The hands belong to {nome}: match ONLY her skin tone and undertone, nail style, rings, bracelets and "
+            f"sleeve fabric implied by this person reference: {pessoa.rstrip('. ')}. "
+            "[HAND REALISM]: exactly five anatomically correct fingers per hand, natural knuckle creases, fine skin "
+            "lines and pores, faint veins on the back of the hands, natural cuticles, slight warmth at knuckles and "
+            "fingertips, natural nail sheen, tiny asymmetries between left and right hand, believable subsurface "
+            "scattering; no extra, fused or bending-the-wrong-way fingers, no rubbery or waxy skin. Fingers visibly "
+            "compress soft surfaces and grip the item with real pressure and friction; the item never passes through "
+            "the hand. "
+        )
+        camera = (
+            "[POV PHONE CAMERA]: a real smartphone fixed on a small overhead phone holder (so both hands are free), "
+            "vertical 9:16, POV angle 35–55° above the surface, natural phone HDR, modest depth of field, faint sensor "
+            "grain, slight lens vignetting, focus locked on the item with natural focus breathing; tiny holder "
+            "micro-vibration only when the surface is touched; no zoom, no push-in, no crop-in. "
+        )
+        imagem = (
+            "RAW smartphone photography, vertical 9:16, viral Brazilian UGC 'hands-only' product shot, "
+            "extreme photographic realism, NO flash. "
+            + maos +
+            f"[SURFACE]: the item is {sup_txt}. "
+            f"[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. The environment is visible around and behind the "
+            "surface, softly out of focus but clearly the same real place, with its plants, lived-in clutter and "
+            f"living-world details small in the background. [NATURAL LIGHT GRADIENT]: {cena['luz']}. "
+            f"[MULTI-PRODUCT KIT LOCK — {qtd_str} UNIT(S) TOTAL]: {inventario} "
+            + produto_comum +
+            "[FIRST-FRAME HOOK POSE]: the hands are caught mid-action, about to perform the opening move "
+            f"({acoes['hook'].replace('SCROLL-STOPPER: ', '')}), creating curiosity in a single still. "
+            "[CONTACT PHYSICS]: real contact shadows under fingers and item, surface fabric or grain compressing "
+            "and folding where weight rests, no floating objects. "
+            + camera +
+            "[ABSOLUTE UI LOCK]: zero watermarks, zero platform interface, zero floating usernames, no graphic CTA "
+            "or added logo in the still image."
+        )
+        etapas = [
+            f"🎬 Hook ({t1}, STOP THE SCROLL): {acoes['hook']}. Movement is quick but physically real, with mass, "
+            "inertia and a clean finish, so the viewer understands the action instantly.",
+            f"👐 Reveal ({t2}): {acoes['reveal']}.",
+            f"🫱 Demonstration ({t3}): {acoes['demo']}.",
+        ]
+        if t4:
+            etapas.append(f"🔁 Second beat ({t4}): {acoes['demo2']}; unhurried, no repeated motion loop.")
+        etapas.append(
+            f"🎞️ Closing ({t5}, HERO + CTA GESTURE): the hands return the item to its hero position, smooth the "
+            "surface once, and the right index finger taps twice just below the item and points down toward the "
+            "bottom edge of the frame (where the shopping-bag button is added in editing). Hold a stable, living "
+            "frame — hands still slightly moving, environment still moving — through the very last frame; no fade, "
+            "no black frame, no freeze.")
+        video_visual = (
+            "🎬 [ÉLÉVO V16.8.60 — HANDS-ONLY VIRAL ENGINE / ONE SOURCE OF TRUTH]\n"
+            f"EXACT TOTAL LENGTH: {duracao} seconds, 9:16, ONE continuous take, no cuts. The approved still is frame 0.\n"
+            + produto_comum + "\n"
+            + "[IMAGE-TO-VIDEO PRODUCT SIZE MATCH]: every unit keeps exactly its frame-0 on-screen size relative to the "
+            "hands and the surface; any lift happens sideways or upward at the same distance from the lens, never "
+            "toward the camera. No product redraw, shape drift, label shimmer or duplicate.\n"
+            + f"[KIT INVENTORY — {qtd_str} ORIGINAL UNIT(S)]: {inventario} Every original unit stays a distinct rigid "
+            "object (or the same garment) from 00:00 to the final frame; nothing vanishes, swaps or multiplies.\n"
+            + maos + "\n"
+            + f"[IMAGE-TO-VIDEO SCENE LOCK — {ambiente_id}]: the same place as the still: {local}. Surface: {sup_txt}. "
+            f"Natural light: {cena['luz']}. Living environmental motion: {fisica_maos.rstrip('. ')}. "
+            f"Animal policy: {cena['animal']}. Location sound: {cena['som']}. The background keeps moving naturally "
+            "behind the hands for the whole clip (wind, light, distant life), always secondary and slightly out of focus.\n"
+            + camera + "\n"
+            + "\n".join(etapas) + "\n"
+            + f"🔊 [ASMR LAYER]: {estilo_def['som']}, recorded close by the phone microphone, mixed under the voice-over; "
+            "natural room tone and the environment's real sounds underneath. No music bed unless added in editing.\n"
+            + "🛡️ [PRISTINE CANVAS LOCK]: preserve the separately uploaded PRODUCT REFERENCE exactly. No watermark, "
+            "username, social-media chrome, extra packaging text, 3D shopping bag or fabricated offer. Captions in the "
+            "text section are editing notes, not burned into the raw footage. Handheld-UGC realism, not advertising CGI."
+        )
+        video_velho = sec["prompt_video"]
+        dividir = re.search(r"(?m)^(?:\s*🎙️|\s*🎧|\s*🔊|\s*Áudio\b|\s*Fala\b|\s*Voz\b|\s*📝\s*Texto na Tela\b)", video_velho)
+        if not dividir:
+            raise ValueError("Bloco de fala não identificado; a criação não foi aprovada.")
+        editorial = video_velho[dividir.start():]
+        if len(video_visual) < MIN_CARACTERES_PROMPT_VIDEO:
+            raise ValueError(f"Direção Mãos Viral incompleta: apenas {len(video_visual)} caracteres.")
+        return (
+            "### 📸 PROMPT DE IMAGEM\n" + imagem + "\n\n"
+            "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video_visual.rstrip() + "\n\n" + editorial + "\n\n"
+            "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"]
+        )
+
+    # ÉLÉVO V16.8.29 — Uma duração para os 4 motores, antes de gerar.
     # Seletor apenas de roteiro; o vídeo final é produzido no gerador externo.
     with st.container(border=True):
         st.markdown("**⏱️ Duração do vídeo**")
@@ -6921,26 +7425,41 @@ with _elevo_area_criacao_v16823:
 
     # V16.8.21: terceiro modo opcional, reutiliza o Bloco 17; não altera seu motor de imagem.
     st.session_state.setdefault("elevo_produto_primeiro_3s_v16821", False)
+    st.session_state.setdefault("elevo_motor_maos_v16860", False)
     with st.container(border=True):
         modo_3s_ativo_v16821 = bool(st.session_state["elevo_produto_primeiro_3s_v16821"])
-        col_sel1, col_sel2, col_sel3 = st.columns(3)
+        modo_maos_ativo_v16860 = bool(st.session_state["elevo_motor_maos_v16860"])
+        with st.container(key="elevo_seletor_motores_v16860"):
+            col_sel1, col_sel2, col_sel3, col_sel4 = st.columns(4)
         with col_sel1:
-            if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] and not modo_3s_ativo_v16821 else "secondary", use_container_width=True, key="btn_sel_17"):
+            if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] and not modo_3s_ativo_v16821 and not modo_maos_ativo_v16860 else "secondary", use_container_width=True, key="btn_sel_17"):
                 st.session_state["modo_entidade_v9"] = False
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
         with col_sel2:
             if st.button("🧬 CRIAÇÃO V9.2 (Bloco 17.2 — Física V12)", type="primary" if st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_172"):
                 st.session_state["modo_entidade_v9"] = True
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
         with col_sel3:
-            if st.button("🎥 PRODUTO 3S (Nova Opção)", type="primary" if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_produto_3s_v16821"):
+            if st.button("🎥 PRODUTO 3S (Nova Opção)", type="primary" if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] and not modo_maos_ativo_v16860 else "secondary", use_container_width=True, key="btn_sel_produto_3s_v16821"):
                 st.session_state["modo_entidade_v9"] = False
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = True
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
-        if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"]:
+        with col_sel4:
+            if st.button("🤲 MÃOS VIRAL (Só as mãos)", type="primary" if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_maos_v16860"):
+                st.session_state["modo_entidade_v9"] = False
+                st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = True
+                st.rerun()
+        if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] and not modo_maos_ativo_v16860:
             st.caption("🎞️ Terceira opção: imagem original preservada; nos 3 primeiros segundos, vídeo focado exclusivamente no produto. Depois entra a influenciadora com o mesmo roteiro, fala e SEO.")
+        if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"]:
+            st.caption("🤲 Quarto motor: só as mãos da influência aparecem, sem rosto. Produto na mão, na cama, no sofá ou na bancada, "
+                       "com gancho viral nos primeiros segundos, ASMR de toque e a voz dela em off na duração escolhida.")
 
         aba_gerador_360 = st.container()
     
@@ -6970,7 +7489,22 @@ with _elevo_area_criacao_v16823:
                     key="txt_diretrizes_360"
                 )
                 btn_gerar_roteiro = False
-                if not st.session_state["modo_entidade_v9"]:
+                btn_gerar_maos_v16860 = False
+                if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"]:
+                    st.selectbox("🎬 Estilo do vídeo viral", list(ELEVO_MAOS_ESTILOS_V16860.keys()),
+                                 format_func=lambda k: ELEVO_MAOS_ESTILOS_V16860[k]["rotulo"],
+                                 key="elevo_maos_estilo_v16860")
+                    st.selectbox("🛏️ Onde o produto aparece", list(ELEVO_MAOS_SUPERFICIES_V16860.keys()),
+                                 format_func=lambda k: ELEVO_MAOS_SUPERFICIES_V16860[k]["rotulo"],
+                                 key="elevo_maos_superficie_v16860")
+                    if not pode_gerar_roteiro:
+                        st.error("Entre na sua conta para gerar roteiros.")
+                        st.button("🤲 GERAR MÃOS VIRAL", type="primary", use_container_width=True, disabled=True, key="btn_maos_disabled_v16860")
+                    else:
+                        txt_maos_v16860 = ("🤲 GERAR MÃOS VIRAL (Ilimitado)" if E_O_CEO
+                                           else f"🤲 GERAR MÃOS VIRAL • {ELEVO_CUSTO_PROMPT_V16813} CR")
+                        btn_gerar_maos_v16860 = st.button(txt_maos_v16860, type="primary", use_container_width=True, key="btn_maos_ativo_v16860")
+                elif not st.session_state["modo_entidade_v9"]:
                     if not pode_gerar_roteiro:
                         st.error("Entre na sua conta para gerar roteiros.")
                         btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
@@ -7057,7 +7591,7 @@ with _elevo_area_criacao_v16823:
                 tipo_brain = st.selectbox("Ponto avaliado", ["IMAGEM", "VIDEO"], format_func=lambda x: "Imagem" if x == "IMAGEM" else "Vídeo", key="elevo_brain_tipo_v1708")
             with col_polaridade_brain:
                 polaridade_brain = st.selectbox("Feedback", ["POSITIVO", "NEGATIVO"], format_func=lambda x: "👍 Positivo — preservar" if x == "POSITIVO" else "👎 Negativo — evitar", key="elevo_brain_polaridade_v1708")
-            modo_brain = st.selectbox("Motor", ["GERAL", "360º", "V9.2", "Produto 3S"], key="elevo_brain_modo_v1708")
+            modo_brain = st.selectbox("Motor", ["GERAL", "360º", "V9.2", "Produto 3S", "Mãos Viral"], key="elevo_brain_modo_v1708")
             licao_brain = st.text_area("Lição para a ÉLÉVO", placeholder="Ex.: NEGATIVO: o pote aumentou durante o vídeo; manter a escala aparente idêntica à imagem aprovada.", max_chars=700, height=105, key="elevo_brain_licao_v1708")
             texto_brain_atual = str(st.session_state.get("roteiro_temporario") or "")
             hash_brain_atual = hashlib.sha256(texto_brain_atual.encode("utf-8")).hexdigest() if texto_brain_atual else ""
@@ -8590,7 +9124,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         }
         retorno = elevo_mem_recuperar_relevantes_v1(email, digest, scan.get("nome_pt", ""))
         modo_norm = str(modo or "GERAL")
-        modo_norm = "V9.2" if modo_norm.casefold() in ("v9.2", "v92") else ("360º" if "360" in modo_norm.casefold() else ("Produto 3S" if "3s" in modo_norm.casefold() else "GERAL"))
+        modo_norm = "V9.2" if modo_norm.casefold() in ("v9.2", "v92") else ("360º" if "360" in modo_norm.casefold() else ("Produto 3S" if "3s" in modo_norm.casefold() else ("Mãos Viral" if "maos" in modo_norm.casefold() or "mãos" in modo_norm.casefold() else "GERAL")))
         extras = "\\n\\n".join(x for x in (
             elevo_ceo_brain_recuperar_v1708("IMAGEM", modo_norm),
             elevo_ceo_brain_recuperar_v1708("VIDEO", modo_norm)
@@ -8631,7 +9165,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             raise PermissionError("Somente o CEO autenticado pode registrar lições globais.")
         if tipo_midia not in ("IMAGEM", "VIDEO") or polaridade not in ("POSITIVO", "NEGATIVO"):
             raise ValueError("Tipo de mídia ou feedback inválido.")
-        if modo not in ("360º", "V9.2", "Produto 3S", "GERAL"):
+        if modo not in ("360º", "V9.2", "Produto 3S", "Mãos Viral", "GERAL"):
             raise ValueError("Modo inválido.")
         licao = _elevo_mem_texto_seguro_v1(licao, 700)
         if len(licao.strip()) < 8:
@@ -8895,7 +9429,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         'breathing, advanced subsurface scattering, light smartphone sensor grain, NO flash. '
         f'The sole adult Brazilian presenter is {nome}. PERSON-ONLY VISUAL REFERENCE: '
         f'{pessoa}. Preserve her selected face, exact hair, skin, eyes and everyday '
-        'wardrobe; spontaneous intimate friend-to-friend energy, believable body balance '
+        'wardrobe (when a WARDROBE FOR THIS CREATION or user styling request is given above, '
+        'that outfit, accessories and hairstyle replace the reference clothing in the still and the video); spontaneous intimate friend-to-friend energy, believable body balance '
         'and anatomically correct fingers. The same woman remains in the final video. '
         f'[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. '
         f'[NATURAL LIGHT GRADIENT]: {iluminacao}. '
@@ -8909,7 +9444,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         '[BAGUNCINHA TEMÁTICA — V9]: Natural everyday clutter comes ONLY from '
         'the exact listed environmental objects, casually arranged with realistic '
         'surface contact, never masking the referenced items. '
-        f'[ANIMAL FACTOR — V9]: {animal}; include no extra animal. '
+        f'[ANIMAL FACTOR — V9]: {animal}; include no extra pet (only the distant ambient wildlife already listed in LIVING WORLD may appear). '
         '[REALISTIC CAMERA LOCK]: True smartphone perspective, modest depth of field, '
         'natural lens distortions without enlarging the product, organic texture, '
         'cinematic atmospheric shadows coherent with the same real light source, '
@@ -9778,6 +10313,123 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     mostrar_erro_criacao_v1686(e, "Bloco 17.2 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
     # ==========================================================
+    # V16.8.60 — EXECUÇÃO DO 4º MOTOR: MÃOS VIRAL
+    # ==========================================================
+    if btn_gerar_maos_v16860 and pode_gerar_roteiro:
+        if not img_produto:
+            st.warning("⚠️ Suba a **📸 Foto do Produto** primeiro!")
+        else:
+            loader_maos_slot_v16860 = st.empty()
+            elevo_render_loader_vip_v1709(loader_maos_slot_v16860, "Mãos Viral")
+            _debito_maos_v16860 = None
+            try:
+                _debito_maos_v16860 = elevo_credito_reservar_v16813(ELEVO_CUSTO_PROMPT_V16813, "PROMPT_MAOS_VIRAL")
+                etapa_formato_elevo = "maos_scanner"
+                img_b64_maos = base64.b64encode(img_produto.getvalue()).decode("utf-8")
+                scan_maos = escanear_dor_e_contagem_da_foto(img_b64_maos)
+                gancho_maos = selecionar_gancho_v11()
+                direcao_maos = selecionar_direcao_fisica_v11(email_sessao, "maos")
+                ambiente_maos = str(direcao_maos.get("escolhido", ""))
+                categoria_maos = elevo_maos_categoria_v16860(scan_maos)
+                estilo_maos, superficie_maos = elevo_maos_resolver_v16860(
+                    st.session_state.get("elevo_maos_estilo_v16860", "surpresa"),
+                    st.session_state.get("elevo_maos_superficie_v16860", "auto"),
+                    ambiente_maos, categoria_maos)
+                contexto_mem_maos, licoes_mem_maos = elevo_mem_contextualizar_v1(
+                    email_sessao, "maos", scan_maos, img_produto.getvalue(), nome_inf_ativa, ambiente_maos)
+                _acoes_maos = ELEVO_MAOS_ESTILOS_V16860[estilo_maos]["roupa" if categoria_maos == "roupa" else "geral"]
+                _rot_estilo_maos = ELEVO_MAOS_ESTILOS_V16860[estilo_maos]["rotulo"]
+                _rot_sup_maos = ELEVO_MAOS_SUPERFICIES_V16860[superficie_maos]["rotulo"]
+
+                instrucao_maos = f"""
+            Atue como o MOTOR MÃOS VIRAL da ÉLÉVO: vídeos curtos brasileiros em que SÓ AS MÃOS da {nome_inf_ativa} aparecem mostrando o produto (sem rosto), no estilo dos vídeos de produto que mais param a rolagem no TikTok e no Reels.
+
+            🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
+            - Produto/Kit: {scan_maos.get('nome_pt')}
+            - Quantidade Exata de Unidades na Foto: {scan_maos.get('qtd')} unidade(s)
+            - A DOR REAL QUE ELE RESOLVE: {scan_maos.get('dor_pt')}
+            - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_maos.get('solucao_pt')}
+            - ÂNGULO DE GANCHO SORTEADO: {gancho_maos}
+            - ESTILO VISUAL DESTE VÍDEO: {_rot_estilo_maos} • ONDE APARECE: {_rot_sup_maos}
+            - O QUE AS MÃOS FAZEM (já definido pela ÉLÉVO, a fala deve conversar com isso): abertura = {_acoes_maos['hook']}; depois = {_acoes_maos['demo']}
+
+            🚨 [REGRAS]:
+            1. A {nome_inf_ativa} NÃO aparece: a voz dela é NARRAÇÃO EM OFF, como quem filma as próprias mãos. Nunca diga "olha pra mim", "olha minha cara" ou algo que dependa do rosto.
+            2. FALA VIRAL: a primeira frase tem no máximo 6 palavras e prende na hora (curiosidade, choque leve ou confissão). Depois: dor → o que as mãos estão mostrando (sensação concreta: textura, peso, tamanho, caimento) → convite natural para a sacolinha. Tom de amiga, português do Brasil natural.
+            3. É PROIBIDO inventar preço, desconto, estoque, prazo, lote ou benefício que não esteja na dor/sensação acima. Nunca descreva cor, rótulo ou embalagem do produto.
+            4. A parte visual será montada pela matriz fixa da ÉLÉVO; aqui escreva só um rascunho visual curto em inglês.
+
+            ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES:
+
+            ### 📸 PROMPT DE IMAGEM
+            [Rascunho curto em inglês (2 a 4 frases): hands-only shot of the exact referenced product, no face.]
+
+            ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
+            [Rascunho curto em inglês (2 a 4 frases) da ação das mãos.]
+
+            🎙️ Voz da {nome_inf_ativa} (narração em off — {segundos_video_v16829} segundos):
+            "[Escreva em português a fala de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos, aplicando '{gancho_maos}'; cada frase traz informação nova, sem repetir palavras, expressões ou ideias]"
+
+            📝 Texto na Tela (Nativo TikTok):
+            ⚡ [GANCHO CURTO QUE PARA A ROLAGEM]
+            ✨ [SENSAÇÃO QUE AS MÃOS ESTÃO PROVANDO]
+            🛒 CONFIRA NA SACOLINHA 👇
+
+            ### 🔑 TÍTULOS SEO (Separados)
+            **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_maos.get('dor_pt')}']
+            **💡 Solução (Produto):** [Nome completo do produto/kit]
+            **🏷️ Marca (Resenha):** [Marca e nome do produto/kit resenha]
+            """
+                if explicacao_video_usuario and explicacao_video_usuario.strip():
+                    instrucao_maos += f"\n\nNOTA DE DIREÇÃO DO USUÁRIO (respeite na fala e no tom): {explicacao_video_usuario.strip()}"
+                if licoes_mem_maos:
+                    instrucao_maos += "\n\n" + licoes_mem_maos
+                instrucao_maos += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                instrucao_maos += ("\n\n[MÃOS VIRAL — PRIORIDADE FINAL] Ignore qualquer menção a revelar a apresentadora, "
+                                   "rosto, olhar para a câmera ou entrada da influenciadora: neste motor ela só aparece pelas mãos "
+                                   "e pela voz em off.")
+                validar_cota_ia()
+                etapa_formato_elevo = "maos_geracao"
+                conteudo_maos = gerar_roteiro_com_recuperacao_v1689(
+                    instrucao_maos,
+                    "Você é roteirista de vídeos virais brasileiros de produto em que só as mãos aparecem. "
+                    "Escreva fala curta, magnética e verdadeira, sem inventar ofertas. A foto separada determina o produto.",
+                    temperatura=0.8)
+                etapa_formato_elevo = "maos_fala_duracao"
+                conteudo_maos = elevo_ajustar_fala_duracao_v16857(conteudo_maos, segundos_video_v16829)
+                etapa_formato_elevo = "maos_matriz_visual"
+                conteudo_maos = elevo_matriz_maos_v16860(
+                    conteudo_maos, scan_maos, nome_inf_ativa, visual_inf_isolado_v16811, ambiente_maos,
+                    estilo_maos, superficie_maos, segundos_video_v16829,
+                    observacao_ambiente=st.session_state.get("elevo_ambiente_obs", ""),
+                    categoria=categoria_maos)
+                etapa_formato_elevo = "maos_deduplicar"
+                conteudo_maos = elevo_deduplicar_regras_v1706(conteudo_maos)
+                etapa_formato_elevo = "maos_quality_gate"
+                elevo_quality_gate_v1700(conteudo_maos, scan_maos, modo="maos")
+                st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
+                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
+                st.session_state["roteiro_temporario"] = conteudo_maos
+                contexto_mem_maos["roteiro_hash"] = hashlib.sha256(conteudo_maos.encode("utf-8")).hexdigest()
+                st.session_state["elevo_mem_v1_contexto"] = contexto_mem_maos
+                elevo_rascunho_substituir_v16820(email_sessao, conteudo_maos)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+                loader_maos_slot_v16860.empty()
+                st.success(f"🤲 Mãos Viral pronto: {_rot_estilo_maos} • {_rot_sup_maos} • "
+                           f"{int(segundos_video_v16829)}s ({scan_maos.get('qtd')} unidade(s))!")
+                time.sleep(1)
+                st.rerun()
+            except ElevoCreditoErroV16813 as exc:
+                loader_maos_slot_v16860.empty()
+                st.warning(str(exc))
+            except Exception as e:
+                if _debito_maos_v16860:
+                    try: elevo_credito_estornar_v16813(_debito_maos_v16860, ELEVO_CUSTO_PROMPT_V16813)
+                    except Exception: pass
+                loader_maos_slot_v16860.empty()
+                mostrar_erro_criacao_v1686(e, "Mãos Viral — " + locals().get("etapa_formato_elevo", "preparacao"))
+
+    # ==========================================================
     # V16.8.12 — LAPIDAÇÃO VISUAL VIP (EXCLUSIVAMENTE CAMADA DE EXIBIÇÃO)
     # Os textos gerados, validadores, fotos, cópias e modelos de IA ficam intocados.
     # A prévia e a parte recolhida, concatenadas, são idênticas ao prompt integral.
@@ -10108,6 +10760,8 @@ components.html(r"""
       W.__elevoVoice1683.install();
       return;
     }
+const MIC_1686='<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/><path d="M8.5 21h7"/></svg>';
+    const STOP_1686='<svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="3" fill="currentColor"/></svg>';
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
     let gravador = null;
     let botaoAtivo = null;
@@ -10117,6 +10771,9 @@ components.html(r"""
       if (!['text','search','url'].includes(tipo)) return false;
       if (el.disabled || el.readOnly || el.getAttribute('autocomplete') === 'one-time-code') return false;
       if (el.closest('[data-elevo-no-voice]')) return false;
+      // V16.8.60 — listas de seleção, números e datas não recebem microfone.
+      if ((el.getAttribute('role') || '') === 'combobox' || el.getAttribute('aria-autocomplete')) return false;
+      if (el.closest('[data-testid="stSelectbox"], [data-testid="stMultiSelect"], [data-baseweb="select"], [data-testid="stNumberInput"], [data-testid="stDateInput"], [data-testid="stTimeInput"]')) return false;
       const rotulo = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('placeholder') || '')).toLowerCase();
       if (/senha|password|token|chave secreta|api.?key|email|e-mail|gmail|código de segurança/.test(rotulo)) return false;
       if ((el.getAttribute('placeholder') || '').toLowerCase().includes('achado secreto ou minha loja')) return false;
@@ -10133,7 +10790,7 @@ components.html(r"""
     }
     function stop() {
       if (gravador) { try {gravador.stop();} catch(e){} }
-      if (botaoAtivo) {botaoAtivo.textContent='🎙️';botaoAtivo.removeAttribute('data-listening');}
+      if (botaoAtivo) {botaoAtivo.innerHTML=MIC_1686;botaoAtivo.removeAttribute('data-listening');botaoAtivo.title='Ditar texto em português (voz para texto)';}
       gravador=null;botaoAtivo=null;
     }
     function toggle(el, btn) {
@@ -10143,7 +10800,7 @@ components.html(r"""
         gravador = new SR();
         botaoAtivo = btn;
         gravador.lang='pt-BR'; gravador.continuous=false; gravador.interimResults=false;
-        gravador.onstart=()=>{btn.textContent='🔴';btn.setAttribute('data-listening','1');};
+        gravador.onstart=()=>{btn.innerHTML=STOP_1686;btn.setAttribute('data-listening','1');btn.title='Ouvindo… toque para parar';};
         gravador.onresult=(event)=>{
           let texto='';
           for(let i=event.resultIndex;i<event.results.length;i++){
@@ -10164,7 +10821,7 @@ components.html(r"""
         el.dataset.elevoVoz1683='1';
         pai.style.position='relative';
         const b=doc.createElement('button');
-        b.type='button';b.textContent='🎙️';b.title='Ditar texto em português (voz para texto)';
+        b.type='button';b.innerHTML=MIC_1686;b.title='Ditar texto em português (voz para texto)';
         b.setAttribute('aria-label','Ditar neste campo'); b.className='elevo-voz-btn-1683';
         Object.assign(b.style,{position:'absolute',right:'10px',top:'8px',zIndex:'20',border:'1px solid #26718c',
           borderRadius:'9px',background:'#10263c',color:'#dffaff',height:'32px',width:'35px',fontSize:'15px',
@@ -11709,3 +12366,109 @@ input,textarea {caret-color:__CY__!important;}
 for _k_v16857, _v_v16857 in _tk_v16857.items():
     _css_v16857 = _css_v16857.replace(_k_v16857, _v_v16857)
 st.markdown(_css_v16857, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.60 — TEXTURA VIP: campos de escrita, abas, envio de foto e microfones.
+# Somente visual. Granulado fino (SVG) + profundidade + foco dourado/ciano.
+# ==========================================================
+_ELEVO_GRAO_V16860 = "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E\")"
+_tk_v16860 = ({
+    "__CAMPO__": "linear-gradient(165deg,#FFFFFF 0%,#F4F8FE 100%)", "__BORDA__": "#CFDDF0",
+    "__FOCO__": "#1457A1", "__FOCOA__": "rgba(20,87,161,.14)", "__TXT__": "#0B2A55",
+    "__ABA__": "linear-gradient(180deg,#FFFFFF,#EEF4FC)", "__ABAATIVA__": "linear-gradient(180deg,#FFF8E6,#FCEFCB)",
+    "__ABATXT__": "#3B5677", "__ABATXTATIVA__": "#6B4E12", "__OURO__": "#B8862F",
+    "__MIC__": "linear-gradient(145deg,#FFFFFF,#E7F0FC)", "__MICTXT__": "#1457A1", "__MICBORDA__": "#D8B66A",
+    "__SOMBRA__": "0 3px 10px rgba(20,60,120,.07)", "__PH__": "#8193AB",
+} if modo_claro else {
+    "__CAMPO__": "linear-gradient(165deg,rgba(15,26,44,.94) 0%,rgba(7,12,22,.96) 100%)", "__BORDA__": "rgba(84,216,245,.22)",
+    "__FOCO__": "#54D8F5", "__FOCOA__": "rgba(84,216,245,.14)", "__TXT__": "#EAF2FF",
+    "__ABA__": "linear-gradient(180deg,rgba(20,34,56,.92),rgba(9,15,27,.95))", "__ABAATIVA__": "linear-gradient(180deg,rgba(216,182,106,.24),rgba(216,182,106,.08))",
+    "__ABATXT__": "#9FB3CC", "__ABATXTATIVA__": "#F4DC9A", "__OURO__": "#D8B66A",
+    "__MIC__": "radial-gradient(circle at 30% 22%,rgba(255,255,255,.16),transparent 46%),linear-gradient(145deg,#1B3552,#0A1524)",
+    "__MICTXT__": "#F4DC9A", "__MICBORDA__": "rgba(216,182,106,.6)",
+    "__SOMBRA__": "0 6px 18px rgba(0,0,0,.28)", "__PH__": "#7489A8",
+})
+_css_v16860 = """
+<style>
+/* ---------- Campos de escrita com textura ---------- */
+.stTextArea div:has(> textarea), .stTextInput div:has(> input),
+[data-testid="stNumberInput"] div:has(> input),
+.stTextArea [data-baseweb="textarea"], .stTextInput [data-baseweb="input"] {
+  background-image:__GRAO__,__CAMPO__!important; background-color:transparent!important;
+  border:1px solid __BORDA__!important; border-radius:14px!important;
+  box-shadow:__SOMBRA__,inset 0 1px 0 rgba(255,255,255,.05)!important;
+  transition:border-color .2s ease, box-shadow .2s ease;}
+.stTextArea div:has(> textarea):focus-within, .stTextInput div:has(> input):focus-within,
+.stTextArea [data-baseweb="textarea"]:focus-within, .stTextInput [data-baseweb="input"]:focus-within {
+  border-color:__FOCO__!important; box-shadow:0 0 0 3px __FOCOA__,__SOMBRA__!important;}
+.stTextArea textarea, .stTextInput input {background:transparent!important; color:__TXT__!important; caret-color:__FOCO__;}
+.stTextArea textarea {line-height:1.55!important;}
+.stTextArea textarea::placeholder, .stTextInput input::placeholder {color:__PH__!important; -webkit-text-fill-color:__PH__!important; opacity:1!important;}
+
+/* ---------- Envio de foto ---------- */
+[data-testid="stFileUploaderDropzone"] {
+  background-image:__GRAO__,__CAMPO__!important; border:1.5px dashed __OURO__!important; border-radius:16px!important;
+  transition:transform .2s ease, box-shadow .2s ease;}
+[data-testid="stFileUploaderDropzone"]:hover {box-shadow:0 0 0 3px __FOCOA__!important; transform:translateY(-1px);}
+
+/* ---------- Abas ---------- */
+[data-baseweb="tab-list"], [role="tablist"] {
+  background-image:__GRAO__,__ABA__!important; border:1px solid __BORDA__!important; border-radius:14px!important;
+  padding:.3rem!important; gap:.3rem!important; box-shadow:__SOMBRA__!important;}
+[data-baseweb="tab"], [role="tablist"] > button[role="tab"] {
+  border-radius:10px!important; padding:.45rem .9rem!important; transition:background .2s ease;}
+[data-baseweb="tab"] p, [role="tab"] p {color:__ABATXT__!important; font-weight:700!important;}
+[data-baseweb="tab"][aria-selected="true"], [role="tab"][aria-selected="true"] {
+  background:__ABAATIVA__!important; box-shadow:inset 0 0 0 1px __OURO__!important;}
+[data-baseweb="tab"][aria-selected="true"] p, [role="tab"][aria-selected="true"] p {color:__ABATXTATIVA__!important;}
+[data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {display:none!important;}
+[role="tablist"] > [role="tab"], [data-testid="stTab"] {border:none!important; margin:0!important; padding:.45rem .95rem!important; border-radius:10px!important;}
+[role="tablist"] .react-aria-SelectionIndicator {display:none!important;}
+[role="tablist"] > [role="tab"]::after, [role="tablist"] > [role="tab"]::before {display:none!important;}
+
+/* ---------- Abas recolhíveis (expanders) ---------- */
+[data-testid="stExpander"] details {border-radius:14px!important; border-color:__BORDA__!important;
+  background-image:__GRAO__!important;}
+[data-testid="stExpander"] summary {border-radius:14px!important;}
+[data-testid="stExpander"] summary:hover {background:__FOCOA__!important;}
+
+/* ---------- Microfone de ditado ---------- */
+.elevo-voz-btn-1683 {
+  width:36px!important; height:36px!important; top:7px!important; right:9px!important;
+  display:grid!important; place-items:center!important; padding:0!important;
+  border-radius:12px!important; border:1px solid __MICBORDA__!important;
+  background:__MIC__!important; color:__MICTXT__!important;
+  box-shadow:0 4px 12px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.14)!important;
+  transition:transform .15s ease, box-shadow .2s ease, filter .2s ease!important;}
+.elevo-voz-btn-1683:hover {transform:translateY(-1px) scale(1.04); filter:brightness(1.08);
+  box-shadow:0 6px 16px rgba(0,0,0,.26),0 0 0 3px __FOCOA__!important;}
+.elevo-voz-btn-1683 svg {display:block; pointer-events:none;}
+.elevo-voz-btn-1683[data-listening] {
+  background:radial-gradient(circle at 30% 25%,rgba(255,255,255,.25),transparent 50%),linear-gradient(145deg,#E2384F,#8E1023)!important;
+  border-color:#FF8A96!important; color:#FFFFFF!important; animation:elevo-mic-pulso-v16860 1.25s ease-out infinite;}
+@keyframes elevo-mic-pulso-v16860 {
+  0% {box-shadow:0 0 0 0 rgba(255,95,109,.55),0 4px 12px rgba(0,0,0,.25);}
+  70% {box-shadow:0 0 0 11px rgba(255,95,109,0),0 4px 12px rgba(0,0,0,.25);}
+  100% {box-shadow:0 0 0 0 rgba(255,95,109,0),0 4px 12px rgba(0,0,0,.25);}}
+
+/* ---------- Seletor dos 4 motores ---------- */
+.st-key-elevo_seletor_motores_v16860 .stButton button {min-height:58px!important; border-radius:14px!important;
+  font-weight:800!important; letter-spacing:.01em;}
+.st-key-elevo_seletor_motores_v16860 .stButton button[kind="primary"] {
+  box-shadow:0 8px 22px rgba(216,182,106,.22),inset 0 1px rgba(255,255,255,.25)!important;}
+
+/* ---------- Mundo vivo nos ambientes ---------- */
+.elevo-vida-chip-v16860 {margin:.35rem 0 .55rem; padding:.55rem .75rem; border-radius:12px; font-size:.8rem; line-height:1.5;
+  color:__TXT__; background-image:__GRAO__,__CAMPO__; border:1px solid __BORDA__;}
+.elevo-vida-chip-v16860 b {color:__OURO__;}
+
+@media (prefers-reduced-motion:reduce) {.elevo-voz-btn-1683[data-listening] {animation:none!important;}}
+@media (max-width:767px) {
+  .st-key-elevo_seletor_motores_v16860 .stButton button {min-height:50px!important; font-size:.82rem!important;}
+}
+</style>
+"""
+_css_v16860 = _css_v16860.replace("__GRAO__", _ELEVO_GRAO_V16860)
+for _k_v16860, _v_v16860 in _tk_v16860.items():
+    _css_v16860 = _css_v16860.replace(_k_v16860, _v_v16860)
+st.markdown(_css_v16860, unsafe_allow_html=True)
