@@ -1,8 +1,10 @@
+# ÉLÉVO V16.8.64 — Mercado Pago: modo teste/produção pelo Secrets (credencial de teste nova também é APP_USR-)
+# ÉLÉVO V16.8.63 — CADASTRO ABERTO DE NOVO + PLANOS (Start/Pro/Elite) + CHECKOUT MERCADO PAGO (Pix e cartão)
 # ÉLÉVO V16.8.62 — MICROFONE PROFISSIONAL: só em campos de escrever, ditado contínuo e texto confirmado no app
 # ÉLÉVO V16.8.61 — PRODUTO DE MODA: A INFLUÊNCIA VESTE O PRODUTO NOS 3 MOTORES (sem conflito de roupa)
 # ÉLÉVO V16.8.60 — 4º MOTOR MÃOS VIRAL + AMBIENTES VIVOS + LOOK DA INFLUÊNCIA + TEXTURAS VIP | BASE V16.8.59
 # Mãos Viral: só as mãos, gancho viral, ASMR, fala 10/12/15s. 22 ambientes com vento, física e vida real nos 4 motores.
-# ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + CONTAS LIBERADAS SÓ PELO CEO (com créditos) | BASE V16.8.58
+# ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + ESTÚDIO DE CONTAS DO CEO (com créditos) | BASE V16.8.58
 # Cadastro público removido; CEO cria contas no painel; Aurora, créditos e motores preservados.
 # V16.8.58 — listras de TV e faixa de varredura do fundo desligadas.
 # ÉLÉVO V16.8.57 — FALA NA MEDIDA (10/12/15s) + TOQUE HACKER NA PLATAFORMA | BASE V16.8.56
@@ -754,6 +756,18 @@ if not st.session_state["usuario_logado"]:
       .st-key-elevo_login_card_v16859 .stButton button {min-height:48px !important; border-radius:14px !important;
         background:rgba(255,255,255,.03) !important; border:1px solid rgba(84,216,245,.28) !important; color:#EAF2FF !important; font-weight:700 !important;}
       .st-key-elevo_login_card_v16859 .stButton button:hover {border-color:#54D8F5 !important; background:rgba(84,216,245,.07) !important;}
+      .st-key-elevo_login_card_v16859 [role="tablist"], .st-key-elevo_login_card_v16859 [data-baseweb="tab-list"] {
+        display:grid !important; grid-template-columns:1fr 1fr; gap:6px !important; padding:5px !important; margin-bottom:.9rem;
+        border-radius:14px !important; background:rgba(4,8,15,.7) !important; border:1px solid rgba(84,216,245,.16) !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"] {justify-content:center !important; border:none !important; margin:0 !important;
+        border-radius:10px !important; padding:.55rem .6rem !important; min-height:42px;}
+      .st-key-elevo_login_card_v16859 [role="tab"] p {color:#8FA6C4 !important; font:700 .86rem Montserrat,sans-serif !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"][aria-selected="true"] {background:linear-gradient(100deg,rgba(216,182,106,.26),rgba(216,182,106,.1)) !important;
+        box-shadow:inset 0 0 0 1px rgba(216,182,106,.55) !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"][aria-selected="true"] p {color:#F4DC9A !important;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="tab-highlight"], .st-key-elevo_login_card_v16859 [data-baseweb="tab-border"],
+      .st-key-elevo_login_card_v16859 .react-aria-SelectionIndicator {display:none !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"]::after, .st-key-elevo_login_card_v16859 [role="tab"]::before {display:none !important;}
       .evl-or {display:flex; align-items:center; gap:12px; color:#5F7594; font:600 .68rem 'JetBrains Mono',monospace;
         letter-spacing:.2em; margin:.95rem 0 .7rem;}
       .evl-or::before, .evl-or::after {content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(84,216,245,.25),transparent);}
@@ -781,7 +795,7 @@ if not st.session_state["usuario_logado"]:
       }
     </style>
     <section class="evl-hero" aria-label="Portal ÉLÉVO">
-      <div class="evl-badge"><i></i> PORTAL PRIVADO • ACESSO VIP</div>
+      <div class="evl-badge"><i></i> PORTAL ÉLÉVO • ACESSO VIP</div>
       <h1 class="evl-brand">ÉLÉVO</h1>
       <p class="evl-sub">Inteligência • Vendas • Criação</p>
     </section>
@@ -803,8 +817,8 @@ if not st.session_state["usuario_logado"]:
             <small>Oportunidades e missões diárias para crescer com método.</small></div></div>
           <div class="evl-feat"><div class="evl-ico">💎</div><div><strong>Créditos sob controle</strong>
             <small>Seu saldo acompanha cada criação, com transparência.</small></div></div>
-          <div class="evl-invite">🔐 <div><b>Acesso somente por convite.</b> As contas são liberadas
-            pela administração da ÉLÉVO.</div></div>
+          <div class="evl-invite">🎁 <div><b>Crie sua conta e ganhe 100 créditos</b> para testar.
+            Planos a partir de R$ 29,90, com Pix ou cartão.</div></div>
         </aside>
         """, unsafe_allow_html=True)
 
@@ -836,9 +850,23 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("Senha atual inválida. Vínculo não autorizado.")
                     else:
-                        # V16.8.59 — Sem autocadastro: o Google não cria conta nova.
-                        st.warning("Este e-mail ainda não tem acesso liberado à ÉLÉVO. "
-                                   "Fale com a administração para receber o seu convite VIP.")
+                        # V16.8.63 — cadastro aberto de novo: primeiro acesso com Google cria a conta.
+                        st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
+                        if st.button("✨ Criar meu acesso com Google", use_container_width=True, key="btn_criar_google_v16863"):
+                            try:
+                                if st.query_params.get("elevo_acesso") == "novo":
+                                    del st.query_params["elevo_acesso"]
+                                st.session_state.pop("elevo_logout_pendente", None)
+                                # Senha aleatória não entregue ao usuário; login por OIDC.
+                                if not gravar_vinculo_google(ident_google, ident_google["email"]):
+                                    raise RuntimeError("Falha ao vincular")
+                                cadastrado = conectar_banco_usuarios("salvar", ident_google["email"], ident_google["nome"], secrets.token_urlsafe(48))
+                                if not cadastrado:
+                                    raise RuntimeError("Falha ao criar conta")
+                                ativar_identidade(ident_google["email"], ident_google["nome"], "google")
+                                st.rerun()
+                            except Exception:
+                                st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
                 except Exception:
                     st.error("O banco de usuários está indisponível. Acesso Google não foi liberado.")
                 if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente",
@@ -852,49 +880,75 @@ if not st.session_state["usuario_logado"]:
                 st.stop()
 
             st.markdown("""<div class="evl-card-head"><div class="evl-lock">💎</div>
-                <h3>Bem-vindo de volta</h3>
-                <p>Entre com o e-mail e a senha do seu convite.</p></div>""", unsafe_allow_html=True)
-            with st.form("form_login"):
-                email_input = st.text_input("E-mail", placeholder="seuemail@gmail.com")
-                senha_input = st.text_input("Senha", type="password", placeholder="Sua senha de acesso")
-                lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
-                submit_login = st.form_submit_button("ENTRAR NA CENTRAL", use_container_width=True, type="primary")
+                <h3>Bem-vindo à ÉLÉVO</h3>
+                <p>Entre na sua conta ou crie a sua em segundos.</p></div>""", unsafe_allow_html=True)
+            aba_login, aba_cadastro = st.tabs(["🔐 Entrar", "✨ Criar conta"])
+            with aba_cadastro:
+                with st.form("form_cadastro_v16863", clear_on_submit=False):
+                    novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu nome ou apelido", max_chars=60)
+                    novo_email = st.text_input("📧 Seu melhor e-mail (Gmail)", placeholder="exemplo@gmail.com", max_chars=120)
+                    nova_senha = st.text_input("🔑 Crie uma senha", type="password", placeholder="Mínimo de 8 caracteres", max_chars=64)
+                    criar_conta_btn = st.form_submit_button("✨ CRIAR MINHA CONTA", use_container_width=True, type="primary")
+                st.markdown('<p class="evl-help">🎁 Conta nova já começa com <b>100 créditos</b> para testar.</p>',
+                            unsafe_allow_html=True)
+                if criar_conta_btn:
+                    email_clean = novo_email.strip().lower()
+                    if not novo_nome.strip() or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
+                    elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
+                    elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
+                    elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
+                    else:
+                        with st.spinner("Criando a sua conta..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                if any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios):
+                                    st.error("🚨 Este e-mail já está cadastrado! Use a aba Entrar.")
+                                elif conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha):
+                                    entrar_usuario(email_clean, novo_nome.strip())
+                                    st.rerun()
+                                else: st.error("❌ Falha ao gravar no servidor. Tente novamente.")
+                            else: st.error("❌ Falha de conexão com o banco.")
+            with aba_login:
+                with st.form("form_login"):
+                    email_input = st.text_input("E-mail", placeholder="seuemail@gmail.com")
+                    senha_input = st.text_input("Senha", type="password", placeholder="Sua senha de acesso")
+                    lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
+                    submit_login = st.form_submit_button("ENTRAR NA CENTRAL", use_container_width=True, type="primary")
 
-            if submit_login:
-                email_clean = email_input.strip().lower()
-                if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
-                    entrar_usuario(EMAIL_MESTRE, "Sócio")
-                    if not lembrar_dados: cookies.pop("login", None); cookies.save()
-                    st.rerun()
-                elif email_clean and senha_input:
-                    with st.spinner("Verificando suas credenciais..."):
-                        usuarios = conectar_banco_usuarios("ler")
-                        if usuarios is not None:
-                            usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
-                            if usuario_encontrado:
-                                entrar_usuario(email_clean, str(usuario_encontrado.get("Nome", "Usuário")))
-                                if not lembrar_dados: cookies.pop("login", None); cookies.save()
-                                if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
-                                    conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
-                                st.rerun()
-                            else: st.error("E-mail ou senha incorretos. Confira os dados do seu convite.")
-                        else: st.error("Não foi possível conectar ao servidor. Tente novamente em instantes.")
-                else: st.warning("Preencha o e-mail e a senha.")
+                if submit_login:
+                    email_clean = email_input.strip().lower()
+                    if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
+                        entrar_usuario(EMAIL_MESTRE, "Sócio")
+                        if not lembrar_dados: cookies.pop("login", None); cookies.save()
+                        st.rerun()
+                    elif email_clean and senha_input:
+                        with st.spinner("Verificando suas credenciais..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
+                                if usuario_encontrado:
+                                    entrar_usuario(email_clean, str(usuario_encontrado.get("Nome", "Usuário")))
+                                    if not lembrar_dados: cookies.pop("login", None); cookies.save()
+                                    if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
+                                        conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
+                                    st.rerun()
+                                else: st.error("E-mail ou senha incorretos.")
+                            else: st.error("Não foi possível conectar ao servidor. Tente novamente em instantes.")
+                    else: st.warning("Preencha o e-mail e a senha.")
 
-            if GOOGLE_ATIVO:
-                st.markdown('<div class="evl-or">OU</div>', unsafe_allow_html=True)
-                if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
-                    # Clique explícito: permita a nova autenticação Google.
-                    if st.query_params.get("elevo_acesso") == "novo":
-                        del st.query_params["elevo_acesso"]
-                    st.session_state.pop("elevo_logout_pendente", None)
-                    cookies.pop("elevo_bv_google_v16814", None)
-                    cookies.save()
-                    st.login("google")
+                if GOOGLE_ATIVO:
+                    st.markdown('<div class="evl-or">OU</div>', unsafe_allow_html=True)
+                    if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
+                        # Clique explícito: permita a nova autenticação Google.
+                        if st.query_params.get("elevo_acesso") == "novo":
+                            del st.query_params["elevo_acesso"]
+                        st.session_state.pop("elevo_logout_pendente", None)
+                        cookies.pop("elevo_bv_google_v16814", None)
+                        cookies.save()
+                        st.login("google")
 
             st.markdown("""
-            <p class="evl-help">Ainda não tem acesso? <b>As contas são liberadas pela administração</b>.<br>
-            Esqueceu a senha? Fale com quem enviou o seu convite.</p>
+            <p class="evl-help">Esqueceu a senha? <b>Fale com o suporte da ÉLÉVO</b>.</p>
             <div class="evl-foot"><span>Conexão protegida</span><span>Senha criptografada</span><span>Sessão de 30 dias</span></div>
             """, unsafe_allow_html=True)
     st.stop()
@@ -1171,7 +1225,7 @@ def elevo_credito_reservar_v16813(custo, finalidade):
         if saldo < custo:
             raise ElevoCreditoErroV16813(
                 f"Saldo insuficiente: {saldo} crédito(s). Esta operação custa {custo}. "
-                "Use o botão 'Pedir créditos ao CEO' no topo do painel.")
+                "Recarregue em '💎 Comprar créditos' (Pix ou cartão) no topo do painel.")
         aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
         ident = secrets.token_hex(16)
         aba.append_row([ident, email, elevo_agora_v16813(), "DEBIT", custo,
@@ -1309,11 +1363,13 @@ def elevo_excluir_conta_v16813(email):
 #  existir, o ponto de entrada (webhook) deve validar a assinatura do provedor
 #  de pagamento ANTES de chamar essas funções.
 # ==========================================================
+# V16.8.63 — PLANOS OFICIAIS (mesma lista no checkout e no estúdio do CEO).
+# Cada criação custa ELEVO_CUSTO_PROMPT_V16813 (10) créditos. Para mudar preço
+# ou créditos, edite só aqui. "selo" aparece no cartão do plano.
 ELEVO_PACOTES_V16859 = {
-    "Start":  {"creditos": 100,  "preco": 0.0, "desc": "Para conhecer a plataforma"},
-    "Pro":    {"creditos": 300,  "preco": 0.0, "desc": "Criação frequente"},
-    "Elite":  {"creditos": 1000, "preco": 0.0, "desc": "Volume alto e escala"},
-    "Black":  {"creditos": 3000, "preco": 0.0, "desc": "Operação profissional"},
+    "Start": {"creditos": 3000,  "preco": 29.90, "desc": "≈ 300 criações", "selo": "Para começar"},
+    "Pro":   {"creditos": 6500,  "preco": 49.90, "desc": "≈ 650 criações", "selo": "Mais vendido"},
+    "Elite": {"creditos": 10000, "preco": 77.00, "desc": "≈ 1.000 criações", "selo": "Melhor custo"},
 }
 ELEVO_CONTAS_COLS_V16859 = ["Id", "Email", "Nome", "Plano", "Creditos", "Preco", "Origem",
                             "Referencia", "Observacao", "CriadoEm", "Autor"]
@@ -1387,6 +1443,193 @@ def elevo_criar_conta_vip_v16859(email, nome, senha, creditos, plano="Personaliz
             logging.warning("ELEVO_CONTAS_REGISTRO: falha ao anotar conta criada")
     return {"email": email, "nome": nome, "creditos": creditos, "plano": plano,
             "duplicado": False, "aviso_credito": aviso_credito}
+
+
+# ==========================================================
+# V16.8.63 — PLANOS + CHECKOUT MERCADO PAGO (Pix e cartão)
+# ----------------------------------------------------------
+# Fluxo seguro, sem webhook (o Streamlit não recebe chamadas externas):
+#  1. O usuário escolhe o plano → criamos uma "preferência" no Mercado Pago
+#     com external_reference = id do pedido (aba Elevo_Vendas_V1).
+#  2. Ele paga com Pix ou cartão na página do Mercado Pago e volta ao app.
+#  3. O app CONFERE o pagamento direto na API do Mercado Pago (nunca confia
+#     no endereço de retorno): status aprovado, moeda BRL, valor correto e
+#     pedido do próprio usuário. Só então soma os créditos.
+#  4. Crédito com referência "venda:<id do pagamento>" — nunca soma duas vezes.
+# Secrets (Streamlit → Settings → Secrets):
+#   [mercadopago]
+#   access_token = "APP_USR-..."     # Credenciais de produção
+#   app_url = "https://seu-app.streamlit.app"
+# ==========================================================
+ELEVO_VENDAS_COLS_V16863 = ["Id", "Email", "Plano", "Creditos", "Valor", "Status", "PaymentId",
+                            "PreferenceId", "Link", "CriadoEm", "PagoEm", "Metodo"]
+ELEVO_MP_API_V16863 = "https://api.mercadopago.com"
+
+
+def elevo_mp_config_v16863():
+    try:
+        cfg = dict(st.secrets.get("mercadopago", {}))
+    except Exception:
+        cfg = {}
+    token = str(cfg.get("access_token", "") or "").strip()
+    app_url = str(cfg.get("app_url", "") or "").strip().rstrip("/")
+    if not app_url:
+        try:
+            app_url = str(getattr(st.context, "url", "") or "").split("?")[0].rstrip("/")
+        except Exception:
+            app_url = ""
+    # V16.8.64 — hoje a credencial de TESTE também começa com APP_USR-, então o modo
+    # vem do Secrets: modo = "teste" ou "producao" (TEST- antigo continua reconhecido).
+    modo = str(cfg.get("modo", "") or "").strip().lower()
+    teste = token.startswith("TEST-") or modo in ("teste", "test", "sandbox")
+    return {"token": token, "app_url": app_url, "teste": teste, "token_antigo": token.startswith("TEST-")}
+
+
+def elevo_mp_ativo_v16863():
+    return bool(elevo_mp_config_v16863()["token"])
+
+
+def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
+    cfg = elevo_mp_config_v16863()
+    if not cfg["token"]:
+        raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
+    headers = {"Authorization": f"Bearer {cfg['token']}", "Content-Type": "application/json"}
+    headers.update(kwargs.pop("headers", {}))
+    resp = requests.request(metodo, ELEVO_MP_API_V16863 + caminho, headers=headers, timeout=20, **kwargs)
+    if resp.status_code >= 400:
+        logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, resp.status_code)
+        raise ElevoCreditoErroV16813("O Mercado Pago não respondeu agora. Tente de novo em instantes.")
+    return resp.json()
+
+
+def elevo_vendas_aba_v16863():
+    return elevo_aba_v16813("Elevo_Vendas_V1", ELEVO_VENDAS_COLS_V16863)
+
+
+def elevo_checkout_criar_v16863(plano):
+    """Cria o pedido + link de pagamento do plano escolhido para o usuário logado."""
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email:
+        raise PermissionError("Entre na sua conta para comprar créditos.")
+    if elevo_admin_v16813():
+        raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
+    if plano not in ELEVO_PACOTES_V16859 or float(ELEVO_PACOTES_V16859[plano]["preco"]) <= 0:
+        raise ValueError("Plano indisponível.")
+    if elevo_status_v16813(email, fresco=True) != "ATIVO":
+        raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
+    cfg = elevo_mp_config_v16863()
+    if not cfg["app_url"]:
+        raise ElevoCreditoErroV16813("Endereço do app não configurado (mercadopago.app_url).")
+    pacote = ELEVO_PACOTES_V16859[plano]
+    creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
+    aba = elevo_vendas_aba_v16863()
+    # Reaproveita um link pendente do mesmo plano criado há pouco (evita pedidos em dobro).
+    agora = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    for r in reversed(aba.get_all_records()):
+        if (str(r.get("Email", "")).strip().lower() == email and r.get("Plano") == plano
+                and str(r.get("Status", "")).upper() == "PENDENTE" and r.get("Link")):
+            try:
+                criado = datetime.strptime(str(r.get("CriadoEm")), "%d/%m/%Y %H:%M:%S").replace(
+                    tzinfo=ZoneInfo("America/Sao_Paulo"))
+                if agora - criado < timedelta(hours=6):
+                    return {"pedido": r["Id"], "link": r["Link"]}
+            except (TypeError, ValueError):
+                pass
+            break
+    pedido = "elv_" + secrets.token_hex(10)
+    volta = cfg["app_url"] + "/?elevo_pg="
+    corpo = {
+        "items": [{"id": f"elevo-{plano.lower()}", "title": f"ÉLÉVO {plano} — {creditos:,} créditos".replace(",", "."),
+                   "description": "Créditos para criação com IA na plataforma ÉLÉVO",
+                   "quantity": 1, "unit_price": preco, "currency_id": "BRL"}],
+        "payer": {"email": email},
+        "external_reference": pedido,
+        "back_urls": {"success": volta + "ok", "pending": volta + "pendente", "failure": volta + "falhou"},
+        "auto_return": "approved",
+        "statement_descriptor": "ELEVO",
+        "metadata": {"email": email, "plano": plano, "creditos": creditos},
+    }
+    pref = _elevo_mp_req_v16863("POST", "/checkout/preferences", json=corpo,
+                                headers={"X-Idempotency-Key": pedido})
+    # Credencial APP_USR (produção ou teste novo) usa init_point; só o TEST- antigo usa o sandbox.
+    link = (pref.get("sandbox_init_point") if cfg["token_antigo"] else None) or pref.get("init_point")
+    if not link:
+        raise ElevoCreditoErroV16813("Não foi possível abrir o pagamento agora.")
+    aba.append_row([pedido, email, plano, creditos, preco, "PENDENTE", "", str(pref.get("id", "")),
+                    link, elevo_agora_v16813(), "", ""])
+    return {"pedido": pedido, "link": link}
+
+
+def _elevo_credito_venda_v16863(email, creditos, referencia):
+    """Soma créditos de uma venda confirmada. Idempotente pela referência."""
+    with elevo_credito_lock_v16813():
+        elevo_credito_saldo_v16813(email, fresco=True)  # garante o INIT antes do ADD
+        aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
+        linhas = aba.get_all_records()
+        if not any(str(r.get("Referencia", "")) == referencia for r in linhas):
+            aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(), "ADD",
+                            int(creditos), referencia, "MERCADOPAGO"])
+        elevo_creditos_ler_cache_v16816.clear()
+
+
+def elevo_checkout_confirmar_v16863(payment_id=None):
+    """Confere no Mercado Pago os pedidos pendentes do usuário e credita os aprovados.
+
+    Retorna a lista de pedidos creditados agora: [{"plano", "creditos"}].
+    """
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email or elevo_admin_v16813():
+        return []
+    if not elevo_mp_ativo_v16863():
+        return []
+    aba = elevo_vendas_aba_v16863()
+    registros = aba.get_all_records()
+    meus = {str(r.get("Id")): (i + 2, r) for i, r in enumerate(registros)
+            if str(r.get("Email", "")).strip().lower() == email
+            and str(r.get("Status", "")).upper() == "PENDENTE"}
+    if not meus:
+        return []
+    pagamentos = []
+    if payment_id and str(payment_id).isdigit():
+        try:
+            pagamentos.append(_elevo_mp_req_v16863("GET", f"/v1/payments/{int(payment_id)}"))
+        except ElevoCreditoErroV16813:
+            pass
+    for pedido in list(meus)[-5:]:
+        try:
+            achados = _elevo_mp_req_v16863("GET", "/v1/payments/search", params={
+                "external_reference": pedido, "sort": "date_created", "criteria": "desc"})
+            pagamentos.extend(achados.get("results", []) or [])
+        except ElevoCreditoErroV16813:
+            continue
+    col = {nome: i + 1 for i, nome in enumerate(ELEVO_VENDAS_COLS_V16863)}
+    creditados = []
+    for pg in pagamentos:
+        pedido = str(pg.get("external_reference", ""))
+        if pedido not in meus or str(pg.get("status")) != "approved":
+            continue
+        linha, reg = meus[pedido]
+        try:
+            valor_pago = float(pg.get("transaction_amount") or 0)
+            valor_pedido = float(reg.get("Valor") or 0)
+            creditos = int(reg.get("Creditos") or 0)
+        except (TypeError, ValueError):
+            continue
+        if str(pg.get("currency_id")) != "BRL" or valor_pago + 0.009 < valor_pedido or creditos <= 0:
+            logging.warning("ELEVO_VENDA: pagamento %s não confere com o pedido %s", pg.get("id"), pedido)
+            continue
+        pid = str(pg.get("id"))
+        _elevo_credito_venda_v16863(email, creditos, "venda:" + pid)
+        try:
+            aba.update_cell(linha, col["Status"], "PAGO")
+            aba.update_cell(linha, col["PaymentId"], pid)
+            aba.update_cell(linha, col["PagoEm"], elevo_agora_v16813())
+            aba.update_cell(linha, col["Metodo"], str(pg.get("payment_type_id", ""))[:30])
+        except Exception:
+            logging.warning("ELEVO_VENDA: crédito feito, mas status do pedido %s não atualizado", pedido)
+        meus.pop(pedido, None)
+        creditados.append({"plano": reg.get("Plano"), "creditos": creditos})
+    return creditados
 
 # V16.8.16 — Verificação sem bloquear o login por oscilação do Sheets.
 # Saldo e permissões de geração continuam fail-closed nas operações cobradas.
@@ -3082,6 +3325,31 @@ try:
     )
 except Exception:
     pass  # Foto ausente/banco em oscilação: apresenta o ícone padrão.
+# V16.8.63 — volta do Mercado Pago / conferência automática (1x por sessão).
+if not E_O_CEO and st.session_state.get("usuario_logado"):
+    _evp_qp = st.query_params
+    _evp_pid = str(_evp_qp.get("payment_id", "") or _evp_qp.get("collection_id", "") or "")
+    _evp_ret = str(_evp_qp.get("elevo_pg", "") or "")
+    if _evp_ret or not st.session_state.get("elevo_checkout_auto_v16863"):
+        st.session_state["elevo_checkout_auto_v16863"] = True
+        try:
+            _evp_ok_auto = elevo_checkout_confirmar_v16863(_evp_pid or None)
+        except Exception:
+            _evp_ok_auto = []
+        if _evp_ok_auto:
+            st.session_state["elevo_checkout_sucesso_v16863"] = _evp_ok_auto
+            st.session_state.pop("elevo_checkout_link_v16863", None)
+            elevo_invalidar_leituras_v16816()
+        for _evp_k in ("payment_id", "collection_id", "collection_status", "status", "external_reference",
+                       "payment_type", "merchant_order_id", "preference_id", "site_id", "processing_mode",
+                       "merchant_account_id"):
+            if _evp_k in _evp_qp:
+                del _evp_qp[_evp_k]
+        if _evp_ret:
+            if _evp_ok_auto:
+                del _evp_qp["elevo_pg"]
+            elif _evp_ret == "ok":
+                _evp_qp["elevo_pg"] = "pendente"
 if not E_O_CEO:
     try:
         _elevo_saldo_v16813 = elevo_credito_saldo_v16813()
@@ -3143,10 +3411,114 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
                         "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
+    _evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
+    if _evp_sucesso:
+        _evp_total = sum(int(x.get("creditos", 0)) for x in _evp_sucesso)
+        st.success(f"🎉 Pagamento aprovado! **+{format(_evp_total, ',').replace(',', '.')} créditos** já estão no seu saldo. Boas criações!")
+        st.balloons()
+    # ==========================================================
+    # V16.8.63 — LOJA DE CRÉDITOS (planos + checkout Mercado Pago)
+    # ==========================================================
+    st.markdown("""<style>
+    .st-key-elevo_loja_v16863 {border-radius:22px!important; padding:1rem 1rem .6rem!important; position:relative; overflow:hidden;
+      background:radial-gradient(ellipse 60% 90% at 100% 0%,rgba(216,182,106,.16),transparent 65%),
+                 linear-gradient(155deg,#0E1828,#070C16)!important; border:1px solid rgba(216,182,106,.36)!important;}
+    .st-key-elevo_loja_v16863 [data-testid="stMarkdownContainer"] p, .st-key-elevo_loja_v16863 [data-testid="stCaptionContainer"] p {color:#A9BAD1!important;}
+    .evp-topo {display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:.7rem;}
+    .evp-titulo {color:#F4F7FC; font:800 1.15rem Montserrat,sans-serif;}
+    .evp-badge {font:700 .64rem 'JetBrains Mono',monospace; letter-spacing:.14em; color:#2FD39A; padding:5px 10px; border-radius:30px;
+      background:rgba(47,211,154,.08); border:1px solid rgba(47,211,154,.3);}
+    .evp-card {position:relative; border-radius:18px; padding:1.05rem .95rem .8rem; height:100%; text-align:center;
+      background:rgba(255,255,255,.03); border:1px solid rgba(84,216,245,.18);}
+    .evp-card.destaque {border-color:#D8B66A; background:linear-gradient(180deg,rgba(216,182,106,.14),rgba(216,182,106,.03));
+      box-shadow:0 12px 30px rgba(216,182,106,.14);}
+    .evp-selo {display:inline-block; font:800 .6rem Montserrat,sans-serif; letter-spacing:.12em; text-transform:uppercase;
+      padding:4px 9px; border-radius:20px; color:#9FD0FF; background:rgba(84,216,245,.1); margin-bottom:.45rem;}
+    .evp-card.destaque .evp-selo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+    .evp-nome {color:#EAF2FF; font:800 1rem Montserrat,sans-serif; letter-spacing:.06em;}
+    .evp-cred {color:#F4DC9A; font:900 1.55rem Montserrat,sans-serif; margin:.2rem 0 0;}
+    .evp-cred small {font-size:.7rem; color:#C9B27A;}
+    .evp-preco {color:#F4F7FC; font:800 1.25rem Montserrat,sans-serif; margin:.35rem 0 .1rem;}
+    .evp-preco sup {font-size:.65rem; vertical-align:top; margin-right:2px;}
+    .evp-desc {color:#8FA6C4; font-size:.76rem;}
+    .evp-seg {display:flex; justify-content:center; flex-wrap:wrap; gap:6px 14px; margin-top:.75rem; color:#8FA6C4; font-size:.72rem;}
+    .st-key-elevo_loja_v16863 .stButton button, .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a {
+      border-radius:12px!important; min-height:44px!important; font-weight:800!important;
+      background:rgba(255,255,255,.04)!important; border:1px solid rgba(84,216,245,.3)!important;}
+    .st-key-elevo_loja_v16863 .stButton button p {color:#EAF2FF!important; font-weight:800!important;}
+    .st-key-elevo_loja_v16863 .stButton button:hover {border-color:#54D8F5!important; background:rgba(84,216,245,.08)!important;}
+    .st-key-elevo_loja_v16863 .stButton button[kind="primary"] {border:none!important;
+      background:linear-gradient(100deg,#B88A2E,#D8B66A 45%,#F4DC9A)!important; box-shadow:0 8px 22px rgba(216,182,106,.25)!important;}
+    .st-key-elevo_loja_v16863 .stButton button[kind="primary"] p {color:#120D03!important;}
+    .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a p, .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a span {color:#fff!important;}
+    .st-key-elevo_loja_v16863 [data-testid="stLinkButton"] a {background:linear-gradient(100deg,#00A650,#2FD39A)!important;
+      color:#fff!important; border:none!important;}
+    </style>""", unsafe_allow_html=True)
+
+    _evp_retorno = str(st.query_params.get("elevo_pg", "") or "")
+    _evp_aberta = bool(_evp_retorno) or (isinstance(_elevo_saldo_v16813, int) and _elevo_saldo_v16813 < 50)
+    with st.container(key="elevo_loja_v16863"):
+        with st.expander("💎 Comprar créditos • Pix ou cartão", expanded=_evp_aberta):
+            st.markdown('<div class="evp-topo"><div class="evp-titulo">Escolha seu plano</div><div class="evp-badge">● PAGAMENTO SEGURO</div></div>',
+                        unsafe_allow_html=True)
+            if _evp_retorno == "pendente":
+                st.info("⏳ Pagamento em processamento. Assim que o Mercado Pago aprovar, os créditos entram. "
+                        "Use **Já paguei, verificar** em instantes.")
+            elif _evp_retorno == "falhou":
+                st.warning("O pagamento não foi concluído. Nenhum valor foi cobrado; você pode tentar de novo.")
+            _evp_cols = st.columns(len(ELEVO_PACOTES_V16859))
+            for _evp_col, (_evp_nome, _evp_p) in zip(_evp_cols, ELEVO_PACOTES_V16859.items()):
+                with _evp_col:
+                    _evp_dest = "destaque" if _evp_nome == "Pro" else ""
+                    _evp_preco = f"{float(_evp_p['preco']):.2f}".replace(".", ",")
+                    st.markdown(
+                        f"<div class='evp-card {_evp_dest}'><div class='evp-selo'>{html_std.escape(_evp_p.get('selo', ''))}</div>"
+                        f"<div class='evp-nome'>{html_std.escape(_evp_nome.upper())}</div>"
+                        f"<div class='evp-cred'>{format(int(_evp_p['creditos']), ',').replace(',', '.')}<small> CR</small></div>"
+                        f"<div class='evp-preco'><sup>R$</sup>{_evp_preco}</div>"
+                        f"<div class='evp-desc'>{html_std.escape(_evp_p['desc'])}</div></div>",
+                        unsafe_allow_html=True)
+                    _evp_link = st.session_state.get("elevo_checkout_link_v16863", {})
+                    if _evp_link.get("plano") == _evp_nome:
+                        st.link_button("Pagar agora ➜", _evp_link["link"], use_container_width=True)
+                    elif st.button(f"Quero o {_evp_nome}", key=f"elevo_comprar_{_evp_nome}_v16863",
+                                   use_container_width=True, type="primary" if _evp_dest else "secondary"):
+                        try:
+                            with st.spinner("Abrindo pagamento seguro..."):
+                                _evp_res = elevo_checkout_criar_v16863(_evp_nome)
+                            st.session_state["elevo_checkout_link_v16863"] = {"plano": _evp_nome, "link": _evp_res["link"]}
+                            st.rerun()
+                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _evp_exc:
+                            st.warning(str(_evp_exc))
+                        except Exception:
+                            st.warning("Não foi possível abrir o pagamento agora. Tente novamente.")
+            if st.session_state.get("elevo_checkout_link_v16863"):
+                st.caption("O pagamento abre numa nova aba do Mercado Pago. Pagou com Pix? Volte aqui e toque em "
+                           "**Já paguei, verificar**.")
+            if not elevo_mp_ativo_v16863():
+                st.caption("🛠️ Pagamentos em configuração. Enquanto isso, use **Pedir créditos ao CEO** logo abaixo.")
+            elif st.button("✓ Já paguei, verificar", key="elevo_checkout_verificar_v16863", use_container_width=True):
+                try:
+                    with st.spinner("Conferindo com o Mercado Pago..."):
+                        _evp_ok = elevo_checkout_confirmar_v16863()
+                    if _evp_ok:
+                        st.session_state.pop("elevo_checkout_link_v16863", None)
+                        st.session_state["elevo_checkout_sucesso_v16863"] = _evp_ok
+                        elevo_invalidar_leituras_v16816()
+                        st.rerun()
+                    else:
+                        st.info("Ainda não encontramos pagamento aprovado. No Pix a aprovação costuma levar poucos segundos; "
+                                "no cartão, até alguns minutos.")
+                except Exception:
+                    st.warning("Não foi possível conferir agora. Tente de novo em instantes.")
+            st.markdown("<div class='evp-seg'><span>🔒 Mercado Pago</span><span>⚡ Pix na hora</span>"
+                        "<span>💳 Cartão</span><span>♾️ Créditos não expiram</span></div>", unsafe_allow_html=True)
+
+if not E_O_CEO:
     # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
     with st.container(key="elevo_painel_creditos_v16824"):
         with st.expander("▤ Pedir créditos ao CEO", expanded=False):
-            st.caption("Seu pedido será exibido no painel do CEO. Não há recarga automática.")
+            st.caption("Prefere combinar direto? Seu pedido aparece no painel do CEO. Para recarga na hora, use 💎 Comprar créditos.")
             qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
                                                 value=100, step=10, key="elevo_pedido_qtd_v16813")
             msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
@@ -5738,7 +6110,7 @@ if E_O_CEO:
 
         with st.expander("🧭 Guia rápido: como isso se liga ao futuro painel de vendas", expanded=False):
             st.markdown(
-                "- **Pacotes:** os planos acima (Start, Pro, Elite, Black) ficam em `ELEVO_PACOTES_V16859` "
+                "- **Pacotes:** os planos acima (Start, Pro, Elite) ficam em `ELEVO_PACOTES_V16859` "
                 "no código. Para mudar créditos ou colocar preço, edite só essa lista. O painel de vendas vai usar a mesma.\n"
                 "- **Venda para cliente novo:** quando o pagamento for aprovado, o sistema chama "
                 "`elevo_criar_conta_vip_v16859(...)` com `origem=\"VENDA\"` e `referencia=\"venda:<id do pagamento>\"`. "
@@ -5748,6 +6120,54 @@ if E_O_CEO:
                 "(plano, créditos, preço, origem, referência, data e quem criou).\n"
                 "- **Pedidos de crédito** dos usuários continuam chegando na Gestão de usuários, logo abaixo.")
     st.divider()
+    # ==========================================================
+    # V16.8.63 — PAINEL DE VENDAS DO CEO (Mercado Pago)
+    # ==========================================================
+    with st.expander("💰 Vendas e checkout (Mercado Pago)", expanded=False):
+        _evv_cfg = elevo_mp_config_v16863()
+        if not _evv_cfg["token"]:
+            st.warning("Checkout desligado: falta o Access Token do Mercado Pago nos Secrets do app.")
+        elif _evv_cfg["teste"]:
+            st.info("🧪 Modo TESTE ativo. Pague com uma CONTA DE TESTE comprador do Mercado Pago. "
+                    "Para vender de verdade, troque pelo Access Token de produção e mude modo para \"producao\".")
+        else:
+            st.success("✅ Checkout ativo em PRODUÇÃO. Os usuários já podem comprar créditos.")
+        try:
+            _evv_regs = elevo_vendas_aba_v16863().get_all_records()
+        except Exception:
+            _evv_regs = []
+            st.caption("Não foi possível ler a aba de vendas agora.")
+        _evv_pagos = [r for r in _evv_regs if str(r.get("Status", "")).upper() == "PAGO"]
+        def _evv_num(v):
+            try:
+                return float(str(v).replace(",", "."))
+            except (TypeError, ValueError):
+                return 0.0
+        _evv_c1, _evv_c2, _evv_c3 = st.columns(3)
+        _evv_c1.metric("Vendas pagas", len(_evv_pagos))
+        _evv_c2.metric("Faturamento bruto", "R$ " + f"{sum(_evv_num(r.get('Valor')) for r in _evv_pagos):,.2f}"
+                       .replace(",", "X").replace(".", ",").replace("X", "."))
+        _evv_c3.metric("Créditos vendidos", format(int(sum(_evv_num(r.get("Creditos")) for r in _evv_pagos)), ",").replace(",", "."))
+        if _evv_regs:
+            st.dataframe([{k: r.get(k, "") for k in ("CriadoEm", "Email", "Plano", "Creditos", "Valor", "Status", "Metodo", "PagoEm")}
+                          for r in reversed(_evv_regs[-30:])], use_container_width=True, hide_index=True)
+        _evv_planos = []
+        for _evv_n, _evv_p in ELEVO_PACOTES_V16859.items():
+            _evv_cr = format(int(_evv_p["creditos"]), ",").replace(",", ".")
+            _evv_pr = ("%.2f" % float(_evv_p["preco"])).replace(".", ",")
+            _evv_planos.append(_evv_n + ": " + _evv_cr + " CR por R$ " + _evv_pr)
+        st.markdown("**Planos à venda:** " + " • ".join(_evv_planos))
+        st.markdown(
+            "**Como ligar o checkout (uma vez só):**\n"
+            "1. Crie ou acesse sua conta em **mercadopago.com.br** e abra **Suas integrações** (área de desenvolvedor).\n"
+            "2. Crie uma aplicação do tipo **Checkout Pro** e copie o **Access Token de produção** (começa com `APP_USR-`).\n"
+            "3. No Streamlit, abra o app → **Settings → Secrets** e cole:\n"
+            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\n```\n"
+            "4. Salve. No teste, compre com uma conta comum do app (o CEO não compra) e pague com uma "
+            "**conta de teste comprador** do Mercado Pago. Para vender de verdade, troque o token pelo de "
+            "**produção** e mude para `modo = \"producao\"`.\n"
+            "5. Pronto: o cliente paga com Pix ou cartão e os créditos entram sozinhos quando ele volta ao app "
+            "ou toca em **Já paguei, verificar**.")
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
                 "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
