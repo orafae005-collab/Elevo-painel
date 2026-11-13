@@ -1,4 +1,5 @@
-# ÉLÉVO V16.8.39 — MOTOR PRINCIPAL GPT-6.1 TERRA | BASE V16.8.38 PRESERVADA
+# ÉLÉVO V16.8.52 — ÉLÉVO NIGHT: REFINAMENTO VISUAL DO MODO ESCURO | BASE V16.8.51
+# Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
 # Somente UI/identidade da logo final V9.2 e higienização de três frases V9.2; imagem V9 e motores 360/3S intactos.
@@ -2022,6 +2023,438 @@ if st.session_state.get("mostrar_player_bv") and st.session_state.get("audio_boa
         on_concluido_change=concluir_audio_aurora,
     )
 
+
+
+# ==========================================================
+# ÉLÉVO V16.8.49 — LABORATÓRIO DE AUDIÇÃO E ESCOLHA DE VOZ VIP
+# Aurora, login, cadastro, créditos e motores existentes não são alterados.
+# ==========================================================
+def _elevo_vip_hoje_v16840():
+    return datetime.now(ZoneInfo("America/Sao_Paulo")).date().isoformat()
+
+
+def _elevo_vip_aurora_hoje_v16840(email, hoje):
+    # A conta que acabou de receber a Aurora não recebe a segunda surpresa no mesmo dia.
+    try:
+        for r in elevo_aba_aurora_v16816().get_all_records():
+            if str(r.get("Email", "")).strip().lower() == email and r.get("ConsumidoEm"):
+                dt = datetime.fromisoformat(str(r["ConsumidoEm"]).replace("Z", "+00:00"))
+                if dt.astimezone(ZoneInfo("America/Sao_Paulo")).date().isoformat() == hoje:
+                    return True
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_AURORA_CHECK: %s", type(exc).__name__)
+    return False
+
+
+def _elevo_vip_reservar_v16840(email, hoje):
+    # Aba própria; uma linha por conta; marca antes do áudio para impedir repetição em F5.
+    try:
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_v16813("Elevo_Saudacao_Diaria_V1",
+                                   ["Email", "UltimaData", "AtualizadoEm"])
+            for n, r in enumerate(aba.get_all_records(), start=2):
+                if str(r.get("Email", "")).strip().lower() == email:
+                    if str(r.get("UltimaData", "")) == hoje:
+                        return False
+                    aba.update_cell(n, 2, hoje)
+                    aba.update_cell(n, 3, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat())
+                    return True
+            aba.append_row([email, hoje, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()])
+            return True
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_DAILY_SHEETS: %s", type(exc).__name__)
+        return False
+
+
+def _elevo_vip_gerar_mensagem_ia_v16847(email, hoje):
+    """
+    Gera uma mensagem original por dia e por perfil, usando o cliente OpenAI
+    já configurado na ÉLÉVO. O resultado fica persistido no Google Sheets.
+    Não mantém banco de frases pré-escritas.
+    """
+    publico = "CEO" if email == str(EMAIL_MESTRE).strip().lower() else "GERAL"
+    chave_cache = f"{hoje}|{publico}"
+    fallback = (
+        "Não espere sentir vontade para cumprir o que importa. Escolha a prioridade, "
+        "comece pelo próximo passo e sustente a execução. Disciplina é transformar "
+        "decisão em comportamento, inclusive nos dias difíceis."
+    )
+
+    try:
+        # Lock compartilhado para impedir duas gerações simultâneas para o mesmo dia.
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_v16813(
+                "Elevo_Mensagem_Diaria_IA_V1",
+                ["Data", "Publico", "Mensagem", "Modelo", "CriadoEm"]
+            )
+
+            # Cache diário persistente: uma geração para cada público em cada data.
+            for linha in aba.get_all_records():
+                if (str(linha.get("Data", "")).strip() == hoje
+                        and str(linha.get("Publico", "")).strip().upper() == publico):
+                    mensagem_salva = str(linha.get("Mensagem", "")).strip()
+                    if mensagem_salva:
+                        return mensagem_salva
+
+            perfil = (
+                "Você escreve para o CEO e fundador da ÉLÉVO. Fale com alguém que "
+                "precisa liderar, decidir, priorizar e executar. Traga visão estratégica, "
+                "responsabilidade e padrão elevado."
+                if publico == "CEO" else
+                "Você escreve para um usuário da ÉLÉVO. Fale com alguém que precisa "
+                "assumir responsabilidade pela própria rotina, vencer a procrastinação "
+                "e transformar intenção em ação concreta."
+            )
+
+            instrucao = f"""
+Você é a voz de disciplina e execução da plataforma ÉLÉVO.
+Crie UMA mensagem diária original em português brasileiro.
+
+PÚBLICO: {publico}
+CONTEXTO: {perfil}
+
+DIREÇÃO CRIATIVA:
+- Tom firme, intenso, inteligente e memorável, como um estrategista de alta performance.
+- A mensagem deve provocar reflexão e movimento, não oferecer carinho ou motivação vazia.
+- Mostre uma verdade incômoda com respeito e conduza a uma ação concreta.
+- Valorize disciplina, responsabilidade, foco, consistência e execução.
+- Seja persuasivo sem humilhar, ameaçar, culpar ou manipular emocionalmente.
+- Evite clichês de coach, frases famosas, slogans genéricos e repetições previsíveis.
+- Não use o nome do usuário, saudação, nome da plataforma, emojis, aspas ou título.
+- Escreva entre 35 e 55 palavras, em 2 a 4 frases curtas.
+- Termine com uma orientação prática que a pessoa possa aplicar hoje.
+- Não acrescente explicações sobre como a mensagem foi criada.
+
+Data de referência: {hoje}.
+Entregue somente a mensagem final.
+"""
+
+            resposta = cliente_openai.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "Você é um redator estratégico de alto impacto. "
+                            "Cada solicitação exige uma ideia original; não reutilize "
+                            "fórmulas, aberturas ou metáforas previsíveis."
+                        )
+                    },
+                    {"role": "user", "content": instrucao}
+                ],
+                temperature=0.95,
+                max_tokens=150,
+            )
+            mensagem = str(resposta.choices[0].message.content or "").strip()
+            mensagem = mensagem.strip().strip('"“”').strip()
+            mensagem = re.sub(r"^Mensagem:\\s*", "", mensagem, flags=re.IGNORECASE).strip()
+
+            if not mensagem or len(mensagem) < 40:
+                raise ValueError("A IA retornou uma mensagem vazia ou muito curta.")
+
+            modelo_usado = "gpt-4o-mini"
+            criado_em = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+            aba.append_row([hoje, publico, mensagem, modelo_usado, criado_em])
+            logging.info("ELEVO_VIP_DAILY_AI_OK date=%s audience=%s", hoje, publico)
+            return mensagem
+
+    except Exception as exc:
+        logging.warning(
+            "ELEVO_VIP_DAILY_AI_FALLBACK date=%s audience=%s error=%s",
+            hoje, publico, type(exc).__name__
+        )
+        # Fallback único de segurança, não é um banco de frases alternativas.
+        return fallback
+
+
+def _elevo_vip_frase_v16840(email, nome, hoje):
+    """
+    Monta a saudação diária com mensagem criada pela IA e persistida por data/perfil.
+    """
+    try:
+        mensagem = _elevo_vip_gerar_mensagem_ia_v16847(email, hoje)
+    except Exception as exc:
+        logging.warning("ELEVO_VIP_DAILY_MESSAGE: %s", type(exc).__name__)
+        mensagem = (
+            "Não espere sentir vontade para cumprir o que importa. "
+            "Escolha a prioridade, comece pelo próximo passo e sustente a execução."
+        )
+
+    hora = datetime.now(ZoneInfo("America/Sao_Paulo")).hour
+    saudacao = "Bom dia" if hora < 12 else ("Boa tarde" if hora < 18 else "Boa noite")
+    return (
+        f"{saudacao}, {nome}. {mensagem} "
+        "A decisão é sua. A execução começa agora. "
+        "Seja muito bem-vindo de volta à ÉLÉVO."
+    )
+
+
+def _elevo_tts_gerar_amostra_v16849(texto, voz):
+    """Gera amostra sem fallback e devolve erros reais para o painel CEO."""
+    import asyncio
+    import concurrent.futures
+
+    texto = re.sub(r"ÉLÉVO", "Élevo", str(texto or ""), flags=re.IGNORECASE).strip()
+    permitidas = {"pt-BR-FranciscaNeural", "pt-BR-ThalitaMultilingualNeural", "pt-BR-DonatoNeural"}
+    if voz not in permitidas:
+        raise ValueError("Voz não autorizada para a prévia.")
+    try:
+        import edge_tts
+    except Exception as exc:
+        raise RuntimeError(
+            "Pacote edge-tts ausente. Acrescente edge-tts>=7.0.0 ao requirements.txt "
+            "e faça novo deploy. " + type(exc).__name__ + ": " + str(exc)
+        ) from exc
+
+    async def gerar_async():
+        comunicacao = edge_tts.Communicate(
+            text=texto, voice=voz, rate="-4%",
+            pitch="-1Hz" if voz == "pt-BR-DonatoNeural" else "+0Hz",
+            volume="+0%"
+        )
+        partes = []
+        async for parte in comunicacao.stream():
+            if parte.get("type") == "audio" and parte.get("data"):
+                partes.append(parte["data"])
+        return b"".join(partes)
+
+    def executar():
+        return asyncio.run(asyncio.wait_for(gerar_async(), timeout=35))
+
+    try:
+        try:
+            asyncio.get_running_loop()
+        except RuntimeError:
+            audio = executar()
+        else:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                audio = pool.submit(executar).result(timeout=40)
+    except Exception as exc:
+        raise RuntimeError(f"Falha em {voz}: {type(exc).__name__}: {str(exc)[:900]}") from exc
+    if not audio or len(audio) < 1500:
+        raise RuntimeError(f"{voz} retornou áudio inválido ({len(audio or b'')} bytes).")
+    return audio
+
+
+def _elevo_vip_audio_v16840(frase):
+    """
+    Voz exclusiva da experiência VIP: somente Francisca Neural.
+    Não usa Antonio nem gTTS como fallback. A voz alternativa do primeiro
+    acesso/Aurora permanece independente e não é chamada por esta função.
+    Em falha, registra diagnóstico técnico para o CEO.
+    """
+    import asyncio
+    import traceback
+
+    diagnosticos = []
+    texto_falado = str(frase or "").strip()
+    texto_falado = re.sub(r"ÉLÉVO", "Élevo", texto_falado, flags=re.IGNORECASE)
+    texto_falado = re.sub(r"\\s+", " ", texto_falado).strip()
+
+    if not texto_falado:
+        diagnostico = "Texto da mensagem vazio; nenhuma solicitação de voz foi enviada."
+        st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+        logging.error("ELEVO_VIP_TTS_ERROR: %s", diagnostico)
+        return None
+
+    try:
+        import edge_tts
+    except Exception as exc:
+        diagnostico = (
+            "Não foi possível importar o pacote edge-tts. "
+            f"Tipo: {type(exc).__name__}. Detalhe: {str(exc)[:700]}"
+        )
+        st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+        logging.exception("ELEVO_VIP_TTS_IMPORT_ERROR")
+        return None
+
+    async def gerar():
+        comunicacao = edge_tts.Communicate(
+            text=texto_falado,
+            voice="pt-BR-FranciscaNeural",
+            rate="-7%",
+            pitch="-3Hz",
+            volume="+0%",
+        )
+        partes = []
+        async for parte in comunicacao.stream():
+            if parte.get("type") == "audio" and parte.get("data"):
+                partes.append(parte["data"])
+        return b"".join(partes)
+
+    try:
+        audio = asyncio.run(asyncio.wait_for(gerar(), timeout=35))
+        if not audio or len(audio) <= 2048:
+            raise RuntimeError(
+                f"O serviço respondeu sem áudio válido. Bytes recebidos: {len(audio or b'')}."
+            )
+        st.session_state["elevo_vip_tts_erro_v16848"] = ""
+        st.session_state["elevo_vip_tts_voz_v16848"] = "pt-BR-FranciscaNeural"
+        logging.info("ELEVO_VIP_TTS_OK provider=edge voice=pt-BR-FranciscaNeural bytes=%s",
+                     len(audio))
+        return audio
+    except Exception as exc:
+        detalhe = f"{type(exc).__name__}: {str(exc)[:1000]}"
+        diagnosticos.append(detalhe)
+        logging.exception("ELEVO_VIP_TTS_PRIMARY_FAILED voice=pt-BR-FranciscaNeural")
+
+    diagnostico = (
+        "FALHA NA VOZ VIP — nenhuma voz reserva foi acionada.\\n"
+        "Voz solicitada: pt-BR-FranciscaNeural\\n"
+        "Provedor: Microsoft Edge Neural TTS\\n"
+        "Diagnóstico: " + " | ".join(diagnosticos)
+    )
+    st.session_state["elevo_vip_tts_erro_v16848"] = diagnostico
+    st.session_state["elevo_vip_tts_voz_v16848"] = ""
+    logging.error("ELEVO_VIP_TTS_FINAL_ERROR: %s", diagnostico)
+    return None
+
+
+def _elevo_vip_fechar_v16840():
+    st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+    st.session_state["elevo_vip_diaria_audio_v16840"] = None
+    st.session_state["elevo_vip_preview_ceo_v16842"] = False
+
+
+# A sessão pode permanecer autenticada por vários dias.
+# Ao executar o app em uma nova data de São Paulo, rearmamos somente o controle
+# visual da saudação; a planilha continua sendo a fonte persistente por conta/dia.
+_vip_data_execucao = _elevo_vip_hoje_v16840()
+_vip_data_sessao = st.session_state.get("elevo_vip_data_sessao_v16843")
+if _vip_data_sessao != _vip_data_execucao:
+    st.session_state["elevo_vip_data_sessao_v16843"] = _vip_data_execucao
+    st.session_state["elevo_vip_diaria_exibida_v16840"] = False
+    st.session_state["elevo_vip_diaria_audio_v16840"] = None
+    st.session_state["elevo_vip_diaria_frase_v16840"] = ""
+    st.session_state["elevo_vip_preview_ceo_v16842"] = False
+
+if st.session_state.get("usuario_logado") and not st.session_state.get("elevo_vip_diaria_exibida_v16840", False):
+    _vip_email = str(st.session_state.get("email_usuario", "")).strip().lower()
+    _vip_nome = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+    _vip_hoje = _elevo_vip_hoje_v16840()
+    if _vip_email:
+        if _elevo_vip_aurora_hoje_v16840(_vip_email, _vip_hoje):
+            st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+        elif _elevo_vip_reservar_v16840(_vip_email, _vip_hoje):
+            _vip_frase = _elevo_vip_frase_v16840(_vip_email, _vip_nome, _vip_hoje)
+            with st.spinner("Preparando sua mensagem diária..."):
+                _vip_bytes = _elevo_vip_audio_v16840(_vip_frase)
+            if _vip_bytes:
+                st.session_state["elevo_vip_diaria_frase_v16840"] = _vip_frase
+                st.session_state["elevo_vip_diaria_audio_v16840"] = base64.b64encode(_vip_bytes).decode("ascii")
+            else:
+                # Não aciona voz reserva nem bloqueia o restante da plataforma.
+                st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+        else:
+            st.session_state["elevo_vip_diaria_exibida_v16840"] = True
+
+
+if (st.session_state.get("usuario_logado")
+        and st.session_state.get("elevo_vip_diaria_audio_v16840")
+        and (not st.session_state.get("elevo_vip_diaria_exibida_v16840", False)
+             or st.session_state.get("elevo_vip_preview_ceo_v16842", False))):
+    _vip = st.components.v2.component(
+        name="elevo_vip_daily_protocol_v16841",
+        html="""<main id="vip">
+        <div class="code-rain" aria-hidden="true">
+          <span>0100101<br>ACCESS_GRANTED<br>0xE1EVO<br>11001010<br>NEURAL_LINK<br>010101</span>
+          <span>AUTH::VALID<br>10100101<br>IDENTITY_SYNC<br>0x7F2A<br>11001010<br>CORE_ONLINE</span>
+          <span>01010110<br>ENCRYPTION_OK<br>11100010<br>PROTOCOL_VIP<br>01001101</span>
+          <span>SYS://ELEVO<br>11010010<br>BIOMETRIC_SCAN<br>01010101<br>ACCESS_GRANTED</span>
+          <span>10101001<br>NEURAL_CORE<br>01001010<br>SECURE_CHANNEL<br>11010100</span>
+        </div>
+        <div class="hud-grid" aria-hidden="true"></div>
+        <div class="scanline" aria-hidden="true"></div>
+        <section class="panel">
+          <div class="top"><span>ÉLÉVO <b>INTELLIGENCE</b></span><span class="secure"><i></i> SECURE SESSION</span></div>
+          <div class="stage">
+            <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
+            <div class="orbit orbit-c"></div><div class="target t1"></div><div class="target t2"></div>
+            <div class="core">
+              <div class="core-ring"></div><div class="core-glow"></div>
+              <svg class="sigil" viewBox="0 0 300 300" role="img" aria-label="Núcleo holográfico de inteligência">
+                <defs>
+                  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6ffff"/><stop offset=".45" stop-color="#26dfff"/><stop offset="1" stop-color="#b68b48"/></linearGradient>
+                  <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+                </defs>
+                <g fill="none" stroke="url(#metal)" stroke-width="1.35" filter="url(#glow)">
+                  <path d="M150 25 220 65 258 135 238 220 175 267 105 267 45 220 25 135 65 65Z" opacity=".8"/>
+                  <path d="M150 45 205 77 232 135 216 205 170 244 110 244 64 205 48 135 75 77Z" opacity=".55"/>
+                  <path d="M150 52 125 76 108 115 112 164 132 205 150 229 168 205 188 164 192 115 175 76Z"/>
+                  <path d="M85 119 121 107 145 119 M155 119 179 107 215 119" stroke-width="2.4"/>
+                  <path d="M98 137 126 132 142 139 M158 139 174 132 202 137" stroke-width="2.2"/>
+                  <path d="M150 132 141 171 150 178 159 171Z"/>
+                  <path d="M123 197 Q150 211 177 197" stroke-width="2"/>
+                  <path d="M75 92 105 105 112 164 88 191 M225 92 195 105 188 164 212 191" opacity=".55"/>
+                  <path d="M150 25V52 M150 229V267 M25 135H48 M232 135H258" opacity=".7"/>
+                </g>
+                <g fill="#a9fbff"><circle cx="126" cy="137" r="2.5"/><circle cx="174" cy="137" r="2.5"/><circle cx="150" cy="25" r="3"/></g>
+              </svg>
+              <div class="core-label">AI // CORE</div>
+            </div>
+            <div class="crosshair ch1"></div><div class="crosshair ch2"></div>
+            <div class="readout r1">IDENTITY<br><b>VERIFIED</b></div>
+            <div class="readout r2">NEURAL LINK<br><b>ACTIVE</b></div>
+            <div class="readout r3">ENCRYPTION<br><b>AES-256</b></div>
+          </div>
+          <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
+          <h2 id="nome"></h2>
+          <div class="divider"><span></span><b>DAILY INTELLIGENCE BRIEFING</b><span></span></div>
+          <p id="frase"></p>
+          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+          <div id="status">ESTABELECENDO CONEXÃO DE VOZ...</div>
+          <button id="play">▶ ATIVAR MENSAGEM</button>
+          <button id="close">ENTRAR NA ÉLÉVO <span>→</span></button>
+          <audio id="audio" preload="auto" playsinline></audio>
+        </section>
+        <div class="bottomline"><span>ÉLÉVO SYSTEMS</span><span>PROTECTED ENVIRONMENT • BRASIL</span><span>V.01 / ONLINE</span></div>
+        </main>""",
+        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 46%,#102c42 0%,#07111f 42%,#02050b 100%);color:#eafaff;display:grid;place-items:center;font-family:Arial,sans-serif;overflow:hidden}
+        #vip:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(0,222,255,.13),transparent 28%),linear-gradient(115deg,transparent 35%,rgba(0,229,255,.035) 50%,transparent 65%);pointer-events:none}
+        .hud-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,220,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.055) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 0%,transparent 78%);opacity:.55}
+        .code-rain{position:absolute;inset:-20% 0;display:flex;justify-content:space-around;gap:5vw;overflow:hidden;opacity:.25;pointer-events:none}
+        .code-rain span{font:10px/2.2 monospace;letter-spacing:3px;color:#20dff5;text-shadow:0 0 9px #00cfff;white-space:nowrap;writing-mode:vertical-rl;animation:codefall 13s linear infinite}
+        .code-rain span:nth-child(2){animation-delay:-7s;animation-duration:17s;color:#9bdbd7}.code-rain span:nth-child(3){animation-delay:-3s;animation-duration:15s}.code-rain span:nth-child(4){animation-delay:-10s;animation-duration:19s}.code-rain span:nth-child(5){animation-delay:-5s;animation-duration:14s}
+        .scanline{position:absolute;left:0;right:0;height:2px;top:-5%;background:linear-gradient(90deg,transparent,#00eaff88,#d6b46b88,transparent);box-shadow:0 0 24px #00dfff;animation:scan 6s ease-in-out infinite;opacity:.7}
+        .panel{position:relative;width:min(94vw,720px);max-height:96vh;overflow:auto;padding:clamp(16px,3vw,28px) clamp(16px,4vw,38px) 22px;text-align:center;border:1px solid rgba(49,218,239,.38);border-radius:22px;background:linear-gradient(145deg,rgba(7,22,37,.94),rgba(3,8,17,.97) 70%);box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 22px 90px #000b,0 0 65px #00c8ed22;backdrop-filter:blur(14px);animation:materialize 1s cubic-bezier(.16,1,.3,1)}
+        .top{font-size:10px;letter-spacing:3px;color:#a8eefa;display:flex;justify-content:space-between;gap:10px;text-align:left}.top b{color:#fff}.secure{color:#8de6c8;font-size:9px;letter-spacing:1.5px}.secure i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:6px}
+        .stage{height:clamp(225px,34vh,300px);position:relative;display:grid;place-items:center;margin:2px auto 0;max-width:470px;overflow:hidden}
+        .core{position:relative;width:180px;height:180px;display:grid;place-items:center;animation:corefloat 5s ease-in-out infinite}
+        .sigil{position:relative;width:100%;height:100%;z-index:3;filter:drop-shadow(0 0 12px #00dfff99);animation:sigilpulse 3s ease-in-out infinite}
+        .core-ring{position:absolute;inset:9px;border:1px solid #39eaff77;border-radius:50%;box-shadow:0 0 32px #00dfff33,inset 0 0 28px #00dfff22;animation:spin 16s linear infinite}
+        .core-ring:before,.core-ring:after{content:"";position:absolute;inset:-13px;border:1px dashed #3ceaff66;border-radius:50%}.core-ring:after{inset:20px;border-style:solid;border-color:#d6b46b66;animation:spin 9s linear infinite reverse}
+        .core-glow{position:absolute;width:110px;height:110px;border-radius:50%;background:#00cfff22;filter:blur(30px);animation:glow 2.5s ease-in-out infinite}
+        .core-label{position:absolute;bottom:4px;font:8px monospace;letter-spacing:4px;color:#b5faff;z-index:4}
+        .orbit{position:absolute;border:1px solid rgba(0,220,255,.32);border-radius:50%;transform:rotate(-24deg);width:290px;height:100px;box-shadow:0 0 16px #00cfff16}.orbit-a{animation:orbit 12s linear infinite}.orbit-b{width:340px;height:140px;transform:rotate(52deg);border-color:#d6b46b44;animation:orbit 18s linear infinite reverse}.orbit-c{width:390px;height:190px;transform:rotate(-65deg);border-style:dashed;opacity:.55;animation:orbit 25s linear infinite}
+        .target{position:absolute;width:7px;height:7px;border-radius:50%;background:#b9ffff;box-shadow:0 0 16px 4px #00dfff}.t1{top:24%;left:24%}.t2{bottom:20%;right:25%;background:#e4c27b;box-shadow:0 0 16px 4px #c79b4a}
+        .crosshair{position:absolute;width:16px;height:16px;border:1px solid #8defff88}.ch1{top:18%;right:22%;border-left:0;border-bottom:0}.ch2{bottom:18%;left:22%;border-right:0;border-top:0}
+        .readout{position:absolute;text-align:left;font:8px/1.7 monospace;letter-spacing:1.5px;color:#6baebb}.readout b{color:#c4faff;font-weight:600}.r1{top:24%;left:3%}.r2{top:30%;right:2%;text-align:right}.r3{bottom:19%;right:5%;text-align:right}
+        .kicker{font-size:9px;letter-spacing:4px;color:#d7b66e;font-weight:700;margin-top:0}#nome{font-size:clamp(20px,3vw,27px);letter-spacing:3px;margin:8px 0;color:#f2fcff;text-shadow:0 0 22px #00dfff55}
+        .divider{display:flex;align-items:center;gap:12px;justify-content:center;margin:12px 0 7px;color:#8ebdca;font:8px monospace;letter-spacing:2px}.divider span{height:1px;width:45px;background:linear-gradient(90deg,transparent,#36dff4)}.divider span:last-child{transform:rotate(180deg)}
+        #frase{font-size:clamp(14px,1.8vw,16px);line-height:1.7;color:#d1e5ec;max-width:570px;margin:8px auto 12px}
+        .wave{height:27px;display:flex;align-items:center;justify-content:center;gap:4px}.wave i{width:3px;height:4px;border-radius:4px;background:linear-gradient(#e4c27b,#00dfff);opacity:.8}
+        #vip.playing .wave i{animation:wave .42s ease-in-out infinite alternate}#vip.playing .wave i:nth-child(3n){animation-delay:.13s}#vip.playing .wave i:nth-child(2n){animation-delay:.25s}
+        #status{font:8px monospace;letter-spacing:2px;color:#78cbd8;margin:7px 0 10px}
+        button{border-radius:30px;padding:12px 22px;margin:4px;cursor:pointer;font-size:10px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(110deg,#07506a,#087d91);color:white;border:1px solid #40eaff;box-shadow:0 0 22px #00dfff22;transition:transform .2s,box-shadow .2s}button:hover{transform:translateY(-2px);box-shadow:0 0 28px #00dfff55}#close{display:none;background:linear-gradient(110deg,#9b783b,#d2b36e);color:#09121b;border-color:#f2d28c}#close span{font-size:15px;margin-left:8px}
+        .bottomline{position:absolute;bottom:12px;left:18px;right:18px;display:flex;justify-content:space-between;color:#47717f;font:7px monospace;letter-spacing:1.5px;pointer-events:none}
+        @keyframes codefall{from{transform:translateY(-20%)}to{transform:translateY(35%)}}@keyframes scan{0%{top:-5%}100%{top:105%}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes orbit{to{transform:rotate(336deg)}}@keyframes corefloat{50%{transform:translateY(-5px)}}@keyframes sigilpulse{50%{filter:drop-shadow(0 0 22px #00eaffcc);transform:scale(1.025)}}@keyframes glow{50%{opacity:.45;transform:scale(1.35)}}@keyframes wave{to{height:25px}}@keyframes materialize{from{opacity:0;transform:scale(.94) translateY(12px);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
+        @media(max-width:600px){.panel{padding:15px 14px 18px;border-radius:17px}.stage{height:220px}.core{width:150px;height:150px}.orbit-a{width:245px}.orbit-b{width:280px}.orbit-c{width:310px}.readout{font-size:7px}.r1{left:0}.r2{right:0}.bottomline{font-size:6px;left:8px;right:8px}.bottomline span:nth-child(2){display:none}}
+        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important;scroll-behavior:auto!important}}""",
+        js="""export default function(c){const {parentElement,data,setTriggerValue}=c;const root=parentElement.querySelector('#vip'),a=parentElement.querySelector('#audio'),p=parentElement.querySelector('#play'),x=parentElement.querySelector('#close'),s=parentElement.querySelector('#status');if(!root||!a||!data?.audio)return;
+        parentElement.querySelector('#nome').textContent=data.name||'IDENTIDADE RECONHECIDA';parentElement.querySelector('#frase').textContent=data.phrase||'';a.src='data:audio/mpeg;base64,'+data.audio;let done=false;
+        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .7s,filter .7s';root.style.opacity=0;root.style.filter='blur(8px)';setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},720)};
+        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='TRANSMISSÃO SEGURA • MENSAGEM EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
+        p.addEventListener('click',play);x.addEventListener('click',finish);a.addEventListener('ended',()=>{root.classList.remove('playing');s.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';x.style.display='inline-block';p.style.display='none'});
+        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';x.style.display='inline-block'});play();
+        return()=>{p.removeEventListener('click',play);x.removeEventListener('click',finish);a.pause()}}"""
+    )
+    _vip(key="elevo_vip_daily_overlay_v16841",
+         data={"name": _vip_nome.upper(),
+               "phrase": st.session_state.get("elevo_vip_diaria_frase_v16840", ""),
+               "audio": st.session_state["elevo_vip_diaria_audio_v16840"]},
+         on_closed_change=_elevo_vip_fechar_v16840)
+
+
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
@@ -2059,6 +2492,42 @@ border-color:rgba(39,222,238,.65)!important;box-shadow:0 4px 20px rgba(0,184,221
 @media(prefers-reduced-motion:reduce){div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-admin-item-v16813){transition:none}}
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================================
+ELEVO_PLANOS_PAGAMENTO_V1 = {
+    "bronze": {"nome": "Bronze", "preco": 9.90, "creditos": 1000},
+    "ouro": {"nome": "Ouro", "preco": 19.90, "creditos": 3000},
+    "diamante_vip": {"nome": "Diamante VIP", "preco": 39.90, "creditos": 7000},
+    "diamante_supremo": {"nome": "Diamante Supremo VIP", "preco": 99.90, "creditos": 10000},
+}
+
+def elevo_gateway_checkout_v1(plano_id):
+    plano = ELEVO_PLANOS_PAGAMENTO_V1.get(str(plano_id))
+    email = elevo_email_v16813()
+    if not plano or not email or not st.session_state.get("usuario_logado"):
+        raise ValueError("Plano ou sessão inválida.")
+    gateway = str(st.secrets.get("ELEVO_GATEWAY_URL", "")).strip().rstrip("/")
+    segredo = str(st.secrets.get("ELEVO_GATEWAY_SECRET", "")).strip()
+    if not gateway or not segredo:
+        raise RuntimeError("Gateway ainda não configurado no Streamlit Secrets.")
+    resposta = requests.post(
+        gateway + "/checkout",
+        json={"plan_id": plano_id, "email": email},
+        headers={"Authorization": "Bearer " + segredo, "Content-Type": "application/json"},
+        timeout=25,
+    )
+    if resposta.status_code != 200:
+        raise RuntimeError("Não foi possível iniciar o pagamento. Tente novamente.")
+    dados = resposta.json()
+    url = str(dados.get("checkout_url", "")).strip()
+    if not url.startswith("https://"):
+        raise RuntimeError("O gateway não retornou um endereço seguro de pagamento.")
+    return url
+
+
+# ÉLÉVO PAGAMENTOS V1 — CHECKOUT MERCADO PAGO
+# Integração isolada; créditos só entram após confirmação do Worker.
+# Secrets necessários no Streamlit: ELEVO_GATEWAY_URL e ELEVO_GATEWAY_SECRET.
 
 _elevo_email_painel_v16813 = elevo_email_v16813()
 _elevo_nome_painel_v16813 = html_std.escape(str(st.session_state.get("nome_usuario", "Usuário")))
@@ -2131,7 +2600,25 @@ with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
                         "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
-    # V16.8.24: o popover antigo sobrepunha botões no celular; mesmos campos e operação.
+    # Checkout Mercado Pago — pacotes pré-pagos, sem recarga automática.
+    with st.container(key="elevo_checkout_creditos_v1"):
+        with st.expander("💳 Comprar créditos", expanded=False):
+            st.caption("Pagamento seguro pelo Mercado Pago. Os créditos são adicionados após a confirmação do pagamento.")
+            _cols_planos_v1 = st.columns(2)
+            for _idx_v1, (_plano_id_v1, _plano_v1) in enumerate(ELEVO_PLANOS_PAGAMENTO_V1.items()):
+                with _cols_planos_v1[_idx_v1 % 2]:
+                    st.markdown(
+                        f"**{_plano_v1['nome']}**  \n"
+                        f"R$ {_plano_v1['preco']:.2f} • {_plano_v1['creditos']:,} créditos".replace(",", ".")
+                    )
+                    if st.button(f"Comprar {_plano_v1['nome']}", key=f"elevo_buy_{_plano_id_v1}", use_container_width=True):
+                        try:
+                            _url_checkout_v1 = elevo_gateway_checkout_v1(_plano_id_v1)
+                            st.link_button("Ir para pagamento", _url_checkout_v1, use_container_width=True)
+                        except Exception as _erro_checkout_v1:
+                            st.error(str(_erro_checkout_v1) if isinstance(_erro_checkout_v1, (ValueError, RuntimeError)) else
+                                     "Falha ao iniciar pagamento. Tente novamente.")
+    # V16.8.24: fluxo antigo de solicitação ao CEO preservado.
     with st.container(key="elevo_painel_creditos_v16824"):
         with st.expander("▤ Pedir créditos ao CEO", expanded=False):
             st.caption("Seu pedido será exibido no painel do CEO. Não há recarga automática.")
@@ -4326,6 +4813,38 @@ def elevo_ler_painel_v16814(forcar=False):
 # ÉLÉVO V16.8.13 — PAINEL DE CONTAS VIP (EXCLUSIVO CEO)
 # ==========================================================
 if E_O_CEO:
+    # V16.8.51 — voz principal fixa: Francisca. Laboratório de amostras removido.
+    # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
+    # Não altera o registro diário nem consome a saudação de usuários.
+    with st.container(border=True):
+        st.markdown("#### 🎬 Prévia do Protocolo VIP")
+        st.caption("Reproduza a animação e a voz quando quiser, sem esperar o próximo dia e sem alterar o controle diário.")
+        if st.button("▶ TESTAR ANIMAÇÃO VIP", key="elevo_vip_preview_ceo_btn_v16842",
+                     use_container_width=True):
+            _preview_nome = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+            _preview_frase = _elevo_vip_frase_v16840(
+                str(EMAIL_MESTRE).strip().lower(), _preview_nome,
+                _elevo_vip_hoje_v16840()
+            )
+            with st.spinner("Preparando a prévia de voz..."):
+                _preview_audio = _elevo_vip_audio_v16840(_preview_frase)
+            if _preview_audio:
+                st.session_state["elevo_vip_diaria_frase_v16840"] = _preview_frase
+                st.session_state["elevo_vip_diaria_audio_v16840"] = base64.b64encode(_preview_audio).decode("ascii")
+                st.session_state["elevo_vip_preview_ceo_v16842"] = True
+                st.session_state["elevo_vip_diaria_exibida_v16840"] = False
+                st.rerun()
+            else:
+                st.error("A voz principal da ÉLÉVO não conseguiu conectar. Nenhuma voz reserva foi utilizada.")
+                _diag_vip = str(st.session_state.get(
+                    "elevo_vip_tts_erro_v16848",
+                    "O serviço não retornou um diagnóstico detalhado."
+                ))
+                st.code(_diag_vip, language="text")
+                st.caption(
+                    "Envie este diagnóstico para análise. O botão de teste usa exclusivamente "
+                    "pt-BR-DonatoNeural; a voz reserva do primeiro acesso/Aurora não participa."
+                )
     st.divider()
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
@@ -7938,10 +8457,63 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         return novo
 
 
+    # ==========================================================
+    # V17.0.9 — UNIFIED VIP LOADER: SHARED BY ALL THREE ENGINES
+    # ==========================================================
+    def elevo_render_loader_vip_v1709(slot, motor="360º"):
+        """Renderiza a mesma animação VIP em 360º, V9.2 e Produto 3S."""
+        nome = str(motor or "ÉLÉVO").replace("<", "").replace(">", "")[:30]
+        slot.markdown(
+            f"""
+            <style>
+            @keyframes evip-orbit{{to{{transform:rotate(360deg)}}}}
+            @keyframes evip-orbit-rev{{to{{transform:rotate(-360deg)}}}}
+            @keyframes evip-pulse{{0%,100%{{transform:scale(.88);filter:brightness(.9)}}50%{{transform:scale(1.12);filter:brightness(1.35)}}}}
+            @keyframes evip-scan{{0%{{transform:translateX(-140%)}}100%{{transform:translateX(340%)}}}}
+            @keyframes evip-particle{{0%,100%{{opacity:.15;transform:translateY(0)}}50%{{opacity:1;transform:translateY(-5px)}}}}
+            .evip-shell{{position:relative;overflow:hidden;padding:21px 22px;border-radius:20px;border:1px solid rgba(91,220,255,.48);
+            background:radial-gradient(ellipse at 12% 0%,rgba(0,190,255,.22),transparent 48%),
+            radial-gradient(ellipse at 92% 100%,rgba(145,82,255,.20),transparent 48%),
+            linear-gradient(135deg,#061321,#0b1025 58%,#151329);
+            box-shadow:0 18px 48px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.10);color:#f4f8ff;font-family:Inter,system-ui,sans-serif}}
+            .evip-shell:before{{content:"";position:absolute;inset:0;pointer-events:none;opacity:.12;
+            background-image:linear-gradient(rgba(100,215,255,.24) 1px,transparent 1px),linear-gradient(90deg,rgba(100,215,255,.24) 1px,transparent 1px);background-size:26px 26px}}
+            .evip-head{{display:flex;align-items:center;gap:16px;position:relative;z-index:1}}
+            .evip-reactor{{width:64px;height:64px;flex:0 0 64px;display:grid;place-items:center;position:relative}}
+            .evip-core{{width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#65edff 38%,#1476ff 76%);box-shadow:0 0 14px #48dfff,0 0 34px #167dff;animation:evip-pulse 1.8s ease-in-out infinite}}
+            .evip-ring{{position:absolute;inset:1px;border:1px solid #5ce7ff;border-top-color:#fff;border-right-color:#ad7cff;border-radius:50%;animation:evip-orbit 3s linear infinite}}
+            .evip-ring2{{position:absolute;inset:10px;border:1px dashed rgba(180,126,255,.9);border-radius:50%;animation:evip-orbit-rev 4.7s linear infinite}}
+            .evip-title{{font-size:15px;letter-spacing:1.6px;font-weight:850;text-transform:uppercase}}
+            .evip-sub{{font-size:12px;color:#a5bad4;margin-top:5px}}
+            .evip-tag{{margin-left:auto;align-self:flex-start;padding:5px 9px;border-radius:20px;border:1px solid rgba(91,220,255,.45);color:#83edff;font-size:9px;letter-spacing:1.1px;background:rgba(0,190,255,.09)}}
+            .evip-bar{{height:4px;border-radius:10px;background:rgba(135,166,205,.16);margin-top:18px;overflow:hidden;position:relative}}
+            .evip-bar:after{{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,#50eaff,#b18aff,transparent);filter:drop-shadow(0 0 7px #55dfff);animation:evip-scan 2.1s ease-in-out infinite}}
+            .evip-steps{{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;color:#91a9c6;font-size:10px;letter-spacing:.35px;position:relative}}
+            .evip-steps i{{width:5px;height:5px;border-radius:50%;background:#67eaff;display:inline-block;box-shadow:0 0 8px #3ddcff;animation:evip-particle 1.3s infinite}}
+            .evip-steps i:nth-child(2){{animation-delay:.18s}}.evip-steps i:nth-child(3){{animation-delay:.36s}}
+            @media(prefers-reduced-motion:reduce){{.evip-ring,.evip-ring2,.evip-core,.evip-bar:after,.evip-steps i{{animation:none}}}}
+            </style>
+            <div class="evip-shell">
+              <div class="evip-head">
+                <div class="evip-reactor"><span class="evip-ring"></span><span class="evip-ring2"></span><span class="evip-core"></span></div>
+                <div><div class="evip-title">ÉLÉVO <span style="color:#66eaff">NEURAL ENGINE</span></div>
+                <div class="evip-sub">Forjando {nome} · Referência original protegida · Inteligência compartilhada</div></div>
+                <div class="evip-tag">VIP PROCESSING</div>
+              </div>
+              <div class="evip-bar"></div>
+              <div class="evip-steps"><i></i><i></i><i></i><span>ANÁLISE DA REFERÊNCIA</span><span>·</span><span>FIDELIDADE E FÍSICA</span><span>·</span><span>CONSTRUÇÃO DO CRIATIVO</span></div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
     # MOTOR DE EXECUÇÃO DO BLOCO 17 (SEGUE FIELMENTE OS MOLDES DO BANCO DE MEMÓRIA 17.3 — SEM LOGO)
     # ==========================================================
     if btn_gerar_roteiro and img_produto and pode_gerar_roteiro:
-        with st.spinner("💎 Escaneando a Dor & Solução do rótulo e consultando Banco de Memória 17.3..."):
+        loader_360_slot_v1709 = st.empty()
+        _modo_loader_360_v1709 = "Produto 3S" if st.session_state.get("elevo_produto_primeiro_3s_v16821", False) else "360º"
+        elevo_render_loader_vip_v1709(loader_360_slot_v1709, _modo_loader_360_v1709)
+        with st.spinner("💎 Analisando referência, consultando memória e construindo sua criação..."):
             _debito_360_v16813 = None
             try:
                 _debito_360_v16813 = elevo_credito_reservar_v16813(
@@ -8091,6 +8663,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
             
                 
+                loader_360_slot_v1709.empty()
                 st.success(f"✅ Pacote 360º Forjado com Gancho de Dor & Solução Visceral ({scan_17.get('qtd')} unidade(s))!")
                 time.sleep(1)
                 st.rerun()
@@ -8100,6 +8673,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if _debito_360_v16813:
                     try: elevo_credito_estornar_v16813(_debito_360_v16813, ELEVO_CUSTO_PROMPT_V16813)
                     except Exception: pass
+                loader_360_slot_v1709.empty()
                 mostrar_erro_criacao_v1686(e, "Bloco 17 — " + locals().get("etapa_formato_elevo", "preparacao"))
 
     # ==========================================================
@@ -8114,45 +8688,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if v92_logo_ativo_v16837
                 else "com encerramento natural, sem assinatura de marca"
             )
-            # V16.8.47 — loader VIP animado, somente camada visual da V9.2.
+            # V17.0.9 — usa o MESMO loader VIP compartilhado com 360º e Produto 3S.
             loader_v92_slot = st.empty()
-            loader_v92_slot.markdown(
-                """
-                <style>
-                @keyframes e47spin{to{transform:rotate(360deg)}}
-                @keyframes e47pulse{0%,100%{transform:scale(.92);opacity:.75}50%{transform:scale(1.08);opacity:1}}
-                @keyframes e47scan{0%{transform:translateX(-130%)}100%{transform:translateX(330%)}}
-                @keyframes e47dot{0%,80%,100%{transform:scale(.4);opacity:.3}40%{transform:scale(1);opacity:1}}
-                .e47card{position:relative;overflow:hidden;padding:22px;border-radius:18px;border:1px solid rgba(93,220,255,.38);background:radial-gradient(ellipse at 12% 0%,rgba(0,195,255,.18),transparent 48%),radial-gradient(ellipse at 92% 100%,rgba(153,82,255,.2),transparent 48%),linear-gradient(135deg,#061321,#0b1025 58%,#151329);box-shadow:0 18px 45px rgba(0,0,0,.4),inset 0 1px rgba(255,255,255,.08);color:#f4f8ff;font-family:Inter,system-ui,sans-serif}
-                .e47card:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(rgba(100,215,255,.2) 1px,transparent 1px),linear-gradient(90deg,rgba(100,215,255,.2) 1px,transparent 1px);background-size:27px 27px;mask-image:linear-gradient(90deg,#000,transparent)}
-                .e47head{display:flex;align-items:center;gap:16px;position:relative}
-                .e47reactor{width:62px;height:62px;flex:0 0 62px;display:grid;place-items:center;position:relative}
-                .e47core{width:21px;height:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#65edff 38%,#1476ff 76%);box-shadow:0 0 13px #48dfff,0 0 32px #167dff;animation:e47pulse 1.8s ease-in-out infinite}
-                .e47ring{position:absolute;inset:2px;border:1px solid #5ce7ff;border-top-color:#fff;border-right-color:#ad7cff;border-radius:50%;animation:e47spin 3s linear infinite}
-                .e47ring2{position:absolute;inset:10px;border:1px dashed rgba(180,126,255,.85);border-radius:50%;animation:e47spin 5s linear infinite reverse}
-                .e47title{font-size:15px;letter-spacing:1.6px;font-weight:850;text-transform:uppercase}
-                .e47sub{font-size:12px;color:#a5bad4;margin-top:5px}
-                .e47tag{margin-left:auto;align-self:flex-start;padding:5px 8px;border-radius:20px;border:1px solid rgba(91,220,255,.4);color:#83edff;font-size:9px;letter-spacing:1.2px;background:rgba(0,190,255,.08)}
-                .e47bar{height:4px;border-radius:10px;background:rgba(135,166,205,.16);margin-top:19px;overflow:hidden;position:relative}
-                .e47bar:after{content:"";position:absolute;inset:0;width:38%;background:linear-gradient(90deg,transparent,#50eaff,#b18aff,transparent);filter:drop-shadow(0 0 6px #55dfff);animation:e47scan 2.1s ease-in-out infinite}
-                .e47steps{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:13px;color:#91a9c6;font-size:10px;letter-spacing:.35px}
-                .e47steps b{width:5px;height:5px;border-radius:50%;background:#67eaff;display:inline-block;box-shadow:0 0 8px #3ddcff;animation:e47dot 1.3s infinite}
-                .e47steps b:nth-child(2){animation-delay:.18s}.e47steps b:nth-child(3){animation-delay:.36s}
-                @media(prefers-reduced-motion:reduce){.e47ring,.e47ring2,.e47core,.e47bar:after,.e47steps b{animation:none}}
-                </style>
-                <div class="e47card">
-                  <div class="e47head">
-                    <div class="e47reactor"><span class="e47ring"></span><span class="e47ring2"></span><span class="e47core"></span></div>
-                    <div><div class="e47title">ÉLÉVO <span style="color:#66eaff">NEURAL ENGINE</span></div>
-                    <div class="e47sub">Forjando sua criação V9.2 · Imagem original preservada · Vídeo V12</div></div>
-                    <div class="e47tag">VIP PROCESSING</div>
-                  </div>
-                  <div class="e47bar"></div>
-                  <div class="e47steps"><b></b><b></b><b></b><span>ANÁLISE VISUAL</span><span>·</span><span>FIDELIDADE DO ITEM</span><span>·</span><span>ROTEIRO CINEMATOGRÁFICO</span></div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+            elevo_render_loader_vip_v1709(loader_v92_slot, "V9.2")
             with st.container():
                 _debito_v92_v16813 = None
                 try:
@@ -9020,6 +9558,11 @@ if not modo_claro:
     </style>
     """, unsafe_allow_html=True)
 
+
+
+# ==========================================================
+
+
 # ==========================================================
 # ÉLÉVO V16.8.24 — ACABAMENTO VIP APROVADO / SOMENTE INTERFACE
 # Regras tardias para evitar sobreposição de estilos antigos do Streamlit.
@@ -9708,3 +10251,138 @@ if modo_claro:
     }
     </style>
     """, unsafe_allow_html=True)
+
+
+# ==========================================================
+# V16.8.52 — ÉLÉVO NIGHT | camada visual exclusiva do modo escuro
+# Nenhuma alteração em login, banco, IA, créditos, prompts ou ferramentas.
+# ==========================================================
+if not modo_claro:
+    st.markdown("""
+<style>
+:root {
+  color-scheme:dark;
+  --night-text:#EAF2FF; --night-muted:#9AAEC8;
+  --night-cyan:#54D8F5; --night-blue:#4B91F2; --night-gold:#D8B66A;
+}
+[data-testid="stAppViewContainer"] {
+  position:relative!important; isolation:isolate!important;
+  background:
+    radial-gradient(ellipse 78% 42% at 50% -12%,rgba(49,111,190,.24),transparent 72%),
+    radial-gradient(ellipse 42% 38% at 100% 34%,rgba(32,116,155,.10),transparent 76%),
+    radial-gradient(ellipse 42% 42% at 0% 82%,rgba(37,73,137,.13),transparent 78%),
+    linear-gradient(145deg,#0B1424 0%,#080F1C 48%,#060B14 100%)!important;
+  background-color:#070D18!important;
+}
+[data-testid="stAppViewContainer"]::before {
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.18;
+  background-image:linear-gradient(rgba(116,169,222,.055) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(116,169,222,.055) 1px,transparent 1px);
+  background-size:46px 46px;mask-image:linear-gradient(to bottom,black,transparent 88%);
+}
+[data-testid="stAppViewContainer"]::after {
+  content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.10;
+  background:radial-gradient(circle at 18% 22%,rgba(255,255,255,.15) 0 1px,transparent 1.4px),
+             radial-gradient(circle at 76% 61%,rgba(120,190,255,.18) 0 1px,transparent 1.5px);
+  background-size:31px 31px,43px 43px;
+}
+[data-testid="stMain"],[data-testid="stMainBlockContainer"],.block-container {background:transparent!important;position:relative;z-index:1;}
+h1,h2,h3,h4,h5,h6 {color:var(--night-text)!important;text-shadow:0 1px 18px rgba(73,145,226,.09);}
+p,li,label,[data-testid="stMarkdownContainer"] {color:#DCE7F7;}
+[data-testid="stCaptionContainer"] p,small {color:var(--night-muted)!important;}
+a {color:#8CCBFF!important;}
+
+/* Vidro escuro com reflexo superior e sombra em camadas. */
+[data-testid="stVerticalBlockBorderWrapper"],[data-testid="stMetric"],
+[data-testid="stForm"],[data-testid="stExpander"],[data-testid="stDataFrame"],[data-testid="stTable"] {
+  position:relative;overflow:hidden;
+  background:linear-gradient(145deg,rgba(24,43,69,.94),rgba(10,20,35,.97))!important;
+  border:1px solid rgba(107,166,230,.23)!important;border-radius:19px!important;
+  box-shadow:0 18px 42px rgba(0,0,0,.30),0 5px 14px rgba(0,0,0,.19),
+             inset 0 1px 0 rgba(225,240,255,.075),inset 0 -1px 0 rgba(67,131,198,.08)!important;
+  backdrop-filter:blur(16px) saturate(118%)!important;
+  -webkit-backdrop-filter:blur(16px) saturate(118%)!important;
+  transition:border-color .24s ease,box-shadow .24s ease,transform .24s ease!important;
+}
+[data-testid="stVerticalBlockBorderWrapper"]::before,[data-testid="stMetric"]::before,[data-testid="stExpander"]::before {
+  content:"";position:absolute;inset:0 0 auto;height:1px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,rgba(119,199,255,.42),rgba(216,182,106,.25),transparent);
+}
+[data-testid="stVerticalBlockBorderWrapper"]:hover,[data-testid="stMetric"]:hover {
+  border-color:rgba(100,190,240,.38)!important;
+  box-shadow:0 22px 48px rgba(0,0,0,.34),0 0 26px rgba(45,137,207,.08),inset 0 1px 0 rgba(225,240,255,.09)!important;
+}
+
+/* Cabeçalho de comando e identidade da navegação. */
+.elevo-dash-header {
+  position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 92% 10%,rgba(62,151,226,.20),transparent 43%),
+             linear-gradient(118deg,rgba(17,37,64,.98),rgba(10,22,39,.96) 58%,rgba(16,35,56,.96))!important;
+  border:1px solid rgba(100,174,231,.29)!important;
+  box-shadow:0 22px 48px rgba(0,0,0,.31),0 0 32px rgba(49,132,204,.10),inset 0 1px 0 rgba(229,243,255,.09)!important;
+}
+.elevo-dash-header::after {
+  content:"";position:absolute;right:-65px;top:-115px;width:290px;height:290px;
+  border:1px solid rgba(100,190,240,.13);border-radius:50%;
+  box-shadow:0 0 0 22px rgba(100,190,240,.025),0 0 0 48px rgba(100,190,240,.018);pointer-events:none;
+}
+.elevo-kicker,.elevo-v13-panel-title {color:#8CCBFF!important;letter-spacing:.14em!important;}
+.elevo-status-chip {border-color:rgba(91,211,177,.32)!important;background:rgba(25,117,103,.16)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 0 18px rgba(56,196,160,.06);}
+.elevo-sidebar {
+  background:radial-gradient(ellipse at 50% 0%,rgba(48,111,177,.18),transparent 55%),linear-gradient(180deg,#0D1A2C,#091321)!important;
+  border-right:1px solid rgba(105,164,222,.19)!important;
+  box-shadow:12px 0 36px rgba(0,0,0,.24),inset -1px 0 0 rgba(255,255,255,.025)!important;
+}
+.elevo-sidebar .marca {color:#F0F6FF!important;text-shadow:0 0 20px rgba(83,177,245,.19);}
+.elevo-sidebar a {color:#A9BCD5!important;border:1px solid transparent!important;transition:all .22s ease!important;}
+.elevo-sidebar a:hover,.elevo-sidebar a:focus {color:#F2F8FF!important;background:linear-gradient(100deg,rgba(50,115,183,.24),rgba(44,82,128,.10))!important;border-color:rgba(104,184,239,.18)!important;transform:translateX(2px);}
+.elevo-sidebar a.principal {color:white!important;background:linear-gradient(105deg,#174B83,#216BA5 65%,#287DAD)!important;border-color:rgba(112,207,255,.42)!important;box-shadow:0 7px 20px rgba(22,104,166,.25),inset 0 1px 0 rgba(255,255,255,.16)!important;}
+.elevo-shortcut-grid a,.elevo-kpi {background:linear-gradient(145deg,rgba(24,44,70,.94),rgba(11,22,38,.97))!important;border:1px solid rgba(111,169,222,.20)!important;box-shadow:0 12px 28px rgba(0,0,0,.23),inset 0 1px 0 rgba(255,255,255,.055)!important;}
+.elevo-shortcut-grid a:hover {border-color:rgba(92,194,242,.48)!important;box-shadow:0 17px 34px rgba(0,0,0,.29),0 0 22px rgba(57,150,211,.10)!important;}
+.elevo-kpi .kpi-value {color:#F0F6FF!important;}.elevo-kpi .kpi-label,.elevo-kpi .kpi-caption {color:#9CB2CE!important;}
+
+/* Abas, métricas e botões. */
+[data-testid="stMetricLabel"] p {color:#A9BCD5!important;}
+[data-testid="stMetricValue"] div {color:#E6C77F!important;text-shadow:0 0 16px rgba(216,182,106,.10);}
+[data-baseweb="tab-list"] {background:linear-gradient(100deg,rgba(17,34,56,.94),rgba(11,23,39,.96))!important;border:1px solid rgba(104,160,216,.16)!important;border-radius:14px!important;padding:5px!important;}
+[data-baseweb="tab"] {color:#AFC1D8!important;border-radius:10px!important;}
+[data-baseweb="tab"][aria-selected="true"] {color:#F5FAFF!important;background:linear-gradient(110deg,rgba(34,91,145,.78),rgba(27,70,111,.80))!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.09),0 4px 14px rgba(0,0,0,.16)!important;}
+[data-testid="stExpander"] summary {color:#E6F0FF!important;background:linear-gradient(100deg,rgba(28,53,82,.72),rgba(15,31,51,.72))!important;}
+.stButton>button,[data-testid="stFormSubmitButton"]>button {
+  color:#EAF4FF!important;background:linear-gradient(135deg,#172B45,#102039 58%,#142A43)!important;
+  border:1px solid rgba(104,173,226,.34)!important;border-radius:12px!important;
+  box-shadow:0 7px 18px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.07)!important;
+}
+.stButton>button:hover,[data-testid="stFormSubmitButton"]>button:hover {color:#F6E6BC!important;border-color:rgba(216,182,106,.65)!important;box-shadow:0 9px 24px rgba(0,0,0,.28),0 0 20px rgba(216,182,106,.10)!important;transform:translateY(-1px);}
+.stButton>button[kind="primary"],[data-testid="stFormSubmitButton"]>button[kind="primary"] {color:white!important;background:linear-gradient(112deg,#15518D,#176FA7 58%,#1A789F)!important;border-color:rgba(91,209,245,.58)!important;box-shadow:0 8px 24px rgba(11,102,164,.24),inset 0 1px 0 rgba(255,255,255,.15)!important;}
+
+/* Inputs, menus, avisos e gráficos. */
+input,textarea,[data-baseweb="input"]>div,[data-baseweb="textarea"],[data-baseweb="select"]>div,[data-testid="stNumberInput"] input {
+  color:#EAF2FF!important;background:linear-gradient(145deg,#0C192A,#0A1422)!important;border-color:rgba(104,166,222,.27)!important;box-shadow:inset 0 2px 6px rgba(0,0,0,.20)!important;
+}
+input::placeholder,textarea::placeholder {color:#7F95B2!important;}
+input:focus,textarea:focus,[data-baseweb="input"]>div:focus-within,[data-baseweb="select"]>div:focus-within {border-color:rgba(83,202,241,.72)!important;box-shadow:0 0 0 2px rgba(83,202,241,.10),0 0 18px rgba(83,202,241,.08)!important;}
+div[data-testid="stAlert"] {background:linear-gradient(112deg,rgba(20,39,63,.98),rgba(12,25,42,.98))!important;border:1px solid rgba(91,171,224,.27)!important;border-left:3px solid #58BCE8!important;border-radius:13px!important;box-shadow:0 9px 23px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.045)!important;}
+div[data-testid="stAlert"] *,div[data-testid="stToast"] * {color:#E8F2FF!important;}
+hr {border-color:rgba(111,164,216,.17)!important;}
+[data-testid="stPlotlyChart"] {border:1px solid rgba(105,164,222,.17)!important;border-radius:16px!important;box-shadow:0 12px 30px rgba(0,0,0,.20),inset 0 1px 0 rgba(255,255,255,.035)!important;overflow:hidden!important;}
+div[data-baseweb="popover"]>div,ul[data-baseweb="menu"] {background:linear-gradient(145deg,#14263D,#0C192B)!important;border:1px solid rgba(105,173,226,.27)!important;border-radius:13px!important;box-shadow:0 18px 42px rgba(0,0,0,.40)!important;}
+li[role="option"] {color:#EAF2FF!important;background:transparent!important;}
+li[role="option"]:hover,li[aria-selected="true"] {color:white!important;background:rgba(68,145,205,.22)!important;}
+
+@media(max-width:999px) {
+  .elevo-sidebar {background:linear-gradient(100deg,#0D1A2C,#10233A 55%,#0B1728)!important;box-shadow:0 8px 26px rgba(0,0,0,.28)!important;border-bottom:1px solid rgba(105,164,222,.23)!important;}
+}
+@media(max-width:700px) {
+  [data-testid="stVerticalBlockBorderWrapper"],[data-testid="stMetric"],[data-testid="stForm"],[data-testid="stExpander"] {border-radius:15px!important;}
+  .elevo-dash-header {border-radius:16px!important;}
+}
+@media(prefers-reduced-motion:no-preference) {
+  .elevo-dash-header::after {animation:elevo-night-orbit 32s linear infinite;}
+  @keyframes elevo-night-orbit {to{transform:rotate(360deg);}}
+}
+@media(prefers-reduced-motion:reduce) {
+  *,*::before,*::after {animation:none!important;transition:none!important;}
+}
+</style>
+""", unsafe_allow_html=True)
