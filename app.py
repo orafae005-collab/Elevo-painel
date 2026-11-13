@@ -1,4 +1,30 @@
-# ÉLÉVO V16.8.52 — ÉLÉVO NIGHT: REFINAMENTO VISUAL DO MODO ESCURO | BASE V16.8.51
+# ÉLÉVO V16.8.81 — CARTEIRA EM DOIS CARTÕES PREMIUM (IDENTIDADE + SALDO), MODOS CLARO/ESCURO
+# ÉLÉVO V16.8.80 — carteira modo escuro fosco + nome com microefeito hacker (modo claro intocado)
+# ÉLÉVO V16.8.79 — textura premium na carteira da Central de Operação (somente UI do cartão)
+# ÉLÉVO V16.8.78 — PATENTES DE FIDELIDADE POR COMPRAS CONFIRMADAS (SEM ALTERAR PAGAMENTOS)
+# ÉLÉVO V16.8.77 — saudação diária VIP discreta na tela principal (sem navegação)
+# ÉLÉVO V16.8.76 — FINAIS IA POR PRODUTO; sem sacolinha na fala/CTA; hooks e créditos preservados
+# ÉLÉVO V16.8.75 — 20 CR por geração; ganchos/CTAs com diversidade, produto concreto e guardrails TikTok Shop
+# ÉLÉVO V16.8.74 — validação de ambientes de pagamento, comprador de teste no Brick e confirmação real de créditos
+# ÉLÉVO V16.8.73 — PROMOÇÃO RELÂMPAGO R$ 1,00 por 10 min (ligada pelo CEO) para validar o checkout em produção
+# ÉLÉVO V16.8.72 — teste do Mercado Pago com o COMPRADOR DE TESTE como pagador (corrige 401 live credentials)
+# ÉLÉVO V16.8.71 — erro "live credentials" explicado corretamente + teste diz o ambiente da Public Key
+# ÉLÉVO V16.8.70 — motivo da recusa gravado na venda + pagamento de teste automático no painel do CEO
+# ÉLÉVO V16.8.69 — valor das vendas imune ao formato pt-BR da planilha (29,90 lido como 299)
+# ÉLÉVO V16.8.68 — Mercado Pago: motivo real do erro na tela + botão Testar conexão no painel do CEO
+# ÉLÉVO V16.8.67 — modo teste preenche test@testuser.com no cartão
+# ÉLÉVO V16.8.66 — CARTÃO: instância única do Mercado Pago (corrige "Dado obrigatório" nos campos seguros)
+# ÉLÉVO V16.8.65 — CARTEIRA VIP REDESENHADA + CHECKOUT DENTRO DO APP (Pix com QR Code e cartão seguro)
+# ÉLÉVO V16.8.64 — Mercado Pago: modo teste/produção pelo Secrets (credencial de teste nova também é APP_USR-)
+# ÉLÉVO V16.8.63 — CADASTRO ABERTO DE NOVO + PLANOS (Start/Pro/Elite) + CHECKOUT MERCADO PAGO (Pix e cartão)
+# ÉLÉVO V16.8.62 — MICROFONE PROFISSIONAL: só em campos de escrever, ditado contínuo e texto confirmado no app
+# ÉLÉVO V16.8.61 — PRODUTO DE MODA: A INFLUÊNCIA VESTE O PRODUTO NOS 3 MOTORES (sem conflito de roupa)
+# ÉLÉVO V16.8.60 — 4º MOTOR MÃOS VIRAL + AMBIENTES VIVOS + LOOK DA INFLUÊNCIA + TEXTURAS VIP | BASE V16.8.59
+# Mãos Viral: só as mãos, gancho viral, ASMR, fala 10/12/15s. 22 ambientes com vento, física e vida real nos 4 motores.
+# ÉLÉVO V16.8.59 — NOVA PORTARIA VIP + ESTÚDIO DE CONTAS DO CEO (com créditos) | BASE V16.8.58
+# Cadastro público removido; CEO cria contas no painel; Aurora, créditos e motores preservados.
+# V16.8.58 — listras de TV e faixa de varredura do fundo desligadas.
+# ÉLÉVO V16.8.57 — FALA NA MEDIDA (10/12/15s) + TOQUE HACKER NA PLATAFORMA | BASE V16.8.56
 # Módulo diário isolado; Aurora, login, créditos e motores preservados.
 # Atualização pontual do motor de IA: Terra principal; GPT-4o-mini como fallback.
 # ÉLÉVO V16.8.38 — CEO e demais contas: texto de marca editável/aplicável na V9.2; legendas sem contaminação.
@@ -89,6 +115,7 @@ import json
 import logging
 import threading
 import html as html_std
+import unicodedata
 from zoneinfo import ZoneInfo
 from gtts import gTTS
 
@@ -220,7 +247,7 @@ if "usuario_logado" not in st.session_state:
 # Não usar apenas usuario_logado=False: o Streamlit conserva session_state.
 SESSAO_DADOS_PRIVADOS = {
     "historico_viva_voz", "ultimo_audio_b64", "ultimo_hash_audio",
-    "historico_v11_cenas", "historico_v11_ganchos", "roteiro_temporario",
+    "historico_v11_cenas", "historico_v11_ganchos", "elevo_copy_hist_v16875", "elevo_copy_escolhas_v16875", "elevo_copy_ultimo_email_v16875", "elevo_copy_ultimas_falas_v16875", "roteiro_temporario",
     "elevo_roteiro_limpo_sessao_v1688", "elevo_hist_restauracao_email_v16819",
     "elevo_hist_erro_gravacao_v16817", "elevo_hist_mensagem_v16817",
     "elevo_roteiro_usuario_v16820",
@@ -232,7 +259,7 @@ SESSAO_DADOS_PRIVADOS = {
     "modo_entidade_v9", "audio_boas_vindas_b64", "email_bv_verificado",
     "mostrar_player_bv", "erro_audio_bv", "bv_conclusao_pendente",
     "bv_recarregamento_login", "google_pendente", "google_erro",
-    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
+    "elevo_inf_preset_id", "elevo_inf_obs", "elevo_inf_look_modo_v16860", "elevo_inf_look_txt_v16860", "elevo_inf_erro_gravacao", "elevo_erro_sheets_codigo",
     "elevo_ceo_identity_v1641_loaded", "elevo_ceo_original_v1682",
     "elevo_ambiente_id", "elevo_ambiente_obs", "elevo_ambiente_carregado_email", "elevo_ambiente_aviso", "elevo_ambiente_historico_infinito", "elevo_ambiente_ultimo_infinito",
     "elevo_propria_cache_email", "elevo_propria_cache", "elevo_propria_estudio_aberto",
@@ -596,7 +623,7 @@ if (not st.session_state["usuario_logado"]
 
 if not st.session_state["usuario_logado"]:
     if ELEVO_MOSTRAR_LOGIN:
-        st.success("✅ Você saiu da conta. Entre com outra conta ou crie uma nova.")
+        st.success("✅ Você saiu da conta. Entre novamente quando quiser.")
     # V16.8.22.1 — APENAS TELA DE LOGIN: dois videos MP4 fornecidos pelo usuario.
     # Ficam fora do painel autenticado. Nenhum fluxo de cadastro e alterado.
     from pathlib import Path as _ElevoIntroPath
@@ -640,98 +667,193 @@ if not st.session_state["usuario_logado"]:
             st.video(_elevo_intro_cel, autoplay=True, muted=True, loop=True,
                      alt="Abertura cinematografica vertical do portal ELEVO")
 
-    # Visual V13: somente apresentação; nenhuma mudança na lógica de credenciais/cookies.
+    # ==========================================================
+    # V16.8.59 — NOVA PORTARIA VIP (somente visual + sem autocadastro).
+    # A lógica de senha, cookies, Google e Aurora é a MESMA de antes.
+    # Contas novas agora são liberadas apenas pelo CEO no painel administrativo.
+    # ==========================================================
     st.markdown("""
     <style>
+      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
       [data-testid="stHeader"], [data-testid="stToolbar"], #MainMenu, header { display:none !important; }
       [data-testid="stAppViewContainer"] {
-        background: radial-gradient(ellipse 85% 70% at 48% -18%, rgba(0,229,255,.12), transparent 73%),
-                    radial-gradient(circle at 90% 90%, rgba(212,175,55,.07), transparent 45%),
-                    #0B0E14 !important;
+        background:
+          radial-gradient(ellipse 70% 55% at 15% -10%, rgba(84,216,245,.16), transparent 70%),
+          radial-gradient(ellipse 55% 50% at 100% 105%, rgba(216,182,106,.13), transparent 70%),
+          linear-gradient(160deg,#070C16 0%,#060A12 55%,#04070D 100%) !important;
       }
-      .block-container {max-width: 1050px; padding-top: clamp(1.3rem,3.5vw,3rem); padding-bottom: 2rem;}
-      .elevo-login-hero {text-align:center; position:relative; margin: 0 auto 1.55rem; padding: 0 10px;}
-      .elevo-login-eagle {position:relative; margin:0 auto 10px; width:82px; height:82px; display:grid;
-        place-items:center; border:1px solid rgba(0,229,255,.32); border-radius:25px;
-        background:linear-gradient(145deg,rgba(20,30,43,.98),rgba(8,12,19,.96));
-        box-shadow: 0 0 0 6px rgba(0,229,255,.035), 0 16px 42px rgba(0,0,0,.3), 0 0 35px rgba(0,229,255,.11);
-        animation: elevo-login-float 5.5s ease-in-out infinite;}
-      .elevo-login-eagle:before {content:""; position:absolute; inset:-9px; border-radius:30px;
-        background:conic-gradient(from 10deg,transparent,rgba(0,229,255,.27),transparent,rgba(212,175,55,.22),transparent);
-        filter:blur(10px); z-index:-1; animation:elevo-login-ring 16s linear infinite;}
-      .elevo-login-eagle span {font-size:39px; filter:drop-shadow(0 0 8px rgba(0,255,157,.35));}
-      .elevo-login-brand {font-family:Montserrat, sans-serif !important; font-size:clamp(3rem,7vw,4.65rem);
-        font-weight:900; line-height:1.1; letter-spacing:.13em; margin:0; padding-left:.13em;
-        background:linear-gradient(110deg,#D4AF37 4%,#00FF9D 28%,#00E5FF 51%,#8cc0ff 75%,#D4AF37 97%);
-        background-size:230% 100%; -webkit-background-clip:text; background-clip:text;
-        -webkit-text-fill-color:transparent; animation:elevo-login-spectrum 9s ease infinite;
-        filter:drop-shadow(0 2px 13px rgba(0,229,255,.16));}
-      .elevo-login-kicker {color:#A4B3C3 !important; font-size:.74rem; letter-spacing:.21em;
-        font-weight:600; text-transform:uppercase; margin:8px 0 10px;}
-      .elevo-login-chip {display:inline-flex; gap:7px; align-items:center; padding:6px 13px;
-        border-radius:30px; font:600 .68rem Montserrat,sans-serif; letter-spacing:.1em;
-        color:#A7FDE1; background:rgba(0,255,157,.06); border:1px solid rgba(0,255,157,.24);}
-      .elevo-login-dot {display:inline-block; height:7px;width:7px; border-radius:50%; background:#00FF9D;
-        box-shadow:0 0 9px #00FF9D; animation:elevo-login-blink 2.7s ease-in-out infinite;}
-      div[data-testid="stVerticalBlockBorderWrapper"]:has(.elevo-login-card-mark) {
-        border-radius:24px !important; border:1px solid rgba(0,229,255,.32) !important;
-        background: linear-gradient(140deg,rgba(28,34,48,.93),rgba(9,14,22,.95)) !important;
-        box-shadow: 0 16px 60px rgba(0,0,0,.36),0 0 28px rgba(0,229,255,.065),inset 0 1px rgba(255,255,255,.06) !important;
-        backdrop-filter:blur(16px);}
-      .elevo-login-card-mark {margin:0 0 4px; color:#94A3B8; letter-spacing:.17em;
-        text-transform:uppercase; font:600 .65rem Montserrat,sans-serif; text-align:center;}
-      [data-testid="stForm"] {background:rgba(6,11,19,.18) !important; border-radius:16px !important;
-        border:1px solid rgba(0,229,255,.13) !important;}
-      .stTextInput input {border:1px solid rgba(0,229,255,.23) !important;
-        background:rgba(7,12,21,.7) !important; color:#F1F5F9 !important;
-        border-radius:11px !important; min-height:45px !important;}
-      .stTextInput input:focus {border-color:#00E5FF !important; box-shadow:0 0 0 2px rgba(0,229,255,.10) !important;}
-      [data-testid="stFormSubmitButton"] button[kind="primary"] {background:linear-gradient(105deg,#002B5B,#065a7e) !important;
-        color:white !important; border:1px solid #00E5FF !important; border-radius:12px !important;
-        min-height:46px !important; box-shadow:0 8px 24px rgba(0,229,255,.14) !important; font-weight:800 !important;}
-      [data-testid="stFormSubmitButton"] button[kind="primary"]:hover {filter:brightness(1.14); transform:translateY(-1px);}
-      [data-baseweb="tab-list"] {gap:.3rem !important; background:rgba(0,0,0,.12) !important;
-        padding:.35rem; border-radius:12px;}
-      [data-baseweb="tab"] {border-radius:10px;}
-      @keyframes elevo-login-spectrum {0%,100% {background-position:0% 50%} 50% {background-position:100% 50%}}
-      @keyframes elevo-login-float {0%,100% {transform:translateY(0)} 50% {transform:translateY(-4px)}}
-      @keyframes elevo-login-ring {to {transform:rotate(360deg)}}
-      @keyframes elevo-login-blink {0%,100% {opacity:1} 50% {opacity:.38}}
-      @media(max-width:750px) {
-        .block-container {padding:1rem .9rem 2rem;}
-        .elevo-login-eagle {width:67px;height:67px;border-radius:22px;}
-        .elevo-login-eagle span {font-size:32px;}
-        .elevo-login-kicker {font-size:.62rem;letter-spacing:.13em;}
-        .elevo-login-hero {margin-bottom:1.15rem;}
-        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:not(:has(.elevo-login-card-mark)) {display:none !important;}
-        div[data-testid="stHorizontalBlock"]:has(.elevo-login-card-mark)>div[data-testid="stColumn"]:has(.elevo-login-card-mark) {flex:1 1 100% !important;width:100% !important;min-width:0 !important;}
+      [data-testid="stAppViewContainer"]::before {
+        content:""; position:fixed; inset:0; pointer-events:none; z-index:0; opacity:.5;
+        background-image:linear-gradient(rgba(116,169,222,.05) 1px,transparent 1px),
+                         linear-gradient(90deg,rgba(116,169,222,.05) 1px,transparent 1px);
+        background-size:52px 52px; mask-image:radial-gradient(ellipse 80% 70% at 50% 30%,black,transparent 80%);
       }
-      @media(prefers-reduced-motion:reduce) {
-        .elevo-login-eagle,.elevo-login-eagle:before,.elevo-login-brand,.elevo-login-dot {animation:none !important;}
+      .block-container {max-width:1120px; padding-top:clamp(1.2rem,3.4vw,2.8rem); padding-bottom:2.2rem; position:relative; z-index:1;}
+
+      /* ---------- Cabeçalho da marca ---------- */
+      .evl-hero {text-align:center; margin:0 auto clamp(1.1rem,2.6vw,1.9rem);}
+      .evl-badge {display:inline-flex; align-items:center; gap:8px; padding:6px 14px; border-radius:40px;
+        font:700 .64rem 'JetBrains Mono',monospace; letter-spacing:.18em; color:#D8B66A;
+        background:rgba(216,182,106,.08); border:1px solid rgba(216,182,106,.34);}
+      .evl-badge i {width:7px; height:7px; border-radius:50%; background:#2FD39A; box-shadow:0 0 10px #2FD39A;
+        animation:evl-blink 2.4s ease-in-out infinite;}
+      .evl-brand {font-family:Montserrat,sans-serif !important; font-weight:900; margin:.55rem 0 0;
+        font-size:clamp(2.9rem,7.4vw,5rem); line-height:1.02; letter-spacing:.14em; padding-left:.14em;
+        background:linear-gradient(110deg,#F4DC9A 0%,#D8B66A 22%,#54D8F5 52%,#9FD0FF 74%,#D8B66A 100%);
+        background-size:240% 100%; -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
+        animation:evl-spectrum 10s ease infinite; filter:drop-shadow(0 4px 22px rgba(84,216,245,.18));}
+      .evl-sub {color:#8FA6C4 !important; margin:.5rem 0 0; font:600 .74rem Montserrat,sans-serif;
+        letter-spacing:.3em; text-transform:uppercase;}
+
+      /* ---------- Painel lateral de apresentação ---------- */
+      .evl-side {height:100%; min-height:100%; box-sizing:border-box; padding:clamp(1.3rem,2.6vw,2.1rem);
+        border-radius:26px; position:relative; overflow:hidden;
+        background:linear-gradient(155deg,rgba(17,29,48,.92),rgba(7,12,22,.94));
+        border:1px solid rgba(84,216,245,.20); box-shadow:0 22px 60px rgba(0,0,0,.42),inset 0 1px rgba(255,255,255,.05);}
+      .evl-side::after {content:""; position:absolute; right:-90px; top:-90px; width:260px; height:260px; border-radius:50%;
+        background:radial-gradient(circle,rgba(216,182,106,.20),transparent 68%); pointer-events:none;}
+      .evl-term {display:flex; align-items:center; gap:8px; margin:0 0 1.2rem; font:500 .7rem 'JetBrains Mono',monospace; color:#8FA6C4;}
+      .evl-term b {color:#2FD39A; font-weight:700;} .evl-term em {color:#54D8F5; font-style:normal;}
+      .evl-term .dots {display:flex; gap:5px; margin-right:4px;}
+      .evl-term .dots span {width:8px; height:8px; border-radius:50%; background:#FF5F6D;}
+      .evl-term .dots span:nth-child(2) {background:#D8B66A;} .evl-term .dots span:nth-child(3) {background:#2FD39A;}
+      .evl-side h2 {font-family:Montserrat,sans-serif !important; color:#EAF2FF !important; margin:0 0 .55rem !important;
+        font-size:clamp(1.35rem,2.4vw,1.85rem) !important; line-height:1.18 !important; font-weight:800 !important; padding:0 !important;}
+      .evl-side h2 span {color:#D8B66A;}
+      .evl-side p.evl-lead {color:#A9BAD1 !important; font-size:.93rem; line-height:1.6; margin:0 0 1.3rem;}
+      .evl-feat {display:flex; gap:12px; align-items:flex-start; padding:.72rem 0; border-top:1px solid rgba(84,216,245,.10);}
+      .evl-feat:first-of-type {border-top:none;}
+      .evl-ico {flex:0 0 38px; height:38px; border-radius:12px; display:grid; place-items:center; font-size:1.05rem;
+        background:rgba(84,216,245,.08); border:1px solid rgba(84,216,245,.22);}
+      .evl-feat strong {display:block; color:#EAF2FF; font:700 .86rem Montserrat,sans-serif; margin-bottom:2px;}
+      .evl-feat small {color:#8FA6C4; font-size:.8rem; line-height:1.45;}
+      .evl-invite {margin-top:1.15rem; padding:.85rem 1rem; border-radius:16px; display:flex; gap:10px; align-items:center;
+        background:linear-gradient(100deg,rgba(216,182,106,.13),rgba(216,182,106,.04));
+        border:1px solid rgba(216,182,106,.32); color:#F1DFAF; font-size:.82rem; line-height:1.45;}
+      .evl-invite b {color:#F4DC9A;}
+
+      /* ---------- Cartão de login ---------- */
+      .st-key-elevo_login_card_v16859 {
+        border-radius:26px !important; padding:clamp(1.25rem,2.6vw,2rem) clamp(1.1rem,2.4vw,1.9rem) !important;
+        background:linear-gradient(160deg,rgba(15,24,40,.96),rgba(6,10,18,.97)) !important;
+        border:1px solid rgba(216,182,106,.34) !important; position:relative; overflow:hidden;
+        box-shadow:0 26px 70px rgba(0,0,0,.5),0 0 0 1px rgba(84,216,245,.05),0 0 46px rgba(216,182,106,.07),inset 0 1px rgba(255,255,255,.06) !important;}
+      .st-key-elevo_login_card_v16859::before {content:""; position:absolute; left:0; right:0; top:0; height:2px;
+        background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);}
+      .evl-card-head {text-align:center; margin:0 0 1rem;}
+      .evl-lock {width:58px; height:58px; margin:0 auto .7rem; border-radius:18px; display:grid; place-items:center; font-size:1.6rem;
+        background:linear-gradient(145deg,rgba(216,182,106,.18),rgba(84,216,245,.08)); border:1px solid rgba(216,182,106,.4);
+        box-shadow:0 0 0 6px rgba(216,182,106,.05),0 12px 30px rgba(0,0,0,.35); animation:evl-float 5s ease-in-out infinite;}
+      .evl-card-head h3 {font-family:Montserrat,sans-serif !important; color:#EAF2FF !important; margin:0 !important; padding:0 !important;
+        font-size:1.32rem !important; font-weight:800 !important; letter-spacing:.02em;}
+      .evl-card-head p {color:#8FA6C4 !important; margin:.3rem 0 0; font-size:.84rem;}
+      .st-key-elevo_login_card_v16859 [data-testid="stForm"] {border:none !important; padding:0 !important; background:transparent !important;}
+      .st-key-elevo_login_card_v16859 label, .st-key-elevo_login_card_v16859 label p,
+      .st-key-elevo_login_card_v16859 [data-testid="stWidgetLabel"] p {color:#C9D6E8 !important; font-weight:600 !important; font-size:.82rem !important; letter-spacing:.02em;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="input"], .st-key-elevo_login_card_v16859 [data-baseweb="base-input"] {
+        background:rgba(4,8,15,.75) !important; border-radius:13px !important; border-color:rgba(84,216,245,.22) !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input {background:transparent !important; color:#F1F5F9 !important;
+        min-height:48px !important; font-size:.95rem !important; caret-color:#54D8F5;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="input"]:focus-within {border-color:#54D8F5 !important;
+        box-shadow:0 0 0 3px rgba(84,216,245,.12) !important;}
+      /* Campos escuros em qualquer versão do Streamlit (baseweb ou react-aria). */
+      .st-key-elevo_login_card_v16859 .stTextInput div:has(> input) {background-color:rgba(4,8,15,.8) !important; border:1px solid rgba(84,216,245,.24) !important; border-radius:13px !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput div:has(> input):focus-within {border-color:#54D8F5 !important; box-shadow:0 0 0 3px rgba(84,216,245,.12) !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input {color:#F1F5F9 !important; -webkit-text-fill-color:#F1F5F9 !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput input::placeholder {color:#5F7594 !important; -webkit-text-fill-color:#5F7594 !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput button {background:transparent !important; color:#8FA6C4 !important; border:none !important;}
+      .st-key-elevo_login_card_v16859 .stTextInput button svg {fill:#8FA6C4 !important; color:#8FA6C4 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stCheckbox"] p {color:#A9BAD1 !important; font-size:.82rem !important; font-weight:500 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button {
+        min-height:52px !important; border-radius:14px !important; border:none !important; margin-top:.35rem;
+        background:linear-gradient(100deg,#B88A2E 0%,#D8B66A 45%,#F4DC9A 100%) !important; color:#120D03 !important;
+        font:800 .92rem Montserrat,sans-serif !important; letter-spacing:.16em !important;
+        box-shadow:0 12px 32px rgba(216,182,106,.30),inset 0 1px rgba(255,255,255,.45) !important; transition:transform .15s ease, filter .15s ease;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button p {color:#120D03 !important; font-weight:800 !important;}
+      .st-key-elevo_login_card_v16859 [data-testid="stFormSubmitButton"] button:hover {filter:brightness(1.07); transform:translateY(-1px);}
+      .st-key-elevo_login_card_v16859 .stButton button {min-height:48px !important; border-radius:14px !important;
+        background:rgba(255,255,255,.03) !important; border:1px solid rgba(84,216,245,.28) !important; color:#EAF2FF !important; font-weight:700 !important;}
+      .st-key-elevo_login_card_v16859 .stButton button:hover {border-color:#54D8F5 !important; background:rgba(84,216,245,.07) !important;}
+      .st-key-elevo_login_card_v16859 [role="tablist"], .st-key-elevo_login_card_v16859 [data-baseweb="tab-list"] {
+        display:grid !important; grid-template-columns:1fr 1fr; gap:6px !important; padding:5px !important; margin-bottom:.9rem;
+        border-radius:14px !important; background:rgba(4,8,15,.7) !important; border:1px solid rgba(84,216,245,.16) !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"] {justify-content:center !important; border:none !important; margin:0 !important;
+        border-radius:10px !important; padding:.55rem .6rem !important; min-height:42px;}
+      .st-key-elevo_login_card_v16859 [role="tab"] p {color:#8FA6C4 !important; font:700 .86rem Montserrat,sans-serif !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"][aria-selected="true"] {background:linear-gradient(100deg,rgba(216,182,106,.26),rgba(216,182,106,.1)) !important;
+        box-shadow:inset 0 0 0 1px rgba(216,182,106,.55) !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"][aria-selected="true"] p {color:#F4DC9A !important;}
+      .st-key-elevo_login_card_v16859 [data-baseweb="tab-highlight"], .st-key-elevo_login_card_v16859 [data-baseweb="tab-border"],
+      .st-key-elevo_login_card_v16859 .react-aria-SelectionIndicator {display:none !important;}
+      .st-key-elevo_login_card_v16859 [role="tab"]::after, .st-key-elevo_login_card_v16859 [role="tab"]::before {display:none !important;}
+      .evl-or {display:flex; align-items:center; gap:12px; color:#5F7594; font:600 .68rem 'JetBrains Mono',monospace;
+        letter-spacing:.2em; margin:.95rem 0 .7rem;}
+      .evl-or::before, .evl-or::after {content:""; flex:1; height:1px; background:linear-gradient(90deg,transparent,rgba(84,216,245,.25),transparent);}
+      .evl-foot {display:flex; justify-content:center; flex-wrap:wrap; gap:8px 16px; margin-top:1.05rem; padding-top:.9rem;
+        border-top:1px solid rgba(84,216,245,.10); color:#5F7594 !important; font:500 .68rem 'JetBrains Mono',monospace; letter-spacing:.08em;}
+      .evl-foot span::before {content:"● "; color:#2FD39A;}
+      .evl-help {text-align:center; color:#8FA6C4 !important; font-size:.8rem; margin:.85rem 0 0; line-height:1.5;}
+      .evl-help b {color:#D8B66A;}
+
+      @keyframes evl-spectrum {0%,100% {background-position:0% 50%} 50% {background-position:100% 50%}}
+      @keyframes evl-float {0%,100% {transform:translateY(0)} 50% {transform:translateY(-4px)}}
+      @keyframes evl-blink {0%,100% {opacity:1} 50% {opacity:.35}}
+      @media (max-width:900px) {
+        .st-key-elevo_login_cols_v16859 > div[data-testid="stHorizontalBlock"] {flex-direction:column-reverse !important; gap:1rem !important;}
+        .st-key-elevo_login_cols_v16859 [data-testid="stColumn"] {width:100% !important; flex:1 1 100% !important; min-width:0 !important;}
+      }
+      @media (max-width:640px) {
+        .block-container {padding:1rem .8rem 2rem;}
+        .evl-sub {font-size:.6rem; letter-spacing:.2em;}
+        .evl-side {display:none;}
+        .evl-help-mobile {display:block !important;}
+      }
+      @media (prefers-reduced-motion:reduce) {
+        .evl-brand, .evl-lock, .evl-badge i {animation:none !important;}
       }
     </style>
-    <section class="elevo-login-hero" aria-label="Portal ÉLÉVO">
-      <div class="elevo-login-eagle" aria-hidden="true"><span>💎</span></div>
-      <h1 class="elevo-login-brand">ÉLÉVO</h1>
-      <p class="elevo-login-kicker">Inteligência • Vendas • Criação</p>
-      <div class="elevo-login-chip"><span class="elevo-login-dot"></span> PORTAL DE ACESSO VIP</div>
+    <section class="evl-hero" aria-label="Portal ÉLÉVO">
+      <div class="evl-badge"><i></i> PORTAL ÉLÉVO • ACESSO VIP</div>
+      <h1 class="evl-brand">ÉLÉVO</h1>
+      <p class="evl-sub">Inteligência • Vendas • Criação</p>
     </section>
     """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1, 2, 1])
-    with col2:
-        with st.container(border=True):
-            st.markdown('<div class="elevo-login-card-mark">IDENTIFICAÇÃO SEGURA • ÉLÉVO</div>', unsafe_allow_html=True)
+    with st.container(key="elevo_login_cols_v16859"):
+        _evl_col_info, _evl_col_form = st.columns([1.05, 1], gap="large")
+
+    with _evl_col_info:
+        st.markdown("""
+        <aside class="evl-side">
+          <div class="evl-term"><div class="dots"><span></span><span></span><span></span></div>
+            <b>root@elevo</b>:<em>~/portal</em>$ acesso --vip</div>
+          <h2>Sua central de <span>criação e vendas</span> com inteligência artificial.</h2>
+          <p class="evl-lead">Roteiros, imagens, vídeos e estratégia em um só lugar, num ambiente reservado para membros.</p>
+          <div class="evl-feat"><div class="evl-ico">🎬</div><div><strong>Criação com IA</strong>
+            <small>Influenciadoras, cenas e roteiros prontos para publicar.</small></div></div>
+          <div class="evl-feat"><div class="evl-ico">📈</div><div><strong>Radar de vendas</strong>
+            <small>Oportunidades e missões diárias para crescer com método.</small></div></div>
+          <div class="evl-feat"><div class="evl-ico">💎</div><div><strong>Créditos sob controle</strong>
+            <small>Seu saldo acompanha cada criação, com transparência.</small></div></div>
+          <div class="evl-invite">🎁 <div><b>Crie sua conta e ganhe 100 créditos</b> para testar.
+            Planos a partir de R$ 29,90, com Pix ou cartão.</div></div>
+        </aside>
+        """, unsafe_allow_html=True)
+
+    with _evl_col_form:
+        with st.container(key="elevo_login_card_v16859"):
             if GOOGLE_ATIVO and ident_google and st.session_state.get("google_pendente"):
-                st.markdown("### 🔗 Finalizar acesso com Google")
-                st.info(f"Google autenticado: **{ident_google['email']}**. Confirme o vínculo ou crie seu primeiro acesso.")
+                st.markdown("""<div class="evl-card-head"><div class="evl-lock">🔗</div>
+                    <h3>Finalizar acesso com Google</h3>
+                    <p>Confirme que esta conta Google é sua.</p></div>""", unsafe_allow_html=True)
+                st.info(f"Google autenticado: **{ident_google['email']}**")
                 try:
                     conta_google_atual = usuario_cadastrado_por_email(ident_google["email"])
                     if conta_google_atual:
                         st.caption("Este e-mail já possui conta ÉLÉVO. Confirme a senha atual para vincular com segurança.")
                         with st.form("vinculo_google_seguro"):
                             senha_de_vinculo = st.text_input("Senha atual da sua conta ÉLÉVO", type="password")
-                            confirmar_vinculo = st.form_submit_button("🔗 Vincular minha conta Google", use_container_width=True)
+                            confirmar_vinculo = st.form_submit_button("🔗 VINCULAR MINHA CONTA GOOGLE", use_container_width=True)
                         if confirmar_vinculo:
                             senha_ok = (hmac.compare_digest(senha_de_vinculo, SENHA_MESTRA)
                                         if ident_google["email"] == EMAIL_MESTRE.strip().lower()
@@ -746,15 +868,14 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 st.error("Senha atual inválida. Vínculo não autorizado.")
                     else:
+                        # V16.8.63 — cadastro aberto de novo: primeiro acesso com Google cria a conta.
                         st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
-                        if st.button("✨ Criar meu acesso com Google", use_container_width=True):
+                        if st.button("✨ Criar meu acesso com Google", use_container_width=True, key="btn_criar_google_v16863"):
                             try:
                                 if st.query_params.get("elevo_acesso") == "novo":
                                     del st.query_params["elevo_acesso"]
                                 st.session_state.pop("elevo_logout_pendente", None)
                                 # Senha aleatória não entregue ao usuário; login por OIDC.
-                                # Primeiro registra o vínculo. Se o cadastro de usuário
-                                # falhar, a mesma identidade Google poderá concluir depois.
                                 if not gravar_vinculo_google(ident_google, ident_google["email"]):
                                     raise RuntimeError("Falha ao vincular")
                                 cadastrado = conectar_banco_usuarios("salvar", ident_google["email"], ident_google["nome"], secrets.token_urlsafe(48))
@@ -766,23 +887,52 @@ if not st.session_state["usuario_logado"]:
                                 st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
                 except Exception:
                     st.error("O banco de usuários está indisponível. Acesso Google não foi liberado.")
-                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente"):
+                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente",
+                             use_container_width=True):
                     st.logout()
                 st.stop()
             if st.session_state.get("google_erro"):
                 st.error(st.session_state["google_erro"])
-                if st.button("Sair da conta Google atual"):
+                if st.button("Sair da conta Google atual", use_container_width=True):
                     st.logout()
                 st.stop()
-            aba_login, aba_cadastro = st.tabs(["🚀 Entrar", "✨ Criar Conta"])
+
+            st.markdown("""<div class="evl-card-head"><div class="evl-lock">💎</div>
+                <h3>Bem-vindo à ÉLÉVO</h3>
+                <p>Entre na sua conta ou crie a sua em segundos.</p></div>""", unsafe_allow_html=True)
+            aba_login, aba_cadastro = st.tabs(["🔐 Entrar", "✨ Criar conta"])
+            with aba_cadastro:
+                with st.form("form_cadastro_v16863", clear_on_submit=False):
+                    novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu nome ou apelido", max_chars=60)
+                    novo_email = st.text_input("📧 Seu melhor e-mail (Gmail)", placeholder="exemplo@gmail.com", max_chars=120)
+                    nova_senha = st.text_input("🔑 Crie uma senha", type="password", placeholder="Mínimo de 8 caracteres", max_chars=64)
+                    criar_conta_btn = st.form_submit_button("✨ CRIAR MINHA CONTA", use_container_width=True, type="primary")
+                st.markdown('<p class="evl-help">🎁 Conta nova já começa com <b>100 créditos</b> para testar.</p>',
+                            unsafe_allow_html=True)
+                if criar_conta_btn:
+                    email_clean = novo_email.strip().lower()
+                    if not novo_nome.strip() or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
+                    elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
+                    elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
+                    elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
+                    else:
+                        with st.spinner("Criando a sua conta..."):
+                            usuarios = conectar_banco_usuarios("ler")
+                            if usuarios is not None:
+                                if any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios):
+                                    st.error("🚨 Este e-mail já está cadastrado! Use a aba Entrar.")
+                                elif conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha):
+                                    entrar_usuario(email_clean, novo_nome.strip())
+                                    st.rerun()
+                                else: st.error("❌ Falha ao gravar no servidor. Tente novamente.")
+                            else: st.error("❌ Falha de conexão com o banco.")
             with aba_login:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Acesso à Central</h4>", unsafe_allow_html=True)
                 with st.form("form_login"):
-                    email_input = st.text_input("📧 Seu Gmail", placeholder="Digite seu e-mail...")
-                    senha_input = st.text_input("🔑 Senha", type="password", placeholder="Digite sua senha...")
+                    email_input = st.text_input("E-mail", placeholder="seuemail@gmail.com")
+                    senha_input = st.text_input("Senha", type="password", placeholder="Sua senha de acesso")
                     lembrar_dados = st.checkbox("Manter conectado neste dispositivo", value=True)
-                    submit_login = st.form_submit_button("🚀 ENTRAR", use_container_width=True, type="primary")
-                
+                    submit_login = st.form_submit_button("ENTRAR NA CENTRAL", use_container_width=True, type="primary")
+
                 if submit_login:
                     email_clean = email_input.strip().lower()
                     if email_clean == EMAIL_MESTRE.strip().lower() and senha_input == SENHA_MESTRA:
@@ -790,7 +940,7 @@ if not st.session_state["usuario_logado"]:
                         if not lembrar_dados: cookies.pop("login", None); cookies.save()
                         st.rerun()
                     elif email_clean and senha_input:
-                        with st.spinner("A verificar credenciais no servidor..."):
+                        with st.spinner("Verificando suas credenciais..."):
                             usuarios = conectar_banco_usuarios("ler")
                             if usuarios is not None:
                                 usuario_encontrado = next((u for u in usuarios if str(u.get("Email","")).strip().lower() == email_clean and senha_confere(senha_input, u.get("Senha", ""))), None)
@@ -800,11 +950,12 @@ if not st.session_state["usuario_logado"]:
                                     if not str(usuario_encontrado.get("Senha", "")).startswith("pbkdf2_sha256$"):
                                         conectar_banco_usuarios("migrar", email_clean, senha=senha_input)
                                     st.rerun()
-                                else: st.error("🚨 Conta não encontrada ou senha incorreta!")
-                            else: st.error("🚨 Erro de conexão com o banco de dados.")
-                    else: st.warning("⚠️ Preencha o e-mail e a senha.")
+                                else: st.error("E-mail ou senha incorretos.")
+                            else: st.error("Não foi possível conectar ao servidor. Tente novamente em instantes.")
+                    else: st.warning("Preencha o e-mail e a senha.")
+
                 if GOOGLE_ATIVO:
-                    st.caption("────────── ou ──────────")
+                    st.markdown('<div class="evl-or">OU</div>', unsafe_allow_html=True)
                     if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
                         # Clique explícito: permita a nova autenticação Google.
                         if st.query_params.get("elevo_acesso") == "novo":
@@ -813,29 +964,11 @@ if not st.session_state["usuario_logado"]:
                         cookies.pop("elevo_bv_google_v16814", None)
                         cookies.save()
                         st.login("google")
-                else:
-                    st.caption("🔒 Acesso Google disponível após configurar OAuth nos Secrets.")
 
-            with aba_cadastro:
-                st.markdown("<h4 style='text-align: center; margin-bottom: 20px;'>Nova Conta VIP</h4>", unsafe_allow_html=True)
-                novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu apelido...")
-                novo_email = st.text_input("📧 Seu melhor E-mail", placeholder="exemplo@gmail.com")
-                nova_senha = st.text_input("🔑 Crie uma Senha", type="password", placeholder="Sua senha secreta...")
-                if st.button("✨ CRIAR MINHA CONTA", use_container_width=True, type="secondary"):
-                    email_clean = novo_email.strip().lower()
-                    if not novo_nome or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
-                    elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
-                    elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
-                    elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
-                    else:
-                        with st.spinner("A forjar a sua conta..."):
-                            usuarios = conectar_banco_usuarios("ler")
-                            if usuarios is not None:
-                                if any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios): st.error("🚨 Este e-mail já está cadastrado!")
-                                else:
-                                    if conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha): st.success(f"✅ Conta criada, {novo_nome}!")
-                                    else: st.error("❌ Falha ao gravar no servidor.")
-                            else: st.error("❌ Falha de conexão com o banco.")
+            st.markdown("""
+            <p class="evl-help">Esqueceu a senha? <b>Fale com o suporte da ÉLÉVO</b>.</p>
+            <div class="evl-foot"><span>Conexão protegida</span><span>Senha criptografada</span><span>Sessão de 30 dias</span></div>
+            """, unsafe_allow_html=True)
     st.stop()
 
 # Solução para browsers mobile/Streamlit Cloud que montam o player só após F5:
@@ -921,12 +1054,371 @@ def validar_cota_ia():
 from threading import RLock
 
 ELEVO_CREDITOS_INICIAIS_V16813 = 100
-ELEVO_CUSTO_PROMPT_V16813 = 10
+ELEVO_CUSTO_PROMPT_V16813 = 20
 ELEVO_CUSTO_FERRAMENTA_V16813 = 3
 ELEVO_CREDITOS_COLS_V16813 = ["Id", "Email", "Data", "Tipo", "Valor", "Referencia", "Autor"]
 ELEVO_PERFIL_COLS_V16813 = ["Email", "Status", "AvatarB64", "Atualizado"]
 ELEVO_PEDIDOS_COLS_V16813 = ["Id", "Email", "Data", "Quantidade", "Mensagem", "Status", "AtendidoEm"]
 ELEVO_ACESSOS_COLS_V16813 = ["Id", "Email", "Data", "Origem"]
+
+# ==========================================================
+# ÉLÉVO V16.8.75 — VARIEDADE REAL DE ABERTURA/FECHO NOS 4 MOTORES
+# Não grava roteiros nem dados dos produtos no Sheets: apenas hashes dos
+# primeiros/últimos termos da fala + códigos de estilos, por conta.
+# Em falha de Sheets, memória da sessão continua funcionando.
+# Os moldes de imagem, a duração 10/12/15 s e o fluxo de pagamento permanecem.
+# ==========================================================
+ELEVO_COPY_COLS_V16875 = ["Id", "Email", "Data", "Motor", "AberturaHash", "FechoHash", "Angulo", "CTA"]
+ELEVO_COPY_ANGULOS_V16875 = [
+    "pergunta específica sobre um incômodo real e demonstrável",
+    "microdescoberta de um detalhe verificável do item",
+    "situação prática do dia a dia antes de citar a solução",
+    "comparação com o próprio uso anterior sem atacar concorrentes",
+    "dica objetiva de escolha ou combinação do produto",
+    "curiosidade legítima sobre a utilidade da peça ou item",
+    "erro comum de uso, mas só quando comprovado",
+    "observação espontânea de design ou acabamento visível",
+    "comentário de amiga baseado na demonstração real",
+    "dificuldade cotidiana que a característica real pode atender",
+    "pergunta inesperada sobre detalhe concreto da referência",
+    "teste visual simples com benefício verificável, sem antes/depois falso",
+    "uma dúvida frequente respondida por característica observável",
+    "pequena história cotidiana sem depoimento ou experiência inventados",
+    "gancho direto com produto e público certo no primeiro instante",
+    "contraste entre expectativa comum e característica demonstrável",
+    "benefício funcional descrito com linguagem simples e sem exagero",
+    "o que observar antes de comprar uma peça ou utensílio",
+    "detalhe da apresentação que evita uma compra por impulso",
+    "explicação breve de por que o formato ou conjunto é prático",
+]
+# A IA decide a frase de encerramento; isto NÃO é um banco de frases prontas.
+# Objetivos alternados, para variar conforme o que a câmera realmente demonstra.
+ELEVO_COPY_CTAS_V16875 = [
+    "convidar a conferir o detalhe concreto do item no link nativo deste vídeo",
+    "transformar a dúvida inicial em uma pergunta curta e convidar a descobrir a resposta na descrição do produto",
+    "conectar uma necessidade cotidiana a uma opção de compra sem pressionar",
+    "mostrar por que vale observar o acabamento e direcionar aos detalhes",
+    "convidar a comparar a peça com o que a pessoa já costuma usar",
+    "propor que a pessoa avalie se a solução cabe em sua própria rotina",
+    "enfatizar a facilidade de consultar as opções pelo link deste vídeo",
+    "fechar com curiosidade autêntica sobre um atributo realmente visível",
+    "convidar a conferir variantes ou tamanhos apenas se constarem no cadastro do produto",
+    "encerrar com uma pergunta de identificação sobre a dor e apontar os detalhes",
+    "relembrar um benefício verificável e sugerir uma conferência breve",
+    "levar a pessoa a examinar como o item funciona no uso mostrado",
+    "fechar como dica útil de amiga e convidar a conhecer o produto",
+    "sugerir olhar de perto o mesmo detalhe apresentado na cena",
+    "usar uma transição natural entre demonstração e consulta do link nativo",
+    "pedir que observe se o item atende à necessidade antes de decidir",
+    "encerrar com contraste cotidiano sem comparar ou depreciar marcas",
+    "convidar a visualizar como a combinação serviria à rotina pessoal",
+    "usar um gesto discreto de apontar abaixo, apenas se natural na cena",
+    "criar senso de oportunidade de conhecer a oferta real, sem alegar prazo ou estoque",
+    "convidar a verificar o preço atual no link, sem afirmar valor ou desconto",
+    "encerrar com frase curta, curiosa e nova, com menção opcional ao carrinho laranja",
+    "fazer pergunta com escolha concreta entre duas aplicações reais do produto",
+    "conectar o benefício observado a uma ação simples: consultar o produto neste vídeo",
+]
+
+
+
+def elevo_copy_normalizar_v16875(texto):
+    texto = unicodedata.normalize("NFKD", str(texto or "").casefold())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return re.findall(r"[a-z0-9]+", texto)
+
+
+def elevo_copy_texto_falado_v16875(fala):
+    """Ignora marcações ASMR de direção; a faixa de duração é da locução."""
+    return re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", str(fala or "")).strip()
+
+
+def elevo_copy_resumo_v16875(fala):
+    palavras = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(fala))
+    if len(palavras) < 9:
+        return None
+    # 6 termos do primeiro gancho e 6 do encerramento; dispensa roteiros completos.
+    ini = " ".join(palavras[:6]); fim = " ".join(palavras[-6:])
+    return hashlib.sha256(ini.encode("utf8")).hexdigest(), hashlib.sha256(fim.encode("utf8")).hexdigest()
+
+
+def elevo_copy_hist_v16875(email):
+    email = str(email or "").strip().lower()
+    if st.session_state.get("elevo_copy_ultimo_email_v16875") != email:
+        st.session_state["elevo_copy_ultimo_email_v16875"] = email
+        st.session_state["elevo_copy_hist_v16875"] = []
+        st.session_state["elevo_copy_ultimas_falas_v16875"] = []
+        st.session_state["elevo_copy_escolhas_v16875"] = []
+    local = list(st.session_state.get("elevo_copy_hist_v16875", []))
+    try:
+        aba = elevo_aba_v16813("Elevo_Copy_Hashes_V1", ELEVO_COPY_COLS_V16875)
+        registros = aba.get_all_records()
+        for r in registros[-1800:]:
+            if str(r.get("Email", "")).strip().lower() == email:
+                local.append({"ini": str(r.get("AberturaHash", "")),
+                              "fim": str(r.get("FechoHash", "")),
+                              "angulo": str(r.get("Angulo", "")), "cta": str(r.get("CTA", ""))})
+    except Exception as exc:
+        logging.warning("ELEVO_COPY_HIST: fallback de sessao (%s)", type(exc).__name__)
+    return local[-100:]
+
+
+def elevo_copy_diretriz_v16875(email, motor, duracao, scan):
+    hist = elevo_copy_hist_v16875(email)
+    escolhidos = st.session_state.setdefault("elevo_copy_escolhas_v16875", [])
+    usados_ang = [h.get("angulo") for h in hist[-15:]] + [h[0] for h in escolhidos[-15:]]
+    usados_cta = [h.get("cta") for h in hist[-12:]] + [h[1] for h in escolhidos[-12:]]
+    ang_pool = [a for a in ELEVO_COPY_ANGULOS_V16875 if a not in usados_ang]
+    cta_pool = [c for c in ELEVO_COPY_CTAS_V16875 if c not in usados_cta]
+    angulo = random.choice(ang_pool or ELEVO_COPY_ANGULOS_V16875)
+    cta = random.choice(cta_pool or ELEVO_COPY_CTAS_V16875)
+    escolhidos.append((angulo, cta))
+    st.session_state["elevo_copy_escolhas_v16875"] = escolhidos[-24:]
+    anteriores = st.session_state.get("elevo_copy_ultimas_falas_v16875", [])
+    recentes = "; ".join("/".join(elevo_copy_normalizar_v16875(x)[:7]) for x in anteriores[-5:])
+    produto = str((scan or {}).get("nome_pt", "") or "produto da foto").strip()[:120]
+    return {
+        "angulo": angulo, "cta": cta,
+        "texto": (
+            "\n\n[ÉLÉVO V16.8.76 — PRIORIDADE MÁXIMA NA FALA E NO ENCERRAMENTO, "
+            "PRESERVAR FOTO, FÍSICA, SEO, PERSONA E DURAÇÃO 10/12/15s]\n"
+            f"MOTOR: {motor}. PRODUTO DA FOTO: {produto}. "
+            "NOSSO LEMA: não vendemos um produto, ajudamos a pessoa a resolver uma necessidade real. "
+            f"ABERTURA (primeiro segundo): escolha este ângulo de forma ORIGINAL: {angulo}. "
+            "Comece por uma dor plausível ou microcuriosidade concreta; evite frases genéricas, "
+            "exageros, promessas de viralização, chamadas repetidas ou supostas experiências pessoais não reais. "
+            "Até o MEIO do vídeo, cite o produto ou sua categoria e mostre uma característica "
+            "observável que a câmera consegue demonstrar. Para moda, é obrigatório falar da peça "
+            "(body, short, cinto, caimento visível etc.), sem inventar material, medida, conforto ou efeito. "
+            "Para beleza, fale do tipo de item, uso demonstrável e necessidade, sem prometer cura ou resultado clínico. "
+            "A apresentadora fala como gente de verdade, próxima, específica e respeitosa. "
+            f"FINAL: a IA precisa ESCREVER UMA FRASE INÉDITA PARA ESTE PRODUTO, usando só como direção criativa: {cta}. "
+            "Esta direção NÃO é fala pronta. Não copie nenhum encerramento das amostras históricas. "
+            "PROIBIDO falar ou escrever 'sacolinha' em qualquer variação, mesmo que algum molde antigo mande. "
+            "O fecho não pode ficar igual ou muito parecido ao das criações anteriores. "
+            "Faça o final conversar com a dor inicial, gerando motivo concreto para conferir o item. "
+            "Em 12 ou 15 segundos, pode usar de modo alternado 'link aqui embaixo', 'link do vídeo' "
+            "ou 'carrinho laranja' quando esse destino existir no TikTok Shop; não force o mesmo comando. "
+            "Em 10 segundos, priorize solução e um microconvite final natural. Não direcione para "
+            "DM, WhatsApp, bio, sites externos ou QR: só para o vínculo nativo do produto no vídeo. "
+            "Urgência apenas honesta: sem inventar desconto, estoque baixo, último dia, preço, "
+            "prazo, compra garantida ou promoção; destaque vantagem promocional somente se vier "
+            "explicitamente confirmada nos dados deste produto. Na ausência de prova, convide a "
+            "CONSULTAR preço e disponibilidade, sem afirmar qualquer promoção. "
+            "NUNCA desenhe botões, interface da plataforma, selo, link falso ou objeto 3D no vídeo. "
+            f"O motor já determina a faixa de palavras de {duracao} segundos: RESPEITE-A, "
+            "não aumente nem diminua a duração, não mude a imagem ou títulos SEO. "
+            f"Evite aberturas recentes: {recentes or 'nenhuma nesta sessão'}. "
+            "Não repita o mesmo verbo de CTA nem o mesmo jeito de iniciar sempre. "
+            "Antes de entregar, revise começo, utilidade concreta e último período."
+        ),
+    }
+
+
+
+def elevo_copy_localizar_v16875(roteiro):
+    """Apenas narração entre aspas no bloco de vídeo; não mexe em imagem nem SEO."""
+    p = re.search(r"###\s*🎬\s*PROMPT DE V[ÍI]DEO[^\n]*\n", roteiro, re.I)
+    if not p:
+        return None
+    fim = re.search(r"(?m)^###\s*🔑", roteiro[p.end():])
+    limite_video = p.end() + (fim.start() if fim else len(roteiro[p.end():]))
+    video = roteiro[p.end():limite_video]
+    fala_ini = re.search(r"(?m)^\s*(?:🎙️|🎧|🔊|Áudio\b|Fala\b|Voz\b)", video)
+    if not fala_ini:
+        return None
+    fim_audio = re.search(r"(?m)^\s*(?:📝|Finalização\b|🏁)", video[fala_ini.start():])
+    limite_audio = fala_ini.start() + (fim_audio.start() if fim_audio else len(video))
+    audio = video[fala_ini.start():limite_audio]
+    falas = []
+    for m in re.finditer(r'"([^"\n]{24,})"|“([^”\n]{24,})”', audio):
+        grupo = 1 if m.group(1) is not None else 2
+        valor = m.group(grupo)
+        n = len(elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(valor)))
+        if 12 <= n <= 65:
+            falas.append((n, p.end() + fala_ini.start() + m.start(grupo),
+                          p.end() + fala_ini.start() + m.end(grupo), valor))
+    if not falas:
+        return None
+    _, start, end, valor = max(falas)
+    return start, end, valor
+
+
+def elevo_copy_problemas_v16875(fala, scan, duracao, faixa, historico):
+    p = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(fala))
+    n = len(p)
+    problemas = []
+    if n < faixa[0] - 2 or n > faixa[1] + 2:
+        problemas.append(f"Fala fora da faixa original {faixa[0]}-{faixa[1]} palavras")
+    comp = elevo_copy_resumo_v16875(fala)
+    if comp and (any(h.get("ini") == comp[0] for h in historico[-100:])
+                 or any(h.get("fim") == comp[1] for h in historico[-100:])):
+        problemas.append("Abertura ou encerramento idêntico a uma criação anterior")
+    normal = " ".join(p)
+    if re.search(r"\bsacolinhas?\b|\bsacolas?\b", normal):
+        problemas.append("Termo sacolinha/sacola proibido na fala")
+    if re.search(r"^(?:amiga\s+)?(?:olha\s+so|para\s+tudo|voce\s+nao\s+vai\s+acreditar|esse\s+produto\s+e\s+perfeito)\b", normal):
+        problemas.append("Gancho inicial genérico")
+    proibido = ("lote secreto", "estoque surtou", "estoque enlouqueceu", "ultimas unidades", "so hoje",
+                "desconto imperdivel", "promocao relampago", "cura garantida", "resultado garantido", "quase de graca")
+    if any(x in normal for x in proibido):
+        problemas.append("Oferta, escassez ou efeito não comprovado")
+    # Dado da foto não garante oferta; não alegar promoção no áudio sem registro verificável.
+    oferta_ok = bool((scan or {}).get("oferta_confirmada") or (scan or {}).get("promocao_verificada"))
+    if not oferta_ok and re.search(r"\b(?:desconto|promocao|oferta especial|preco caiu|esta acabando|vai esgotar|so resta)\b", normal):
+        problemas.append("Oferta ou disponibilidade não confirmada")
+    # Fecho relevante e identificável, mas sem obrigar vocábulo/CTA específico.
+    if int(duracao) >= 12:
+        cauda = " ".join(p[-18:])
+        if not re.search(r"\b(confira|confere|veja|olhe|olha|toque|clique|clic(a|ar)|acesse|consulte|descubra|escolha|aproveite|verifique|conheca|da uma olhada|vale conferir|ver mais)\b", cauda):
+            problemas.append("Encerramento não convida a pessoa a conhecer o produto")
+    # Detectar variações quase idênticas na sessão; em Sheets já são impedidas as 6 palavras finais idênticas.
+    def similar(a,b):
+        aa = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(a))
+        bb = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(b))
+        if len(aa) < 10 or len(bb) < 10:
+            return False
+        # Comparar início E final; evita variações cosméticas do mesmo gancho/convite.
+        import difflib
+        abertura = difflib.SequenceMatcher(None, " ".join(aa[:12]), " ".join(bb[:12])).ratio()
+        fecho = difflib.SequenceMatcher(None, " ".join(aa[-12:]), " ".join(bb[-12:])).ratio()
+        return max(abertura, fecho) >= 0.83
+    recentes_sessao = list(st.session_state.get("elevo_copy_ultimas_falas_v16875", []))[-20:]
+    if any(similar(fala, anterior) for anterior in recentes_sessao):
+        problemas.append("Abertura ou final muito parecido com outra criação da sessão")
+    nome = " ".join(elevo_copy_normalizar_v16875((scan or {}).get("nome_pt", "")))
+    roupa = bool(re.search(r"\b(body|shorts?|regata|conjunto|roupa|vestido|saia|blusa|calca|camiseta|alfaiataria|vestir)\b", nome))
+    if roupa:
+        detalhes = ("body", "short", "regata", "conjunto", "vestido", "saia", "blusa", "calca",
+                    "camiseta", "alfaiataria", "cinto", "cintura", "caimento", "alca", "peca")
+        if not any(k in p for k in detalhes):
+            problemas.append("Moda sem referência à peça ou a detalhe observável")
+    elif nome:
+        stop = {"produto", "kit", "unidade", "unidades", "para", "com", "de", "da", "do", "dos", "das", "uma", "um", "e", "original"}
+        concretos = {q for q in elevo_copy_normalizar_v16875(nome) if len(q) >= 4 and q not in stop}
+        if concretos and not (concretos & set(p)):
+            problemas.append("Fala não menciona categoria ou elemento concreto do produto")
+    return problemas
+
+
+def elevo_copy_guard_v16875(roteiro, email, scan, motor, duracao, faixa, diretriz):
+    hist = elevo_copy_hist_v16875(email)
+    loc = elevo_copy_localizar_v16875(roteiro)
+    if not loc:
+        raise ValueError("ÉLÉVO COPY: fala do vídeo não foi localizada; criação não aprovada.")
+    problemas = elevo_copy_problemas_v16875(loc[2], scan, int(duracao), faixa, hist)
+    # Alteração pontual e excepcional: se a fala copiou um gancho, não citou o produto,
+    # nem respeitou o CTA, repará-la SEM mudar imagem, motor, visual, SEO ou duração.
+    if problemas:
+        for tentativa in range(2):
+            loc = elevo_copy_localizar_v16875(roteiro)
+            if not loc:
+                break
+            atual = loc[2]
+            pedido = (
+                f"Produto identificado: {(scan or {}).get('nome_pt', 'item da referência')}\n"
+                f"Duração: {duracao}s. Faixa INALTERÁVEL: {faixa[0]} a {faixa[1]} palavras.\n"
+                f"Texto atual: {atual}\n"
+                f"Problemas a corrigir: {'; '.join(problemas)}.\n"
+                f"Ângulo novo: {diretriz['angulo']}. Estratégia criativa do final: {diretriz['cta']}. NÃO copie esta frase literalmente.\n"
+                "Reescreva SOMENTE a locução em português brasileiro, conservando o sentido comprovável, "
+                "a duração, um detalhe do produto e a voz da influenciadora. "
+                "Crie nova frase de abertura e novo ENCERRAMENTO contextual ao produto e à dor. "
+                "Proibido usar sacolinha ou sacola; para 12/15s alterne entre link aqui embaixo, "
+                "link nativo do vídeo, carrinho laranja ou convite de consulta natural, SEM reciclar frases prontas. "
+                "Não conduza a link externo. Não invente atributos, avaliações, preço, cura, oferta ou estoque. "
+                "Não copie frase pronta do roteiro antigo. Responda somente JSON {\"fala\":\"...\"}."
+            )
+            validar_cota_ia()
+            resposta = elevo_chat_create_v1685(
+                model=ELEVO_MODELO_PRODUCAO_V1685,
+                response_format={"type": "json_object"},
+                messages=[{"role": "system", "content": "Revisor de copy UGC realista, conciso, sem frases repetidas ou alegações enganosas. JSON apenas."},
+                          {"role": "user", "content": pedido}],
+                max_tokens=360, temperature=0.9)
+            try:
+                nova = str(json.loads(resposta.choices[0].message.content or '{}').get('fala', '')).strip()
+            except (TypeError, ValueError, AttributeError, IndexError):
+                nova = ""
+            nova = nova.replace('"', '').replace('“', '').replace('”', '').strip()
+            if not nova:
+                continue
+            problemas_novos = elevo_copy_problemas_v16875(nova, scan, int(duracao), faixa, hist)
+            if problemas_novos:
+                problemas = problemas_novos
+                continue
+            prefixo_asrm = re.match(r"^(?:\s*\[[^\]]{1,80}\]\s*)+", atual)
+            if prefixo_asrm and not nova.startswith("["):
+                nova = prefixo_asrm.group(0) + nova
+            roteiro = roteiro[:loc[0]] + nova + roteiro[loc[1]:]
+            problemas = []
+            break
+    if problemas:
+        raise ValueError("ÉLÉVO COPY: não foi possível obter abertura e CTA novos, com produto real e tempo correto. "
+                         "Tente gerar novamente. Seu débito será estornado.")
+    # O texto na tela acompanha o encerramento REAL da fala, nunca uma frase fixa.
+    # Restrito ao bloco de vídeo, respeitando foto e SEO literalmente.
+    loc = elevo_copy_localizar_v16875(roteiro)
+    fala_final = loc[2] if loc else ""
+    limpo = re.sub(r"^\s*\[[^]]+\]\s*", "", fala_final).strip()
+    periodos = [x.strip() for x in re.split(r"(?<=[.!?])\s+", limpo) if x.strip()]
+    fecho = (periodos[-1] if periodos else limpo).strip().strip('"“”')
+    if len(elevo_copy_normalizar_v16875(fecho)) > 16:
+        fecho = " ".join(fecho.split()[-12:])
+    fecho = re.sub(r"(?i)\bsacolinhas?\b", "link do produto", fecho)
+    inicio_video = re.search(r"###\s*🎬\s*PROMPT DE V[ÍI]DEO[^\n]*\n", roteiro, re.I)
+    if inicio_video:
+        fim_video = re.search(r"(?m)^###\s*🔑", roteiro[inicio_video.end():])
+        fim_pos = inicio_video.end() + (fim_video.start() if fim_video else len(roteiro[inicio_video.end():]))
+        video = roteiro[inicio_video.end():fim_pos]
+        pos_tela = re.search(r"(?m)^\s*📝\s*Texto na Tela[^\n]*", video)
+        if pos_tela:
+            antes, tela = video[:pos_tela.start()], video[pos_tela.start():]
+            linhas = tela.splitlines(keepends=True)
+            for i, linha in enumerate(linhas):
+                if (re.search(r"(?i)\bsacolinhas?\b|\bsacolas?\b", linha)
+                    or ("FINAL INÉDITO COERENTE" in linha)
+                    or ("🛒" in linha and "📝" not in linha)):
+                    # Especialmente fallback da matriz com três legendas na mesma linha.
+                    if "📝" in linha and "🛒" in linha:
+                        linhas[i] = re.sub(r"🛒[^\n]*", "✨ " + fecho, linha)
+                    else:
+                        prefixo = re.match(r"^(\s*)([\"“]?)", linha)
+                        margem = prefixo.group(1) if prefixo else ""
+                        abre = prefixo.group(2) if prefixo else ""
+                        fecha = '"' if abre == '"' else '”' if abre == '“' else ''
+                        termino = "\n" if linha.endswith("\n") else ""
+                        linhas[i] = margem + abre + "✨ " + fecho + fecha + termino
+            video = antes + "".join(linhas)
+        # Eliminar eventual menção ao termo legado que a IA tenha posto em anotações de vídeo.
+        video = re.sub(r"(?i)\bsacolinhas?\b", "link do produto", video)
+        roteiro = roteiro[:inicio_video.end()] + video + roteiro[fim_pos:]
+    return roteiro
+
+
+def elevo_copy_registrar_v16875(roteiro, email, motor, diretriz):
+    loc = elevo_copy_localizar_v16875(roteiro)
+    if not loc:
+        return
+    hashes = elevo_copy_resumo_v16875(loc[2])
+    if not hashes:
+        return
+    hist = st.session_state.setdefault("elevo_copy_hist_v16875", [])
+    hist.append({"ini": hashes[0], "fim": hashes[1],
+                 "angulo": diretriz["angulo"], "cta": diretriz["cta"]})
+    st.session_state["elevo_copy_hist_v16875"] = hist[-60:]
+    anteriores = st.session_state.setdefault("elevo_copy_ultimas_falas_v16875", [])
+    anteriores.append(loc[2])
+    st.session_state["elevo_copy_ultimas_falas_v16875"] = anteriores[-8:]
+    try:
+        aba = elevo_aba_v16813("Elevo_Copy_Hashes_V1", ELEVO_COPY_COLS_V16875)
+        aba.append_row([secrets.token_hex(8), str(email).strip().lower(),
+                        datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
+                        motor, hashes[0], hashes[1], diretriz["angulo"], diretriz["cta"]])
+    except Exception as exc:
+        # Criatividade não falha por indisponibilidade do registro auxiliar.
+        logging.warning("ELEVO_COPY_REGISTRO: memória apenas na sessão (%s)", type(exc).__name__)
+
 
 class ElevoCreditoErroV16813(RuntimeError):
     pass
@@ -1069,6 +1561,53 @@ def elevo_creditos_apurar_v16813(registros, email):
             "possui_registros": possui_registros,
             "aceitos":aceitos, "estornos":estornos, "usos":usos}
 
+
+# ==========================================================
+# ÉLÉVO V16.8.78 — PATENTES DE CLIENTES
+# Somente transações confirmadas pelo fluxo Mercado Pago e creditadas
+# em Elevo_Creditos_V1: Tipo=ADD, Autor=MERCADOPAGO, Ref=venda:<payment_id>.
+# Não depende do saldo, não conta bônus, SET manual, INIT ou solicitações.
+# Não altera o livro financeiro nem as regras de pagamento.
+# ==========================================================
+def elevo_patente_por_lancamentos_v16878(lancamentos, email):
+    """Retorna patente pela quantidade de pagamentos únicos efetivamente creditados."""
+    email = str(email or "").strip().lower()
+    pagamentos = set()
+    for reg in lancamentos:
+        if str(reg.get("Email", "")).strip().lower() != email:
+            continue
+        if str(reg.get("Tipo", "")).strip().upper() != "ADD":
+            continue
+        if str(reg.get("Autor", "")).strip().upper() != "MERCADOPAGO":
+            continue
+        referencia = str(reg.get("Referencia", "")).strip().lower()
+        if not re.fullmatch(r"venda:[0-9]+", referencia):
+            continue
+        try:
+            if int(reg.get("Valor", 0) or 0) <= 0:
+                continue
+        except (TypeError, ValueError):
+            continue
+        pagamentos.add(referencia)
+
+    total = len(pagamentos)
+    # Níveis por recompra: uma transação real representa um passo no histórico.
+    if total >= 5:
+        return {"nome": "Diamante VIP", "icone": "💎", "classe": "diamante",
+                "compras": total, "proxima": "Patente máxima conquistada"}
+    if total >= 3:
+        return {"nome": "Ouro VIP", "icone": "🥇", "classe": "ouro",
+                "compras": total, "proxima": f"Faltam {5-total} compra(s) para Diamante VIP"}
+    if total == 2:
+        return {"nome": "Prata VIP", "icone": "🥈", "classe": "prata",
+                "compras": total, "proxima": "Falta 1 compra para Ouro VIP"}
+    if total == 1:
+        return {"nome": "Bronze VIP", "icone": "🥉", "classe": "bronze",
+                "compras": total, "proxima": "Falta 1 compra para Prata VIP"}
+    return {"nome": "Iniciante", "icone": "🌱", "classe": "iniciante",
+            "compras": 0, "proxima": "Sua primeira compra libera Bronze VIP"}
+
+
 def elevo_credito_eventos_v16813():
     return elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813).get_all_records()
 
@@ -1110,7 +1649,7 @@ def elevo_credito_reservar_v16813(custo, finalidade):
         if saldo < custo:
             raise ElevoCreditoErroV16813(
                 f"Saldo insuficiente: {saldo} crédito(s). Esta operação custa {custo}. "
-                "Use o botão 'Pedir créditos ao CEO' no topo do painel.")
+                "Recarregue em '💎 Comprar créditos' (Pix ou cartão) no topo do painel.")
         aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
         ident = secrets.token_hex(16)
         aba.append_row([ident, email, elevo_agora_v16813(), "DEBIT", custo,
@@ -1228,6 +1767,706 @@ def elevo_excluir_conta_v16813(email):
         # O histórico financeiro permanece para auditoria; demais dados pessoais
         # de influenciadoras e memórias não são excluídos automaticamente.
 
+# ==========================================================
+# V16.8.59 — CRIAÇÃO DE CONTAS PELO CEO (sem autocadastro público)
+# ----------------------------------------------------------
+# GUIA PARA O FUTURO PAINEL DE VENDAS / COMPRAS:
+#  1. Pacotes ficam em ELEVO_PACOTES_V16859 (nome -> créditos e preço).
+#     O painel de vendas deve ler essa mesma lista para exibir os planos.
+#  2. Cliente NOVO que pagou: chame
+#        elevo_criar_conta_vip_v16859(email, nome, senha, creditos,
+#                                     plano="Pro", origem="VENDA",
+#                                     referencia="venda:<id do pagamento>")
+#     A "referencia" impede conta/crédito em dobro se o aviso de pagamento
+#     chegar duas vezes.
+#  3. Cliente ANTIGO comprando mais créditos (recarga): chame
+#        elevo_credito_admin_v16813(email, qtd, "ADD", "venda:<id do pagamento>")
+#  4. Tudo fica registrado na aba "Elevo_Contas_V1" (origem, plano, preço,
+#     referência), pronta para relatórios de vendas.
+#  Hoje as duas funções exigem a sessão do CEO. Quando o pagamento automático
+#  existir, o ponto de entrada (webhook) deve validar a assinatura do provedor
+#  de pagamento ANTES de chamar essas funções.
+# ==========================================================
+# V16.8.63 — PLANOS OFICIAIS (mesma lista no checkout e no estúdio do CEO).
+# Cada criação custa ELEVO_CUSTO_PROMPT_V16813 (20) créditos. Para mudar preço
+# ou créditos, edite só aqui. "selo" aparece no cartão do plano.
+ELEVO_PACOTES_V16859 = {
+    "Start": {"creditos": 3000,  "preco": 29.90, "desc": "≈ 150 criações", "selo": "Para começar"},
+    "Pro":   {"creditos": 6500,  "preco": 49.90, "desc": "≈ 325 criações", "selo": "Mais vendido"},
+    "Elite": {"creditos": 10000, "preco": 77.00, "desc": "≈ 500 criações", "selo": "Melhor custo"},
+}
+
+# V16.8.73 — PROMOÇÃO RELÂMPAGO (ligada só pelo CEO, por tempo limitado).
+# Serve para uma compra REAL de baixo valor e validar o checkout em produção.
+ELEVO_PLANO_RELAMPAGO_V16873 = {"nome": "Relâmpago", "creditos": 100, "preco": 1.00,
+                                "desc": "Oferta relâmpago", "selo": "⚡ Só agora"}
+ELEVO_CONFIG_COLS_V16873 = ["Chave", "Valor", "AtualizadoEm"]
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _elevo_promo_ate_cache_v16873():
+    try:
+        for r in elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873).get_all_records():
+            if str(r.get("Chave")) == "promo_relampago_ate":
+                return float(str(r.get("Valor") or 0).replace(",", "."))
+    except Exception:
+        pass
+    return 0.0
+
+
+def elevo_promo_restante_v16873():
+    """Segundos restantes da promoção relâmpago (0 = desligada)."""
+    return max(0, int(_elevo_promo_ate_cache_v16873() - time.time()))
+
+
+def elevo_promo_definir_v16873(minutos):
+    if not elevo_admin_v16813():
+        raise PermissionError("Somente o CEO controla a promoção.")
+    ate = (time.time() + int(minutos) * 60) if int(minutos) > 0 else 0
+    aba = elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873)
+    linhas = aba.get_all_records()
+    for i, r in enumerate(linhas):
+        if str(r.get("Chave")) == "promo_relampago_ate":
+            aba.update_cell(i + 2, 2, f"{ate:.0f}")
+            aba.update_cell(i + 2, 3, elevo_agora_v16813())
+            break
+    else:
+        aba.append_row(["promo_relampago_ate", f"{ate:.0f}", elevo_agora_v16813()])
+    _elevo_promo_ate_cache_v16873.clear()
+
+
+def elevo_planos_ativos_v16873():
+    """Planos à venda agora (oficiais + relâmpago enquanto o CEO deixar ligado)."""
+    planos = dict(ELEVO_PACOTES_V16859)
+    if elevo_promo_restante_v16873() > 0:
+        planos[ELEVO_PLANO_RELAMPAGO_V16873["nome"]] = ELEVO_PLANO_RELAMPAGO_V16873
+    return planos
+
+
+def elevo_plano_info_v16873(plano, para_venda=False):
+    """Preço/créditos OFICIAIS de um plano. para_venda=True exige que esteja à venda agora."""
+    if plano in ELEVO_PACOTES_V16859:
+        return ELEVO_PACOTES_V16859[plano]
+    if plano == ELEVO_PLANO_RELAMPAGO_V16873["nome"]:
+        if para_venda and elevo_promo_restante_v16873() <= 0:
+            return None
+        return ELEVO_PLANO_RELAMPAGO_V16873
+    return None
+ELEVO_CONTAS_COLS_V16859 = ["Id", "Email", "Nome", "Plano", "Creditos", "Preco", "Origem",
+                            "Referencia", "Observacao", "CriadoEm", "Autor"]
+ELEVO_EMAIL_RE_V16859 = r"[^@\s]+@[^@\s]+\.[^@\s]+"
+
+
+def elevo_gerar_senha_v16859(tamanho=12):
+    # Sem caracteres ambíguos (0/O, 1/l/I) para facilitar o envio por mensagem.
+    alfabeto = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+    while True:
+        senha = "".join(secrets.choice(alfabeto) for _ in range(tamanho))
+        if (any(c.isupper() for c in senha) and any(c.islower() for c in senha)
+                and any(c.isdigit() for c in senha)):
+            return senha
+
+
+def elevo_contas_registro_v16859():
+    return elevo_aba_v16813("Elevo_Contas_V1", ELEVO_CONTAS_COLS_V16859).get_all_records()
+
+
+def elevo_criar_conta_vip_v16859(email, nome, senha, creditos, plano="Personalizado",
+                                 origem="MANUAL_CEO", referencia="", observacao="", preco=0.0):
+    """Cria a conta, libera o acesso e define o saldo inicial escolhido.
+
+    Retorna um dicionário com o resultado. Lança ValueError com mensagem
+    amigável quando os dados não permitem criar a conta.
+    """
+    if not elevo_admin_v16813():
+        raise PermissionError("Somente o CEO pode criar contas.")
+    email = str(email or "").strip().lower()
+    nome = str(nome or "").strip()
+    senha = str(senha or "")
+    if not nome:
+        raise ValueError("Informe o nome da pessoa.")
+    if not re.fullmatch(ELEVO_EMAIL_RE_V16859, email):
+        raise ValueError("Informe um e-mail válido.")
+    if email == EMAIL_MESTRE.strip().lower():
+        raise ValueError("Este e-mail é reservado ao CEO.")
+    if len(senha) < 8:
+        raise ValueError("A senha precisa ter pelo menos 8 caracteres.")
+    creditos = int(creditos)
+    if not (0 <= creditos <= 1000000):
+        raise ValueError("Escolha entre 0 e 1.000.000 créditos.")
+    referencia = str(referencia or "").strip() or ("manual:" + secrets.token_hex(10))
+    with elevo_credito_lock_v16813():
+        registro = elevo_aba_v16813("Elevo_Contas_V1", ELEVO_CONTAS_COLS_V16859)
+        if any(str(r.get("Referencia", "")).strip() == referencia for r in registro.get_all_records()):
+            # Mesmo pagamento/clique repetido: não cria de novo.
+            return {"email": email, "nome": nome, "creditos": creditos, "plano": plano,
+                    "duplicado": True, "aviso_credito": ""}
+        usuarios = conectar_banco_usuarios("ler")
+        if usuarios is None:
+            raise ElevoCreditoErroV16813("Banco de usuários sem conexão. Nenhuma conta foi criada.")
+        if any(str(u.get("Email", "")).strip().lower() == email for u in usuarios):
+            raise ValueError("Este e-mail já tem conta. Use 'Editar créditos' na lista de usuários.")
+        # Conta removida antes pode ser liberada de novo: perfil volta a ATIVO.
+        elevo_perfil_atualizar_v16813(email, status="ATIVO")
+        if not conectar_banco_usuarios("salvar", email, nome, senha):
+            raise ElevoCreditoErroV16813("Falha ao gravar a conta no servidor. Tente novamente.")
+        aviso_credito = ""
+        try:
+            elevo_credito_admin_v16813(email, creditos, "SET", "conta:" + referencia)
+        except Exception:
+            aviso_credito = ("A conta foi criada, mas o saldo não foi confirmado. "
+                             "Ajuste em 'Editar créditos' na lista de usuários.")
+        try:
+            registro.append_row([secrets.token_hex(12), email, nome, str(plano), creditos,
+                                 float(preco or 0), str(origem), referencia,
+                                 str(observacao or "")[:250], elevo_agora_v16813(), elevo_email_v16813()])
+        except Exception:
+            logging.warning("ELEVO_CONTAS_REGISTRO: falha ao anotar conta criada")
+    return {"email": email, "nome": nome, "creditos": creditos, "plano": plano,
+            "duplicado": False, "aviso_credito": aviso_credito}
+
+
+# ==========================================================
+# V16.8.63 — PLANOS + CHECKOUT MERCADO PAGO (Pix e cartão)
+# ----------------------------------------------------------
+# Fluxo seguro, sem webhook (o Streamlit não recebe chamadas externas):
+#  1. O usuário escolhe o plano → criamos uma "preferência" no Mercado Pago
+#     com external_reference = id do pedido (aba Elevo_Vendas_V1).
+#  2. Ele paga com Pix ou cartão na página do Mercado Pago e volta ao app.
+#  3. O app CONFERE o pagamento direto na API do Mercado Pago (nunca confia
+#     no endereço de retorno): status aprovado, moeda BRL, valor correto e
+#     pedido do próprio usuário. Só então soma os créditos.
+#  4. Crédito com referência "venda:<id do pagamento>" — nunca soma duas vezes.
+# Secrets (Streamlit → Settings → Secrets):
+#   [mercadopago]
+#   access_token = "APP_USR-..."     # Credenciais de produção
+#   app_url = "https://seu-app.streamlit.app"
+# ==========================================================
+ELEVO_VENDAS_COLS_V16863 = ["Id", "Email", "Plano", "Creditos", "Valor", "Status", "PaymentId",
+                            "PreferenceId", "Link", "CriadoEm", "PagoEm", "Metodo"]
+ELEVO_MP_API_V16863 = "https://api.mercadopago.com"
+
+
+def elevo_mp_config_v16863():
+    try:
+        cfg = dict(st.secrets.get("mercadopago", {}))
+    except Exception:
+        cfg = {}
+    token = str(cfg.get("access_token", "") or "").strip()
+    app_url = str(cfg.get("app_url", "") or "").strip().rstrip("/")
+    if not app_url:
+        try:
+            app_url = str(getattr(st.context, "url", "") or "").split("?")[0].rstrip("/")
+        except Exception:
+            app_url = ""
+    # V16.8.74 — APP_USR- identifica tanto token de teste quanto de produção.
+    # O modo só descreve o ambiente escolhido; NÃO altera o ambiente real das chaves.
+    modo_entrada = str(cfg.get("modo", "") or "").strip().lower()
+    modo = {"test": "teste", "sandbox": "teste", "production": "producao", "produção": "producao"}.get(modo_entrada, modo_entrada)
+    teste = modo == "teste"
+    # Mantido apenas para compatibilidade com códigos antigos; NÃO usar este e-mail
+    # no Card Payment Brick: a documentação oficial exige e-mail válido distinto do vendedor.
+    email_teste = str(cfg.get("email_teste", "") or "").strip()
+    return {"token": token, "app_url": app_url, "teste": teste, "modo": modo,
+            "token_antigo": token.startswith("TEST-"), "email_teste": email_teste}
+
+
+def elevo_mp_ativo_v16863():
+    return bool(elevo_mp_config_v16863()["token"])
+
+
+class ElevoMPErroV16868(ElevoCreditoErroV16813):
+    """Erro do Mercado Pago com o motivo técnico real (sem chaves) para diagnóstico."""
+    def __init__(self, mensagem, tecnico=""):
+        super().__init__(mensagem)
+        self.tecnico = tecnico
+
+
+def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
+    cfg = elevo_mp_config_v16863()
+    if not cfg["token"]:
+        raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
+    if cfg["modo"] not in ("teste", "producao"):
+        raise ElevoMPErroV16868("Defina modo = \"teste\" ou modo = \"producao\" no Secrets antes de cobrar.")
+    if cfg["token_antigo"] and cfg["modo"] == "producao":
+        raise ElevoMPErroV16868("Token antigo TEST- não pode operar em produção. Use as credenciais corretas do Mercado Pago.")
+    headers = {"Authorization": f"Bearer {cfg['token']}", "Content-Type": "application/json"}
+    headers.update(kwargs.pop("headers", {}))
+    try:
+        resp = requests.request(metodo, ELEVO_MP_API_V16863 + caminho, headers=headers, timeout=25, **kwargs)
+    except Exception as exc:
+        raise ElevoMPErroV16868("Sem conexão com o Mercado Pago agora. Tente de novo em instantes.",
+                                f"conexão: {type(exc).__name__}")
+    if resp.status_code < 400:
+        return resp.json()
+    # V16.8.68 — mostra o MOTIVO REAL devolvido pelo Mercado Pago.
+    try:
+        corpo_erro = resp.json() or {}
+    except Exception:
+        corpo_erro = {"message": (resp.text or "")[:200]}
+    msg_mp = str(corpo_erro.get("message", "") or corpo_erro.get("error", ""))[:220]
+    causas = corpo_erro.get("cause") or []
+    causas_txt = "; ".join(f"{c.get('code', '')} {c.get('description', '')}".strip()
+                           for c in causas if isinstance(c, dict))[:300]
+    tecnico = f"HTTP {resp.status_code} • {msg_mp}" + (f" • causa: {causas_txt}" if causas_txt else "")
+    logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, tecnico)
+    baixo = (msg_mp + " " + causas_txt).lower()
+    if "live credentials" in baixo:
+        amigavel = (
+            "Ambiente de pagamento incompatível. Confira no Mercado Pago se a Public Key e o Access Token "
+            "foram copiados da MESMA aplicação, ambos na aba "
+            + ("TESTE. Use cartão de teste e um e-mail diferente do vendedor. " if cfg["teste"] else
+               "PRODUÇÃO. Use cartão real; cartão de teste não funciona em produção. ")
+            + "O campo 'modo' sozinho não altera as credenciais."
+        )
+    elif resp.status_code == 401 or "invalid access token" in baixo or "invalid_token" in baixo:
+        amigavel = "Access Token inválido ou expirado. Confira a chave no Secrets do app."
+    elif "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
+        amigavel = ("Pix indisponível: a conta Mercado Pago ainda não tem chave Pix cadastrada. "
+                    "Use o cartão ou cadastre uma chave Pix.")
+    elif "card_token" in baixo or "card token" in baixo or ("token" in baixo and caminho == "/v1/payments"):
+        amigavel = ("O cartão não foi reconhecido pelo Mercado Pago. Verifique se a public_key e o access_token "
+                    "são da MESMA aplicação e do MESMO ambiente (os dois de Teste ou os dois de Produção).")
+    elif "invalid users" in baixo or "collector" in baixo or "payer" in baixo and "email" in baixo:
+        amigavel = ("O Mercado Pago recusou o pagador. Informe um e-mail válido, "
+                    "diferente do e-mail da conta vendedora do Mercado Pago.")
+    elif "identification" in baixo or "cpf" in baixo or "document" in baixo:
+        amigavel = "O Mercado Pago recusou o documento (CPF). Confira e tente de novo."
+    elif resp.status_code >= 500:
+        amigavel = "O Mercado Pago está instável agora. Tente de novo em instantes."
+    else:
+        amigavel = "O Mercado Pago recusou a operação. Veja o detalhe abaixo."
+    raise ElevoMPErroV16868(amigavel, tecnico)
+
+
+def elevo_mp_pagamento_teste_v16870():
+    """Pagamento de R$ 1,00 com o cartão de TESTE oficial (Mastercard, titular APRO), feito
+    pelo servidor: Public Key gera o token e o Access Token cobra. Só roda em conta de teste."""
+    cfg = elevo_mp_config_v16863()
+    try:
+        pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+    except Exception:
+        pk = ""
+    if not cfg["token"] or not pk:
+        return ["❌ Falta access_token ou public_key no Secrets."]
+    try:
+        eu = _elevo_mp_req_v16863("GET", "/users/me")
+    except ElevoMPErroV16868 as exc:
+        return ["❌ " + str(exc), "Detalhe: " + exc.tecnico]
+    if not cfg["teste"]:
+        return ["⛔ Teste automático bloqueado: o Secrets precisa estar no modo TESTE."]
+    linhas = ["🧪 Teste com cartão oficial e e-mail fictício diferente do vendedor. Sem cobrança real quando ambas as credenciais são de TESTE."]
+    try:
+        r = requests.post(ELEVO_MP_API_V16863 + "/v1/card_tokens", params={"public_key": pk}, timeout=25, json={
+            "card_number": "5480832801033311", "expiration_month": 11, "expiration_year": 2030,
+            "security_code": "123",
+            "cardholder": {"name": "APRO", "identification": {"type": "CPF", "number": "12345678909"}}})
+        try:
+            dados_tk = r.json() or {}
+        except ValueError:
+            dados_tk = {}
+    except Exception as exc:
+        return [f"❌ Não foi possível falar com o Mercado Pago ({type(exc).__name__})."]
+    if r.status_code >= 400 or not dados_tk.get("id"):
+        return ["❌ A Public Key não conseguiu gerar o token do cartão de teste.",
+                f"Detalhe: HTTP {r.status_code} • {str(dados_tk.get('message', ''))[:200]}"]
+    linhas.append("✅ Passo 1: a Public Key gerou o token do cartão de teste.")
+    if dados_tk.get("live_mode") is True:
+        linhas.append("❌ **A sua Public Key é de PRODUÇÃO**, mas o Access Token é de TESTE. "
+                      "No Mercado Pago, abra a aplicação → Credenciais → aba **Teste**, copie a **Public Key** "
+                      "dessa aba e troque no Secrets. Esse é o motivo do erro 'live credentials'.")
+        return linhas
+    if dados_tk.get("live_mode") is False:
+        linhas.append("✅ A Public Key é de TESTE, igual ao Access Token.")
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", headers={"X-Idempotency-Key": "diag_" + secrets.token_hex(8)}, json={
+            "transaction_amount": 1.0, "token": dados_tk["id"], "description": "Teste de integração ÉLÉVO",
+            "installments": 1, "payment_method_id": "master",
+            "payer": {"email": "comprador-" + secrets.token_hex(6) + "@example.com",
+                      "identification": {"type": "CPF", "number": "12345678909"}}})
+    except ElevoMPErroV16868 as exc:
+        linhas.append("❌ Passo 2: o Access Token recusou o pagamento. " + str(exc))
+        linhas.append("Detalhe: " + exc.tecnico)
+        return linhas
+    linhas.append(f"✅ Passo 2: pagamento criado • status **{pg.get('status')}** ({pg.get('status_detail', '')}).")
+    if pg.get("status") == "approved":
+        linhas.append("🎉 Suas chaves e o Mercado Pago estão 100%. Se o formulário da página ainda falhar, "
+                      "o motivo aparece na coluna Detalhe da tabela abaixo.")
+    return linhas
+
+
+def elevo_mp_diagnostico_v16868():
+    """Diagnóstico sem realizar cobrança e sem inferir ambiente pelo prefixo APP_USR.
+
+    O GET /users/me valida o Access Token mas NÃO prova que a Public Key é da
+    mesma aplicação. Essa conferência exige comparar as chaves no painel oficial.
+    """
+    cfg = elevo_mp_config_v16863()
+    if not cfg["token"]:
+        return {"ok": False, "linhas": ["❌ Falta o access_token no Secrets."]}
+    if cfg["modo"] not in ("teste", "producao"):
+        return {"ok": False, "linhas": ["❌ Configure modo = \"teste\" ou \"producao\" no Secrets."]}
+    linhas = ["⚙️ Modo selecionado no app: **" + cfg["modo"].upper() + "** (deve coincidir com as credenciais copiadas)."]
+    try:
+        eu = _elevo_mp_req_v16863("GET", "/users/me")
+        # O apelido pode ser de uma conta real mesmo com credenciais de teste;
+        # não usar nickname para concluir que o token é de produção.
+        linhas.append("✅ Access Token autenticado com sucesso no Mercado Pago.")
+        if str(eu.get("site_id", "")) and str(eu.get("site_id")) != "MLB":
+            linhas.append("⚠️ O país da conta do Mercado Pago difere do Brasil (MLB).")
+    except ElevoMPErroV16868 as exc:
+        return {"ok": False, "linhas": ["❌ " + str(exc), "Detalhe técnico: " + exc.tecnico]}
+    if cfg["teste"]:
+        linhas.append("🧪 CARTÃO DIRETO: use Public Key e Access Token da aba TESTE e um e-mail válido diferente do vendedor; não informe comprador_teste_id.")
+        linhas.append("🔗 CHECKOUT PRO: para testar a página redirecionada, siga o fluxo de conta de teste comprador do Mercado Pago.")
+    else:
+        linhas.append("💰 PRODUÇÃO: use o par Public Key + Access Token da aba PRODUÇÃO e cartão real. Cobranças são reais.")
+    try:
+        pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+    except Exception:
+        pk = ""
+    if not pk:
+        linhas.append("❌ Falta Public Key: cartão desabilitado (Pix ainda pode funcionar).")
+        return {"ok": False, "linhas": linhas}
+    try:
+        r = requests.get(ELEVO_MP_API_V16863 + "/v1/payment_methods", params={"public_key": pk}, timeout=20)
+        if r.status_code < 400:
+            linhas.append("✅ Public Key aceita pelo endpoint de métodos de pagamento.")
+        else:
+            linhas.append("❌ Public Key recusada (HTTP " + str(r.status_code) + ").")
+            return {"ok": False, "linhas": linhas}
+    except requests.RequestException:
+        linhas.append("⚠️ Não foi possível verificar a Public Key agora.")
+        return {"ok": False, "linhas": linhas}
+    linhas.append("⚠️ Validação parcial: as duas chaves responderem NÃO comprova que pertencem à mesma aplicação/ambiente. Confira manualmente no Mercado Pago.")
+    return {"ok": True, "linhas": linhas}
+
+
+def elevo_valor_br_v16869(v):
+    """Lê valor em reais vindo da planilha: 29.90, "29,90", "R$ 29,90" ou o 299 antigo."""
+    s = str(v if v is not None else "").replace("R$", "").replace(" ", "").strip()
+    if not s:
+        return 0.0
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
+def elevo_vendas_aba_v16863():
+    return elevo_aba_v16813("Elevo_Vendas_V1", ELEVO_VENDAS_COLS_V16863)
+
+
+def elevo_checkout_criar_v16863(plano):
+    """Cria o pedido + link de pagamento do plano escolhido para o usuário logado."""
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email:
+        raise PermissionError("Entre na sua conta para comprar créditos.")
+    if elevo_admin_v16813():
+        raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
+    if not elevo_plano_info_v16873(plano, para_venda=True) or float(elevo_plano_info_v16873(plano)["preco"]) <= 0:
+        raise ValueError("Plano indisponível (a promoção pode ter acabado).")
+    if elevo_status_v16813(email, fresco=True) != "ATIVO":
+        raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
+    cfg = elevo_mp_config_v16863()
+    if not cfg["app_url"]:
+        raise ElevoCreditoErroV16813("Endereço do app não configurado (mercadopago.app_url).")
+    pacote = elevo_plano_info_v16873(plano)
+    creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
+    aba = elevo_vendas_aba_v16863()
+    # Reaproveita um link pendente do mesmo plano criado há pouco (evita pedidos em dobro).
+    agora = datetime.now(ZoneInfo("America/Sao_Paulo"))
+    for r in reversed(aba.get_all_records()):
+        if (str(r.get("Email", "")).strip().lower() == email and r.get("Plano") == plano
+                and str(r.get("Status", "")).upper() == "PENDENTE" and r.get("Link")):
+            try:
+                criado = datetime.strptime(str(r.get("CriadoEm")), "%d/%m/%Y %H:%M:%S").replace(
+                    tzinfo=ZoneInfo("America/Sao_Paulo"))
+                if agora - criado < timedelta(hours=6):
+                    return {"pedido": r["Id"], "link": r["Link"]}
+            except (TypeError, ValueError):
+                pass
+            break
+    pedido = "elv_" + secrets.token_hex(10)
+    volta = cfg["app_url"] + "/?elevo_pg="
+    corpo = {
+        "items": [{"id": f"elevo-{plano.lower()}", "title": f"ÉLÉVO {plano} — {creditos:,} créditos".replace(",", "."),
+                   "description": "Créditos para criação com IA na plataforma ÉLÉVO",
+                   "quantity": 1, "unit_price": preco, "currency_id": "BRL"}],
+        "payer": {"email": email},
+        "external_reference": pedido,
+        "back_urls": {"success": volta + "ok", "pending": volta + "pendente", "failure": volta + "falhou"},
+        "auto_return": "approved",
+        "statement_descriptor": "ELEVO",
+        "metadata": {"email": email, "plano": plano, "creditos": creditos},
+    }
+    pref = _elevo_mp_req_v16863("POST", "/checkout/preferences", json=corpo,
+                                headers={"X-Idempotency-Key": pedido})
+    # Credencial APP_USR (produção ou teste novo) usa init_point; só o TEST- antigo usa o sandbox.
+    link = (pref.get("sandbox_init_point") if cfg["token_antigo"] else None) or pref.get("init_point")
+    if not link:
+        raise ElevoCreditoErroV16813("Não foi possível abrir o pagamento agora.")
+    aba.append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", str(pref.get("id", "")),
+                    link, elevo_agora_v16813(), "", ""])
+    return {"pedido": pedido, "link": link}
+
+
+def _elevo_credito_venda_v16863(email, creditos, referencia):
+    """Soma créditos de uma venda confirmada. Idempotente pela referência."""
+    with elevo_credito_lock_v16813():
+        elevo_credito_saldo_v16813(email, fresco=True)  # garante o INIT antes do ADD
+        aba = elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813)
+        linhas = aba.get_all_records()
+        if not any(str(r.get("Referencia", "")) == referencia for r in linhas):
+            aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(), "ADD",
+                            int(creditos), referencia, "MERCADOPAGO"])
+        elevo_creditos_ler_cache_v16816.clear()
+
+
+def elevo_checkout_confirmar_v16863(payment_id=None):
+    """Confere no Mercado Pago os pedidos pendentes do usuário e credita os aprovados.
+
+    Retorna a lista de pedidos creditados agora: [{"plano", "creditos"}].
+    """
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email or elevo_admin_v16813():
+        return []
+    if not elevo_mp_ativo_v16863():
+        return []
+    aba = elevo_vendas_aba_v16863()
+    registros = aba.get_all_records()
+    meus = {str(r.get("Id")): (i + 2, r) for i, r in enumerate(registros)
+            if str(r.get("Email", "")).strip().lower() == email
+            and str(r.get("Status", "")).upper() == "PENDENTE"}
+    if not meus:
+        return []
+    pagamentos = []
+    if payment_id and str(payment_id).isdigit():
+        try:
+            pagamentos.append(_elevo_mp_req_v16863("GET", f"/v1/payments/{int(payment_id)}"))
+        except ElevoCreditoErroV16813:
+            pass
+    for pedido in list(meus)[-5:]:
+        try:
+            achados = _elevo_mp_req_v16863("GET", "/v1/payments/search", params={
+                "external_reference": pedido, "sort": "date_created", "criteria": "desc"})
+            pagamentos.extend(achados.get("results", []) or [])
+        except ElevoCreditoErroV16813:
+            continue
+    col = {nome: i + 1 for i, nome in enumerate(ELEVO_VENDAS_COLS_V16863)}
+    creditados = []
+    for pg in pagamentos:
+        pedido = str(pg.get("external_reference", ""))
+        if pedido not in meus or str(pg.get("status")) != "approved":
+            continue
+        linha, reg = meus[pedido]
+        try:
+            valor_pago = float(pg.get("transaction_amount") or 0)
+            # V16.8.69 — planilha em pt-BR transformava 29,90 em 299 na leitura.
+            # O valor esperado vem do plano oficial; a planilha é só registro.
+            plano_reg = str(reg.get("Plano", ""))
+            _info_reg = elevo_plano_info_v16873(plano_reg)
+            if _info_reg:
+                valor_pedido = float(_info_reg["preco"])
+                creditos = int(_info_reg["creditos"])
+            else:
+                valor_pedido = elevo_valor_br_v16869(reg.get("Valor"))
+                creditos = int(reg.get("Creditos") or 0)
+        except (TypeError, ValueError):
+            continue
+        if str(pg.get("currency_id")) != "BRL" or valor_pago + 0.009 < valor_pedido or creditos <= 0:
+            logging.warning("ELEVO_VENDA: pagamento %s não confere com o pedido %s", pg.get("id"), pedido)
+            continue
+        pid = str(pg.get("id"))
+        _elevo_credito_venda_v16863(email, creditos, "venda:" + pid)
+        try:
+            aba.update_cell(linha, col["Status"], "PAGO")
+            aba.update_cell(linha, col["PaymentId"], pid)
+            aba.update_cell(linha, col["PagoEm"], elevo_agora_v16813())
+            aba.update_cell(linha, col["Metodo"], str(pg.get("payment_type_id", ""))[:30])
+        except Exception:
+            logging.warning("ELEVO_VENDA: crédito feito, mas status do pedido %s não atualizado", pedido)
+        meus.pop(pedido, None)
+        creditados.append({"plano": reg.get("Plano"), "creditos": creditos})
+    return creditados
+
+
+# ==========================================================
+# V16.8.65 — CHECKOUT TRANSPARENTE (pagamento DENTRO do app)
+# Pix: o app gera o QR Code e o "copia e cola" (nome + CPF).
+# Cartão: formulário seguro oficial do Mercado Pago (Card Payment Brick)
+# embutido na página; o cartão vira um token no navegador e só o token chega
+# ao app. Valor SEMPRE definido aqui pelo plano, nunca pelo navegador.
+# Secrets: [mercadopago] access_token, public_key (para cartão), app_url, modo.
+# ==========================================================
+ELEVO_CARTAO_RECUSA_V16865 = {
+    "cc_rejected_insufficient_amount": "Limite insuficiente no cartão.",
+    "cc_rejected_bad_filled_security_code": "Código de segurança (CVV) inválido.",
+    "cc_rejected_bad_filled_date": "Data de validade inválida.",
+    "cc_rejected_bad_filled_card_number": "Número do cartão inválido.",
+    "cc_rejected_bad_filled_other": "Confira os dados do cartão.",
+    "cc_rejected_call_for_authorize": "O banco pediu autorização: libere a compra no app do seu banco e tente de novo.",
+    "cc_rejected_card_disabled": "Cartão desativado. Fale com o banco ou use outro cartão.",
+    "cc_rejected_duplicated_payment": "Pagamento repetido. Confira se a primeira compra já entrou.",
+    "cc_rejected_high_risk": "Recusado pela análise de segurança. Tente o Pix.",
+    "cc_rejected_max_attempts": "Muitas tentativas com este cartão. Use outro cartão ou o Pix.",
+    "cc_rejected_blacklist": "Este cartão não pode ser usado. Tente o Pix.",
+}
+
+
+def elevo_cpf_valido_v16865(cpf):
+    cpf = re.sub(r"\D", "", str(cpf or ""))
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return ""
+    for tam in (9, 10):
+        soma = sum(int(cpf[i]) * (tam + 1 - i) for i in range(tam))
+        dig = (soma * 10) % 11 % 10
+        if dig != int(cpf[tam]):
+            return ""
+    return cpf
+
+
+def _elevo_pedido_registrar_v16865(plano, metodo):
+    email = elevo_email_v16813()
+    if not st.session_state.get("usuario_logado") or not email:
+        raise PermissionError("Entre na sua conta para comprar créditos.")
+    if elevo_admin_v16813():
+        raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
+    if not elevo_plano_info_v16873(plano, para_venda=True) or float(elevo_plano_info_v16873(plano)["preco"]) <= 0:
+        raise ValueError("Plano indisponível (a promoção pode ter acabado).")
+    if elevo_status_v16813(email, fresco=True) != "ATIVO":
+        raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
+    if not elevo_mp_ativo_v16863():
+        raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
+    pacote = elevo_plano_info_v16873(plano)
+    pedido = "elv_" + secrets.token_hex(10)
+    creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
+    elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", "",
+                                         "", elevo_agora_v16813(), "", metodo])
+    return {"pedido": pedido, "email": email, "creditos": creditos, "preco": preco,
+            "titulo": f"ÉLÉVO {plano} — {format(creditos, ',').replace(',', '.')} créditos"}
+
+
+def _elevo_pedido_anotar_pagamento_v16865(pedido, payment_id):
+    try:
+        aba = elevo_vendas_aba_v16863()
+        for i, r in enumerate(aba.get_all_records()):
+            if str(r.get("Id")) == pedido:
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("PaymentId") + 1, str(payment_id))
+                break
+    except Exception:
+        logging.warning("ELEVO_VENDA: não anotou o pagamento %s no pedido %s", payment_id, pedido)
+
+
+def _elevo_pedido_falha_v16870(pedido, tecnico):
+    """Grava o motivo da recusa no próprio pedido (coluna Link) e marca FALHOU."""
+    try:
+        aba = elevo_vendas_aba_v16863()
+        for i, r in enumerate(aba.get_all_records()):
+            if str(r.get("Id")) == pedido:
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("Status") + 1, "FALHOU")
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("Link") + 1, ("ERRO: " + str(tecnico))[:400])
+                break
+    except Exception:
+        logging.warning("ELEVO_VENDA: não anotou a falha do pedido %s", pedido)
+
+
+def elevo_pix_criar_v16865(plano, nome, cpf):
+    nome = re.sub(r"\s+", " ", str(nome or "")).strip()
+    if len(nome) < 3 or not re.search(r"[A-Za-zÀ-ÿ]", nome):
+        raise ValueError("Informe o seu nome completo.")
+    cpf_ok = elevo_cpf_valido_v16865(cpf)
+    if not cpf_ok:
+        raise ValueError("CPF inválido. Confira os 11 números.")
+    ped = _elevo_pedido_registrar_v16865(plano, "pix")
+    partes = nome.split(" ", 1)
+    expira = datetime.now(ZoneInfo("America/Sao_Paulo")) + timedelta(minutes=30)
+    corpo = {
+        "transaction_amount": ped["preco"],
+        "description": ped["titulo"],
+        "payment_method_id": "pix",
+        "external_reference": ped["pedido"],
+        "date_of_expiration": expira.strftime("%Y-%m-%dT%H:%M:%S.000%z")[:-2] + ":" + expira.strftime("%z")[-2:],
+        "payer": {"email": ped["email"], "first_name": partes[0][:60],
+                  "last_name": (partes[1] if len(partes) > 1 else partes[0])[:60],
+                  "identification": {"type": "CPF", "number": cpf_ok}},
+    }
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    except ElevoMPErroV16868 as exc:
+        _elevo_pedido_falha_v16870(ped["pedido"], exc.tecnico)
+        raise
+    dados = ((pg.get("point_of_interaction") or {}).get("transaction_data") or {})
+    if not dados.get("qr_code"):
+        raise ElevoCreditoErroV16813("O Pix não foi gerado. Tente novamente em instantes.")
+    _elevo_pedido_anotar_pagamento_v16865(ped["pedido"], pg.get("id"))
+    return {"id": str(pg.get("id")), "pedido": ped["pedido"], "plano": plano, "valor": ped["preco"],
+            "creditos": ped["creditos"], "qr_code": dados.get("qr_code"),
+            "qr_base64": dados.get("qr_code_base64", ""), "ticket_url": dados.get("ticket_url", ""),
+            "expira": expira.strftime("%H:%M")}
+
+
+def elevo_cartao_pagar_v16865(plano, form):
+    """Recebe o formData do Card Payment Brick (só token, nunca o número do cartão)."""
+    form = form if isinstance(form, dict) else {}
+    token = str(form.get("token", "") or "")
+    metodo = str(form.get("payment_method_id", "") or "")
+    try:
+        parcelas = int(form.get("installments") or 1)
+    except (TypeError, ValueError):
+        parcelas = 1
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", token) or not re.fullmatch(r"[a-z_]{2,30}", metodo):
+        raise ValueError("Dados do cartão incompletos. Preencha o formulário novamente.")
+    parcelas = max(1, min(12, parcelas))
+    pagador = form.get("payer") if isinstance(form.get("payer"), dict) else {}
+    ident = pagador.get("identification") if isinstance(pagador.get("identification"), dict) else {}
+    ped = _elevo_pedido_registrar_v16865(plano, "cartao")
+    email_pag = str(pagador.get("email") or ped["email"]).strip()[:120]
+    if not re.fullmatch(ELEVO_EMAIL_RE_V16859, email_pag):
+        email_pag = ped["email"]
+    # Checkout Bricks: nunca trocar o e-mail digitado por um test_user automático.
+    corpo = {
+        "transaction_amount": ped["preco"],  # valor do plano no servidor
+        "token": token,
+        "description": ped["titulo"],
+        "installments": parcelas,
+        "payment_method_id": metodo,
+        "external_reference": ped["pedido"],
+        "statement_descriptor": "ELEVO",
+        "payer": {"email": email_pag},
+    }
+    if form.get("issuer_id"):
+        corpo["issuer_id"] = str(form.get("issuer_id"))
+    if ident.get("number"):
+        corpo["payer"]["identification"] = {"type": str(ident.get("type") or "CPF")[:10],
+                                            "number": re.sub(r"\D", "", str(ident.get("number")))[:20]}
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    except ElevoMPErroV16868 as exc:
+        _elevo_pedido_falha_v16870(ped["pedido"], exc.tecnico)
+        raise
+    _elevo_pedido_anotar_pagamento_v16865(ped["pedido"], pg.get("id"))
+    status = str(pg.get("status", ""))
+    if status == "rejected":
+        _elevo_pedido_falha_v16870(ped["pedido"], "recusado: " + str(pg.get("status_detail", "")))
+    creditados = elevo_checkout_confirmar_v16863(pg.get("id")) if status == "approved" else []
+    return {"status": status, "detalhe": str(pg.get("status_detail", "")), "creditados": creditados,
+            "plano": plano, "creditos": ped["creditos"]}
+
+
+def elevo_pagamento_status_v16865(payment_id):
+    """Consulta um pagamento e credita se aprovado. Retorna (status, creditados)."""
+    if not str(payment_id or "").isdigit():
+        return "", []
+    pg = _elevo_mp_req_v16863("GET", f"/v1/payments/{int(payment_id)}")
+    status = str(pg.get("status", ""))
+    creditados = elevo_checkout_confirmar_v16863(payment_id) if status == "approved" else []
+    return status, creditados
+
 # V16.8.16 — Verificação sem bloquear o login por oscilação do Sheets.
 # Saldo e permissões de geração continuam fail-closed nas operações cobradas.
 if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
@@ -1275,8 +2514,95 @@ def elevo_tema_padrao_celular_v168222():
     except (AttributeError, TypeError, ValueError):
         return False  # Se não for possível identificar, conserva o padrão desktop.
 
-col_vazia, col_tema = st.columns([8, 2])
-with col_tema: modo_claro = st.toggle("☀️ Modo Claro", value=elevo_tema_padrao_celular_v168222(), key="toggle_tema_principal_unico")
+# ==========================================================
+# V16.8.53 — TOPO PROFISSIONAL: saudação + data + tema + menu "Minha conta".
+# Somente apresentação. A lógica de logout é idêntica à versão anterior.
+# ==========================================================
+_agora_topo_v16853 = datetime.now(ZoneInfo("America/Sao_Paulo"))
+_dias_v16853 = ["Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira",
+                "Sexta-feira", "Sábado", "Domingo"]
+_meses_v16853 = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho",
+                 "agosto", "setembro", "outubro", "novembro", "dezembro"]
+_data_topo_v16853 = (f"{_dias_v16853[_agora_topo_v16853.weekday()]}, "
+                     f"{_agora_topo_v16853.day} de {_meses_v16853[_agora_topo_v16853.month - 1]}")
+_hora_topo_v16853 = _agora_topo_v16853.hour
+_saudacao_topo_v16853 = ("Bom dia" if _hora_topo_v16853 < 12
+                         else "Boa tarde" if _hora_topo_v16853 < 18 else "Boa noite")
+_nome_completo_topo_v16853 = str(st.session_state.get("nome_usuario", "Sócio")).strip() or "Sócio"
+_nome_topo_v16853 = html_std.escape(_nome_completo_topo_v16853.split(" ")[0])
+_email_topo_v16853 = str(st.session_state.get("email_usuario", "")).strip().lower()
+_ceo_topo_v16853 = _email_topo_v16853 == str(EMAIL_MESTRE).strip().lower()
+_perfil_topo_v16853 = "CEO • ACESSO TOTAL" if _ceo_topo_v16853 else "CONTA VIP"
+
+# V16.8.57 — barra de terminal acima do topo (somente visual).
+_cmd_term_v16857 = "./elevo --iniciar --modo=vip --criptografia=aes256"
+st.markdown(
+    '<div class="elevo-term" aria-hidden="true">'
+    '<span class="elevo-term-dots"><i></i><i></i><i></i></span>'
+    '<span class="elevo-term-cmd"><b>root@elevo</b>:<em>~/painel</em>$ '
+    f'<span class="elevo-term-typed" style="--n:{len(_cmd_term_v16857)}">{_cmd_term_v16857}</span>'
+    '<i class="elevo-term-cur"></i></span>'
+    '<span class="elevo-term-sts"><span>● SISTEMA ONLINE</span><span>SEC · AES-256</span>'
+    f'<span>MOTORES 3/3</span><span>{_agora_topo_v16853.strftime("%H:%M")}</span></span>'
+    '</div>', unsafe_allow_html=True)
+
+with st.container(border=True, key="elevo_topbar_v16853"):
+    _tb_info_v16853, _tb_tema_v16853, _tb_conta_v16853, _tb_sair_v16853 = st.columns(
+        [4.6, 1.35, 1.3, 1.1], gap="small", vertical_alignment="center")
+
+    # O toggle precisa existir antes do CSS do tema (modo_claro é usado logo abaixo).
+    with _tb_tema_v16853:
+        modo_claro = st.toggle("☀️ Modo Claro", value=elevo_tema_padrao_celular_v168222(),
+                               key="toggle_tema_principal_unico")
+
+    with _tb_info_v16853:
+        _inicial_topo_v16854 = html_std.escape((_nome_completo_topo_v16853[:1] or "S").upper())
+        st.markdown(
+            '<div class="elevo-topbar-info">'
+            f'<div class="elevo-topbar-avatar" aria-hidden="true"><span>{_inicial_topo_v16854}</span><em></em></div>'
+            '<div class="elevo-topbar-textos">'
+            f'<span class="elevo-topbar-kicker">◈ ÉLÉVO • {_perfil_topo_v16853}</span>'
+            f'<div class="elevo-topbar-titulo">{_saudacao_topo_v16853}, {_nome_topo_v16853}</div>'
+            f'<div class="elevo-topbar-sub"><span>{_data_topo_v16853}</span>'
+            '<span class="elevo-topbar-chip"><i></i>Painel ativo</span></div>'
+            '</div></div>', unsafe_allow_html=True)
+
+    with _tb_conta_v16853:
+        with st.popover("👤 Minha conta", use_container_width=True, key="elevo_conta_pop_v16853"):
+            st.markdown(f"**{html_std.escape(_nome_completo_topo_v16853)}**")
+            st.caption(_email_topo_v16853)
+            st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
+            if GOOGLE_ATIVO and not (st.user.is_logged_in):
+                st.caption("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
+                if st.button("🌐 Vincular conta Google", key="btn_vincular_google_logado",
+                             use_container_width=True):
+                    st.login("google")
+            elif GOOGLE_ATIVO:
+                st.caption("✅ Conta Google vinculada e protegida pelo identificador Google.")
+            else:
+                st.caption("Login com Google ainda não configurado pelo administrador.")
+
+    # V16.8.54 — botão Sair visível e destacado no topo (lógica idêntica à anterior).
+    with _tb_sair_v16853:
+        if st.button("⏻  Sair", key="btn_logout", use_container_width=True,
+                     help="Encerrar a sessão com segurança"):
+            # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
+            # componente acontece no navegador, por isso o bloqueio de restauração.
+            sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
+            cookies.pop("login", None)
+            cookies.pop("elevo_bv_google_v16814", None)
+            cookies.pop("elevo_bv_login_v16814", None)
+            cookies.save()
+            # 2) Forçar explicitamente a tela de login. Não contém e-mail/token.
+            st.query_params["elevo_acesso"] = "novo"
+            # 3) Limpar apenas o estado do aplicativo.
+            limpar_sessao_ao_sair()
+            if sair_do_google:
+                # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
+                st.logout()
+                st.stop()
+            # Não usar sleep(): isso não espera uma confirmação do navegador.
+            st.rerun()
 
 if modo_claro:
     bg_color = "linear-gradient(180deg, #F4F6F9 0%, #E2E8F0 100%)"
@@ -1755,14 +3081,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 # ==========================================================
 st.markdown('<div id="ancora-topo"></div><div id="painel"></div>', unsafe_allow_html=True)
-nome_cabecalho = html_std.escape(str(st.session_state.get("nome_usuario", "Sócio")))
-st.markdown(f"""
-<section class="elevo-dash-header" aria-label="Boas-vindas ao ÉLÉVO">
- <div><div class="elevo-kicker">PAINEL ESTRATÉGICO • ÉLÉVO V16</div>
- <h1>Visão geral, {nome_cabecalho}</h1>
- <p>Inteligência, criação e suas operações em um só lugar.</p></div>
- <span class="elevo-status-chip">● PAINEL ATIVO</span>
-</section>""", unsafe_allow_html=True)
+# V16.8.53 — saudação movida para o topo profissional (elevo_topbar_v16853).
 
 # ==========================================================
 # 2.5. BOAS-VINDAS CINEMÁTICA (100% VINCULADA AO GMAIL ÚNICO)
@@ -2353,112 +3672,193 @@ if (st.session_state.get("usuario_logado")
         and st.session_state.get("elevo_vip_diaria_audio_v16840")
         and (not st.session_state.get("elevo_vip_diaria_exibida_v16840", False)
              or st.session_state.get("elevo_vip_preview_ceo_v16842", False))):
+    # V16.8.77 — apresentação diária compacta, dentro do painel atual.
+    # A mensagem, o áudio, o controle por conta/data e o callback continuam os mesmos.
+    # Não existe nova rota, navegação ou tela inteira: somente um cartão flutuante.
     _vip = st.components.v2.component(
-        name="elevo_vip_daily_protocol_v16841",
-        html="""<main id="vip">
-        <div class="code-rain" aria-hidden="true">
-          <span>0100101<br>ACCESS_GRANTED<br>0xE1EVO<br>11001010<br>NEURAL_LINK<br>010101</span>
-          <span>AUTH::VALID<br>10100101<br>IDENTITY_SYNC<br>0x7F2A<br>11001010<br>CORE_ONLINE</span>
-          <span>01010110<br>ENCRYPTION_OK<br>11100010<br>PROTOCOL_VIP<br>01001101</span>
-          <span>SYS://ELEVO<br>11010010<br>BIOMETRIC_SCAN<br>01010101<br>ACCESS_GRANTED</span>
-          <span>10101001<br>NEURAL_CORE<br>01001010<br>SECURE_CHANNEL<br>11010100</span>
-        </div>
-        <div class="hud-grid" aria-hidden="true"></div>
-        <div class="scanline" aria-hidden="true"></div>
-        <section class="panel">
-          <div class="top"><span>ÉLÉVO <b>INTELLIGENCE</b></span><span class="secure"><i></i> SECURE SESSION</span></div>
-          <div class="stage">
-            <div class="orbit orbit-a"></div><div class="orbit orbit-b"></div>
-            <div class="orbit orbit-c"></div><div class="target t1"></div><div class="target t2"></div>
-            <div class="core">
-              <div class="core-ring"></div><div class="core-glow"></div>
-              <svg class="sigil" viewBox="0 0 300 300" role="img" aria-label="Núcleo holográfico de inteligência">
-                <defs>
-                  <linearGradient id="metal" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#e6ffff"/><stop offset=".45" stop-color="#26dfff"/><stop offset="1" stop-color="#b68b48"/></linearGradient>
-                  <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-                </defs>
-                <g fill="none" stroke="url(#metal)" stroke-width="1.35" filter="url(#glow)">
-                  <path d="M150 25 220 65 258 135 238 220 175 267 105 267 45 220 25 135 65 65Z" opacity=".8"/>
-                  <path d="M150 45 205 77 232 135 216 205 170 244 110 244 64 205 48 135 75 77Z" opacity=".55"/>
-                  <path d="M150 52 125 76 108 115 112 164 132 205 150 229 168 205 188 164 192 115 175 76Z"/>
-                  <path d="M85 119 121 107 145 119 M155 119 179 107 215 119" stroke-width="2.4"/>
-                  <path d="M98 137 126 132 142 139 M158 139 174 132 202 137" stroke-width="2.2"/>
-                  <path d="M150 132 141 171 150 178 159 171Z"/>
-                  <path d="M123 197 Q150 211 177 197" stroke-width="2"/>
-                  <path d="M75 92 105 105 112 164 88 191 M225 92 195 105 188 164 212 191" opacity=".55"/>
-                  <path d="M150 25V52 M150 229V267 M25 135H48 M232 135H258" opacity=".7"/>
-                </g>
-                <g fill="#a9fbff"><circle cx="126" cy="137" r="2.5"/><circle cx="174" cy="137" r="2.5"/><circle cx="150" cy="25" r="3"/></g>
-              </svg>
-              <div class="core-label">AI // CORE</div>
-            </div>
-            <div class="crosshair ch1"></div><div class="crosshair ch2"></div>
-            <div class="readout r1">IDENTITY<br><b>VERIFIED</b></div>
-            <div class="readout r2">NEURAL LINK<br><b>ACTIVE</b></div>
-            <div class="readout r3">ENCRYPTION<br><b>AES-256</b></div>
-          </div>
-          <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
-          <h2 id="nome"></h2>
-          <div class="divider"><span></span><b>DAILY INTELLIGENCE BRIEFING</b><span></span></div>
-          <p id="frase"></p>
-          <div class="wave"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-          <div id="status">ESTABELECENDO CONEXÃO DE VOZ...</div>
-          <button id="play">▶ ATIVAR MENSAGEM</button>
-          <button id="close">ENTRAR NA ÉLÉVO <span>→</span></button>
-          <audio id="audio" preload="auto" playsinline></audio>
-        </section>
-        <div class="bottomline"><span>ÉLÉVO SYSTEMS</span><span>PROTECTED ENVIRONMENT • BRASIL</span><span>V.01 / ONLINE</span></div>
-        </main>""",
-        css="""#vip{position:fixed;inset:0;z-index:999999;background:radial-gradient(ellipse at 50% 46%,#102c42 0%,#07111f 42%,#02050b 100%);color:#eafaff;display:grid;place-items:center;font-family:Arial,sans-serif;overflow:hidden}
-        #vip:before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 42%,rgba(0,222,255,.13),transparent 28%),linear-gradient(115deg,transparent 35%,rgba(0,229,255,.035) 50%,transparent 65%);pointer-events:none}
-        .hud-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,220,255,.055) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.055) 1px,transparent 1px);background-size:44px 44px;mask-image:radial-gradient(ellipse at center,#000 0%,transparent 78%);opacity:.55}
-        .code-rain{position:absolute;inset:-20% 0;display:flex;justify-content:space-around;gap:5vw;overflow:hidden;opacity:.25;pointer-events:none}
-        .code-rain span{font:10px/2.2 monospace;letter-spacing:3px;color:#20dff5;text-shadow:0 0 9px #00cfff;white-space:nowrap;writing-mode:vertical-rl;animation:codefall 13s linear infinite}
-        .code-rain span:nth-child(2){animation-delay:-7s;animation-duration:17s;color:#9bdbd7}.code-rain span:nth-child(3){animation-delay:-3s;animation-duration:15s}.code-rain span:nth-child(4){animation-delay:-10s;animation-duration:19s}.code-rain span:nth-child(5){animation-delay:-5s;animation-duration:14s}
-        .scanline{position:absolute;left:0;right:0;height:2px;top:-5%;background:linear-gradient(90deg,transparent,#00eaff88,#d6b46b88,transparent);box-shadow:0 0 24px #00dfff;animation:scan 6s ease-in-out infinite;opacity:.7}
-        .panel{position:relative;width:min(94vw,720px);max-height:96vh;overflow:auto;padding:clamp(16px,3vw,28px) clamp(16px,4vw,38px) 22px;text-align:center;border:1px solid rgba(49,218,239,.38);border-radius:22px;background:linear-gradient(145deg,rgba(7,22,37,.94),rgba(3,8,17,.97) 70%);box-shadow:0 0 0 1px rgba(255,255,255,.035) inset,0 22px 90px #000b,0 0 65px #00c8ed22;backdrop-filter:blur(14px);animation:materialize 1s cubic-bezier(.16,1,.3,1)}
-        .top{font-size:10px;letter-spacing:3px;color:#a8eefa;display:flex;justify-content:space-between;gap:10px;text-align:left}.top b{color:#fff}.secure{color:#8de6c8;font-size:9px;letter-spacing:1.5px}.secure i{display:inline-block;width:6px;height:6px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:6px}
-        .stage{height:clamp(225px,34vh,300px);position:relative;display:grid;place-items:center;margin:2px auto 0;max-width:470px;overflow:hidden}
-        .core{position:relative;width:180px;height:180px;display:grid;place-items:center;animation:corefloat 5s ease-in-out infinite}
-        .sigil{position:relative;width:100%;height:100%;z-index:3;filter:drop-shadow(0 0 12px #00dfff99);animation:sigilpulse 3s ease-in-out infinite}
-        .core-ring{position:absolute;inset:9px;border:1px solid #39eaff77;border-radius:50%;box-shadow:0 0 32px #00dfff33,inset 0 0 28px #00dfff22;animation:spin 16s linear infinite}
-        .core-ring:before,.core-ring:after{content:"";position:absolute;inset:-13px;border:1px dashed #3ceaff66;border-radius:50%}.core-ring:after{inset:20px;border-style:solid;border-color:#d6b46b66;animation:spin 9s linear infinite reverse}
-        .core-glow{position:absolute;width:110px;height:110px;border-radius:50%;background:#00cfff22;filter:blur(30px);animation:glow 2.5s ease-in-out infinite}
-        .core-label{position:absolute;bottom:4px;font:8px monospace;letter-spacing:4px;color:#b5faff;z-index:4}
-        .orbit{position:absolute;border:1px solid rgba(0,220,255,.32);border-radius:50%;transform:rotate(-24deg);width:290px;height:100px;box-shadow:0 0 16px #00cfff16}.orbit-a{animation:orbit 12s linear infinite}.orbit-b{width:340px;height:140px;transform:rotate(52deg);border-color:#d6b46b44;animation:orbit 18s linear infinite reverse}.orbit-c{width:390px;height:190px;transform:rotate(-65deg);border-style:dashed;opacity:.55;animation:orbit 25s linear infinite}
-        .target{position:absolute;width:7px;height:7px;border-radius:50%;background:#b9ffff;box-shadow:0 0 16px 4px #00dfff}.t1{top:24%;left:24%}.t2{bottom:20%;right:25%;background:#e4c27b;box-shadow:0 0 16px 4px #c79b4a}
-        .crosshair{position:absolute;width:16px;height:16px;border:1px solid #8defff88}.ch1{top:18%;right:22%;border-left:0;border-bottom:0}.ch2{bottom:18%;left:22%;border-right:0;border-top:0}
-        .readout{position:absolute;text-align:left;font:8px/1.7 monospace;letter-spacing:1.5px;color:#6baebb}.readout b{color:#c4faff;font-weight:600}.r1{top:24%;left:3%}.r2{top:30%;right:2%;text-align:right}.r3{bottom:19%;right:5%;text-align:right}
-        .kicker{font-size:9px;letter-spacing:4px;color:#d7b66e;font-weight:700;margin-top:0}#nome{font-size:clamp(20px,3vw,27px);letter-spacing:3px;margin:8px 0;color:#f2fcff;text-shadow:0 0 22px #00dfff55}
-        .divider{display:flex;align-items:center;gap:12px;justify-content:center;margin:12px 0 7px;color:#8ebdca;font:8px monospace;letter-spacing:2px}.divider span{height:1px;width:45px;background:linear-gradient(90deg,transparent,#36dff4)}.divider span:last-child{transform:rotate(180deg)}
-        #frase{font-size:clamp(14px,1.8vw,16px);line-height:1.7;color:#d1e5ec;max-width:570px;margin:8px auto 12px}
-        .wave{height:27px;display:flex;align-items:center;justify-content:center;gap:4px}.wave i{width:3px;height:4px;border-radius:4px;background:linear-gradient(#e4c27b,#00dfff);opacity:.8}
-        #vip.playing .wave i{animation:wave .42s ease-in-out infinite alternate}#vip.playing .wave i:nth-child(3n){animation-delay:.13s}#vip.playing .wave i:nth-child(2n){animation-delay:.25s}
-        #status{font:8px monospace;letter-spacing:2px;color:#78cbd8;margin:7px 0 10px}
-        button{border-radius:30px;padding:12px 22px;margin:4px;cursor:pointer;font-size:10px;font-weight:800;letter-spacing:1.5px;background:linear-gradient(110deg,#07506a,#087d91);color:white;border:1px solid #40eaff;box-shadow:0 0 22px #00dfff22;transition:transform .2s,box-shadow .2s}button:hover{transform:translateY(-2px);box-shadow:0 0 28px #00dfff55}#close{display:none;background:linear-gradient(110deg,#9b783b,#d2b36e);color:#09121b;border-color:#f2d28c}#close span{font-size:15px;margin-left:8px}
-        .bottomline{position:absolute;bottom:12px;left:18px;right:18px;display:flex;justify-content:space-between;color:#47717f;font:7px monospace;letter-spacing:1.5px;pointer-events:none}
-        @keyframes codefall{from{transform:translateY(-20%)}to{transform:translateY(35%)}}@keyframes scan{0%{top:-5%}100%{top:105%}}@keyframes spin{to{transform:rotate(360deg)}}@keyframes orbit{to{transform:rotate(336deg)}}@keyframes corefloat{50%{transform:translateY(-5px)}}@keyframes sigilpulse{50%{filter:drop-shadow(0 0 22px #00eaffcc);transform:scale(1.025)}}@keyframes glow{50%{opacity:.45;transform:scale(1.35)}}@keyframes wave{to{height:25px}}@keyframes materialize{from{opacity:0;transform:scale(.94) translateY(12px);filter:blur(8px)}to{opacity:1;transform:scale(1);filter:blur(0)}}
-        @media(max-width:600px){.panel{padding:15px 14px 18px;border-radius:17px}.stage{height:220px}.core{width:150px;height:150px}.orbit-a{width:245px}.orbit-b{width:280px}.orbit-c{width:310px}.readout{font-size:7px}.r1{left:0}.r2{right:0}.bottomline{font-size:6px;left:8px;right:8px}.bottomline span:nth-child(2){display:none}}
-        @media(prefers-reduced-motion:reduce){#vip *{animation:none!important;scroll-behavior:auto!important}}""",
-        js="""export default function(c){const {parentElement,data,setTriggerValue}=c;const root=parentElement.querySelector('#vip'),a=parentElement.querySelector('#audio'),p=parentElement.querySelector('#play'),x=parentElement.querySelector('#close'),s=parentElement.querySelector('#status');if(!root||!a||!data?.audio)return;
-        parentElement.querySelector('#nome').textContent=data.name||'IDENTIDADE RECONHECIDA';parentElement.querySelector('#frase').textContent=data.phrase||'';a.src='data:audio/mpeg;base64,'+data.audio;let done=false;
-        const finish=()=>{if(done)return;done=true;a.pause();root.style.transition='opacity .7s,filter .7s';root.style.opacity=0;root.style.filter='blur(8px)';setTimeout(()=>{root.style.display='none';setTriggerValue('closed',true)},720)};
-        const play=()=>a.play().then(()=>{root.classList.add('playing');p.style.display='none';s.textContent='TRANSMISSÃO SEGURA • MENSAGEM EM REPRODUÇÃO'}).catch(()=>{s.textContent='TOQUE EM ATIVAR MENSAGEM PARA OUVIR';p.style.display='inline-block'});
-        p.addEventListener('click',play);x.addEventListener('click',finish);a.addEventListener('ended',()=>{root.classList.remove('playing');s.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';x.style.display='inline-block';p.style.display='none'});
-        a.addEventListener('error',()=>{s.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';x.style.display='inline-block'});play();
-        return()=>{p.removeEventListener('click',play);x.removeEventListener('click',finish);a.pause()}}"""
+        name="elevo_vip_daily_protocol_v16877",
+        html=r"""<section id="evd" aria-label="Mensagem diária ÉLÉVO" role="complementary">
+  <canvas id="evd-rain" aria-hidden="true"></canvas>
+  <div class="evd-glow" aria-hidden="true"></div>
+  <div class="evd-main">
+    <header class="evd-head">
+      <div class="evd-brand"><span class="evd-brandmark">◈</span><span>ÉLÉVO <small>INTELLIGENCE STUDIO</small></span></div>
+      <button type="button" id="evd-skip" class="evd-skip" aria-label="Pular mensagem diária">PULAR <span aria-hidden="true">×</span></button>
+    </header>
+    <div class="evd-ident">
+      <div class="evd-orbit" aria-hidden="true"><div class="evd-diamond">◆</div><i></i><i></i><i></i><i></i></div>
+      <div class="evd-title-group"><div class="evd-kicker"><span class="evd-online"></span> CONEXÃO VIP • MENSAGEM DO DIA</div>
+        <h2 id="evd-name">Seu dia começa aqui.</h2>
+        <p class="evd-sub">Uma mensagem especial para acompanhar seu próximo movimento.</p>
+      </div>
+    </div>
+    <div class="evd-terminal" aria-hidden="true"><span class="evd-terminal-dots"><i></i><i></i><i></i></span>
+      <span id="evd-boot">&gt; sistema ÉLÉVO • conectado</span><span class="evd-cursor"></span></div>
+    <p id="evd-text" class="evd-text" aria-live="off"></p>
+    <div class="evd-voice"><span id="evd-voice-icon">◉</span><span id="evd-status" role="status" aria-live="polite">Mensagem pronta para ouvir</span>
+      <div id="evd-bars" class="evd-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="evd-progress"><span id="evd-progress-fill"></span></div>
+    <footer class="evd-actions">
+      <button type="button" id="evd-play" class="evd-play">▶ OUVIR</button>
+      <button type="button" id="evd-close" class="evd-close">CONTINUAR NO PAINEL <span aria-hidden="true">→</span></button>
+    </footer>
+    <div class="evd-footnote">ÉLÉVO • SUA CENTRAL CONTINUA ABERTA</div>
+  </div>
+  <audio id="evd-audio" preload="metadata" playsinline></audio>
+</section>""",
+        css=r"""
+#evd,#evd *{box-sizing:border-box}
+#evd{position:fixed;right:clamp(12px,2.4vw,32px);bottom:clamp(12px,2.4vw,30px);z-index:2147482000;
+ width:min(472px,calc(100vw - 24px));max-height:min(79vh,690px);overflow:hidden;
+ border:1px solid rgba(91,213,239,.42);border-radius:22px;
+ background:linear-gradient(145deg,rgba(12,27,47,.985),rgba(5,12,27,.99));
+ color:#edf6ff;font-family:Montserrat,Inter,system-ui,sans-serif;
+ box-shadow:0 25px 75px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.045) inset,0 0 42px rgba(48,181,226,.13);
+ isolation:isolate;animation:evd-in .5s cubic-bezier(.18,1,.3,1) both}
+#evd.evd-leaving{animation:evd-out .22s ease-in both}
+#evd-rain{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.12;pointer-events:none}
+.evd-glow{position:absolute;top:-110px;right:-100px;width:310px;height:260px;border-radius:50%;pointer-events:none;
+ background:radial-gradient(circle,rgba(47,171,230,.22),transparent 72%);z-index:0}
+.evd-main{position:relative;z-index:1;max-height:min(79vh,690px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ scrollbar-color:rgba(84,216,245,.3) transparent}
+.evd-head{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(99,193,233,.13);
+ padding:15px 19px 13px;background:rgba(3,11,22,.25)}
+.evd-brand{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:900;letter-spacing:.13em;line-height:1.1}
+.evd-brandmark{font-size:24px;color:#d8b66a;text-shadow:0 0 18px rgba(216,182,106,.42)}
+.evd-brand small{display:block;margin-top:4px;color:#7cb3cb;font:600 8px ui-monospace,Consolas,monospace;letter-spacing:.18em}
+.evd-skip{flex:none;padding:8px 10px;border:1px solid rgba(156,192,212,.28);border-radius:10px;background:rgba(255,255,255,.035);
+ color:#c4d8e7;font:800 10px Montserrat,system-ui,sans-serif;letter-spacing:.08em;cursor:pointer}
+.evd-skip span{font-size:18px;vertical-align:-1px;margin-left:3px}.evd-skip:hover,.evd-skip:focus-visible{border-color:#54d8f5;color:white}
+.evd-ident{display:flex;align-items:center;gap:18px;margin:17px 20px 8px}
+.evd-orbit{width:75px;height:75px;flex:0 0 75px;border-radius:50%;position:relative;display:grid;place-items:center;
+ border:1px solid rgba(84,216,245,.3);box-shadow:0 0 27px rgba(84,216,245,.10),inset 0 0 22px rgba(84,216,245,.09)}
+.evd-orbit::before{content:'';position:absolute;inset:7px;border:1px dashed rgba(84,216,245,.4);border-radius:50%;animation:evd-spin 19s linear infinite}
+.evd-orbit::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid transparent;border-top-color:#d8b66a;
+ border-right-color:rgba(216,182,106,.18);animation:evd-spin 6s linear infinite reverse}
+.evd-diamond{font-size:34px;color:#d8b66a;text-shadow:0 0 21px rgba(216,182,106,.48);animation:evd-float 3s ease-in-out infinite}
+.evd-orbit i{position:absolute;width:4px;height:4px;background:#54d8f5;border-radius:50%;box-shadow:0 0 8px #54d8f5}
+.evd-orbit i:nth-of-type(1){top:3px;left:18px}.evd-orbit i:nth-of-type(2){right:2px;top:30px}
+.evd-orbit i:nth-of-type(3){bottom:6px;left:16px}.evd-orbit i:nth-of-type(4){bottom:22px;right:6px}
+.evd-title-group{min-width:0;flex:1}.evd-kicker{color:#d8b66a;font:700 9px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.09em}
+.evd-online{display:inline-block;width:6px;height:6px;background:#4dd9b4;border-radius:50%;box-shadow:0 0 7px #4dd9b4;margin-right:5px}
+#evd-name{font:900 clamp(17px,3.5vw,22px)/1.2 Montserrat,system-ui,sans-serif;overflow-wrap:anywhere;margin:6px 0 6px;color:#eefaff}
+.evd-sub{font:500 11px/1.45 Montserrat,system-ui,sans-serif;color:#adc5d7;margin:0}
+.evd-terminal{display:flex;align-items:center;gap:9px;margin:16px 20px 0;padding:9px 12px;
+ border:1px solid rgba(84,216,245,.17);border-radius:10px;background:rgba(0,9,18,.58);color:#69d1e9;
+ font:600 10px/1.4 ui-monospace,Consolas,monospace}
+.evd-terminal-dots{display:flex;gap:4px}.evd-terminal-dots i{width:6px;height:6px;background:#e96b75;border-radius:50%}
+.evd-terminal-dots i:nth-child(2){background:#d8b66a}.evd-terminal-dots i:nth-child(3){background:#4dd9b4}
+.evd-cursor{width:5px;height:12px;background:#54d8f5;animation:evd-blink 1s steps(2) infinite}
+.evd-text{margin:15px 20px 15px;font:500 clamp(13px,2.3vw,14px)/1.65 Montserrat,system-ui,sans-serif;
+ color:#edf6ff;overflow-wrap:anywhere;max-height:200px;overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(84,216,245,.25) transparent}
+.evd-voice{display:flex;align-items:center;gap:8px;margin:0 20px 10px;color:#9ebfd1;font:700 10px/1.2 ui-monospace,Consolas,monospace}
+#evd-voice-icon{color:#55e5bf}.evd-bars{margin-left:auto;display:flex;align-items:center;gap:3px;height:19px;opacity:.6}
+.evd-bars i{display:block;width:3px;height:5px;background:#54d8f5;border-radius:3px}
+#evd.evd-speaking .evd-bars i{animation:evd-eq .75s ease-in-out infinite alternate}
+.evd-bars i:nth-child(2){animation-delay:.12s!important}.evd-bars i:nth-child(3){animation-delay:.22s!important}
+.evd-bars i:nth-child(4){animation-delay:.08s!important}.evd-bars i:nth-child(5){animation-delay:.34s!important}
+.evd-bars i:nth-child(6){animation-delay:.16s!important}.evd-bars i:nth-child(7){animation-delay:.25s!important}
+.evd-progress{height:3px;background:rgba(84,216,245,.12);margin:0 20px 14px;border-radius:20px;overflow:hidden}
+.evd-progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#40d4ef,#d8b66a);transition:width .15s linear}
+.evd-actions{display:flex;align-items:stretch;gap:9px;margin:0 20px 12px}
+.evd-actions button{border-radius:11px;padding:12px 11px;cursor:pointer;font:800 11px/1.2 Montserrat,system-ui,sans-serif;min-height:42px}
+.evd-play{border:1px solid rgba(84,216,245,.52);background:rgba(54,161,205,.16);color:#cef6ff;flex:0 0 115px}
+.evd-close{background:linear-gradient(120deg,#c7a157,#ebd49c);border:1px solid #ebd49c;color:#101827;flex:1;box-shadow:0 7px 25px rgba(216,182,106,.16)}
+.evd-close span{font-size:15px}.evd-actions button:hover{filter:brightness(1.06)}
+.evd-actions button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.evd-footnote{text-align:center;color:#66869f;font:700 9px ui-monospace,Consolas,monospace;letter-spacing:.1em;padding:0 10px 13px}
+@keyframes evd-in{from{opacity:0;transform:translateY(25px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes evd-out{to{opacity:0;transform:translateY(12px) scale(.99)}}
+@keyframes evd-spin{to{transform:rotate(360deg)}}@keyframes evd-float{50%{transform:translateY(-4px)}}
+@keyframes evd-eq{to{height:18px;background:#d8b66a}}@keyframes evd-blink{50%{opacity:0}}
+@media(max-width:620px){#evd{right:10px;bottom:10px;width:calc(100vw - 20px);max-height:78dvh;border-radius:19px}
+.evd-main{max-height:78dvh}.evd-head{padding:12px 14px}.evd-ident{margin:14px 15px 7px;gap:12px}
+.evd-orbit{width:58px;height:58px;flex-basis:58px}.evd-diamond{font-size:25px}
+.evd-terminal{margin:12px 15px 0}.evd-text{margin:12px 15px;max-height:22dvh}
+.evd-voice{margin:0 15px 9px}.evd-progress{margin:0 15px 12px}.evd-actions{margin:0 15px 9px}
+.evd-brand{font-size:11px}.evd-brand small{font-size:7px}.evd-kicker{font-size:8px}}
+@media(max-width:355px){.evd-actions{flex-wrap:wrap}.evd-play{flex:1 1 100%}.evd-close{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){#evd,#evd *{animation:none!important;transition:none!important}}
+""",
+        js=r"""export default function(c){
+  const {parentElement:P,data,setTriggerValue}=c;
+  const get=id=>P.querySelector('#'+id);
+  const root=get('evd'),audio=get('evd-audio'),btnPlay=get('evd-play'),btnSkip=get('evd-skip'),btnClose=get('evd-close');
+  const status=get('evd-status'),fill=get('evd-progress-fill'),txt=get('evd-text'),name=get('evd-name'),boot=get('evd-boot');
+  const rain=get('evd-rain');
+  if(!root||!audio||!data)return;
+  let closed=false,raf=0,last=0,cleanupTimer=0;
+  const reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const displayName=String(data.name||'MEMBRO VIP').trim();
+  name.textContent='Olá, '+displayName.replace(/\s+/g,' ').slice(0,46)+'!';
+  txt.textContent=String(data.phrase||'Sua mensagem do dia está pronta.');
+  audio.src='data:audio/mpeg;base64,'+String(data.audio||'');
+  const setStatus=s=>{if(status)status.textContent=s;};
+  const setPlay=s=>{if(btnPlay)btnPlay.textContent=s;};
+  const finish=()=>{if(closed)return;closed=true;audio.pause();root.classList.remove('evd-speaking');
+    root.classList.add('evd-leaving');cancelAnimationFrame(raf);
+    cleanupTimer=setTimeout(()=>setTriggerValue('closed',true),reduced?0:220);
+  };
+  const toggle=async()=>{
+    if(closed)return;
+    if(!audio.paused){audio.pause();return;}
+    if(!data.audio){setStatus('Áudio indisponível. A mensagem está escrita acima.');return;}
+    try{await audio.play();}catch(_){setStatus('Toque em OUVIR para ativar o áudio no navegador.');setPlay('▶ OUVIR');}
+  };
+  const onPlaying=()=>{root.classList.add('evd-speaking');setStatus('ÉLÉVO • MENSAGEM EM REPRODUÇÃO');setPlay('Ⅱ PAUSAR');};
+  const onPause=()=>{root.classList.remove('evd-speaking');if(!audio.ended){setStatus('ÁUDIO PAUSADO');setPlay('▶ OUVIR');}};
+  const onEnded=()=>{root.classList.remove('evd-speaking');fill.style.width='100%';setStatus('MENSAGEM CONCLUÍDA • BOM TRABALHO!');
+    setPlay('↺ OUVIR NOVAMENTE');};
+  const onError=()=>{root.classList.remove('evd-speaking');setStatus('Áudio indisponível; continue pelo painel.');setPlay('▶ OUVIR');};
+  const onTime=()=>{if(audio.duration&&Number.isFinite(audio.duration))fill.style.width=Math.min(100,audio.currentTime/audio.duration*100)+'%';};
+  const onKey=e=>{if(e.key==='Escape'&&!closed)finish();};
+  btnPlay.addEventListener('click',toggle);btnSkip.addEventListener('click',finish);btnClose.addEventListener('click',finish);
+  audio.addEventListener('playing',onPlaying);audio.addEventListener('pause',onPause);
+  audio.addEventListener('ended',onEnded);audio.addEventListener('error',onError);audio.addEventListener('timeupdate',onTime);
+  P.addEventListener('keydown',onKey);
+  // A chuva de código existe apenas dentro do cartão: não substitui a tela principal.
+  if(!reduced&&rain&&rain.getContext){
+    const ctx=rain.getContext('2d');const letters='ÉLÉVO01<>{}#◆';let W=1,H=1,cols=[],step=14;
+    const resize=()=>{const r=rain.getBoundingClientRect();const d=Math.min(1.5,window.devicePixelRatio||1);
+      W=rain.width=Math.max(1,Math.round(r.width*d));H=rain.height=Math.max(1,Math.round(r.height*d));
+      step=13*d;cols=Array.from({length:Math.ceil(W/step)},()=>-Math.random()*H/step);};
+    resize();
+    const draw=t=>{raf=requestAnimationFrame(draw);if(closed||t-last<105)return;last=t;
+      ctx.fillStyle='rgba(6,17,29,.16)';ctx.fillRect(0,0,W,H);ctx.font=step+'px monospace';
+      for(let i=0;i<cols.length;i++){const y=cols[i]*step;
+        ctx.fillStyle=Math.random()<.05?'#d8b66a':'#54d8f5';ctx.fillText(letters[Math.floor(Math.random()*letters.length)],i*step,y);
+        cols[i]=y>H&&Math.random()>.97?0:cols[i]+.7;}
+    };raf=requestAnimationFrame(draw);
+  }
+  const terminalLines=['> perfil autenticado','> interface VIP sincronizada','> Aurora pronta para conversar'];
+  if(!reduced){let i=0;const tick=()=>{if(closed)return;boot.textContent=terminalLines[i%terminalLines.length];i++;};tick();
+    const interval=setInterval(tick,2600);
+    // O timer é limpo no desmontar e após PULAR.
+    var clearTerminal=()=>clearInterval(interval);
+  }
+  // Tentar autoplay sem bloquear o painel; navegadores podem exigir toque.
+  if(data.audio){const pending=audio.play();if(pending&&typeof pending.catch==='function'){
+    pending.catch(()=>{if(!closed){setStatus('MENSAGEM PRONTA • TOQUE EM OUVIR');setPlay('▶ OUVIR');}});
+  }}else{setStatus('Mensagem disponível em texto.');}
+  return()=>{closed=true;cancelAnimationFrame(raf);clearTimeout(cleanupTimer);if(clearTerminal)clearTerminal();
+    try{audio.pause();audio.removeAttribute('src');audio.load();}catch(_){}
+    btnPlay.removeEventListener('click',toggle);btnSkip.removeEventListener('click',finish);btnClose.removeEventListener('click',finish);
+    audio.removeEventListener('playing',onPlaying);audio.removeEventListener('pause',onPause);
+    audio.removeEventListener('ended',onEnded);audio.removeEventListener('error',onError);audio.removeEventListener('timeupdate',onTime);
+    P.removeEventListener('keydown',onKey);
+  };
+}"""
     )
     _vip(key="elevo_vip_daily_overlay_v16841",
-         data={"name": _vip_nome.upper(),
+         data={"name": _vip_nome,
                "phrase": st.session_state.get("elevo_vip_diaria_frase_v16840", ""),
                "audio": st.session_state["elevo_vip_diaria_audio_v16840"]},
          on_closed_change=_elevo_vip_fechar_v16840)
 
-
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
 # ==========================================================
-st.markdown("<h3 style='text-align: center; color: #00BFA5; margin-bottom: 5px;'>⚡ Central de Operação</h3>", unsafe_allow_html=True)
+st.markdown('<div class="elevo-secao-titulo"><span>⚡</span> Central de Operação</div>', unsafe_allow_html=True)
 
 E_O_CEO = st.session_state.get("email_usuario") == EMAIL_MESTRE
 
@@ -2493,42 +3893,6 @@ border-color:rgba(39,222,238,.65)!important;box-shadow:0 4px 20px rgba(0,184,221
 </style>
 """, unsafe_allow_html=True)
 
-# ==========================================================
-ELEVO_PLANOS_PAGAMENTO_V1 = {
-    "bronze": {"nome": "Bronze", "preco": 9.90, "creditos": 1000},
-    "ouro": {"nome": "Ouro", "preco": 19.90, "creditos": 3000},
-    "diamante_vip": {"nome": "Diamante VIP", "preco": 39.90, "creditos": 7000},
-    "diamante_supremo": {"nome": "Diamante Supremo VIP", "preco": 99.90, "creditos": 10000},
-}
-
-def elevo_gateway_checkout_v1(plano_id):
-    plano = ELEVO_PLANOS_PAGAMENTO_V1.get(str(plano_id))
-    email = elevo_email_v16813()
-    if not plano or not email or not st.session_state.get("usuario_logado"):
-        raise ValueError("Plano ou sessão inválida.")
-    gateway = str(st.secrets.get("ELEVO_GATEWAY_URL", "")).strip().rstrip("/")
-    segredo = str(st.secrets.get("ELEVO_GATEWAY_SECRET", "")).strip()
-    if not gateway or not segredo:
-        raise RuntimeError("Gateway ainda não configurado no Streamlit Secrets.")
-    resposta = requests.post(
-        gateway + "/checkout",
-        json={"plan_id": plano_id, "email": email},
-        headers={"Authorization": "Bearer " + segredo, "Content-Type": "application/json"},
-        timeout=25,
-    )
-    if resposta.status_code != 200:
-        raise RuntimeError("Não foi possível iniciar o pagamento. Tente novamente.")
-    dados = resposta.json()
-    url = str(dados.get("checkout_url", "")).strip()
-    if not url.startswith("https://"):
-        raise RuntimeError("O gateway não retornou um endereço seguro de pagamento.")
-    return url
-
-
-# ÉLÉVO PAGAMENTOS V1 — CHECKOUT MERCADO PAGO
-# Integração isolada; créditos só entram após confirmação do Worker.
-# Secrets necessários no Streamlit: ELEVO_GATEWAY_URL e ELEVO_GATEWAY_SECRET.
-
 _elevo_email_painel_v16813 = elevo_email_v16813()
 _elevo_nome_painel_v16813 = html_std.escape(str(st.session_state.get("nome_usuario", "Usuário")))
 _elevo_avatar_b64_v16813 = ""
@@ -2539,6 +3903,31 @@ try:
     )
 except Exception:
     pass  # Foto ausente/banco em oscilação: apresenta o ícone padrão.
+# V16.8.63 — volta do Mercado Pago / conferência automática (1x por sessão).
+if not E_O_CEO and st.session_state.get("usuario_logado"):
+    _evp_qp = st.query_params
+    _evp_pid = str(_evp_qp.get("payment_id", "") or _evp_qp.get("collection_id", "") or "")
+    _evp_ret = str(_evp_qp.get("elevo_pg", "") or "")
+    if _evp_ret or not st.session_state.get("elevo_checkout_auto_v16863"):
+        st.session_state["elevo_checkout_auto_v16863"] = True
+        try:
+            _evp_ok_auto = elevo_checkout_confirmar_v16863(_evp_pid or None)
+        except Exception:
+            _evp_ok_auto = []
+        if _evp_ok_auto:
+            st.session_state["elevo_checkout_sucesso_v16863"] = _evp_ok_auto
+            st.session_state.pop("elevo_checkout_link_v16863", None)
+            elevo_invalidar_leituras_v16816()
+        for _evp_k in ("payment_id", "collection_id", "collection_status", "status", "external_reference",
+                       "payment_type", "merchant_order_id", "preference_id", "site_id", "processing_mode",
+                       "merchant_account_id"):
+            if _evp_k in _evp_qp:
+                del _evp_qp[_evp_k]
+        if _evp_ret:
+            if _evp_ok_auto:
+                del _evp_qp["elevo_pg"]
+            elif _evp_ret == "ok":
+                _evp_qp["elevo_pg"] = "pendente"
 if not E_O_CEO:
     try:
         _elevo_saldo_v16813 = elevo_credito_saldo_v16813()
@@ -2571,73 +3960,688 @@ if st.session_state.get("elevo_banco_indisponivel_v16816"):
                "O saldo fica indisponível e nenhuma nova geração será cobrada ou liberada "
                "sem confirmação. Use 'Atualizar saldo' quando o serviço voltar.")
 
-with st.container(border=False, key="elevo_cabecalho_vip_v16824"):
-    # V16.8.24: dados originais e saldos intactos; dois cards responsivos.
-    # A foto já salva permanece disponível na conta. Não será usada como mascote flutuante.
-    col_info_v16813, col_saldo_v16813 = st.columns([2.5, 1.35], gap="small", vertical_alignment="center")
-    with col_info_v16813:
-        st.markdown(
-            f"<div class='elevo-conta-vip-v16813 elevo-vip-perfil-v16824'>"
-            "<div class='elevo-identidade-v16825'>"
-            f"<span class='elevo-avatar-joia-v16825'>{_elevo_avatar_miolo_v16827}</span>"
-            "<div class='elevo-identidade-texto-v16825'>"
-            f"<div class='eyebrow'>♛ ÉLÉVO • CONTA VIP</div>"
-            f"<div class='person'>{_elevo_nome_painel_v16813}</div>"
-            f"<div class='mail'>{html_std.escape(_elevo_email_painel_v16813)}</div>"
-            "</div></div>"
-            "<div class='elevo-medalha-v16824' aria-hidden='true'><span>💎</span><strong>VIP</strong></div>"
-            "</div>", unsafe_allow_html=True)
-    with col_saldo_v16813:
-        if E_O_CEO:
-            st.markdown("<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
-                        "<div class='eyebrow'>👑 CEO</div>"
-                        "<div class='balance'>∞</div><div class='small'>Criações ilimitadas</div></div>",
-                        unsafe_allow_html=True)
+# ==========================================================
+# V16.8.65 — CARTEIRA VIP + CHECKOUT DENTRO DO APP
+# Referência de organização: apps de banco/infoproduto (cartão único de
+# saldo + barra de ações + checkout em etapas: plano → Pix ou cartão).
+# Mesmos dados e regras de antes; só a organização e o visual mudaram.
+# ==========================================================
+_wal_tk = ({
+    "__FUNDO__": "linear-gradient(135deg,#FFFFFF 0%,#F3F8FF 55%,#EAF2FF 100%)",
+    "__BORDA__": "#D6E3F5", "__TXT__": "#0B2A55", "__SUB__": "#5A6F8C", "__ACENTO__": "#1457A1",
+    "__OURO__": "#B8862F", "__SOMBRA__": "0 18px 44px rgba(20,60,120,.10)",
+    "__CARD__": "#FFFFFF", "__CARDBORDA__": "#DCE6F3", "__SEL__": "linear-gradient(180deg,#FFF8E6,#FFFFFF)",
+    "__BTN2__": "#FFFFFF", "__BTN2TXT__": "#0B2A55", "__BTN2BORDA__": "#CFDDF0",
+    "__GLOW__": "radial-gradient(circle at 85% 0%,rgba(20,87,161,.12),transparent 55%)",
+} if modo_claro else {
+    "__FUNDO__": "linear-gradient(135deg,#101B2E 0%,#0A1322 55%,#070D18 100%)",
+    "__BORDA__": "rgba(120,170,230,.18)", "__TXT__": "#F2F6FC", "__SUB__": "#93A7C2", "__ACENTO__": "#54D8F5",
+    "__OURO__": "#E2C47E", "__SOMBRA__": "0 22px 50px rgba(0,0,0,.40)",
+    "__CARD__": "rgba(255,255,255,.035)", "__CARDBORDA__": "rgba(120,170,230,.18)",
+    "__SEL__": "linear-gradient(180deg,rgba(216,182,106,.16),rgba(216,182,106,.03))",
+    "__BTN2__": "rgba(255,255,255,.05)", "__BTN2TXT__": "#EAF2FF", "__BTN2BORDA__": "rgba(255,255,255,.14)",
+    "__GLOW__": "radial-gradient(circle at 85% 0%,rgba(216,182,106,.16),transparent 55%)",
+})
+_wal_css = """<style>
+.st-key-elevo_carteira_v16865 {border-radius:28px!important; padding:clamp(1rem,2.6vw,1.6rem)!important;
+  background:__GLOW__,__FUNDO__!important; border:1px solid __BORDA__!important;
+  box-shadow:__SOMBRA__, inset 0 1px 0 rgba(255,255,255,.07), inset 0 -18px 34px rgba(255,255,255,.015)!important;
+  position:relative; overflow:hidden; margin-bottom:.6rem; isolation:isolate;}
+.st-key-elevo_carteira_v16865::before{content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(84,216,245,.16), transparent 24%),
+    radial-gradient(circle at 88% 0%, rgba(216,182,106,.16), transparent 26%),
+    radial-gradient(circle at 50% 125%, rgba(84,216,245,.07), transparent 30%),
+    linear-gradient(118deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.025) 16%, transparent 33%, transparent 68%, rgba(84,216,245,.05) 100%);
+  opacity:.98;}
+.st-key-elevo_carteira_v16865::after{content:""; position:absolute; inset:1px; border-radius:27px; pointer-events:none; z-index:0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 14%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 18px);
+  opacity:.72;}
+.st-key-elevo_carteira_v16865 > div,
+.st-key-elevo_carteira_v16865 [data-testid="stVerticalBlock"]{position:relative; z-index:1;}
+.wal-topo {display:flex; align-items:center; gap:14px; position:relative; z-index:1;}
+.wal-avatar {width:58px; height:58px; flex:0 0 58px; border-radius:50%; padding:3px;
+  background:conic-gradient(from 200deg,#F4DC9A,#54D8F5,#1457A1,#F4DC9A); display:grid; place-items:center;
+  box-shadow:0 10px 22px rgba(0,0,0,.18), 0 0 0 1px rgba(255,255,255,.08);}
+.wal-avatar > * {width:52px; height:52px; border-radius:50%; object-fit:cover; display:grid; place-items:center;
+  background:__CARD__; color:__ACENTO__;}
+.wal-avatar svg {width:26px; height:26px;}
+.wal-quem {min-width:0; flex:1;}
+.wal-quem b {display:block; color:__TXT__; font:800 1.12rem Montserrat,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.wal-quem span {display:block; color:__SUB__; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.wal-chip {flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+  font:800 .62rem Montserrat,sans-serif; letter-spacing:.06em; padding:7px 11px;
+  border-radius:30px; white-space:nowrap; line-height:1.15; text-align:center;
+  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);
+  box-shadow:0 8px 20px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.32);}
+.wal-chip-iniciante {color:__SUB__; background:__CARD__; border:1px solid __CARDBORDA__;}
+.wal-chip-bronze {color:#8F4B26; background:linear-gradient(105deg,#E8B78A,#F7DABD); border:1px solid #CD936C;}
+.wal-chip-prata {color:#283F61; background:linear-gradient(105deg,#D7E2EF,#FFFFFF); border:1px solid #A0B1CB;}
+.wal-chip-ouro {color:#533300; background:linear-gradient(105deg,#E8B13B,#FFE7A0); border:1px solid #C99A41;}
+.wal-chip-diamante {color:#073C64; background:linear-gradient(105deg,#A6E8FC,#FFFFFF,#D8B66A); border:1px solid #64BFE3;
+  box-shadow:0 3px 16px rgba(84,216,245,.18);}
+.wal-chip-ceo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-patente-progresso {display:block; font:600 .68rem Montserrat,sans-serif; margin-top:4px;
+  color:__SUB__; line-height:1.3;}
+@media(max-width:480px){.wal-topo{gap:9px}.wal-avatar{width:48px;height:48px;flex-basis:48px}
+  .wal-avatar > *{width:42px;height:42px}.wal-chip{font-size:.55rem;padding:7px 8px;max-width:112px;
+  white-space:normal;letter-spacing:0}.wal-quem b{font-size:1rem}.wal-quem span{font-size:.7rem}
+  .wal-patente-progresso{font-size:.62rem}}
+.wal-saldo {margin-top:1.08rem; padding:1rem 0 0; border-top:1px dashed __BORDA__; display:flex; align-items:flex-end;
+  justify-content:space-between; gap:12px; flex-wrap:wrap; position:relative; z-index:1;}
+.wal-rot {color:__SUB__; font:700 .68rem Montserrat,sans-serif; letter-spacing:.16em; text-transform:uppercase;}
+.wal-num {color:__TXT__; font:900 clamp(2.3rem,7vw,3.1rem)/1 Montserrat,sans-serif; letter-spacing:-.02em; margin-top:.25rem;}
+.wal-num small {font-size:.95rem; color:__OURO__; margin-left:6px; letter-spacing:.04em;}
+.wal-info {color:__SUB__; font-size:.82rem; margin-top:.35rem;}
+.wal-pill {font:700 .72rem Montserrat,sans-serif; padding:7px 12px; border-radius:30px; white-space:nowrap;}
+.wal-pill.ok {color:#13865F; background:rgba(47,211,154,.12); border:1px solid rgba(47,211,154,.35);}
+.wal-pill.baixo {color:#C2410C; background:rgba(251,146,60,.12); border:1px solid rgba(251,146,60,.4);}
+.wal-pill.ceo {color:__OURO__; background:rgba(216,182,106,.12); border:1px solid rgba(216,182,106,.4);}
+.st-key-elevo_carteira_acoes_v16865 {margin-top:1rem;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button, .st-key-elevo_checkout_v16865 .stButton button,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button {
+  min-height:48px!important; border-radius:14px!important; font-weight:800!important;
+  background:__BTN2__!important; border:1px solid __BTN2BORDA__!important; box-shadow:none!important;
+  transition:transform .15s ease, box-shadow .2s ease, border-color .2s ease!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button p, .st-key-elevo_checkout_v16865 .stButton button p,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button p {color:__BTN2TXT__!important; font-weight:800!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button:hover, .st-key-elevo_checkout_v16865 .stButton button:hover {
+  transform:translateY(-1px); border-color:__ACENTO__!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button[kind*="rimary"], .st-key-elevo_checkout_v16865 .stButton button[kind*="rimary"],
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button[kind*="rimary"] {
+  border:none!important; background:linear-gradient(100deg,#B88A2E 0%,#D8B66A 45%,#F4DC9A 100%)!important;
+  box-shadow:0 10px 26px rgba(184,138,47,.30),inset 0 1px rgba(255,255,255,.45)!important;}
+.st-key-elevo_carteira_acoes_v16865 .stButton button[kind*="rimary"] p, .st-key-elevo_checkout_v16865 .stButton button[kind*="rimary"] p,
+.st-key-elevo_checkout_v16865 [data-testid="stFormSubmitButton"] button[kind*="rimary"] p {color:#120D03!important;}
+.st-key-elevo_checkout_v16865 {border-radius:24px!important; padding:clamp(1rem,2.4vw,1.5rem)!important;
+  background:__FUNDO__!important; border:1px solid __BORDA__!important; box-shadow:__SOMBRA__!important; margin-bottom:.8rem;}
+.st-key-elevo_checkout_v16865 [data-testid="stMarkdownContainer"] p, .st-key-elevo_checkout_v16865 label p,
+.st-key-elevo_checkout_v16865 [data-testid="stCaptionContainer"] p {color:__SUB__!important;}
+.wal-etapa {display:flex; align-items:center; gap:10px; margin:.2rem 0 .7rem; color:__TXT__; font:800 1rem Montserrat,sans-serif;}
+.wal-etapa i {font-style:normal; width:26px; height:26px; border-radius:50%; display:grid; place-items:center; font-size:.8rem;
+  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-plano {border-radius:18px; padding:1rem .9rem .85rem; text-align:center; background:__CARD__;
+  border:1.5px solid __CARDBORDA__; transition:border-color .2s ease, transform .2s ease;}
+.wal-plano.sel {border-color:#D8B66A; background:__SEL__; box-shadow:0 12px 30px rgba(184,138,47,.16); transform:translateY(-2px);}
+.wal-plano .selo {display:inline-block; font:800 .58rem Montserrat,sans-serif; letter-spacing:.13em; text-transform:uppercase;
+  padding:4px 9px; border-radius:20px; color:__ACENTO__; background:rgba(84,160,245,.10); margin-bottom:.45rem;}
+.wal-plano.sel .selo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-plano .nome {color:__TXT__; font:800 .95rem Montserrat,sans-serif; letter-spacing:.08em;}
+.wal-plano .cr {color:__OURO__; font:900 1.5rem Montserrat,sans-serif; margin-top:.15rem;}
+.wal-plano .cr small {font-size:.7rem;}
+.wal-plano .preco {color:__TXT__; font:800 1.2rem Montserrat,sans-serif; margin-top:.25rem;}
+.wal-plano .preco sup {font-size:.62rem; margin-right:2px;}
+.wal-plano .desc {color:__SUB__; font-size:.75rem;}
+.wal-resumo {display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin:1rem 0 .4rem;
+  padding:.8rem 1rem; border-radius:16px; background:__CARD__; border:1px solid __CARDBORDA__; color:__TXT__; font-size:.88rem;}
+.wal-resumo b {font:900 1.15rem Montserrat,sans-serif;}
+.wal-pix {display:flex; gap:16px; align-items:center; flex-wrap:wrap; padding:1rem; border-radius:18px;
+  background:__CARD__; border:1px solid __CARDBORDA__;}
+.wal-pix img {width:190px; height:190px; border-radius:14px; background:#fff; padding:8px; flex:0 0 auto;}
+.wal-pix .t {flex:1; min-width:200px; color:__TXT__;}
+.wal-pix .t > b {display:block; font:800 1.05rem Montserrat,sans-serif; margin-bottom:.35rem;}
+.wal-pix .t span b {color:__TXT__; font-weight:800;}
+.wal-pix .t span {display:block; color:__SUB__; font-size:.84rem; line-height:1.55;}
+.wal-seg {display:flex; justify-content:center; flex-wrap:wrap; gap:6px 16px; margin-top:.9rem; color:__SUB__; font-size:.74rem;}
+.st-key-elevo_checkout_v16865 [role="tablist"] {display:grid!important; grid-template-columns:repeat(3,1fr); gap:6px!important;}
+.st-key-elevo_checkout_v16865 [role="tab"] {justify-content:center!important;}
+@media (max-width:640px) {.wal-pix img {width:100%; height:auto; max-width:260px; margin:0 auto;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stHorizontalBlock"] {flex-direction:row!important; flex-wrap:wrap!important; gap:.55rem!important;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stColumn"] {flex:1 1 calc(50% - .3rem)!important; width:calc(50% - .3rem)!important; min-width:0!important;}
+  .st-key-elevo_carteira_acoes_v16865 [data-testid="stColumn"]:first-child {flex:1 1 100%!important; width:100%!important;}}
+</style>"""
+for _wal_k, _wal_v in _wal_tk.items():
+    _wal_css = _wal_css.replace(_wal_k, _wal_v)
+st.markdown(_wal_css, unsafe_allow_html=True)
+
+# V16.8.80 — AJUSTE LOCAL DE APRESENTAÇÃO: SOMENTE carteira NO MODO ESCURO.
+# Preserva por completo o CSS anterior no modo claro, assim como backend, saldo,
+# patentes, compra de créditos, pagamentos, animações globais e outros componentes.
+if not modo_claro:
+    st.markdown("""<style>
+    /* Fosco premium: sem faixas LED, sem textura riscada e sem neon no cartão. */
+    .st-key-elevo_carteira_v16865 {
+      background:linear-gradient(132deg,#202631 0%,#161D28 55%,#19212B 100%)!important;
+      border:1px solid rgba(159,178,203,.20)!important;
+      box-shadow:0 16px 38px rgba(0,0,0,.29),
+                 0 3px 9px rgba(0,0,0,.12),
+                 inset 0 1px 0 rgba(255,255,255,.055)!important;
+    }
+    .st-key-elevo_carteira_v16865::before {
+      background:radial-gradient(ellipse at 88% 8%,rgba(179,161,119,.055),transparent 38%),
+                 radial-gradient(ellipse at 10% 94%,rgba(115,147,170,.045),transparent 45%)!important;
+      opacity:1!important;
+    }
+    .st-key-elevo_carteira_v16865::after {
+      background:linear-gradient(180deg,rgba(255,255,255,.032),transparent 18%)!important;
+      opacity:1!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-avatar {
+      background:conic-gradient(from 200deg,#AA9871,#688095,#425363,#AA9871)!important;
+      box-shadow:0 5px 13px rgba(0,0,0,.19)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip {
+      box-shadow:0 3px 10px rgba(0,0,0,.12),inset 0 1px rgba(255,255,255,.12)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip-ceo {
+      background:linear-gradient(105deg,#AF9160,#DCC79B)!important;
+    }
+    /* Apenas o nome da conta recebe um leve toque hacker periódico. */
+    .st-key-elevo_carteira_v16865 .wal-quem b {
+      color:#EBEFF5!important;
+      animation:elevo-wal-nome-hack-v16880 11s steps(1,end) infinite;
+      will-change:auto;
+    }
+    @keyframes elevo-wal-nome-hack-v16880 {
+      0%,72%,75%,78%,100% {opacity:1;transform:translateX(0);text-shadow:none;}
+      73% {opacity:.69;transform:translateX(.55px);text-shadow:1px 0 rgba(118,170,190,.22);}
+      74% {opacity:.91;transform:translateX(-.35px);text-shadow:-1px 0 rgba(185,156,105,.13);}
+      76% {opacity:.81;transform:translateX(0);text-shadow:.6px 0 rgba(118,170,190,.15);}
+      77% {opacity:.97;transform:translateX(0);text-shadow:none;}
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .st-key-elevo_carteira_v16865 .wal-quem b {animation:none!important;}
+    }
+    </style>""", unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.81 — SOMENTE VISUAL DA CARTEIRA: dois cartões como no painel VIP antigo.
+# Nenhuma regra de saldo, patente, pagamento, botões ou autenticação é alterada.
+# O mesmo HTML funciona nos modos claro e escuro; CSS fica restrito ao contêiner.
+# ==========================================================
+_wal_paineis_tema_v16881 = ({
+    "{BG_CONTA}": "linear-gradient(135deg,#FFFFFF 0%,#F8FBFF 64%,#EBF4FF 100%)",
+    "{BG_SALDO}": "linear-gradient(145deg,#FFFFFF 0%,#F1F7FF 78%,#E8F2FF 100%)",
+    "{BORDA}": "rgba(91,154,233,.34)", "{TEXTO}": "#092D60", "{SECUNDARIO}": "#597494",
+    "{RISCO}": "rgba(67,136,219,.23)",
+    "{SOMBRA}": "0 12px 28px rgba(24,81,155,.10),0 3px 9px rgba(24,81,155,.05)",
+    "{MOTIVO}": "linear-gradient(150deg,#62AAED 0%,#1167BB 50%,#064687 100%)",
+    "{OPACIDADE}": "1", "{ARCO}": "rgba(44,134,238,.26)",
+    "{FANTASMA}": "rgba(255,255,255,.72)",
+} if modo_claro else {
+    "{BG_CONTA}": "linear-gradient(136deg,#1C2A3B 0%,#142233 68%,#10243B 100%)",
+    "{BG_SALDO}": "linear-gradient(145deg,#1C2B3D 0%,#182535 66%,#162738 100%)",
+    "{BORDA}": "rgba(147,177,209,.23)", "{TEXTO}": "#EEF4FC", "{SECUNDARIO}": "#A6BBD0",
+    "{RISCO}": "rgba(160,189,214,.24)",
+    "{SOMBRA}": "0 14px 33px rgba(0,0,0,.30),0 3px 12px rgba(0,0,0,.14)",
+    "{MOTIVO}": "linear-gradient(150deg,#2E5478 0%,#1B446B 48%,#133150 100%)",
+    "{OPACIDADE}": ".62", "{ARCO}": "rgba(145,178,210,.14)",
+    "{FANTASMA}": "rgba(255,255,255,.13)",
+})
+_wal_paineis_css_v16881 = """<style>
+/* O contêiner permanece funcional, mas deixa de fingir ser um único cartão. */
+.st-key-elevo_carteira_v16865 {
+  border:0!important; border-radius:0!important; background:transparent!important;
+  box-shadow:none!important; padding:0!important; margin:10px 0 .55rem!important;
+  overflow:visible!important; isolation:auto!important;
+}
+.st-key-elevo_carteira_v16865::before,
+.st-key-elevo_carteira_v16865::after {display:none!important;content:none!important;}
+.st-key-elevo_carteira_v16865 .wal-paineis-v16881 {
+  display:grid; grid-template-columns:minmax(0,1.72fr) minmax(0,1fr);
+  gap:12px; align-items:stretch; width:100%;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-v16881 {
+  position:relative; overflow:hidden; isolation:isolate;
+  border:1px solid {BORDA}; border-radius:20px;
+  box-shadow:{SOMBRA}; min-height:160px; box-sizing:border-box;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 {
+  padding:17px 18px; background:{BG_CONTA};
+}
+.st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881::before {
+  content:""; position:absolute; right:-71px; top:-105px; height:330px; width:310px;
+  border-radius:46%; transform:rotate(-19deg); pointer-events:none; z-index:-1;
+  background:{MOTIVO}; opacity:{OPACIDADE};
+}
+.st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881::after {
+  content:""; position:absolute; right:27px; top:9px; width:108px; height:190px;
+  transform:rotate(30deg); background:linear-gradient(110deg,{FANTASMA},transparent);
+  clip-path:polygon(20% 0,100% 8%,82% 100%,0 83%);
+  pointer-events:none; z-index:-1; opacity:.65;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 {
+  padding:17px 19px; background:{BG_SALDO};
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881::before,
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881::after {
+  content:""; position:absolute; border:1px solid {ARCO}; border-radius:50%;
+  pointer-events:none; z-index:-1;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881::before {
+  width:240px; height:240px; right:-130px; top:-115px;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881::after {
+  width:280px; height:140px; right:-140px; bottom:-100px;
+  background:radial-gradient(ellipse at top,{ARCO},transparent 75%);
+}
+.st-key-elevo_carteira_v16865 .wal-micro-v16881 {
+  font:800 .61rem Montserrat,sans-serif; letter-spacing:.15em;
+  color:{SECUNDARIO}; text-transform:uppercase; margin-bottom:13px;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 .wal-micro-v16881 {color:{TEXTO};}
+.st-key-elevo_carteira_v16865 .wal-topo {gap:11px; width:calc(100% - 104px); min-width:0;}
+.st-key-elevo_carteira_v16865 .wal-quem b {color:{TEXTO}; font-size:1.14rem;}
+.st-key-elevo_carteira_v16865 .wal-quem span,
+.st-key-elevo_carteira_v16865 .wal-patente-progresso {color:{SECUNDARIO};}
+.st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 {
+  position:absolute; right:15px; top:50%; transform:translateY(-40%);
+  display:flex; flex-direction:column; align-items:center; gap:6px; width:95px; z-index:2;
+}
+.st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 .wal-chip {
+  max-width:100%; white-space:normal; overflow-wrap:anywhere;
+  font-size:.58rem; padding:7px 10px; box-shadow:0 4px 13px rgba(0,0,0,.09);
+}
+.st-key-elevo_carteira_v16865 .wal-selo-icone-v16881 {
+  font-size:1.55rem; opacity:.83; filter:drop-shadow(0 2px 8px rgba(0,0,0,.08));
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-saldo {
+  border-top:1px solid {RISCO}; margin:0; padding:11px 0 0;
+  display:flex; flex-direction:column; align-items:flex-start; gap:8px;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-rot {color:{SECUNDARIO};}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-num {
+  color:{TEXTO}; font-size:clamp(1.95rem,4vw,2.4rem); line-height:1.07;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-info {
+  color:{SECUNDARIO}; font-size:.74rem; line-height:1.38;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-pill {font-size:.66rem; padding:5px 10px;}
+@media(max-width:710px) {
+ /* Em celular, manter a faixa azul atrás somente do selo (nunca do nome). */
+ .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881::before {
+   right:-145px; top:-100px; width:245px; height:285px;
+ }
+ .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881::after {
+   right:-39px; top:21px; width:68px; height:144px; opacity:.42;
+ }
+ .st-key-elevo_carteira_v16865 .wal-paineis-v16881 {grid-template-columns:1fr; gap:10px;}
+ .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 {min-height:150px;}
+ .st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 {min-height:145px;}
+ .st-key-elevo_carteira_v16865 .wal-topo {width:calc(100% - 110px);}
+ .st-key-elevo_carteira_v16865 .wal-micro-v16881 {margin-bottom:10px;}
+ .st-key-elevo_carteira_v16865 .wal-painel-credito-v16881 .wal-saldo {gap:5px;}
+}
+@media(max-width:380px) {
+ .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 {padding:14px 13px;}
+ .st-key-elevo_carteira_v16865 .wal-topo {width:calc(100% - 91px); gap:7px;}
+ .st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 {right:8px;width:84px;}
+ .st-key-elevo_carteira_v16865 .wal-quem b {font-size:.98rem;}
+}
+@media(prefers-reduced-motion:reduce){
+ .st-key-elevo_carteira_v16865 .wal-quem b{animation:none!important;}
+}
+</style>"""
+for _wal_cor_v16881, _wal_valor_v16881 in _wal_paineis_tema_v16881.items():
+    _wal_paineis_css_v16881 = _wal_paineis_css_v16881.replace(_wal_cor_v16881, _wal_valor_v16881)
+st.markdown(_wal_paineis_css_v16881, unsafe_allow_html=True)
+
+_evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
+if _evp_sucesso and not E_O_CEO:
+    _evp_total = sum(int(x.get("creditos", 0)) for x in _evp_sucesso)
+    st.success(f"🎉 Pagamento aprovado! **+{format(_evp_total, ',').replace(',', '.')} créditos** já estão no seu saldo. Boas criações!")
+    st.balloons()
+
+_wal_ret = str(st.query_params.get("elevo_pg", "") or "")
+if _wal_ret and not E_O_CEO:
+    st.session_state["elevo_carteira_painel_v16865"] = "recarga"
+_wal_painel = st.session_state.get("elevo_carteira_painel_v16865")
+
+# V16.8.78 — Consulta local da patente a partir do MESMO histórico de créditos
+# já cacheado para o saldo. Na falha do banco, não inventar compras nem rebaixar
+# visualmente o cliente: apresentar temporariamente "Em verificação".
+if E_O_CEO:
+    _wal_patente_v16878 = {"nome": "CEO", "icone": "👑", "classe": "ceo",
+                           "compras": 0, "proxima": "Administração ÉLÉVO"}
+else:
+    try:
+        _wal_patente_v16878 = elevo_patente_por_lancamentos_v16878(
+            elevo_creditos_ler_cache_v16816(), _elevo_email_painel_v16813)
+    except Exception:
+        _wal_patente_v16878 = {"nome": "Em verificação", "icone": "◈", "classe": "iniciante",
+                               "compras": None, "proxima": "Histórico temporariamente indisponível"}
+_wal_chip_patente_v16878 = (
+    f"<span class='wal-chip wal-chip-{_wal_patente_v16878['classe']}' "
+    f"title='Patente baseada em compras confirmadas'>"
+    f"{_wal_patente_v16878['icone']} {html_std.escape(_wal_patente_v16878['nome'])}</span>"
+)
+_wal_progresso_v16878 = html_std.escape(_wal_patente_v16878["proxima"])
+
+with st.container(key="elevo_carteira_v16865"):
+    if E_O_CEO:
+        _wal_bloco = ("<div><div class='wal-rot'>Saldo</div><div class='wal-num'>∞<small>CR</small></div>"
+                      "<div class='wal-info'>Criações ilimitadas para o CEO</div></div>"
+                      "<span class='wal-pill ceo'>👑 CEO</span>")
+    else:
+        _wal_s = int(_elevo_saldo_v16813) if isinstance(_elevo_saldo_v16813, int) else None
+        _wal_cri = (_wal_s // ELEVO_CUSTO_PROMPT_V16813) if _wal_s is not None else None
+        _wal_pill = ("<span class='wal-pill baixo'>⚠ Saldo baixo</span>" if (_wal_s is not None and _wal_s < 50)
+                     else "<span class='wal-pill ok'>● Conta ativa</span>")
+        _wal_bloco = ("<div><div class='wal-rot'>Saldo disponível</div>"
+                      f"<div class='wal-num'>{format(_wal_s, ',').replace(',', '.') if _wal_s is not None else '—'}<small>CR</small></div>"
+                      f"<div class='wal-info'>{('≈ ' + format(_wal_cri, ',').replace(',', '.') + ' criações') if _wal_cri is not None else 'Saldo indisponível no momento'}"
+                      f" • criação {ELEVO_CUSTO_PROMPT_V16813} CR • ferramentas IA {ELEVO_CUSTO_FERRAMENTA_V16813} CR</div></div>" + _wal_pill)
+    # Visual V16.8.81: dois cartões bem separados, igual à organização antiga.
+    # Reaproveita exatamente os dados de avatar, patente, saldo e conta existentes.
+    st.markdown(
+        "<div class='wal-paineis-v16881'>"
+        "<section class='wal-painel-v16881 wal-painel-identidade-v16881' aria-label='Conta e patente ÉLÉVO'>"
+        "<div class='wal-micro-v16881'>💎 ÉLÉVO · CONTA VIP</div>"
+        "<div class='wal-topo'>"
+        f"<div class='wal-avatar'>{_elevo_avatar_miolo_v16827}</div>"
+        f"<div class='wal-quem'><b>{_elevo_nome_painel_v16813}</b>"
+        f"<span>{html_std.escape(_elevo_email_painel_v16813)}</span>"
+        f"<small class='wal-patente-progresso'>{_wal_progresso_v16878}</small></div></div>"
+        f"<div class='wal-selo-lateral-v16881'>"
+        "<span class='wal-selo-icone-v16881' aria-hidden='true'>💎</span>"
+        f"{_wal_chip_patente_v16878}</div></section>"
+        "<section class='wal-painel-v16881 wal-painel-credito-v16881' aria-label='Saldo de créditos ÉLÉVO'>"
+        "<div class='wal-micro-v16881'>✦ CARTEIRA DE CRÉDITOS</div>"
+        f"<div class='wal-saldo'>{_wal_bloco}</div></section></div>",
+        unsafe_allow_html=True)
+    if not E_O_CEO:
+        with st.container(key="elevo_carteira_acoes_v16865"):
+            _wa1, _wa2, _wa3 = st.columns([1.35, 1, 1])
+            with _wa1:
+                if st.button("💎 Recarregar créditos" if _wal_painel != "recarga" else "✕ Fechar recarga",
+                             key="elevo_wal_recarga_v16865", type="primary", use_container_width=True):
+                    st.session_state["elevo_carteira_painel_v16865"] = None if _wal_painel == "recarga" else "recarga"
+                    if _wal_painel == "recarga" and "elevo_pg" in st.query_params:
+                        del st.query_params["elevo_pg"]
+                    st.rerun()
+            with _wa2:
+                if st.button("↻ Atualizar", key="elevo_saldo_refresh_v16813", use_container_width=True):
+                    elevo_invalidar_leituras_v16816()
+                    st.rerun()
+            with _wa3:
+                if st.button("✉ Pedir ao CEO" if _wal_painel != "pedido" else "✕ Fechar pedido",
+                             key="elevo_wal_pedido_v16865", use_container_width=True):
+                    st.session_state["elevo_carteira_painel_v16865"] = None if _wal_painel == "pedido" else "pedido"
+                    st.rerun()
+
+if not E_O_CEO and _wal_painel == "pedido":
+    with st.container(key="elevo_checkout_v16865"):
+        st.markdown("<div class='wal-etapa'><i>✉</i>Pedir créditos ao CEO</div>", unsafe_allow_html=True)
+        st.caption("Prefere combinar direto? Seu pedido aparece no painel do CEO.")
+        qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
+                                            value=100, step=10, key="elevo_pedido_qtd_v16813")
+        msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
+                                         placeholder="Quero criar mais roteiros neste mês.",
+                                         key="elevo_pedido_msg_v16813")
+        if st.button("✈ Enviar pedido ao CEO", key="elevo_pedido_enviar_v16813", type="primary",
+                     use_container_width=True):
+            try:
+                elevo_pedir_creditos_v16813(int(qtd_pedido_v16813), msg_pedido_v16813)
+                st.success("Pedido enviado! Aguarde a análise do CEO.")
+            except Exception as exc:
+                st.warning(str(exc) if isinstance(exc, (ElevoCreditoErroV16813, ValueError)) else
+                           "O pedido não foi enviado. Verifique a conexão do banco.")
+
+if not E_O_CEO and _wal_painel == "recarga":
+    _elevo_brick_cartao_v16865 = st.components.v2.component(
+        name="elevo_mp_cartao_v16865",
+        html="<div class='evk-wrap'><div class='evk-box'></div><p class='evk-status'>Carregando formulário seguro do Mercado Pago…</p></div>",
+        css=".evk-wrap{min-height:120px}.evk-status{font-size:.85rem;margin:.6rem 0 0;text-align:center;color:#7C8FA9}",
+        js="""
+export default function (component) {
+  const {parentElement, data, setTriggerValue} = component;
+  const box = parentElement.querySelector('.evk-box');
+  const status = parentElement.querySelector('.evk-status');
+  const W = window;
+  // V16.8.66 — UM único SDK, UMA única instância do Mercado Pago e UM único formulário
+  // por vez. Instâncias repetidas faziam os campos seguros (número, validade, CVV)
+  // aparecerem preenchidos, mas o envio lia uma cópia vazia: "Dado obrigatório".
+  const G = W.__elevoMP16866 = W.__elevoMP16866 || {fila: Promise.resolve(), ctl: null, chave: '', mp: null, pk: ''};
+  const chave = String(data.chave || 'x').replace(/[^a-zA-Z0-9_]/g, '_');
+  box.id = 'evkBrick_' + chave;
+  let vivo = true;
+  const carregarSDK = () => new Promise((ok, falha) => {
+    if (W.MercadoPago) return ok();
+    let s = document.querySelector('script[data-elevo-mp]');
+    if (!s) { s = document.createElement('script'); s.src = 'https://sdk.mercadopago.com/js/v2';
+              s.setAttribute('data-elevo-mp', '1'); document.head.appendChild(s); }
+    s.addEventListener('load', () => ok()); s.addEventListener('error', () => falha());
+    const espera = setInterval(() => { if (W.MercadoPago) { clearInterval(espera); ok(); } }, 100);
+    setTimeout(() => clearInterval(espera), 20000);
+  });
+  G.fila = G.fila.then(async () => {
+    await carregarSDK();
+    if (!vivo || !document.body.contains(box)) return;
+    if (G.ctl) { try { await G.ctl.unmount(); } catch (e) {} G.ctl = null; }
+    if (!G.mp || G.pk !== data.publicKey) { G.mp = new W.MercadoPago(data.publicKey, {locale: 'pt-BR'}); G.pk = data.publicKey; }
+    box.innerHTML = '';
+    const inicio = {amount: data.valor};
+    if (data.email) inicio.payer = {email: data.email};
+    G.chave = chave;
+    G.ctl = await G.mp.bricks().create('cardPayment', box.id, {
+      initialization: inicio,
+      customization: {visual: {style: {theme: data.tema}, texts: {formSubmit: 'Pagar ' + data.valorTexto}},
+                      paymentMethods: {maxInstallments: 12}},
+      callbacks: {
+        onReady: () => { status.textContent = '🔒 Seus dados vão direto para o Mercado Pago, criptografados.'; },
+        onSubmit: (dados) => new Promise((resolver) => { setTriggerValue('pagar', dados); resolver(); }),
+        onError: () => { status.textContent = 'Confira os dados do cartão.'; }
+      }
+    });
+  }).catch(() => { status.textContent = 'Não foi possível carregar o Mercado Pago. Verifique a internet e tente de novo.'; });
+  return () => {
+    vivo = false;
+    // Só desmonta se este formulário ainda for o ativo (evita apagar o novo).
+    G.fila = G.fila.then(async () => {
+      if (G.chave === chave && G.ctl && !document.body.contains(box)) {
+        try { await G.ctl.unmount(); } catch (e) {} G.ctl = null; G.chave = '';
+      }
+    });
+  };
+}
+""",
+        isolate_styles=False)
+
+    @st.fragment(run_every=5)
+    def _elevo_pix_aguardar_v16865():
+        pix = st.session_state.get("elevo_pix_ativo_v16865")
+        if not pix:
+            return
+        if time.time() - float(pix.get("criado", 0)) > 1900:
+            st.warning("⌛ Este Pix expirou. Gere um novo QR Code.")
+            return
+        try:
+            situacao, creditados = elevo_pagamento_status_v16865(pix["id"])
+        except Exception:
+            situacao, creditados = "", []
+        if situacao == "approved":
+            if not creditados:
+                st.warning("Pagamento Pix aprovado, mas os créditos ainda não foram confirmados. "
+                           "Não faça outro pagamento. Verifique seu saldo ou contate o suporte.")
+                return
+            st.session_state["elevo_checkout_sucesso_v16863"] = creditados
+            st.session_state.pop("elevo_pix_ativo_v16865", None)
+            st.session_state["elevo_carteira_painel_v16865"] = None
+            elevo_invalidar_leituras_v16816()
+            st.rerun(scope="app")
+        elif situacao in ("cancelled", "rejected", "refunded"):
+            st.warning("Este Pix foi cancelado ou expirou. Gere um novo QR Code.")
         else:
-            st.markdown(f"<div class='elevo-conta-vip-v16813 elevo-vip-saldo-v16824'>"
-                        f"<div class='eyebrow'>◇ MEU SALDO</div>"
-                        f"<div class='balance'>{int(_elevo_saldo_v16813) if _elevo_saldo_v16813 is not None else '—'}<span style='font-size:12px'> CR</span></div>"
-                        "<div class='small'>Prompts: 10 CR • IA: 3 CR</div></div>", unsafe_allow_html=True)
+            st.caption("⏳ Aguardando o pagamento… a confirmação aparece aqui sozinha em poucos segundos.")
+
+    with st.container(key="elevo_checkout_v16865"):
+        if _wal_ret == "pendente":
+            st.info("⏳ Pagamento em processamento. Assim que for aprovado, os créditos entram sozinhos.")
+        elif _wal_ret == "falhou":
+            st.warning("O pagamento não foi concluído. Nenhum valor foi cobrado; tente de novo.")
+        st.markdown("<div class='wal-etapa'><i>1</i>Escolha o plano</div>", unsafe_allow_html=True)
+        st.session_state.setdefault("elevo_wal_plano_v16865", "Pro")
+        _wal_sel = st.session_state["elevo_wal_plano_v16865"]
+        _wal_planos = elevo_planos_ativos_v16873()
+        if _wal_sel not in _wal_planos:
+            _wal_sel = st.session_state["elevo_wal_plano_v16865"] = "Pro"
+        _wal_promo_s = elevo_promo_restante_v16873()
+        if _wal_promo_s > 0:
+            st.markdown(f"<div class='wal-resumo' style='border-color:#D8B66A'><span>⚡ <b style='font-size:.95rem'>Oferta relâmpago</b> "
+                        f"• 100 créditos por R$ 1,00</span><b>termina em {_wal_promo_s // 60:02d}:{_wal_promo_s % 60:02d}</b></div>",
+                        unsafe_allow_html=True)
+        _wal_cols = st.columns(len(_wal_planos))
+        for _wal_c, (_wal_nome, _wal_p) in zip(_wal_cols, _wal_planos.items()):
+            with _wal_c:
+                _wal_ativo = _wal_nome == _wal_sel
+                st.markdown(
+                    f"<div class='wal-plano{' sel' if _wal_ativo else ''}'><div class='selo'>{html_std.escape(_wal_p.get('selo', ''))}</div>"
+                    f"<div class='nome'>{html_std.escape(_wal_nome.upper())}</div>"
+                    f"<div class='cr'>{format(int(_wal_p['creditos']), ',').replace(',', '.')}<small> CR</small></div>"
+                    f"<div class='preco'><sup>R$</sup>{('%.2f' % float(_wal_p['preco'])).replace('.', ',')}</div>"
+                    f"<div class='desc'>{html_std.escape(_wal_p['desc'])}</div></div>", unsafe_allow_html=True)
+                if st.button("✓ Selecionado" if _wal_ativo else "Escolher", key=f"elevo_wal_sel_{_wal_nome}_v16865",
+                             type="primary" if _wal_ativo else "secondary", use_container_width=True):
+                    st.session_state["elevo_wal_plano_v16865"] = _wal_nome
+                    st.session_state.pop("elevo_pix_ativo_v16865", None)
+                    st.rerun()
+        _wal_pk = _wal_planos[_wal_sel]
+        _wal_valor_txt = "R$ " + ("%.2f" % float(_wal_pk["preco"])).replace(".", ",")
+        st.markdown(
+            f"<div class='wal-resumo'><span>Plano <b style='font-size:.95rem'>{html_std.escape(_wal_sel)}</b> • "
+            f"{format(int(_wal_pk['creditos']), ',').replace(',', '.')} créditos</span><b>{_wal_valor_txt}</b></div>",
+            unsafe_allow_html=True)
+
+        st.markdown("<div class='wal-etapa'><i>2</i>Forma de pagamento</div>", unsafe_allow_html=True)
+        if not elevo_mp_ativo_v16863():
+            st.info("🛠️ Pagamentos em configuração. Enquanto isso, use **✉ Pedir ao CEO**.")
+        else:
+            _wal_t_pix, _wal_t_cartao, _wal_t_outros = st.tabs(["⚡ Pix", "💳 Cartão", "🧾 Boleto e outros"])
+            with _wal_t_pix:
+                _wal_pix = st.session_state.get("elevo_pix_ativo_v16865")
+                if _wal_pix and _wal_pix.get("plano") == _wal_sel:
+                    _wal_img = (f"<img alt='QR Code Pix' src='data:image/png;base64,{_wal_pix['qr_base64']}'/>"
+                                if re.fullmatch(r"[A-Za-z0-9+/=]+", str(_wal_pix.get("qr_base64", ""))) else "")
+                    st.markdown(
+                        f"<div class='wal-pix'>{_wal_img}<div class='t'><b>Pague {_wal_valor_txt} com Pix</b>"
+                        "<span>1. Abra o app do seu banco e escolha <b>Pix → Ler QR Code</b>.<br>"
+                        "2. Ou copie o código abaixo em <b>Pix copia e cola</b>.<br>"
+                        f"3. Os créditos entram sozinhos aqui. Válido até <b>{html_std.escape(_wal_pix['expira'])}</b>.</span>"
+                        "</div></div>", unsafe_allow_html=True)
+                    st.caption("Pix copia e cola (toque no ícone para copiar):")
+                    st.code(_wal_pix["qr_code"], language=None, wrap_lines=True)
+                    _elevo_pix_aguardar_v16865()
+                    if st.button("Gerar outro Pix", key="elevo_pix_novo_v16865", use_container_width=True):
+                        st.session_state.pop("elevo_pix_ativo_v16865", None)
+                        st.rerun()
+                else:
+                    with st.form("elevo_pix_form_v16865", clear_on_submit=False):
+                        _wal_nome_pix = st.text_input("Nome completo", max_chars=80, placeholder="Como está no seu documento")
+                        _wal_cpf_pix = st.text_input("CPF", max_chars=14, placeholder="000.000.000-00")
+                        _wal_gerar = st.form_submit_button(f"⚡ Gerar Pix de {_wal_valor_txt}", type="primary",
+                                                           use_container_width=True)
+                    if _wal_gerar:
+                        try:
+                            with st.spinner("Gerando o seu Pix..."):
+                                _wal_novo = elevo_pix_criar_v16865(_wal_sel, _wal_nome_pix, _wal_cpf_pix)
+                            _wal_novo["criado"] = time.time()
+                            st.session_state["elevo_pix_ativo_v16865"] = _wal_novo
+                            st.rerun()
+                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                            st.warning(str(_wal_exc))
+                            if getattr(_wal_exc, "tecnico", ""):
+                                st.caption("Detalhe do Mercado Pago: " + _wal_exc.tecnico)
+                        except Exception:
+                            st.warning("Não foi possível gerar o Pix agora. Tente novamente.")
+                    st.caption("Aprovação na hora, 24h por dia. O CPF é exigido pelo Banco Central para Pix.")
+            with _wal_t_cartao:
+                _wal_public = ""
+                try:
+                    _wal_public = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+                except Exception:
+                    _wal_public = ""
+                _wal_res = st.session_state.pop("elevo_cartao_res_v16865", None)
+                if _wal_res and _wal_res.get("msg"):
+                    st.error("❌ " + _wal_res["msg"])
+                    if _wal_res.get("tecnico"):
+                        st.caption("Detalhe do Mercado Pago: " + _wal_res["tecnico"])
+                elif _wal_res:
+                    if _wal_res["status"] == "in_process" or _wal_res["status"] == "pending":
+                        st.info("⏳ Pagamento em análise pelo Mercado Pago. Os créditos entram assim que for aprovado "
+                                "(normalmente em poucos minutos).")
+                    elif _wal_res["status"] == "rejected":
+                        st.error("❌ " + ELEVO_CARTAO_RECUSA_V16865.get(
+                            _wal_res["detalhe"], "Pagamento recusado. Tente outro cartão ou o Pix."))
+                if not _wal_public:
+                    st.info("💳 Cartão em configuração. Use o **Pix** enquanto isso.")
+                else:
+                    st.session_state.setdefault("elevo_cartao_tentativa_v16865", 0)
+                    _wal_chave = f"{_wal_sel}_{st.session_state['elevo_cartao_tentativa_v16865']}"
+                    _wal_ret_brick = _elevo_brick_cartao_v16865(
+                        key=f"elevo_brick_{_wal_chave}_v16865",
+                        data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
+                              "email": ("" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813),
+                              "tema": "default" if modo_claro else "dark",
+                              "chave": _wal_chave})
+                    _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
+                    if _wal_form:
+                        try:
+                            with st.spinner("Processando o pagamento com segurança..."):
+                                _wal_r = elevo_cartao_pagar_v16865(_wal_sel, dict(_wal_form))
+                            if _wal_r["status"] == "approved" and _wal_r["creditados"]:
+                                st.session_state["elevo_checkout_sucesso_v16863"] = _wal_r["creditados"]
+                                st.session_state["elevo_carteira_painel_v16865"] = None
+                                elevo_invalidar_leituras_v16816()
+                            elif _wal_r["status"] == "approved":
+                                st.session_state["elevo_cartao_res_v16865"] = {
+                                    "status": "pending", "detalhe": "",
+                                    "msg": "O Mercado Pago aprovou, mas os créditos ainda não foram confirmados. "
+                                           "Não pague novamente; verifique o histórico ou contate o suporte."
+                                }
+                            else:
+                                st.session_state["elevo_cartao_res_v16865"] = _wal_r
+                        except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                            st.session_state["elevo_cartao_res_v16865"] = {"status": "rejected", "detalhe": "",
+                                                                           "msg": str(_wal_exc),
+                                                                           "tecnico": getattr(_wal_exc, "tecnico", "")}
+                            st.warning(str(_wal_exc))
+                        except Exception as _wal_exc2:
+                            logging.exception("ELEVO_CARTAO")
+                            st.session_state["elevo_cartao_res_v16865"] = {
+                                "status": "rejected", "detalhe": "",
+                                "msg": "Não foi possível confirmar esta tentativa. Confira o histórico de pagamentos antes de tentar novamente.",
+                                "tecnico": f"erro interno: {type(_wal_exc2).__name__}"}
+                        st.session_state["elevo_cartao_tentativa_v16865"] += 1
+                        st.rerun()
+                    st.caption("Até 12x. O número do cartão é digitado no formulário seguro do Mercado Pago "
+                               "e nunca passa pelo servidor da ÉLÉVO.")
+                    if elevo_mp_config_v16863()["teste"]:
+                        st.caption("🧪 Modo teste: use um cartão de teste, titular **APRO** (aprovado) "
+                                   "e um e-mail válido diferente do cadastrado como vendedor no Mercado Pago.")
+            with _wal_t_outros:
+                st.caption("Boleto, saldo Mercado Pago ou Linha de Crédito: abre a página do Mercado Pago.")
+                _wal_link = st.session_state.get("elevo_checkout_link_v16863", {})
+                if _wal_link.get("plano") == _wal_sel:
+                    st.link_button("Abrir pagamento no Mercado Pago ➜", _wal_link["link"], use_container_width=True)
+                elif st.button("Gerar link de pagamento", key="elevo_wal_link_v16865", use_container_width=True):
+                    try:
+                        with st.spinner("Abrindo pagamento seguro..."):
+                            _wal_l = elevo_checkout_criar_v16863(_wal_sel)
+                        st.session_state["elevo_checkout_link_v16863"] = {"plano": _wal_sel, "link": _wal_l["link"]}
+                        st.rerun()
+                    except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
+                        st.warning(str(_wal_exc))
+                    except Exception:
+                        st.warning("Não foi possível abrir o pagamento agora.")
+                if st.button("✓ Já paguei, verificar", key="elevo_checkout_verificar_v16863", use_container_width=True):
+                    try:
+                        with st.spinner("Conferindo com o Mercado Pago..."):
+                            _wal_ok = elevo_checkout_confirmar_v16863()
+                        if _wal_ok:
+                            st.session_state["elevo_checkout_sucesso_v16863"] = _wal_ok
+                            st.session_state["elevo_carteira_painel_v16865"] = None
+                            elevo_invalidar_leituras_v16816()
+                            st.rerun()
+                        else:
+                            st.info("Ainda não encontramos pagamento aprovado. Boleto pode levar até 3 dias úteis.")
+                    except Exception:
+                        st.warning("Não foi possível conferir agora. Tente de novo em instantes.")
+        st.markdown("<div class='wal-seg'><span>🔒 Mercado Pago</span><span>⚡ Pix na hora</span>"
+                    "<span>💳 Até 12x</span><span>♾️ Créditos não expiram</span></div>", unsafe_allow_html=True)
 
 if not E_O_CEO:
-    # Checkout Mercado Pago — pacotes pré-pagos, sem recarga automática.
-    with st.container(key="elevo_checkout_creditos_v1"):
-        with st.expander("💳 Comprar créditos", expanded=False):
-            st.caption("Pagamento seguro pelo Mercado Pago. Os créditos são adicionados após a confirmação do pagamento.")
-            _cols_planos_v1 = st.columns(2)
-            for _idx_v1, (_plano_id_v1, _plano_v1) in enumerate(ELEVO_PLANOS_PAGAMENTO_V1.items()):
-                with _cols_planos_v1[_idx_v1 % 2]:
-                    st.markdown(
-                        f"**{_plano_v1['nome']}**  \n"
-                        f"R$ {_plano_v1['preco']:.2f} • {_plano_v1['creditos']:,} créditos".replace(",", ".")
-                    )
-                    if st.button(f"Comprar {_plano_v1['nome']}", key=f"elevo_buy_{_plano_id_v1}", use_container_width=True):
-                        try:
-                            _url_checkout_v1 = elevo_gateway_checkout_v1(_plano_id_v1)
-                            st.link_button("Ir para pagamento", _url_checkout_v1, use_container_width=True)
-                        except Exception as _erro_checkout_v1:
-                            st.error(str(_erro_checkout_v1) if isinstance(_erro_checkout_v1, (ValueError, RuntimeError)) else
-                                     "Falha ao iniciar pagamento. Tente novamente.")
-    # V16.8.24: fluxo antigo de solicitação ao CEO preservado.
-    with st.container(key="elevo_painel_creditos_v16824"):
-        with st.expander("▤ Pedir créditos ao CEO", expanded=False):
-            st.caption("Seu pedido será exibido no painel do CEO. Não há recarga automática.")
-            qtd_pedido_v16813 = st.number_input("Quantos créditos deseja solicitar?", min_value=10, max_value=10000,
-                                                value=100, step=10, key="elevo_pedido_qtd_v16813")
-            msg_pedido_v16813 = st.text_area("Mensagem ao CEO (opcional)", max_chars=250,
-                                             placeholder="Quero criar mais roteiros neste mês.",
-                                             key="elevo_pedido_msg_v16813")
-            if st.button("✈ Enviar pedido ao CEO", key="elevo_pedido_enviar_v16813", type="primary",
-                         use_container_width=True):
-                try:
-                    elevo_pedir_creditos_v16813(int(qtd_pedido_v16813), msg_pedido_v16813)
-                    st.success("Pedido enviado! Aguarde a análise do CEO.")
-                except Exception as exc:
-                    st.warning(str(exc) if isinstance(exc, (ElevoCreditoErroV16813, ValueError)) else
-                               "O pedido não foi enviado. Verifique a conexão do banco.")
-        if st.button("↻ Atualizar saldo", key="elevo_saldo_refresh_v16813", use_container_width=True):
-            elevo_invalidar_leituras_v16816()
-            st.rerun()
     try:
         _pedidos_usuario_v16813 = [r for r in elevo_pedidos_v16813()
                                    if str(r.get("Email", "")).strip().lower() == _elevo_email_painel_v16813]
@@ -2730,42 +4734,11 @@ else:
     st.markdown("""
     <nav class="elevo-shortcut-grid" aria-label="Acesso rápido às ferramentas">
       <a href="#criacao">▣ Criação 360º<span>Imagem e vídeo: gerar e copiar prompts</span></a>
-      <a href="#aurora">✧ Aurora IA<span>Orientações e comandos por voz</span></a>
+      <a href="#elenco-elevo">◈ Elenco<span>Escolha sua influenciadora</span></a>
       <a href="#missoes">◷ Missões<span>Hábitos e progresso</span></a>
     </nav>""", unsafe_allow_html=True)
 
-with st.expander("🔐 Minha Conta e Google", expanded=False):
-    st.caption("Identidade atual: " + str(st.session_state.get("email_usuario", "")))
-    st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
-    if GOOGLE_ATIVO and not (st.user.is_logged_in):
-        st.info("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
-        if st.button("🌐 Vincular minha conta Google", key="btn_vincular_google_logado"):
-            st.login("google")
-    elif GOOGLE_ATIVO:
-        st.success("Conta Google autenticada. Vínculo protegido pelo identificador Google.")
-    else:
-        st.caption("O administrador ainda precisa configurar Google OAuth para liberar esta opção.")
-
-if st.button("Sair da Conta (Logout)", key="btn_logout"):
-    # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
-    # componente acontece no navegador, por isso o bloqueio de restauração.
-    sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
-    cookies.pop("login", None)
-    cookies.pop("elevo_bv_google_v16814", None)
-    cookies.pop("elevo_bv_login_v16814", None)
-    cookies.save()
-    # 2) Forçar explicitamente a tela de login, mesmo que o cookie antigo
-    # ainda esteja no browser por alguns instantes. Não contém e-mail/token.
-    st.query_params["elevo_acesso"] = "novo"
-    # 3) Limpar apenas o estado do aplicativo e preservar os componentes
-    # internos que precisam continuar montados para excluir o cookie.
-    limpar_sessao_ao_sair()
-    if sair_do_google:
-        # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
-        st.logout()
-        st.stop()
-    # Não usar sleep(): isso não espera uma confirmação do navegador.
-    st.rerun()
+# V16.8.53 — conta, vínculo Google e logout movidos para o menu "Minha conta" do topo.
 
 # V16.8.23 — Criação em primeiro lugar para contas comuns.
 if not E_O_CEO:
@@ -3775,14 +5748,33 @@ def elevo_catalogo_extra_v16826(acao="listar", perfil=None, item_id="", publico=
 
 
 # ==========================================================
+# V16.8.55 — CABEÇALHO DE ETAPA (somente apresentação).
+# ==========================================================
+def elevo_secao_hero_v16855(numero, kicker, titulo, texto, chips=()):
+    chips_html = "".join(f"<span>{html_std.escape(str(c))}</span>" for c in chips)
+    st.markdown(
+        '<section class="elevo-hero-sec">'
+        f'<div class="elevo-hero-num"><small>ETAPA</small>{html_std.escape(str(numero))}</div>'
+        '<div class="elevo-hero-txt">'
+        f'<span class="elevo-hero-kicker">{html_std.escape(kicker)}</span>'
+        f'<div class="elevo-hero-titulo">{html_std.escape(titulo)}</div>'
+        f'<p>{html_std.escape(texto)}</p>'
+        f'<div class="elevo-hero-chips">{chips_html}</div>'
+        '</div></section>', unsafe_allow_html=True)
+
+
+# ==========================================================
 # ÉLÉVO V16.4 — ELENCO DIGITAL (substitui SOMENTE Laboratório + 9s)
 # Retratos originais embarcados no app.py; não necessita upload de imagens.
 # ==========================================================
 with _elevo_area_criacao_v16823:
     st.divider()
     st.markdown('<div id="elenco-elevo"></div>', unsafe_allow_html=True)
-    st.markdown("### ✨ Elenco de Influenciadoras Virtuais")
-    st.caption("Oito influenciadoras oficiais e a identidade do CEO, mais os perfis adicionados pelo administrador. Suas próprias criações ficam visíveis só no seu login; a ficha segue com a foto para os Blocos 17 e 17.2.")
+    elevo_secao_hero_v16855(
+        "01", "ELENCO DE INFLUENCIADORAS VIRTUAIS", "Escolha quem vai apresentar o seu produto",
+        "Oito influenciadoras oficiais e a identidade do CEO, mais os perfis adicionados pelo administrador. "
+        "Suas próprias criações ficam visíveis só no seu login; a ficha segue com a foto para os Blocos 17 e 17.2.",
+        ("✦ Perfis oficiais", "🔒 Privado por login", "→ Imagem, vídeo e fala"))
 
     INFLUENCIADORAS_ELEVO_V164 = {
         'ana': {
@@ -4300,14 +6292,21 @@ with _elevo_area_criacao_v16823:
                     if foto_card and re.fullmatch(r"[A-Za-z0-9+/=]+", foto_card)
                     else '<div class="elevo-elenco-foto" style="display:grid;place-items:center;background:#dceaff;color:#183b71">📷 Foto não disponível</div>'
                 )
+                # V16.8.55 — card retrato: nome sobre a foto, nicho e resumo abaixo.
                 st.markdown(
-                    f'<div class="elevo-elenco-card{classe_ativo}">'
+                    f'<div class="elevo-elenco-card elevo-card-v16855{classe_ativo}">'
+                    '<div class="elevo-elenco-midia">'
                     f'{imagem_html}'
+                    '<div class="elevo-elenco-sombra"></div>'
+                    f'{selo_ativo}'
+                    '<div class="elevo-elenco-legenda">'
                     f'<div class="elevo-elenco-nome">{html_std.escape(str(card["nome"]))}</div>'
                     f'<div class="elevo-elenco-idade">{html_std.escape(idade_txt)}</div>'
+                    '</div></div>'
+                    '<div class="elevo-elenco-corpo">'
                     f'<div class="elevo-elenco-nicho">{html_std.escape(str(card["nicho"]))}</div>'
                     f'<div class="elevo-elenco-desc">{html_std.escape(str(card["resumo"]))}</div>'
-                    f'{selo_ativo}</div>', unsafe_allow_html=True
+                    '</div></div>', unsafe_allow_html=True
                 )
                 if st.button("✓ Escolhida" if ativo else "Selecionar", key=f"elenco_preset_{card['id']}",
                              type="primary" if ativo else "secondary", use_container_width=True, disabled=ativo):
@@ -4544,13 +6543,102 @@ with _elevo_area_criacao_v16823:
                 st.info("Envie a foto acima para criar sua personagem. Nome e observações são opcionais.")
 
     # ==========================================================
+    # V16.8.60 — VISUAL DA INFLUÊNCIA NESTA CRIAÇÃO (roupa / estilo)
+    # Só muda o LOOK (roupa, acessórios, unhas, penteado preso/solto).
+    # Rosto, pele, idade e identidade continuam vindo da ficha da influência.
+    # Vale para os 4 motores. Não é salvo no banco (vale na sessão).
+    # ==========================================================
+    ELEVO_LOOKS_ALEATORIOS_V16860 = [
+        "a plain white cotton T-shirt with a slightly relaxed fit and light everyday creases",
+        "a soft heather-grey ribbed tank top with a thin open linen overshirt",
+        "a black fitted crew-neck T-shirt and small gold hoop earrings",
+        "a sage-green oversized cotton shirt with sleeves casually rolled to the forearm",
+        "a beige knit cardigan over a simple white top, natural fabric pilling",
+        "a navy-blue polo-neck knit top with a thin delicate gold chain",
+        "a light denim shirt open over a white tank top, sleeves rolled",
+        "a terracotta linen button-up blouse with natural linen wrinkles",
+        "a soft lilac cotton hoodie with the hood down, lived-in fabric texture",
+        "an off-white cropped cardigan buttoned up, with a small silver ring",
+        "a striped navy-and-white Breton cotton top",
+        "a mustard-yellow ribbed knit top with simple stud earrings",
+        "a black spaghetti-strap top under a light beige blazer",
+        "a coral cotton T-shirt with a small tied knot at the waist",
+    ]
+    _ELEVO_LOOK_FILTRO_V16860 = re.compile(
+        r"(?i)\b(?:product|packaging|container|branded|brand logo|reference outfit|bottle|pote|frasco|"
+        r"embalagem|produto|garrafa|cosmetic jar|cosmetic tub)\b")
+
+    def elevo_look_influencia_v16860():
+        """Texto em inglês do look desta criação, ou '' quando vale a roupa da foto."""
+        modo = str(st.session_state.get("elevo_inf_look_modo_v16860", "foto"))
+        if modo == "aleatorio":
+            escolha = random.choice(ELEVO_LOOKS_ALEATORIOS_V16860)
+            return ("WARDROBE FOR THIS CREATION (overrides only the outfit seen in the person reference photo; "
+                    "face, skin, hair colour, age and identity stay exactly the same): " + escolha + ".")
+        if modo == "descrever":
+            pedido = re.sub(r"[\[\]{}<>]", " ", str(st.session_state.get("elevo_inf_look_txt_v16860", "")))
+            pedido = _ELEVO_LOOK_FILTRO_V16860.sub(" ", pedido)
+            pedido = re.sub(r"\s+", " ", pedido).strip()[:420]
+            if pedido:
+                return ("WARDROBE AND STYLING REQUESTED BY THE USER FOR THIS CREATION (written in Portuguese; "
+                        "apply it literally to clothing, accessories, nails and hairstyle only, while face, skin, "
+                        "age and identity stay exactly the same as the person reference): “" + pedido + "”.")
+        return ""
+
+    st.markdown("""<style>
+    .st-key-elevo_look_painel_v16860 {border-radius:20px!important;padding:1rem 1.1rem!important;
+      border:1px solid rgba(216,182,106,.32)!important;position:relative;overflow:hidden;
+      background:radial-gradient(ellipse 55% 90% at 100% 0%,rgba(216,182,106,.12),transparent 70%),
+                 linear-gradient(150deg,rgba(18,30,50,.92),rgba(8,13,24,.94))!important;}
+    .st-key-elevo_look_painel_v16860 h4 {margin:0 0 .15rem!important;}
+    .st-key-elevo_look_painel_v16860 h4, .st-key-elevo_look_painel_v16860 label p,
+    .st-key-elevo_look_painel_v16860 [data-testid="stMarkdownContainer"] p {color:#EAF2FF!important;}
+    .st-key-elevo_look_painel_v16860 [data-testid="stCaptionContainer"] p {color:#9FB3CC!important;}
+    .elevo-look-ativo-v16860 {margin-top:.4rem;padding:.55rem .8rem;border-radius:12px;font-size:.8rem;
+      color:#F1DFAF;background:rgba(216,182,106,.10);border:1px solid rgba(216,182,106,.30);}
+    </style>""", unsafe_allow_html=True)
+    if modo_claro:
+        st.markdown("""<style>
+        .st-key-elevo_look_painel_v16860 {background:linear-gradient(150deg,#FFFFFF,#FBF6EA)!important;
+          border-color:#E7D5A8!important;box-shadow:0 6px 18px rgba(120,90,20,.07)!important;}
+        .st-key-elevo_look_painel_v16860 h4, .st-key-elevo_look_painel_v16860 label p,
+        .st-key-elevo_look_painel_v16860 [data-testid="stMarkdownContainer"] p {color:#1F2F45!important;}
+        .st-key-elevo_look_painel_v16860 [data-testid="stCaptionContainer"] p {color:#5A6B82!important;}
+        .elevo-look-ativo-v16860 {color:#6B4E12;background:#FFF7E3;border-color:#EAD39A;}
+        </style>""", unsafe_allow_html=True)
+    st.session_state.setdefault("elevo_inf_look_modo_v16860", "foto")
+    with st.container(key="elevo_look_painel_v16860"):
+        st.markdown("#### 👗 Visual da influência nesta criação")
+        st.caption("Rosto, pele e identidade continuam os da influência escolhida. Aqui você muda só o look: "
+                   "roupa, acessórios, unhas e penteado. Vale para os 4 motores (no Mãos Viral: unhas, anéis e mangas).")
+        st.radio("Roupa e estilo", options=["foto", "aleatorio", "descrever"],
+                 format_func={"foto": "📷 Igual à foto da influência",
+                              "aleatorio": "🎲 Roupa aleatória a cada criação",
+                              "descrever": "✍️ Quero descrever"}.get,
+                 horizontal=True, key="elevo_inf_look_modo_v16860")
+        if st.session_state["elevo_inf_look_modo_v16860"] == "descrever":
+            st.text_area("Como você quer a sua influência nesta criação?", key="elevo_inf_look_txt_v16860",
+                         max_chars=420, height=100,
+                         placeholder="Ex.: blusa de linho branca, cabelo preso em coque, unhas nude curtas, "
+                                     "brinco de argola dourada pequeno, relógio fino de couro...")
+            if str(st.session_state.get("elevo_inf_look_txt_v16860", "")).strip():
+                st.markdown('<div class="elevo-look-ativo-v16860">✓ Seu look será aplicado na imagem e no vídeo da próxima criação.</div>',
+                            unsafe_allow_html=True)
+        elif st.session_state["elevo_inf_look_modo_v16860"] == "aleatorio":
+            st.markdown('<div class="elevo-look-ativo-v16860">🎲 A cada criação, a ÉLÉVO sorteia um look casual brasileiro diferente, '
+                        'igual na imagem e no vídeo.</div>', unsafe_allow_html=True)
+
+    # ==========================================================
     # 15. MATRIZ DE AMBIENTES ÉLÉVO — 21 CENÁRIOS + MODO INFINITO
     # Substitui APENAS a conversa de voz. Boas-vindas por áudio seguem intactas.
     # ==========================================================
     st.markdown('<div id="ambientes"></div>', unsafe_allow_html=True)
     st.divider()
-    st.markdown('### 🌍 Estúdio de Ambientes · ÉLÉVO | 22 matrizes')
-    st.caption('São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes). A mesma cena permanece na imagem e no vídeo, nos Blocos 17 e 17.2.')
+    elevo_secao_hero_v16855(
+        "02", "ESTÚDIO DE AMBIENTES · 22 MATRIZES", "Defina o cenário da cena",
+        "São 20 ambientes originais, o novo Brasil Tropical e o modo 21 — Infinito (22 matrizes), agora com vento, "
+        "física e vida real. A mesma cena permanece na imagem e no vídeo, nos 4 motores.",
+        ("🌍 22 matrizes", "♾️ Modo Infinito", "🎬 Mesma cena na imagem e no vídeo"))
 
     AMBIENTES_ELEVO_V165 = {'banheiro': {'nome': 'Banheiro Caótico', 'icone': '🚿', 'categoria': 'Interior', 'resumo': 'Espelho embaçado, toalha úmida e luz real de janela.', 'elementos': 'a lived-in Brazilian bathroom with a partly fogged mirror, a towel hanging off-center, a closed hair dryer on a DRY shelf away from water, subtle soap marks and a small porcelain sink', 'luz': 'soft daylight entering from a real side window, reflected with realistic falloff on wet and dry tiles', 'fisica': 'steam only where warm running water is explicitly present, condensation sliding slowly on the mirror, one damp towel corner moving only if a draft exists', 'som': 'distant ventilation hum and occasional water drip only if the tap is visible', 'animal': 'no animal'}, 'varanda': {'nome': 'Varanda Tropical', 'icone': '🌿', 'categoria': 'Natureza', 'resumo': 'Varanda tropical com vento, chuva eventual e folhas de bananeira em movimento.', 'elementos': 'a lived-in Brazilian covered tropical veranda with worn wood railings, a small ceramic mug and casually coiled phone cable on a rustic side table, hanging ferns and broad banana leaves outside under a roof edge; a cotton towel sits over the railing', 'luz': 'authentic overcast daylight with slightly warm reflected light from indoors; only rain if actively visible in this preset', 'fisica': 'outdoor banana leaves flutter with plausible inertia, hanging fern tips react asymmetrically to the same breeze; if rain is visible beyond the roof edge, droplets follow real gravity and the towel darkens only where wetted', 'som': 'light wind through leaves and rain on the roof only if raining', 'animal': 'a small bird sheltered in rafters only if introduced in the first still image'}, 'penteadeira': {'nome': 'Penteadeira Golden Hour', 'icone': '🪞', 'categoria': 'Interior', 'resumo': 'Maquiagem usada, espelho real e luz dourada de fim de tarde.', 'elementos': 'an everyday Brazilian vanity table with a softly smudged mirror, a few makeup brushes out of alignment, open compact powder, a hair clip and a slightly wrinkled cotton cloth', 'luz': 'low-angle golden hour sunlight crossing the tabletop with physically accurate mirror reflections', 'fisica': 'single floating dust motes near the window, faint cloth motion only under a real fan or draft, makeup tools staying in place', 'som': 'soft indoor room tone and distant street ambience', 'animal': 'no animal'}, 'servico': {'nome': 'Área de Serviço Raiz', 'icone': '🧺', 'categoria': 'Casa', 'resumo': 'Varal com roupas, tanque de cimento e piso com marcas de uso.', 'elementos': 'a humble Brazilian laundry area with a concrete utility sink, an upright blue bucket, a clothesline with two damp garments, a folded detergent box and authentic worn tile grout', 'luz': 'diffuse late-morning sun from an open patio side, consistent shadows under hanging laundry', 'fisica': 'wet sleeves dripping sparsely into the sink and fabric moving slowly only from an existing breeze; water keeps plausible gravity', 'som': 'distant domestic ambience, occasional isolated drip and cloth rustle', 'animal': 'no animal'}, 'jardim': {'nome': 'Jardim Rústico', 'icone': '🪴', 'categoria': 'Natureza', 'resumo': 'Costela-de-adão, mangueira no chão e folhas com marcas naturais.', 'elementos': 'a small rustic Brazilian garden with lush Monstera, irregular stepping stones, a coiled garden hose, leaf litter and terracotta pots showing realistic soil and water marks', 'luz': 'overcast daylight with naturally mottled shadow from real nearby leaves', 'fisica': 'independent foliage sway, a hose tip releasing water only if its tap is open, a few droplets soaking real soil', 'som': 'subtle garden insects, distant birds and leaf movement', 'animal': 'no animal unless explicitly included in image'}, 'cachoeira': {'nome': 'Cachoeira Secreta', 'icone': '💧', 'categoria': 'Natureza', 'resumo': 'Pedras molhadas, musgo, névoa e correnteza real.', 'elementos': 'a reachable natural cascade with moss-covered wet stones, a safe flat standing platform above the spray, textured bark, sparse fallen leaves and one folded linen towel on dry ground', 'luz': 'natural canopy-filtered daylight reflecting realistically off flowing water and wet rock', 'fisica': 'unbroken water stream with turbulence and splash, soft spray drifting with direction of air, towel staying dry outside the splash zone', 'som': 'continuous nearby running water with varying intensity', 'animal': 'no animal'}, 'cozinha': {'nome': 'Cozinha Afetiva', 'icone': '☕', 'categoria': 'Casa', 'resumo': 'Café passando, pano de prato e bancada que parece usada.', 'elementos': 'a real Brazilian home kitchen with a wooden counter, fresh coffee dripping into a pot, a slightly wrinkled checkered tablecloth, a spoon, an open recipe notebook and a half-used sponge', 'luz': 'soft morning daylight from the kitchen window, warm reflected light on ceramic mugs and metal handles', 'fisica': 'visible coffee drips only while the coffee maker operates, faint vapor near the hot pot, cloth responding to touch rather than floating', 'som': 'coffee drip, kettle clicks if present and gentle household ambience', 'animal': 'no animal'}, 'quarto': {'nome': 'Quarto Desarrumado', 'icone': '🛏️', 'categoria': 'Interior', 'resumo': 'Edredom amassado, roupa na cadeira e luz suave.', 'elementos': 'an authentic lived-in bedroom with imperfectly made bed, a sweater on a chair, one open drawer, a phone charging cable and partly open cotton curtains', 'luz': 'soft window daylight mixed with a low-intensity practical lamp, consistent warm and cool lighting', 'fisica': 'curtain edge moving with a real breeze, quilt compressing where touched, loose strands of hair moving with natural body motion', 'som': 'quiet bedroom ambience and distant outdoor noise', 'animal': 'a sleeping cat only if already present in image'}, 'quintal': {'nome': 'Quintal de Terra', 'icone': '🐕', 'categoria': 'Natureza', 'resumo': 'Terra batida, poeira leve e cachorro descansando ao fundo.', 'elementos': 'a sunlit Brazilian backyard with dry packed earth, a worn garden bench, slightly displaced flip-flops, a water bowl and a shaded corner under a fruit tree', 'luz': 'strong but realistic midday sun casting grounded coherent tree shadows', 'fisica': 'tiny dust particles lifting only from real footfalls, branches moving with breeze, water bowl remaining stable', 'som': 'distant neighborhood ambience and light dry leaves rustling', 'animal': 'one calm caramel-colored dog lying far in the background only if shown in image'}, 'piscina': {'nome': 'Deck de Piscina', 'icone': '🏖️', 'categoria': 'Lazer', 'resumo': 'Água refletindo luz, toalha no banco e respingos discretos.', 'elementos': 'an ordinary swimming pool deck with weathered planks, a striped towel on a solid chair, sunglasses resting on a bench and a clear glass safely away from the pool edge', 'luz': 'bright daytime sun and moving water-caustic reflections linked to actual pool surface', 'fisica': 'real non-repeating water ripples from a gentle breeze, towel fringe moving slightly, no floating props', 'som': 'soft pool water movement and ambient birds', 'animal': 'no animal'}, 'estufa': {'nome': 'Estufa Caseira', 'icone': '🌱', 'categoria': 'Natureza', 'resumo': 'Vasos com terra, samambaias e umidade nas superfícies.', 'elementos': 'a practical backyard greenhouse with hanging ferns, potted herbs, garden labels on stakes, a handheld sprayer and damp soil in terracotta containers', 'luz': 'diffused daylight through translucent roof panels with correct soft shadows', 'fisica': 'fine droplets on cold glass only where humidity makes sense, subtle leaves moving only where air enters and a single sprayer drip', 'som': 'greenhouse room tone, faint ventilation and occasional water droplet', 'animal': 'no animal'}, 'garagem': {'nome': 'Garagem Aberta', 'icone': '🧰', 'categoria': 'Urbano', 'resumo': 'Caixas, ferramentas, marcas de uso e luz dura do dia.', 'elementos': 'a genuinely used Brazilian residential garage with half-open rolling shutter, cardboard boxes stacked safely to one side, small scattered but grounded hand tools on an old workbench, a bicycle leaning on a wall and fine concrete-floor dust', 'luz': 'hard midday sun entering through the open door and casting sharp physically consistent shadows into softer interior light', 'fisica': 'a small draft shifts a piece of loose paper only, sun-lit dust motes visible in the light beam, bicycle and tools remain stationary and grounded, shutter vibrates slightly only if wind acts on it', 'som': 'distant street noise and light garage reverberation', 'animal': 'no animal'}, 'sala': {'nome': 'Sala de Estar Noturna', 'icone': '📺', 'categoria': 'Interior', 'resumo': 'TV acesa, manta no sofá e reflexos azuis discretos.', 'elementos': 'a lived-in Brazilian living room at night, an operating television, a folded throw loosely on the couch arm, a low coffee table with a remote and a small practical side lamp', 'luz': 'the television casts soft changing cool light aligned with the on-screen content and fixed warm lamp fill', 'fisica': 'the throw settles naturally after touch, illumination fluctuates only with the television, objects remain physically supported', 'som': 'quiet room tone and low TV hum without copyrighted content', 'animal': 'no animal'}, 'banheira': {'nome': 'Banheira Vintage', 'icone': '🛁', 'categoria': 'Interior', 'resumo': 'Azulejos antigos, espuma discreta e torneira pingando.', 'elementos': 'a vintage tiled bathroom with an old porcelain tub, weathered brass faucet, folded cotton towel, worn grout and a little foam where bath water actually touches the tub', 'luz': 'warm practical light reflecting realistically in porcelain and brass', 'fisica': 'a single faucet droplet gathering and falling at irregular intervals, mild water surface ripples only where water exists', 'som': 'isolated faucet drip and softly reverberant bathroom room tone', 'animal': 'no animal'}, 'praia': {'nome': 'Praia Deserta (Final de Tarde)', 'icone': '🌊', 'categoria': 'Lazer', 'resumo': 'Areia com marcas reais, vento marítimo e ondas ao fundo.', 'elementos': 'a nearly deserted Brazilian beach in late afternoon, a woven tote and flip-flops supported on dry upper sand away from surf, sparse coastal plants on dunes, visible foamy ocean waves and a single faded cotton beach towel weighted down at its corners', 'luz': 'late-afternoon directional golden sunlight with a real sea-horizon haze and soft shadows matching sun angle', 'fisica': 'wind ruffles the towel edge realistically but not the weighted corners; distant foam advances and recedes following wave cycles; loose beach hair and dune grasses move with the same breeze; sand grains shift only in a plausible gust', 'som': 'natural waves and sea breeze, no soundtrack', 'animal': 'a distant gull only if already visible in the image'}, 'escritorio': {'nome': 'Mesa de Escritório', 'icone': '💻', 'categoria': 'Trabalho', 'resumo': 'Home office real com LED discreto, papéis, caneca e planta.', 'elementos': 'a Brazilian home-office desk with scuffed wood grain, a slightly crumpled stack of papers, an open notebook, black computer mouse, small Monstera pot, a cup with old coffee ring, a practical desk lamp and a soft cyan LED reflected on the wall', 'luz': 'natural window daylight blended with a restrained warm desk lamp and low cyan LED without impossible color changes', 'fisica': 'a page corner shifts only if a real draft enters, a plant leaf moves subtly in the airflow, glass condensation falls only if a cold drink is present, lamp and cable remain physically fixed', 'som': 'quiet room tone, low computer fan and soft street noise', 'animal': 'no animal'}, 'carro_chuva': {'nome': 'Janela do Carro (Chuva)', 'icone': '🚗', 'categoria': 'Urbano', 'resumo': 'Gotas no vidro, carros passando e luzes da cidade.', 'elementos': 'a securely parked Brazilian car interior on a rainy evening, side window covered with distinct rolling water droplets, realistic street lamps and distant neon reflections on wet glass, a folded cotton jacket on passenger seat and a simple dashboard', 'luz': 'muted evening light with real reflections from street lamps and signage outside, no invented cinematic strobe', 'fisica': 'water droplets merge and move down the glass by gravity, background cars create coherent perspective motion, reflections slide with camera angle and window curvature, interior objects stay still', 'som': 'soft rain tapping car roof, passing traffic at distance and interior room tone', 'animal': 'no animal'}, 'leitura': {'nome': 'Canto da Leitura', 'icone': '📚', 'categoria': 'Interior', 'resumo': 'Poltrona de tecido, páginas abertas e feixe de luz.', 'elementos': 'an intimate reading corner with a textured armchair, a paperback open on the side table, a knitted throw, a ceramic tea cup and books with imperfectly aligned spines', 'luz': 'angled window light catching faint atmospheric dust, soft falloff into the room', 'fisica': 'pages shift only with touch or a real breeze, throw compresses under a hand, cup stays still on the table', 'som': 'soft room ambience and distant passing wind', 'animal': 'no animal'}, 'lavabo': {'nome': 'Lavabo Luxo Decadente', 'icone': '🧼', 'categoria': 'Interior', 'resumo': 'Mármore usado, manchas discretas de água e luz dourada.', 'elementos': 'an elegant but lived-in Brazilian lavabo with slightly worn marble countertop, tiny dried water stains near brushed brass tap, subtly imperfect mirror, rolled cotton hand towel, used soap dish and warm pendant lighting', 'luz': 'warm intimate pendant light with coherent light falloff across marble and mirror', 'fisica': 'micro-reflections follow camera motion, towel fibers settle after actual contact, real water droplets only when water source is active, reflections stay spatially consistent', 'som': 'low indoor room tone and faucet water only if running', 'animal': 'no animal'}, 'calcada': {'nome': 'Calçada Chuvosa', 'icone': '🏙️', 'categoria': 'Urbano', 'resumo': 'Piso molhado, poste aceso e reflexos de rua à noite.', 'elementos': 'a Brazilian urban sidewalk at dusk after rain, patterned concrete pavers with wet seams, a metal bench with weathered paint, reflective shallow puddles near curb, a lit street lamp and rain-darkened storefront shutters in the distance', 'luz': 'believable cool dusk and warm street lamp reflections that follow actual puddle geometry', 'fisica': 'individual raindrops only if rain is still falling; water ripples radiate from actual drops, one breeze lifts loose hair and clothing gently, distant pedestrian parallax remains consistent', 'som': 'distant wet-traffic hiss, realistic footsteps and rain if ongoing', 'animal': 'no animal'}, 'infinito': {'nome': 'Ambiente 21 — Infinito', 'icone': '♾️', 'categoria': 'Aleatório', 'resumo': 'Escolhe entre 21 matrizes, com variações sutis e sem repetir a cena recente.', 'elementos': 'sorteio de ambiente real com objetos, iluminação e clima contextualizados', 'luz': 'a definida pela matriz sorteada', 'fisica': 'a definida pela matriz sorteada', 'som': 'o da matriz sorteada', 'animal': 'somente se a cena sorteada permitir'}, 'brasil_tropical': {'nome': 'Ambiente 22 — Brasil Tropical', 'icone': '🌴', 'categoria': 'Natureza', 'resumo': 'Refúgio brasileiro entre mata verde e brisa do litoral. Madeira rústica, plantas vivas e passarinho ao fundo.', 'elementos': 'a real open-air wooden deck of a modest Brazilian coastal eco-retreat, surrounded by lush native Atlantic Forest vegetation; a weathered timber railing, a stable wooden side table, a narrow stone-and-wood path leading into shaded greenery, broad banana leaves and slender palm fronds framing a distant glimpse of the sea; a lightweight linen hammock tied securely between two real wooden supports; absolutely no fantasy resort architecture, waterfalls or beach props unless they are visible from this exact set; one single coherent location from first still image through final video frame', 'luz': 'natural warm late-afternoon Brazilian daylight filtered through real palm and banana leaves; irregular soft dappled shadows match visible canopy and the real sun angle; no glam studio flash, no unnaturally saturated neon green', 'fisica': 'coastal breeze moves palm fronds, banana leaves, the edges of the hammock and loose hair with different realistic masses, velocities and lag; hammock sways only a little when wind actually acts on it and cannot float; loose leaves stay grounded or move only with gusts, soft skin and fabric have realistic inertia, sandals press firmly against the wooden deck, all shadows remain stable and physically coherent; the distant bird performs only a subtle blink, head turn or small wing adjustment without duplicating or teleporting', 'som': 'believable light ocean breeze rustling actual palm leaves, a distant native bird call, faint real outdoor background ambience; no artificial looping soundtrack', 'animal': 'one small Brazilian songbird, perched naturally on a distant stable leafy branch, visible discreetly in the first still image and remaining the same bird throughout the video; never add a second animal'}}
 
@@ -4591,6 +6679,117 @@ with _elevo_area_criacao_v16823:
         _cena['fisica'] += ('; physically grounded micro-reactions: existing leaves respond only to a plausible draft, '
                        'existing fabrics preserve weight and folds, the single background animal breathes or blinks subtly; '
                        'background stays secondary to the product and person')
+
+    # ==========================================================
+    # V16.8.60 — MUNDO REAL VIVO NOS 22 AMBIENTES
+    # Cada cena ganha: (1) vida VISÍVEL já na imagem (pessoas ao longe, carros,
+    # vizinhança, natureza, bichos silvestres distantes) e (2) MOVIMENTO físico
+    # (vento com direção, gravidade, inércia, água, luz que muda). Tudo é anexado
+    # aos campos 'elementos' e 'fisica', então entra AUTOMATICAMENTE no 360º,
+    # V9.2, Produto 3S e Mãos Viral, na imagem e no vídeo, sem trocar de cenário.
+    # Regras: vida sempre ao fundo, nunca toca o produto nem cobre a pessoa;
+    # nada aparece no vídeo que já não esteja na imagem; um único pet por cena.
+    # ==========================================================
+    VIDA_MUNDO_REAL_V16860 = {
+        'banheiro': (
+            'through the small frosted window, the soft silhouette of a neighbour\'s clothesline swaying; a half-squeezed toothpaste tube and a damp hair tie beside the sink; a few water beads on the shower glass',
+            'a steady light draft from the window ajar makes the shower curtain hem breathe slowly; water beads on the glass merge and slide down by gravity at irregular moments; daylight dims and brightens subtly as clouds pass; distant street sounds bleed through the window',
+            'Janela entreaberta com varal do vizinho balançando, gotas escorrendo no box, cortina respirando com a corrente de ar e luz mudando com as nuvens.'),
+        'varanda': (
+            'beyond the railing, a quiet residential street with a parked car, a neighbour watering plants on a distant balcony and a power line with a small flock of sparrows; a dry leaf on the floor tiles',
+            'gusts arrive in uneven waves: banana leaves flex and lag before recovering, fern tips flutter faster than the big leaves, the cloth on the railing lifts at the free edge only; sparrows on the wire hop and re-settle; a distant car passes with correct parallax; sun flecks drift across the floor as leaves move',
+            'Rua tranquila ao fundo com carro passando, vizinha regando plantas, pardais no fio e folhas de bananeira balançando em rajadas irregulares.'),
+        'penteadeira': (
+            'a window behind the mirror shows treetops and a slice of sky with a slow airplane contrail; a hair strand caught on the brush; a sheer curtain beside the window',
+            'the sheer curtain swells gently with a soft breeze and settles back with fabric weight; dust motes drift through the golden beam and change direction with the air; treetops sway softly outside; the light warms and lowers by a fraction over the shot',
+            'Cortina fina respirando com a brisa, poeira dourada flutuando no feixe de luz e copas de árvores balançando lá fora.'),
+        'servico': (
+            'over the low wall, the neighbouring back yard with another clothesline, a bicycle leaning on a wall and a rooftop with pigeons; a few clothespins scattered on the tank edge',
+            'damp garments on the line swing at different rates according to their weight, heavier jeans barely moving while a light T-shirt lifts; a pigeon on the distant rooftop walks and turns; sparse drips fall into the tank creating small irregular ripples; patches of sun shift on the wall as laundry moves',
+            'Varal com roupas balançando cada uma no seu peso, pombos no telhado vizinho, gotas caindo no tanque e sol mudando na parede.'),
+        'jardim': (
+            'butterflies and small bees around a flowering bush, a garden gate leading to the street with a passer-by walking a bicycle far away, fallen leaves on the stepping stones',
+            'a light breeze moves foliage asymmetrically, large Monstera leaves rocking slowly while small herb leaves tremble; one butterfly flutters with erratic natural flight between flowers and never touches the product; a bee hovers and leaves; leaf shadows dance on the stones; the distant cyclist crosses with correct perspective',
+            'Borboletas e abelhas nas flores, ciclista passando ao longe pelo portão, folhas grandes e pequenas balançando em ritmos diferentes.'),
+        'cachoeira': (
+            'dragonflies over a calm side pool, moss-covered trunks, a hiking trail in the distance with two small walkers, and leaves floating downstream',
+            'the falling water is continuous and non-repeating, foam swirls in the plunge pool, mist drifts with the air current and catches the light; floating leaves travel downstream and rotate at eddies; a dragonfly darts and hovers; ferns near the spray nod from the droplets; distant walkers move slowly along the trail',
+            'Libélulas sobre o poço, folhas descendo a correnteza, névoa dançando com o ar e trilheiros ao longe.'),
+        'cozinha': (
+            'the kitchen window shows a sunny back street with a neighbour\'s window, a delivery motorbike parked and a hanging plant; crumbs on the board and a half-cut lime',
+            'coffee steam rises in curling, irregular wisps bending with the air from the window; the dish towel edge sways gently; a motorbike passes in the street outside with matching sound; morning light flickers lightly through a moving tree outside',
+            'Vapor do café dançando com o ar da janela, moto passando na rua lá fora e luz da manhã tremulando através de uma árvore.'),
+        'quarto': (
+            'a window with the city or neighbourhood rooftops, a ceiling fan above, a water glass on the nightstand, slippers on the floor and a phone face-down on the duvet',
+            'the ceiling fan turns slowly and its airflow makes the curtain hem and loose duvet fibres move subtly; the duvet keeps real folds and compresses where weight rests; outside, a bird crosses the sky and a distant car passes; light shifts softly as clouds pass',
+            'Ventilador de teto girando devagar, cortina e fibras do edredom mexendo com o ar, pássaro cruzando o céu lá fora.'),
+        'quintal': (
+            'a low wall with a neighbour\'s mango tree hanging over, kids\' voices implied by a distant football against the wall, a kite in the sky and dry leaves on the packed earth',
+            'wind lifts small dust and dry leaves in a short swirl near the ground, then lets them settle by gravity; mango branches sway heavily and slowly; the kite string flexes in the distant sky; the resting dog breathes, twitches an ear and shifts its weight once',
+            'Redemoinho leve de folhas secas no chão, galhos de mangueira balançando pesados e pipa no céu.'),
+        'piscina': (
+            'palm trees beyond the wall, a pool noodle drifting in the corner, a neighbour\'s window and a small plane high in the sky',
+            'the pool surface ripples continuously from the breeze, the drifting noodle travels slowly and bumps the edge; caustic light patterns crawl across the pool floor in sync with the ripples; palm fronds flex at different frequencies; the striped towel fringe flutters while its folded body stays put',
+            'Ondinhas constantes na água, boia andando devagar, desenhos de luz no fundo da piscina e palmeiras balançando.'),
+        'estufa': (
+            'condensation patches on the panels, a ladybug on a basil leaf, garden tools hanging on a hook and the open door showing the yard',
+            'air entering through the open door makes leaves near the door move while deeper plants stay almost still; a condensation drop runs down a panel; the ladybug walks a few millimetres and lifts its wing cases once; fine humidity haze glows in the light',
+            'Ar entrando pela porta mexendo só as plantas próximas, gota escorrendo no vidro e joaninha caminhando na folha.'),
+        'garagem': (
+            'through the half-open shutter, a residential street with parked cars, a neighbour sweeping the sidewalk and a delivery motorbike passing; oil-free concrete with tyre marks',
+            'street life moves with correct perspective: a car passes slowly, the neighbour\'s broom moves rhythmically, leaves skitter on the sidewalk in a gust; dust motes swirl in the sun beam when the air moves; the shutter rattles faintly in the gust; a hanging extension cable sways a little',
+            'Rua viva pela porta aberta: carro passando, vizinho varrendo a calçada, folhas correndo no chão e poeira girando no raio de sol.'),
+        'sala': (
+            'a window with city lights and a few lit apartment windows across the street, a ceiling fan, a phone charging on the arm of the sofa and a half-full glass of water',
+            'the TV light flickers softly in sync with its content, the ceiling fan sends a gentle airflow that moves the throw\'s fringe and plant leaves; across the street, an apartment light switches on; a distant car\'s headlights sweep slowly across the ceiling once',
+            'Luz da TV tremulando, ventilador mexendo a franja da manta, luz de apartamento acendendo do outro lado da rua e farol de carro passando no teto.'),
+        'banheira': (
+            'a small window showing tree branches and sky, a candle with a flickering flame on a safe dry ledge far from water and a folded book on a wooden stool',
+            'the candle flame flickers with tiny air currents and its warm light trembles on the tiles; water surface ripples slowly and reflections wobble; a faucet drop forms, stretches and falls at irregular intervals; branches move outside the window',
+            'Chama de vela tremulando, reflexos balançando na água, gota se formando e caindo devagar, galhos mexendo na janela.'),
+        'praia': (
+            'distant beach walkers and a kite surfer far out at sea, a fishing boat on the horizon, footprints and a crab hole in the sand, beach umbrellas closed in the far distance',
+            'sea wind is constant with stronger gusts: dry sand grains slide along the surface in thin streams, dune grasses bend in waves, the towel edge flaps while weighted corners hold; waves build, break and the foam spreads and retreats with real timing; gulls glide and adjust their wings; distant walkers and the kite move naturally',
+            'Vento do mar com rajadas, areia correndo rente ao chão, ondas quebrando no tempo real, gaivotas planando e pessoas caminhando ao longe.'),
+        'escritorio': (
+            'a window with a street view: a bus stop, people passing and trees; sticky notes on the monitor, an open snack and a phone with a dark screen',
+            'a sticky note edge lifts slightly in the window draft and settles; leaves of the desk plant tremble; outside, pedestrians walk in different directions and a bus arrives and pauses with correct parallax; sunlight intensity shifts as clouds pass',
+            'Post-it levantando com o vento da janela, gente passando no ponto de ônibus lá fora e luz mudando com as nuvens.'),
+        'carro_chuva': (
+            'outside the window: wet street, pedestrians with umbrellas, a bus passing, traffic lights and shop signs reflected in puddles',
+            'raindrops hit the glass, merge and run down the side window in branching paths; outside, umbrellas bob with walking rhythm, a bus passes and its lights smear across the wet glass, traffic lights cycle from red to green once; puddles ripple with every drop; reflections slide with perspective',
+            'Gotas escorrendo e se juntando no vidro, guarda-chuvas passando, ônibus e semáforo refletindo na rua molhada.'),
+        'leitura': (
+            'a window with a tree and a bird feeder outside, a cup of tea with a thin steam line, reading glasses on the book',
+            'tea steam rises in a thin line that bends with the slight air movement; a small bird lands on the outside feeder, pecks and flies away; tree leaves move outside; a book page lifts slightly and settles; window light softly shifts',
+            'Vapor do chá subindo fino, passarinho pousando no comedouro lá fora e página do livro levantando de leve.'),
+        'lavabo': (
+            'a small high window with a plant silhouette, a scented reed diffuser, a folded hand towel with a slight crease and a soap bar with real wear',
+            'the reed diffuser sticks stay still while the plant silhouette in the window moves with outside wind; tiny water droplets on the marble catch light; the pendant light has a near-imperceptible sway from air movement; reflections in the mirror follow the camera exactly',
+            'Silhueta da planta mexendo na janela alta, gotinhas brilhando no mármore e reflexo do espelho acompanhando a câmera.'),
+        'calcada': (
+            'pedestrians with umbrellas, a bicycle courier, cars and a bus on the wet avenue, shop windows lit, pigeons under an awning and a street vendor\'s cart',
+            'wet-street life in motion: pedestrians cross at different speeds, a car passes and sprays a thin wake on the far curb, a bus pulls away; puddles ripple from drops falling from the awning; pigeons shuffle under cover; the street lamp light dances on wet pavement; a gust tilts umbrellas',
+            'Calçada viva: pessoas com guarda-chuva, ônibus saindo, carro espirrando água, pombos sob o toldo e reflexos dançando no chão molhado.'),
+        'brasil_tropical': (
+            'the distant sea shows small waves and a fishing boat, coconut palms, flowering bromeliads, a hummingbird near a red flower and a narrow path with a passer-by in the far distance',
+            'tropical breeze in layered motion: palm fronds whip lightly at the tips, banana leaves rock heavily, the hammock sways a few centimetres; the hummingbird hovers with blurred wings and darts away; sea waves break slowly on the horizon; sunlight flickers through leaves; the distant passer-by walks naturally',
+            'Brisa tropical em camadas, beija-flor parado no ar, rede balançando de leve, ondas ao longe e luz piscando entre as folhas.'),
+    }
+    _VIDA_REGRA_V16860 = (
+        'LIVING-WORLD RULES: all ambient life stays in the background, small in frame, never touches, '
+        'covers or blocks the product or the person, and is already visible in the first still; '
+        'tiny distant wildlife (birds in the sky, insects, gulls) is ambient life, not an added pet; '
+        'every motion has a real cause (wind direction, gravity, inertia, water flow, light change) and '
+        'never loops identically; people and vehicles in the distance move with correct perspective and speed'
+    )
+    for _ambiente_id, (_vida_cena, _vida_mov, _vida_pt) in VIDA_MUNDO_REAL_V16860.items():
+        if _ambiente_id not in AMBIENTES_ELEVO_V165:
+            continue
+        _cena = AMBIENTES_ELEVO_V165[_ambiente_id]
+        _cena['elementos'] += '. LIVING WORLD VISIBLE IN THE SCENE: ' + _vida_cena
+        _cena['fisica'] += '; LIVING-WORLD MOTION: ' + _vida_mov + '. ' + _VIDA_REGRA_V16860
+        _cena['vida_pt'] = _vida_pt
 
     # Sincroniza por Gmail quando possível, sem bloquear se Sheets estiver fora.
     def _planilha_ambiente_v165():
@@ -4726,6 +6925,9 @@ with _elevo_area_criacao_v16823:
                 st.caption(cena["resumo"])
                 # V16.8.23.1: a ficha completa é apenas recolhida na tela.
                 # Os atributos originais permanecem disponíveis para os geradores.
+                if cena.get("vida_pt"):
+                    st.markdown(f'<div class="elevo-vida-chip-v16860">🌬️ <b>Mundo vivo:</b> {html_std.escape(cena["vida_pt"])}</div>',
+                                unsafe_allow_html=True)
                 with st.expander("▸ Ver ficha cinematográfica completa", expanded=False):
                     st.markdown(f'**🌤 Luz:** {cena["luz"]}')
                     st.markdown(f'**🎭 Baguncinha:** {cena["elementos"]}')
@@ -4742,7 +6944,7 @@ with _elevo_area_criacao_v16823:
                         st.success('Cenário e detalhes salvos neste Gmail.')
                     else:
                         st.warning('Os detalhes valerão nesta sessão. O Google Sheets não confirmou o salvamento.')
-        st.caption('✅ A direção do ambiente alimenta os Blocos 17 e 17.2. O resultado visual depende do gerador externo: o ÉLÉVO não garante fidelidade de 100%.')
+        st.caption('✅ A direção do ambiente (com vento, física e vida real) alimenta os 4 motores: 360º, V9.2, Produto 3S e Mãos Viral. O resultado visual depende do gerador externo: o ÉLÉVO não garante fidelidade de 100%.')
     else:
         st.info('Nenhum ambiente escolhido. Se gerar um prompt agora, permanece o sorteio de cenários original. Para fixar um, clique em “Escolher cenário”.')
 
@@ -4846,6 +7048,274 @@ if E_O_CEO:
                     "pt-BR-DonatoNeural; a voz reserva do primeiro acesso/Aurora não participa."
                 )
     st.divider()
+    # ==========================================================
+    # V16.8.59 — ESTÚDIO VIP DE CONTAS (o CEO libera cada acesso)
+    # ==========================================================
+    st.markdown("""
+    <style>
+    .st-key-elevo_ceo_contas_v16859 {
+      border-radius:24px !important; padding:clamp(1.1rem,2.4vw,1.8rem) !important; position:relative; overflow:hidden;
+      background:radial-gradient(ellipse 60% 80% at 100% 0%,rgba(216,182,106,.16),transparent 65%),
+                 linear-gradient(155deg,#0E1828 0%,#070C16 100%) !important;
+      border:1px solid rgba(216,182,106,.38) !important;
+      box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 40px rgba(216,182,106,.08),inset 0 1px rgba(255,255,255,.06) !important;}
+    .st-key-elevo_ceo_contas_v16859::before {content:""; position:absolute; left:0; right:0; top:0; height:2px;
+      background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);}
+    .evc-top {display:flex; align-items:center; gap:14px; margin-bottom:.4rem;}
+    .evc-crown {flex:0 0 52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:1.5rem;
+      background:linear-gradient(145deg,rgba(216,182,106,.25),rgba(216,182,106,.06)); border:1px solid rgba(216,182,106,.45);}
+    .evc-kick {font:700 .62rem 'JetBrains Mono',monospace; letter-spacing:.2em; color:#D8B66A !important; margin:0;}
+    .evc-title {font-family:Montserrat,sans-serif !important; color:#F4F7FC !important; margin:.15rem 0 0 !important; padding:0 !important;
+      font-size:clamp(1.2rem,2.2vw,1.55rem) !important; font-weight:800 !important;}
+    .evc-lead {color:#A9BAD1 !important; font-size:.86rem; margin:.2rem 0 .9rem; line-height:1.5;}
+    .evc-steps {display:flex; flex-wrap:wrap; gap:8px; margin:0 0 1rem;}
+    .evc-steps span {padding:5px 11px; border-radius:30px; font:600 .7rem Montserrat,sans-serif; color:#CFE6F5;
+      background:rgba(84,216,245,.07); border:1px solid rgba(84,216,245,.22);}
+    .evc-steps b {color:#D8B66A; margin-right:4px;}
+    .evc-packs {display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin:.2rem 0 1rem;}
+    .evc-pack {padding:.75rem .85rem; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(84,216,245,.16);}
+    .evc-pack b {display:block; color:#F4DC9A; font:800 .84rem Montserrat,sans-serif; letter-spacing:.06em;}
+    .evc-pack strong {display:block; color:#EAF2FF; font:800 1.2rem Montserrat,sans-serif; margin:.15rem 0;}
+    .evc-pack small {color:#8FA6C4; font-size:.72rem;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stForm"] {border:1px solid rgba(84,216,245,.14) !important;
+      background:rgba(3,7,13,.35) !important; border-radius:18px !important; padding:1rem 1rem .6rem !important;}
+    .st-key-elevo_ceo_contas_v16859 label, .st-key-elevo_ceo_contas_v16859 label p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stWidgetLabel"] p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCaptionContainer"] p,
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stMarkdownContainer"] p {color:#C9D6E8 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-baseweb="input"], .st-key-elevo_ceo_contas_v16859 [data-baseweb="base-input"],
+    .st-key-elevo_ceo_contas_v16859 [data-baseweb="textarea"] {background:rgba(4,8,15,.8) !important;
+      border-color:rgba(84,216,245,.24) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 input, .st-key-elevo_ceo_contas_v16859 textarea {color:#F1F5F9 !important;
+      background:transparent !important; -webkit-text-fill-color:#F1F5F9 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] button {background:rgba(84,216,245,.08) !important; color:#EAF2FF !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button {min-height:50px !important; border:none !important;
+      border-radius:14px !important; background:linear-gradient(100deg,#B88A2E,#D8B66A 45%,#F4DC9A) !important;
+      box-shadow:0 10px 28px rgba(216,182,106,.28),inset 0 1px rgba(255,255,255,.45) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button p {color:#120D03 !important;
+      font:800 .88rem Montserrat,sans-serif !important; letter-spacing:.14em !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button {border-color:rgba(216,182,106,.35) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button p {color:#EAF2FF !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[aria-checked="true"],
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[kind*="Active"] {
+      background:linear-gradient(100deg,rgba(216,182,106,.32),rgba(216,182,106,.14)) !important; border-color:#D8B66A !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput div:has(> input), .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] div:has(> input),
+    .st-key-elevo_ceo_contas_v16859 .stTextArea div:has(> textarea) {background-color:rgba(4,8,15,.85) !important;
+      border:1px solid rgba(84,216,245,.24) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 input::placeholder, .st-key-elevo_ceo_contas_v16859 textarea::placeholder {color:#5F7594 !important; -webkit-text-fill-color:#5F7594 !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput button {background:transparent !important; border:none !important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput button svg {fill:#8FA6C4 !important; color:#8FA6C4 !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button {background:rgba(4,8,15,.85) !important; border-color:rgba(216,182,106,.35) !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button span {color:#C9D6E8 !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] {background:linear-gradient(100deg,#B88A2E,#D8B66A) !important; border-color:#F4DC9A !important;}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] span {color:#120D03 !important; font-weight:800 !important;}
+    .st-key-elevo_ceo_contas_v16859 .stButton button {background:rgba(255,255,255,.04) !important; border:1px solid rgba(84,216,245,.3) !important; border-radius:12px !important;}
+    .st-key-elevo_ceo_contas_v16859 .stButton button p {color:#EAF2FF !important; font-weight:700 !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"], .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] pre {background:#050A12 !important; border-radius:14px !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] {border:1px dashed rgba(216,182,106,.45) !important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code, .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code span {color:#EAF2FF !important;}
+    .evc-ok {margin:.9rem 0 .5rem; padding:1rem 1.1rem; border-radius:18px;
+      background:linear-gradient(110deg,rgba(47,211,154,.13),rgba(47,211,154,.03)); border:1px solid rgba(47,211,154,.38);}
+    .evc-ok h4 {color:#7CF0C5 !important; margin:0 0 .35rem !important; padding:0 !important; font:800 1rem Montserrat,sans-serif !important;}
+    .evc-ok p {color:#CFEFE3 !important; margin:0; font-size:.85rem; line-height:1.55;}
+    .evc-ok code {color:#F4DC9A !important; background:rgba(0,0,0,.3) !important;}
+    .st-key-elevo_ceo_contas_v16859 details {border-color:rgba(84,216,245,.18) !important; background:rgba(3,7,13,.3) !important; border-radius:14px !important;}
+    .st-key-elevo_ceo_contas_v16859 details summary p {color:#EAF2FF !important; font-weight:700 !important;}
+    .st-key-elevo_ceo_contas_v16859 li {color:#C9D6E8 !important;}
+    </style>
+    """, unsafe_allow_html=True)
+
+    with st.container(key="elevo_ceo_contas_v16859"):
+        _evc_packs_html = "".join(
+            f"<div class='evc-pack'><b>{html_std.escape(_n)}</b>"
+            f"<strong>{format(int(_p['creditos']), ',').replace(',', '.')} CR</strong>"
+            f"<small>{html_std.escape(_p['desc'])}</small></div>"
+            for _n, _p in ELEVO_PACOTES_V16859.items())
+        st.markdown(f"""
+        <div class="evc-top"><div class="evc-crown">👑</div><div>
+          <p class="evc-kick">ÉLÉVO • ESTÚDIO DE ACESSOS VIP</p>
+          <h3 class="evc-title">Criar nova conta VIP</h3></div></div>
+        <p class="evc-lead">O cadastro público foi desligado. Só entra quem você liberar aqui, já com o saldo de créditos que você escolher.</p>
+        <div class="evc-steps"><span><b>1</b>Dados da pessoa</span><span><b>2</b>Pacote de créditos</span><span><b>3</b>Enviar o convite</span></div>
+        <div class="evc-packs">{_evc_packs_html}</div>
+        """, unsafe_allow_html=True)
+
+        _evc_versao = int(st.session_state.get("elevo_ceo_conta_form_v16859", 0))
+        _evc_opcoes = list(ELEVO_PACOTES_V16859.keys()) + ["Personalizado"]
+        with st.form(f"elevo_ceo_nova_conta_v16859_{_evc_versao}"):
+            _evc_c1, _evc_c2 = st.columns(2)
+            with _evc_c1:
+                _evc_nome = st.text_input("👤 Nome da pessoa", placeholder="Como ela será chamada no app", max_chars=60)
+            with _evc_c2:
+                _evc_email = st.text_input("📧 E-mail de acesso", placeholder="pessoa@gmail.com", max_chars=120)
+            _evc_senha = st.text_input("🔑 Senha", type="password", max_chars=64,
+                                       placeholder="Deixe em branco para gerar uma senha forte automaticamente")
+            _evc_pacote = st.segmented_control("💎 Pacote de créditos", _evc_opcoes, default="Start",
+                                               selection_mode="single", required=True)
+            _evc_c3, _evc_c4 = st.columns([1, 1.6])
+            with _evc_c3:
+                _evc_custom = st.number_input("Créditos (se Personalizado)", min_value=0, max_value=1000000,
+                                              value=150, step=10)
+            with _evc_c4:
+                _evc_obs = st.text_input("📝 Observação interna (opcional)", max_chars=250,
+                                         placeholder="Ex.: indicação, cortesia, cliente de março...")
+            st.caption(f"Custos de uso: 360º, V9.2, Produto 3S e Mãos Viral = {ELEVO_CUSTO_PROMPT_V16813} créditos • "
+                       f"outras ferramentas de IA = {ELEVO_CUSTO_FERRAMENTA_V16813} créditos.")
+            _evc_enviar = st.form_submit_button("✦ LIBERAR ACESSO VIP", use_container_width=True, type="primary")
+
+        if _evc_enviar:
+            _evc_plano = _evc_pacote or "Start"
+            _evc_cred = (int(_evc_custom) if _evc_plano == "Personalizado"
+                         else int(ELEVO_PACOTES_V16859[_evc_plano]["creditos"]))
+            _evc_preco = (0.0 if _evc_plano == "Personalizado"
+                          else float(ELEVO_PACOTES_V16859[_evc_plano]["preco"]))
+            _evc_senha_final = _evc_senha or elevo_gerar_senha_v16859()
+            try:
+                with st.spinner("Liberando o acesso VIP..."):
+                    _evc_res = elevo_criar_conta_vip_v16859(
+                        _evc_email, _evc_nome, _evc_senha_final, _evc_cred,
+                        plano=_evc_plano, origem="MANUAL_CEO", observacao=_evc_obs, preco=_evc_preco)
+                _evc_res["senha"] = _evc_senha_final
+                st.session_state["elevo_ceo_conta_criada_v16859"] = _evc_res
+                st.session_state["elevo_ceo_conta_form_v16859"] = _evc_versao + 1  # limpa o formulário
+                elevo_invalidar_painel_v16814()
+                st.rerun()
+            except (ValueError, PermissionError) as _evc_exc:
+                st.warning(str(_evc_exc))
+            except ElevoCreditoErroV16813 as _evc_exc:
+                st.error(str(_evc_exc))
+            except Exception:
+                st.error("Não foi possível criar a conta agora. Nada foi cobrado; tente novamente.")
+
+        _evc_ok = st.session_state.get("elevo_ceo_conta_criada_v16859")
+        if _evc_ok:
+            try:
+                _evc_link = str(getattr(st.context, "url", "") or "").split("?")[0]
+            except Exception:
+                _evc_link = ""
+            st.markdown(f"""
+            <div class="evc-ok"><h4>✅ Acesso liberado para {html_std.escape(_evc_ok['nome'])}</h4>
+            <p>E-mail: <code>{html_std.escape(_evc_ok['email'])}</code> • Pacote: <b>{html_std.escape(str(_evc_ok['plano']))}</b>
+            • Saldo inicial: <b>{int(_evc_ok['creditos'])} créditos</b></p></div>
+            """, unsafe_allow_html=True)
+            if _evc_ok.get("aviso_credito"):
+                st.warning(_evc_ok["aviso_credito"])
+            st.caption("Mensagem pronta para copiar e enviar (WhatsApp, e-mail ou direct). "
+                       "A senha aparece só agora; depois ela fica protegida por criptografia.")
+            st.code(
+                f"Olá, {_evc_ok['nome']}! 💎\n"
+                f"Seu acesso VIP à ÉLÉVO foi liberado.\n\n"
+                + (f"🔗 Acesse: {_evc_link}\n" if _evc_link else "")
+                + f"📧 E-mail: {_evc_ok['email']}\n"
+                f"🔑 Senha: {_evc_ok['senha']}\n"
+                f"⚡ Saldo inicial: {int(_evc_ok['creditos'])} créditos\n\n"
+                f"Bem-vindo(a) à central!",
+                language=None)
+            if st.button("✓ Já enviei, ocultar dados", key="elevo_ceo_conta_ok_fechar_v16859"):
+                st.session_state.pop("elevo_ceo_conta_criada_v16859", None)
+                st.rerun()
+
+        with st.expander("🧭 Guia rápido: como isso se liga ao futuro painel de vendas", expanded=False):
+            st.markdown(
+                "- **Pacotes:** os planos acima (Start, Pro, Elite) ficam em `ELEVO_PACOTES_V16859` "
+                "no código. Para mudar créditos ou colocar preço, edite só essa lista. O painel de vendas vai usar a mesma.\n"
+                "- **Venda para cliente novo:** quando o pagamento for aprovado, o sistema chama "
+                "`elevo_criar_conta_vip_v16859(...)` com `origem=\"VENDA\"` e `referencia=\"venda:<id do pagamento>\"`. "
+                "A referência impede conta ou crédito em dobro.\n"
+                "- **Recarga para cliente antigo:** `elevo_credito_admin_v16813(email, qtd, \"ADD\", \"venda:<id>\")`.\n"
+                "- **Relatórios:** toda conta criada fica anotada na aba **Elevo_Contas_V1** da sua planilha "
+                "(plano, créditos, preço, origem, referência, data e quem criou).\n"
+                "- **Pedidos de crédito** dos usuários continuam chegando na Gestão de usuários, logo abaixo.")
+    st.divider()
+    # ==========================================================
+    # V16.8.63 — PAINEL DE VENDAS DO CEO (Mercado Pago)
+    # ==========================================================
+    with st.expander("💰 Vendas e checkout (Mercado Pago)", expanded=False):
+        _evv_cfg = elevo_mp_config_v16863()
+        if not _evv_cfg["token"]:
+            st.warning("Checkout desligado: falta o Access Token do Mercado Pago nos Secrets do app.")
+        elif _evv_cfg["teste"]:
+            st.info("🧪 Modo TESTE ativo. Pague com uma CONTA DE TESTE comprador do Mercado Pago. "
+                    "Para vender de verdade, troque pelo Access Token de produção e mude modo para \"producao\".")
+        else:
+            st.success("✅ Checkout ativo em PRODUÇÃO. Os usuários já podem comprar créditos.")
+        try:
+            _evv_pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+        except Exception:
+            _evv_pk = ""
+        if _evv_cfg["token"] and not _evv_pk:
+            st.caption("💳 Cartão dentro do app desligado: falta a **public_key** nos Secrets (o Pix funciona).")
+        _evv_promo = elevo_promo_restante_v16873()
+        if _evv_promo > 0:
+            st.success(f"⚡ Promoção relâmpago LIGADA: 100 créditos por R$ 1,00 • termina em {_evv_promo // 60} min {_evv_promo % 60} s.")
+            if st.button("⏹ Encerrar promoção agora", key="elevo_promo_off_v16873", use_container_width=True):
+                elevo_promo_definir_v16873(0)
+                st.rerun()
+        elif st.button("⚡ Liberar promoção relâmpago: R$ 1,00 por 10 minutos", key="elevo_promo_on_v16873",
+                       use_container_width=True, type="primary"):
+            elevo_promo_definir_v16873(10)
+            st.rerun()
+        st.caption("A promoção aparece para todos os clientes como um 4º plano e some sozinha no fim do prazo. "
+                   "Use para uma compra REAL de R$ 1,00 com uma conta comum e valide o checkout em produção.")
+        if st.button("🔌 Testar conexão com o Mercado Pago", key="elevo_mp_diag_v16868", use_container_width=True):
+            with st.spinner("Conferindo as chaves..."):
+                for _evv_l in elevo_mp_diagnostico_v16868()["linhas"]:
+                    st.markdown(_evv_l)
+        if _evv_cfg["teste"] and st.button("🧪 Fazer pagamento de teste automático (R$ 1,00, cartão de teste)",
+                                           key="elevo_mp_pagteste_v16870", use_container_width=True):
+            with st.spinner("Gerando token e pagando com o cartão de teste..."):
+                for _evv_l in elevo_mp_pagamento_teste_v16870():
+                    st.markdown(_evv_l)
+        try:
+            _evv_regs = elevo_vendas_aba_v16863().get_all_records()
+        except Exception:
+            _evv_regs = []
+            st.caption("Não foi possível ler a aba de vendas agora.")
+        _evv_pagos = [r for r in _evv_regs if str(r.get("Status", "")).upper() == "PAGO"]
+        def _evv_num(v):
+            try:
+                return float(str(v).replace(",", "."))
+            except (TypeError, ValueError):
+                return 0.0
+        _evv_c1, _evv_c2, _evv_c3 = st.columns(3)
+        _evv_c1.metric("Vendas pagas", len(_evv_pagos))
+        def _evv_valor(r):
+            _info = elevo_plano_info_v16873(str(r.get("Plano", "")))
+            return float(_info["preco"]) if _info else elevo_valor_br_v16869(r.get("Valor"))
+        _evv_c2.metric("Faturamento bruto", "R$ " + f"{sum(_evv_valor(r) for r in _evv_pagos):,.2f}"
+                       .replace(",", "X").replace(".", ",").replace("X", "."))
+        _evv_c3.metric("Créditos vendidos", format(int(sum(_evv_num(r.get("Creditos")) for r in _evv_pagos)), ",").replace(",", "."))
+        if _evv_regs:
+            st.dataframe([{"Data": r.get("CriadoEm", ""), "Cliente": r.get("Email", ""), "Plano": r.get("Plano", ""),
+                           "Créditos": r.get("Creditos", ""),
+                           "Valor": "R$ " + ("%.2f" % _evv_valor(r)).replace(".", ","),
+                           "Status": {"PAGO": "✅ Pago", "PENDENTE": "⏳ Pendente", "FALHOU": "❌ Falhou"}.get(str(r.get("Status", "")).upper(), r.get("Status", "")),
+                           "Forma": {"cartao": "💳 Cartão", "pix": "⚡ Pix"}.get(str(r.get("Metodo", "")), r.get("Metodo", "") or "🔗 Link"),
+                           "Pago em": r.get("PagoEm", ""),
+                           "Detalhe": str(r.get("Link", ""))[6:] if str(r.get("Link", "")).startswith("ERRO: ") else ""}
+                          for r in reversed(_evv_regs[-30:])], use_container_width=True, hide_index=True)
+        _evv_planos = []
+        for _evv_n, _evv_p in ELEVO_PACOTES_V16859.items():
+            _evv_cr = format(int(_evv_p["creditos"]), ",").replace(",", ".")
+            _evv_pr = ("%.2f" % float(_evv_p["preco"])).replace(".", ",")
+            _evv_planos.append(_evv_n + ": " + _evv_cr + " CR por R$ " + _evv_pr)
+        st.markdown("**Planos à venda:** " + " • ".join(_evv_planos))
+        st.markdown(
+            "**Como ligar o checkout (uma vez só):**\n"
+            "1. Crie ou acesse sua conta em **mercadopago.com.br** e abra **Suas integrações** (área de desenvolvedor).\n"
+            "2. Na aplicação do Mercado Pago, abra Credenciais e selecione **Teste** (para ensaiar) "
+            "ou **Produção** (para receber pagamentos reais). Copie o PAR Public Key + Access Token "
+            "do mesmo ambiente e aplicação. O prefixo `APP_USR` NÃO distingue teste de produção.\n"
+            "3. No Streamlit → App → Settings → Secrets, configure:\n"
+            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\npublic_key = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\n```\n"
+            "Não cole credenciais neste chat, nem no código Python.\n"
+            "4. Em **Teste**, para cartão dentro do app, use cartão oficial de teste, titular APRO "
+            "e e-mail válido diferente do vendedor. O checkout redirecionado (Checkout Pro) tem "
+            "um fluxo próprio de testes com conta compradora. Para vender de verdade, substitua "
+            "AS DUAS chaves pelas de **Produção**, ative a conta recebedora e altere para "
+            "`modo = \"producao\"`. Faça uma compra real de baixo valor e confira o saldo.\n"
+            "5. Pronto: o cliente paga com Pix ou cartão e os créditos entram sozinhos quando ele volta ao app "
+            "ou toca em **Já paguei, verificar**.")
     st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
                 "<h3>🛡️ Gestão inteligente de usuários</h3>"
                 "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
@@ -4923,7 +7393,7 @@ if E_O_CEO:
                 _usuarios_filtrados_v16813 = [u for u in _usuarios_v16813
                                              if _busca_admin_v16813.strip().lower() in
                                              (str(u.get("Nome", ""))+" "+str(u.get("Email", ""))).lower()]
-                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: 100 • "
+                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: definidos por você ao criar a conta • "
                            "360º e V9.2: 10 • Radar/outras solicitações de IA: 3.")
                 for _u_v16813 in _usuarios_filtrados_v16813[:100]:
                     _email_u_v16813 = str(_u_v16813.get("Email", "")).strip().lower()
@@ -5029,7 +7499,11 @@ with _elevo_area_criacao_v16823:
     # 17. MÁQUINA DE CRIAÇÃO 360º (MÁXIMA POTÊNCIA / LEMA DOR & SOLUÇÃO + BANCO DE MEMÓRIA 17.3)
     # ==========================================================
     st.divider()
-    st.markdown("<h3 style='text-align: center; color: #00BFA5;'>🎬 Máquina de Criação 360º (V12 — Imagem Original + Vídeo Física Viva)</h3>", unsafe_allow_html=True)
+    elevo_secao_hero_v16855(
+        "03", "MÁQUINA DE CRIAÇÃO 360º · V12", "Gere os prompts de imagem e vídeo",
+        "Imagem original preservada + vídeo com física viva. Escolha a duração e um dos 4 motores, "
+        "envie a foto do produto e a ÉLÉVO monta o pacote completo.",
+        ("⚙️ 360º", "🧬 V9.2", "🎥 Produto 3S", "🤲 Mãos Viral", "🔑 Títulos SEO"))
 
     if "roteiro_temporario" not in st.session_state: 
         st.session_state["roteiro_temporario"] = None
@@ -5483,6 +7957,13 @@ with _elevo_area_criacao_v16823:
     Dados persistidos, voz, nomes e cards não são alterados.
     """
         texto = str(descricao or "").strip()
+        # V16.8.60 — o look desta criação (roupa/estilo) vem pronto e já filtrado:
+        # fica separado para não ser cortado pelo limite nem pelo filtro de produto.
+        _look_v16860 = ""
+        _m_look_v16860 = re.search(r"WARDROBE (?:FOR THIS CREATION|AND STYLING REQUESTED)", texto)
+        if _m_look_v16860:
+            _look_v16860 = texto[_m_look_v16860.start():].strip()[:700]
+            texto = texto[:_m_look_v16860.start()].strip()
         # Perfis do catálogo contêm nicho, abordagem comercial, produto e referência
         # de roupa. Essas seções não são uma descrição física da influenciadora.
         marcador = "LOCKED PHYSICAL APPEARANCE AND PHOTO REFERENCE:"
@@ -5510,7 +7991,7 @@ with _elevo_area_criacao_v16823:
         texto = " ".join(frases).strip(" ;.\n\t")
         if not texto:
             texto = "Photorealistic adult Brazilian presenter with natural facial expression and realistic skin texture"
-        return texto[:1400]
+        return (texto[:1400].rstrip(" .") + ". " + _look_v16860) if _look_v16860 else texto[:1400]
 
 
     def neutralizar_descricao_variavel_do_produto_v16811(conteudo):
@@ -6188,6 +8669,10 @@ with _elevo_area_criacao_v16823:
 
     # Perfil ativo de texto permanece intacto; só a aparência visual vai ao prompt.
     visual_inf_isolado_v16811 = assinatura_visual_pessoa_sem_produto_v16811(desc_inf_ativa)
+    # V16.8.60 — look escolhido no painel "Visual da influência" (vale nos 4 motores).
+    _look_ativo_v16860 = elevo_look_influencia_v16860()
+    if _look_ativo_v16860:
+        visual_inf_isolado_v16811 = (visual_inf_isolado_v16811.rstrip(" .") + ". " + _look_ativo_v16860)
 
     # Dados legados de Logo_Marca continuam na planilha por compatibilidade,
     # mas não são exibidos, exigidos, atualizados nem usados na criação.
@@ -6201,7 +8686,298 @@ with _elevo_area_criacao_v16823:
     if "txt_diretrizes_360" not in st.session_state:
         st.session_state["txt_diretrizes_360"] = ""
 
-    # ÉLÉVO V16.8.29 — Uma duração para as três modalidades, antes de gerar.
+    # ==========================================================
+    # V16.8.60 — 4º MOTOR: MÃOS VIRAL (produto só nas mãos, sem rosto)
+    # Mesma arquitetura dos motores aprovados: a IA escreve SOMENTE a fala,
+    # o texto na tela e o SEO; a direção visual (imagem + vídeo) é uma matriz
+    # fixa da ÉLÉVO, com a mesma trava de produto, escala 1:1 e ambiente vivo.
+    # ==========================================================
+    ELEVO_MAOS_ESTILOS_V16860 = {
+        "surpresa": {"rotulo": "🎲 Surpresa (a ÉLÉVO escolhe)"},
+        "unboxing": {
+            "rotulo": "📦 Unboxing / revelação",
+            "som": "crisp tissue-paper crinkle, then a soft tap of a fingernail",
+            "geral": {
+                "hook": "SCROLL-STOPPER: in one quick, satisfying motion the hands lift a sheet of plain unbranded tissue paper and reveal the item lying underneath; the paper crinkles, bends with real stiffness and is pushed aside",
+                "reveal": "both hands pick the item up with a clear, secure grip and turn it a slow quarter-turn so its original front faces the lens, at the SAME distance from the camera",
+                "demo": "fingertips trace the edges and surfaces slowly; one fingernail taps it once for a crisp ASMR click; the item is tilted so the real light glides over it without any label shimmer",
+                "demo2": "the hands rotate the item to show its back and sides with continuous grip, then present the front again",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands pull the folded garment out of plain unbranded tissue paper and snap it open once in the air; the fabric unfurls with its real weight, then settles",
+                "reveal": "the hands lay the garment flat on the surface and spread it open, front facing the lens",
+                "demo": "fingers pinch the fabric and gently stretch it to show thickness and recovery, then rub it between thumb and index finger; the weave catches the light",
+                "demo2": "the hands turn one edge over to show the inner seams and stitching, then lay it back flat",
+            },
+        },
+        "dobrar": {
+            "rotulo": "👕 Abrir, alisar e dobrar (ideal p/ roupas)",
+            "som": "soft fabric whoosh, palms brushing cotton",
+            "geral": {
+                "hook": "SCROLL-STOPPER: one hand pulls a soft cotton cloth off the item in a single quick slide; the cloth drags with real friction and falls in natural folds",
+                "reveal": "the palms settle beside the item and slowly push it to the centre of the surface",
+                "demo": "the hands smooth the surface around the item, then a fingertip glides across it with a soft ASMR sound",
+                "demo2": "the item is lifted with both hands, turned once and set back in the same spot with visible contact",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: a fast, satisfying flick opens the folded garment over the surface; it billows, then lands flat with real cloth physics",
+                "reveal": "both palms smooth it flat from the centre outward; wrinkles relax, fibres and seams follow the hands",
+                "demo": "fingers pinch and gently stretch the fabric to show its stretch and recovery; one hand lifts the hem so it falls naturally",
+                "demo2": "a neat, satisfying fold: sleeves in, folded in thirds, and a final flat press with both palms",
+            },
+        },
+        "textura": {
+            "rotulo": "✨ Textura e detalhe ASMR",
+            "som": "close tactile ASMR: fingertip glide, nail tap, soft fabric or surface friction",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the very first frame is tactile: a fingertip presses slowly onto the item and a fingernail taps it twice with a crisp, satisfying sound",
+                "reveal": "the hands lift the item and tilt it so the real light rolls across every surface, at the same camera distance",
+                "demo": "fingertips glide along edges and details in slow motion-like real time; the grip shifts naturally between fingers",
+                "demo2": "the item is set down, tapped once more and turned to show another side",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: fingertips sink slowly into the fabric and drag across it, showing texture and softness in the first frame",
+                "reveal": "the hands lift one part of the garment so it drapes over the fingers with real weight",
+                "demo": "thumb and fingers rub and pinch the fabric, showing thickness, weave and recovery",
+                "demo2": "the hands brush a seam and a button or trim if the reference shows one, then smooth it flat",
+            },
+        },
+        "tamanho": {
+            "rotulo": "🤏 Tamanho real na mão",
+            "som": "soft skin-on-surface contact and a light tap",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the item lands in an open palm and the fingers close around it, instantly showing its TRUE size",
+                "reveal": "it is passed from one hand to the other with a visible, secure grip and no floating",
+                "demo": "the fingers are aligned along the item to compare length, then it is turned to show its depth",
+                "demo2": "the item is placed beside the hand on the surface for a still size comparison",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands hold the garment up by the shoulders/waistband so it hangs at full length in one move",
+                "reveal": "it is lowered onto the surface and spread out to its real size",
+                "demo": "a forearm is laid across the garment to show its real width and length",
+                "demo2": "the hands fold it once and show how compact it becomes",
+            },
+        },
+        "giro": {
+            "rotulo": "🔄 Giro 360 nas mãos",
+            "som": "gentle handling sounds, a soft tap at the end",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the item spins a quick half-turn between the fingers and stops, front perfectly facing the lens",
+                "reveal": "a slow, controlled full rotation shows every side with continuous grip",
+                "demo": "the hands stop at the most interesting detail and tilt it into the light",
+                "demo2": "a second slower rotation in the opposite direction, then a stable hold",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands lift the garment and turn it quickly from back to front",
+                "reveal": "it is held up and slowly turned to show front, sides and back",
+                "demo": "the hands pause at the best detail (neckline, seam, print) and touch it",
+                "demo2": "it is laid flat and smoothed in one stroke",
+            },
+        },
+        "rotina": {
+            "rotulo": "👜 Uso no dia a dia",
+            "som": "everyday handling sounds, a zipper or soft bag rustle",
+            "geral": {
+                "hook": "SCROLL-STOPPER: the hands grab the item from the surface in one confident move, like someone in a hurry who cannot leave without it",
+                "reveal": "the item is shown front to the lens, then placed into a plain open tote bag lying on the surface",
+                "demo": "the hands take it back out and show how easily it is handled with one hand",
+                "demo2": "it returns to the hero spot on the surface beside the bag",
+            },
+            "roupa": {
+                "hook": "SCROLL-STOPPER: the hands throw the garment onto the surface and it lands open",
+                "reveal": "the hands build a quick flat-lay outfit around it with a pair of plain sneakers already present nearby",
+                "demo": "the garment is lifted, pressed against the forearm and smoothed",
+                "demo2": "the outfit is adjusted one last time, straight and tidy",
+            },
+        },
+    }
+
+    ELEVO_MAOS_SUPERFICIES_V16860 = {
+        "auto": {"rotulo": "✨ Automático pelo ambiente escolhido"},
+        "cama": {"rotulo": "🛏️ Em cima da cama",
+                 "en": "on top of a real lived-in bed: a slightly rumpled cotton duvet with natural folds and soft pilling, a pillow edge and part of the headboard visible; the duvet compresses realistically under the item's weight and under the palms"},
+        "sofa": {"rotulo": "🛋️ No sofá",
+                 "en": "on the seat cushion of a real fabric sofa with a casually folded throw, visible cushion seams and weave; the cushion dents slightly where weight rests"},
+        "bancada": {"rotulo": "🪵 Na bancada / mesa",
+                    "en": "on the real everyday counter or tabletop of this environment, with genuine surface grain, tiny scratches, a faint old ring mark and a soft contact shadow under the item"},
+        "mao": {"rotulo": "🤲 Só nas mãos (no ar)",
+                "en": "held in both hands in front of the camera, with the environment softly out of focus behind; the palms and fingers always support the full weight, never floating"},
+    }
+    _ELEVO_MAOS_SUPERFICIE_AUTO_V16860 = {
+        "quarto": "cama", "sala": "sofa", "leitura": "sofa", "penteadeira": "bancada", "cozinha": "bancada",
+        "banheiro": "bancada", "lavabo": "bancada", "banheira": "bancada", "escritorio": "bancada",
+        "servico": "bancada", "garagem": "bancada", "varanda": "bancada", "brasil_tropical": "bancada",
+        "estufa": "bancada", "jardim": "mao", "quintal": "mao", "piscina": "mao", "praia": "mao",
+        "cachoeira": "mao", "carro_chuva": "mao", "calcada": "mao",
+    }
+    _ELEVO_MAOS_ROUPA_RE_V16860 = re.compile(
+        r"(?i)\b(?:shirt|t-?shirt|tee|blouse|dress|shorts?|pants|trousers|jeans|skirt|hoodie|sweatshirt|jacket|"
+        r"coat|top|bikini|swimsuit|lingerie|bra|socks?|garment|clothing|apparel|towel|sheet|pyjamas?|pajamas?|"
+        r"leggings?|cardigan|sweater|crochet|knit|cropped|camis\w*|blusa|vestido|calça|saia|moletom|jaqueta|"
+        r"biqu[ií]ni|mai[ôo]|meias?|toalha|len[çc]ol|pijama|roupa|conjunto|body)\b")
+
+    def elevo_maos_categoria_v16860(scan):
+        texto = " ".join(str((scan or {}).get(k, "")) for k in ("tipo_embalagem", "nome_pt"))
+        return "roupa" if _ELEVO_MAOS_ROUPA_RE_V16860.search(texto) else "geral"
+
+    def elevo_maos_resolver_v16860(estilo, superficie, ambiente_id, categoria):
+        """Resolve 'surpresa' e 'auto' para escolhas concretas e coerentes."""
+        estilos = [k for k in ELEVO_MAOS_ESTILOS_V16860 if k != "surpresa"]
+        if estilo not in estilos:
+            preferidos = (["dobrar", "unboxing", "textura", "giro", "tamanho"] if categoria == "roupa"
+                          else ["unboxing", "textura", "tamanho", "giro", "rotina"])
+            recentes = st.session_state.setdefault("elevo_maos_hist_estilos_v16860", [])
+            livres = [k for k in preferidos if k not in recentes[-2:]] or preferidos
+            estilo = random.choice(livres)
+            recentes.append(estilo)
+            st.session_state["elevo_maos_hist_estilos_v16860"] = recentes[-6:]
+        if superficie not in ("cama", "sofa", "bancada", "mao"):
+            superficie = _ELEVO_MAOS_SUPERFICIE_AUTO_V16860.get(str(ambiente_id), "mao")
+        return estilo, superficie
+
+    def elevo_maos_linha_tempo_v16860(segundos):
+        duracao = int(segundos) if int(segundos) in (10, 12, 15) else 10
+        return duracao, {
+            10: ("00:00–00:01.5", "00:01.5–00:04", "00:04–00:08", None, "00:08–00:10"),
+            12: ("00:00–00:01.5", "00:01.5–00:04.5", "00:04.5–00:07.5", "00:07.5–00:10", "00:10–00:12"),
+            15: ("00:00–00:01.5", "00:01.5–00:05", "00:05–00:09", "00:09–00:12.5", "00:12.5–00:15"),
+        }[duracao]
+
+    def elevo_matriz_maos_v16860(roteiro, scan, nome_influencia, visual_influencia, ambiente_id,
+                                 estilo, superficie, segundos, observacao_ambiente="", categoria="geral"):
+        """Reconstrói imagem e vídeo como HANDS-ONLY; fala, texto na tela e SEO ficam byte a byte."""
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+            raise ValueError("O roteiro não contém os três blocos válidos da ÉLÉVO.")
+        try:
+            qtd = max(1, min(30, int((scan or {}).get("qtd", 1))))
+        except (ValueError, TypeError):
+            qtd = 1
+        nome = str(nome_influencia or "a influenciadora selecionada").strip()[:100]
+        pessoa = assinatura_visual_pessoa_sem_produto_v16811(visual_influencia)
+        cena = AMBIENTES_ELEVO_V165.get(str(ambiente_id or ""))
+        if not cena or str(ambiente_id) == "infinito":
+            raise ValueError("Ambiente original não confirmado: preservar o cenário escolhido.")
+        local = str(cena["elementos"])
+        obs = str(observacao_ambiente or "").strip()[:450]
+        if obs and not re.search(r"(?i)\b(?:produto|product|packaging|embalagem|rótulo|rotulo|\d+\s*(?:g|ml|kg)|jar|bottle|frasco|pote)\b", obs):
+            local += ". User-approved scene detail: " + obs
+        # Só mãos em cena: movimentos de cabelo/corpo da física do ambiente viram tecido solto.
+        fisica_maos = re.sub(r"(?i)\b(?:loose\s+)?(?:beach\s+)?hair(?:\s+strands)?\b", "loose fabric edges", str(cena["fisica"]))
+        fisica_maos = re.sub(r"(?i)[^,;.]*\bsandals?\b[^,;.]*[,;]?", "", fisica_maos)
+        estilo_def = ELEVO_MAOS_ESTILOS_V16860[estilo]
+        acoes = estilo_def["roupa" if categoria == "roupa" else "geral"]
+        sup_txt = ELEVO_MAOS_SUPERFICIES_V16860[superficie]["en"]
+        duracao, (t1, t2, t3, t4, t5) = elevo_maos_linha_tempo_v16860(segundos)
+        qtd_str = str(qtd)
+        inventario = (
+            "Exactly ONE original referenced unit is shown, " + (
+                "held securely in the hands." if superficie == "mao" else "resting on the surface and handled by the hands.")
+            if qtd == 1 else
+            f"Exactly {qtd_str} original referenced units are shown, individually distinguishable; the hands handle "
+            f"ONE at a time while the remaining {qtd - 1} rest on the surface in fixed positions."
+        )
+        produto_comum = (
+            "[ÉLÉVO — ABSOLUTE SOURCE-REFERENCE PRODUCT LOCK] "
+            "[CRITICAL 1:1 SCALE — NO RECONSTRUCTION — NO SUBSTITUTION] "
+            "The separately attached ORIGINAL PRODUCT/KIT REFERENCE IMAGE is the sole and absolute source of truth "
+            "for every product unit in the still and every video frame. Copy the exact photographed source objects, "
+            "not a text-based interpretation. Preserve exact unit count and every separate variant. Never change "
+            "category or silhouette. Preserve geometry, dimensions, proportions, closures, printed artwork, prints, "
+            "seams and label layout exactly as visible in the reference. Never invent, redraw, stylize, replace, "
+            "beautify, simplify, relabel, recolor, duplicate, merge or omit any unit. Do not describe the product in "
+            "words: no product/brand name, color, shape, material, label, logo, capacity or packaging details. The "
+            "attached image alone provides those facts. If the target generator cannot use the attached image as a "
+            "visual reference, do not generate. Maintain true 1:1 real-world scale relative to the hands and the "
+            "surface; never oversize as a hero prop, never use near-lens enlargement or perspective tricks. "
+        )
+        maos = (
+            "[HANDS-ONLY TALENT LOCK — NO FACE]: ONLY the adult presenter's two hands and forearms appear, entering "
+            "from the bottom and sides of the frame. Her face, head, hair, neck, shoulders and torso NEVER appear — "
+            "not in frame, not in mirrors, not in glass or screen reflections, not as a shadow that reveals a profile. "
+            f"The hands belong to {nome}: match ONLY her skin tone and undertone, nail style, rings, bracelets and "
+            f"sleeve fabric implied by this person reference: {pessoa.rstrip('. ')}. "
+            "[HAND REALISM]: exactly five anatomically correct fingers per hand, natural knuckle creases, fine skin "
+            "lines and pores, faint veins on the back of the hands, natural cuticles, slight warmth at knuckles and "
+            "fingertips, natural nail sheen, tiny asymmetries between left and right hand, believable subsurface "
+            "scattering; no extra, fused or bending-the-wrong-way fingers, no rubbery or waxy skin. Fingers visibly "
+            "compress soft surfaces and grip the item with real pressure and friction; the item never passes through "
+            "the hand. "
+        )
+        camera = (
+            "[POV PHONE CAMERA]: a real smartphone fixed on a small overhead phone holder (so both hands are free), "
+            "vertical 9:16, POV angle 35–55° above the surface, natural phone HDR, modest depth of field, faint sensor "
+            "grain, slight lens vignetting, focus locked on the item with natural focus breathing; tiny holder "
+            "micro-vibration only when the surface is touched; no zoom, no push-in, no crop-in. "
+        )
+        imagem = (
+            "RAW smartphone photography, vertical 9:16, viral Brazilian UGC 'hands-only' product shot, "
+            "extreme photographic realism, NO flash. "
+            + maos +
+            f"[SURFACE]: the item is {sup_txt}. "
+            f"[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. The environment is visible around and behind the "
+            "surface, softly out of focus but clearly the same real place, with its plants, lived-in clutter and "
+            f"living-world details small in the background. [NATURAL LIGHT GRADIENT]: {cena['luz']}. "
+            f"[MULTI-PRODUCT KIT LOCK — {qtd_str} UNIT(S) TOTAL]: {inventario} "
+            + produto_comum +
+            "[FIRST-FRAME HOOK POSE]: the hands are caught mid-action, about to perform the opening move "
+            f"({acoes['hook'].replace('SCROLL-STOPPER: ', '')}), creating curiosity in a single still. "
+            "[CONTACT PHYSICS]: real contact shadows under fingers and item, surface fabric or grain compressing "
+            "and folding where weight rests, no floating objects. "
+            + camera +
+            "[ABSOLUTE UI LOCK]: zero watermarks, zero platform interface, zero floating usernames, no graphic CTA "
+            "or added logo in the still image."
+        )
+        etapas = [
+            f"🎬 Hook ({t1}, STOP THE SCROLL): {acoes['hook']}. Movement is quick but physically real, with mass, "
+            "inertia and a clean finish, so the viewer understands the action instantly.",
+            f"👐 Reveal ({t2}): {acoes['reveal']}.",
+            f"🫱 Demonstration ({t3}): {acoes['demo']}.",
+        ]
+        if t4:
+            etapas.append(f"🔁 Second beat ({t4}): {acoes['demo2']}; unhurried, no repeated motion loop.")
+        etapas.append(
+            f"🎞️ Closing ({t5}, HERO + CTA GESTURE): the hands return the item to its hero position, smooth the "
+            "surface once, and the right index finger taps twice just below the item and points down toward the "
+            "bottom edge of the frame (where the shopping-bag button is added in editing). Hold a stable, living "
+            "frame — hands still slightly moving, environment still moving — through the very last frame; no fade, "
+            "no black frame, no freeze.")
+        video_visual = (
+            "🎬 [ÉLÉVO V16.8.60 — HANDS-ONLY VIRAL ENGINE / ONE SOURCE OF TRUTH]\n"
+            f"EXACT TOTAL LENGTH: {duracao} seconds, 9:16, ONE continuous take, no cuts. The approved still is frame 0.\n"
+            + produto_comum + "\n"
+            + "[IMAGE-TO-VIDEO PRODUCT SIZE MATCH]: every unit keeps exactly its frame-0 on-screen size relative to the "
+            "hands and the surface; any lift happens sideways or upward at the same distance from the lens, never "
+            "toward the camera. No product redraw, shape drift, label shimmer or duplicate.\n"
+            + f"[KIT INVENTORY — {qtd_str} ORIGINAL UNIT(S)]: {inventario} Every original unit stays a distinct rigid "
+            "object (or the same garment) from 00:00 to the final frame; nothing vanishes, swaps or multiplies.\n"
+            + maos + "\n"
+            + f"[IMAGE-TO-VIDEO SCENE LOCK — {ambiente_id}]: the same place as the still: {local}. Surface: {sup_txt}. "
+            f"Natural light: {cena['luz']}. Living environmental motion: {fisica_maos.rstrip('. ')}. "
+            f"Animal policy: {cena['animal']}. Location sound: {cena['som']}. The background keeps moving naturally "
+            "behind the hands for the whole clip (wind, light, distant life), always secondary and slightly out of focus.\n"
+            + camera + "\n"
+            + "\n".join(etapas) + "\n"
+            + f"🔊 [ASMR LAYER]: {estilo_def['som']}, recorded close by the phone microphone, mixed under the voice-over; "
+            "natural room tone and the environment's real sounds underneath. No music bed unless added in editing.\n"
+            + "🛡️ [PRISTINE CANVAS LOCK]: preserve the separately uploaded PRODUCT REFERENCE exactly. No watermark, "
+            "username, social-media chrome, extra packaging text, 3D shopping bag or fabricated offer. Captions in the "
+            "text section are editing notes, not burned into the raw footage. Handheld-UGC realism, not advertising CGI."
+        )
+        video_velho = sec["prompt_video"]
+        dividir = re.search(r"(?m)^(?:\s*🎙️|\s*🎧|\s*🔊|\s*Áudio\b|\s*Fala\b|\s*Voz\b|\s*📝\s*Texto na Tela\b)", video_velho)
+        if not dividir:
+            raise ValueError("Bloco de fala não identificado; a criação não foi aprovada.")
+        editorial = video_velho[dividir.start():]
+        if len(video_visual) < MIN_CARACTERES_PROMPT_VIDEO:
+            raise ValueError(f"Direção Mãos Viral incompleta: apenas {len(video_visual)} caracteres.")
+        return (
+            "### 📸 PROMPT DE IMAGEM\n" + imagem + "\n\n"
+            "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video_visual.rstrip() + "\n\n" + editorial + "\n\n"
+            "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"]
+        )
+
+    # ÉLÉVO V16.8.29 — Uma duração para os 4 motores, antes de gerar.
     # Seletor apenas de roteiro; o vídeo final é produzido no gerador externo.
     with st.container(border=True):
         st.markdown("**⏱️ Duração do vídeo**")
@@ -6214,31 +8990,47 @@ with _elevo_area_criacao_v16823:
             key="elevo_duracao_video_v16829",
         )
         st.caption("A ÉLÉVO adapta a fala e os movimentos ao tempo escolhido, sem alterar a imagem.")
-    faixas_fala_v16829 = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+        st.caption("🛡️ TikTok Shop: vincule o produto pelo carrinho nativo, confirme que as características anunciadas são reais e sinalize o vídeo como conteúdo gerado por IA na publicação quando aplicável.")
+    faixas_fala_v16829 = {10: (20, 25), 12: (28, 31), 15: (36, 39)}  # V16.8.57
     min_palavras_video_v16829, max_palavras_video_v16829 = faixas_fala_v16829[int(segundos_video_v16829)]
 
     # V16.8.21: terceiro modo opcional, reutiliza o Bloco 17; não altera seu motor de imagem.
     st.session_state.setdefault("elevo_produto_primeiro_3s_v16821", False)
+    st.session_state.setdefault("elevo_motor_maos_v16860", False)
     with st.container(border=True):
         modo_3s_ativo_v16821 = bool(st.session_state["elevo_produto_primeiro_3s_v16821"])
-        col_sel1, col_sel2, col_sel3 = st.columns(3)
+        modo_maos_ativo_v16860 = bool(st.session_state["elevo_motor_maos_v16860"])
+        with st.container(key="elevo_seletor_motores_v16860"):
+            col_sel1, col_sel2, col_sel3, col_sel4 = st.columns(4)
         with col_sel1:
-            if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] and not modo_3s_ativo_v16821 else "secondary", use_container_width=True, key="btn_sel_17"):
+            if st.button("⚙️ MODO 360º (Bloco 17 — Física V12)", type="primary" if not st.session_state["modo_entidade_v9"] and not modo_3s_ativo_v16821 and not modo_maos_ativo_v16860 else "secondary", use_container_width=True, key="btn_sel_17"):
                 st.session_state["modo_entidade_v9"] = False
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
         with col_sel2:
             if st.button("🧬 CRIAÇÃO V9.2 (Bloco 17.2 — Física V12)", type="primary" if st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_172"):
                 st.session_state["modo_entidade_v9"] = True
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
         with col_sel3:
-            if st.button("🎥 PRODUTO 3S (Nova Opção)", type="primary" if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_produto_3s_v16821"):
+            if st.button("🎥 PRODUTO 3S (Nova Opção)", type="primary" if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] and not modo_maos_ativo_v16860 else "secondary", use_container_width=True, key="btn_sel_produto_3s_v16821"):
                 st.session_state["modo_entidade_v9"] = False
                 st.session_state["elevo_produto_primeiro_3s_v16821"] = True
+                st.session_state["elevo_motor_maos_v16860"] = False
                 st.rerun()
-        if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"]:
+        with col_sel4:
+            if st.button("🤲 MÃOS VIRAL (Só as mãos)", type="primary" if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"] else "secondary", use_container_width=True, key="btn_sel_maos_v16860"):
+                st.session_state["modo_entidade_v9"] = False
+                st.session_state["elevo_produto_primeiro_3s_v16821"] = False
+                st.session_state["elevo_motor_maos_v16860"] = True
+                st.rerun()
+        if modo_3s_ativo_v16821 and not st.session_state["modo_entidade_v9"] and not modo_maos_ativo_v16860:
             st.caption("🎞️ Terceira opção: imagem original preservada; nos 3 primeiros segundos, vídeo focado exclusivamente no produto. Depois entra a influenciadora com o mesmo roteiro, fala e SEO.")
+        if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"]:
+            st.caption("🤲 Quarto motor: só as mãos da influência aparecem, sem rosto. Produto na mão, na cama, no sofá ou na bancada, "
+                       "com gancho viral nos primeiros segundos, ASMR de toque e a voz dela em off na duração escolhida.")
 
         aba_gerador_360 = st.container()
     
@@ -6268,12 +9060,27 @@ with _elevo_area_criacao_v16823:
                     key="txt_diretrizes_360"
                 )
                 btn_gerar_roteiro = False
-                if not st.session_state["modo_entidade_v9"]:
+                btn_gerar_maos_v16860 = False
+                if modo_maos_ativo_v16860 and not st.session_state["modo_entidade_v9"]:
+                    st.selectbox("🎬 Estilo do vídeo viral", list(ELEVO_MAOS_ESTILOS_V16860.keys()),
+                                 format_func=lambda k: ELEVO_MAOS_ESTILOS_V16860[k]["rotulo"],
+                                 key="elevo_maos_estilo_v16860")
+                    st.selectbox("🛏️ Onde o produto aparece", list(ELEVO_MAOS_SUPERFICIES_V16860.keys()),
+                                 format_func=lambda k: ELEVO_MAOS_SUPERFICIES_V16860[k]["rotulo"],
+                                 key="elevo_maos_superficie_v16860")
+                    if not pode_gerar_roteiro:
+                        st.error("Entre na sua conta para gerar roteiros.")
+                        st.button("🤲 GERAR MÃOS VIRAL", type="primary", use_container_width=True, disabled=True, key="btn_maos_disabled_v16860")
+                    else:
+                        txt_maos_v16860 = ("🤲 GERAR MÃOS VIRAL (Ilimitado)" if E_O_CEO
+                                           else f"🤲 GERAR MÃOS VIRAL • {ELEVO_CUSTO_PROMPT_V16813} CR")
+                        btn_gerar_maos_v16860 = st.button(txt_maos_v16860, type="primary", use_container_width=True, key="btn_maos_ativo_v16860")
+                elif not st.session_state["modo_entidade_v9"]:
                     if not pode_gerar_roteiro:
                         st.error("Entre na sua conta para gerar roteiros.")
                         btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                     else:
-                        txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else "⚡ LER RÓTULO E GERAR • 10 CR"
+                        txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR • {ELEVO_CUSTO_PROMPT_V16813} CR"
                         btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
                 else:
                     st.success("🧬 **CRIAÇÃO V9.2 ATIVADA!** Clique no botão do **Bloco 17.2** logo abaixo.")
@@ -6339,7 +9146,7 @@ with _elevo_area_criacao_v16823:
                 st.error("Entre na sua conta para gerar roteiros.")
                 btn_gerar_v92 = st.button("🔥 GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
             else:
-                txt_btn_v92 = "🔥 GERAR NA V9.2 (Ilimitado)" if E_O_CEO else "🔥 GERAR NA V9.2 • 10 CR"
+                txt_btn_v92 = "🔥 GERAR NA V9.2 (Ilimitado)" if E_O_CEO else f"🔥 GERAR NA V9.2 • {ELEVO_CUSTO_PROMPT_V16813} CR"
                 btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, disabled=v92_logo_invalida_v16837, key="btn_v92_ativo")
 
     # ==========================================================
@@ -6355,19 +9162,17 @@ with _elevo_area_criacao_v16823:
                 tipo_brain = st.selectbox("Ponto avaliado", ["IMAGEM", "VIDEO"], format_func=lambda x: "Imagem" if x == "IMAGEM" else "Vídeo", key="elevo_brain_tipo_v1708")
             with col_polaridade_brain:
                 polaridade_brain = st.selectbox("Feedback", ["POSITIVO", "NEGATIVO"], format_func=lambda x: "👍 Positivo — preservar" if x == "POSITIVO" else "👎 Negativo — evitar", key="elevo_brain_polaridade_v1708")
-            modo_brain = st.selectbox("Motor", ["GERAL", "360º", "V9.2", "Produto 3S"], key="elevo_brain_modo_v1708")
+            modo_brain = st.selectbox("Motor", ["GERAL", "360º", "V9.2", "Produto 3S", "Mãos Viral"], key="elevo_brain_modo_v1708")
             licao_brain = st.text_area("Lição para a ÉLÉVO", placeholder="Ex.: NEGATIVO: o pote aumentou durante o vídeo; manter a escala aparente idêntica à imagem aprovada.", max_chars=700, height=105, key="elevo_brain_licao_v1708")
             texto_brain_atual = str(st.session_state.get("roteiro_temporario") or "")
             hash_brain_atual = hashlib.sha256(texto_brain_atual.encode("utf-8")).hexdigest() if texto_brain_atual else ""
             if st.button("🧠 Registrar feedback no cérebro", type="primary", use_container_width=True, key="elevo_brain_salvar_v1708"):
-                try:
-                    salvo_brain = elevo_ceo_brain_salvar_v1708(tipo_brain, polaridade_brain, modo_brain, licao_brain, hash_brain_atual)
-                    if salvo_brain:
-                        st.success("Lição registrada na memória global e considerada nas próximas gerações compatíveis.")
-                    else:
-                        st.info("Essa mesma lição já estava registrada; nenhuma duplicidade foi criada.")
-                except Exception as erro_brain:
-                    st.error("Não foi possível registrar o feedback: " + str(erro_brain))
+                # V16.8.55 — CORREÇÃO: a função de gravação é definida mais abaixo no
+                # arquivo; antes isso causava NameError e a lição nunca era salva.
+                # O pedido fica pendente e é processado logo após a definição.
+                st.session_state["elevo_brain_pendente_v16855"] = (
+                    tipo_brain, polaridade_brain, modo_brain, licao_brain, hash_brain_atual)
+            _elevo_brain_slot_v16855 = st.empty()
 
         with st.expander("🔬 Intelligence Upgrade — modelos e consumo (somente CEO)", expanded=False):
             st.caption(f"Modelo principal: {ELEVO_MODELO_PRODUCAO_V1685} | fallback: gpt-4o-mini. As 8 operações e os prompts continuam intactos.")
@@ -6641,7 +9446,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
         duracao = int(segundos)
         if duracao not in (10, 12, 15):
             duracao = 10
-        faixas = {10: (20, 25), 12: (24, 30), 15: (30, 38)}
+        # V16.8.57 — 10s mantém a faixa aprovada; 12s fala 11–12s; 15s fala 14–15s.
+        faixas = {10: (20, 25), 12: (28, 31), 15: (36, 39)}
         etapas = {
             10: ("00:00–00:03", "00:03–00:06", "00:06–00:08", "00:08–00:10"),
             12: ("00:00–00:03", "00:03–00:06", "00:06–00:09", "00:09–00:12"),
@@ -6658,12 +9464,125 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
             f"The historical 9-second spoken scripts and fixed 10-second visual examples are templates, NOT the target duration. "
             f"FINAL runtime is EXACTLY {duracao}s, no cut/black tail. "
             f"Narration in natural Brazilian Portuguese: {inicio}–{fim} SPOKEN words (exclude ASMR cues, titles and instructions), "
+            f"The voice must fill about {max(duracao - 1, 9)}–{duracao} seconds of the clip (not only 9–10s). "
             "realistically paced with breath and no time compression; new words must add useful insight, not filler. "
+            "NO REPETITION: never repeat a sentence, expression, key word or idea — each sentence moves forward "
+            "(hook → pain → turn/solution → sensory proof → invitation). "
             "Keep the opening pain/hook, credible solution and natural invitation; no invented discounts, stock or claims. "
             f"Timeline: product hook {e1}; same influencer enters {e2}; one real interaction {e3}; "
             f"natural stable closing {e4}. If product-first-3s mode is selected, ONLY the product is on-screen for the entire first 3s. "
             "All original kit units, backdrop, labels and influencer identity remain consistent from image to final frame."
         )
+
+    # ==========================================================
+    # V16.8.57 — FALA NA MEDIDA DA DURAÇÃO + SEM REPETIÇÃO (somente a fala).
+    # Confere a contagem real de palavras; se estiver fora da faixa ou repetitiva,
+    # pede à IA para reescrever APENAS a fala. Imagem, cenas, SEO e texto na tela
+    # não são tocados. Qualquer falha mantém a fala original (nunca quebra a geração).
+    # ==========================================================
+    def _elevo_fala_limpa_v16857(texto):
+        t = re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", str(texto or ""))
+        return re.sub(r"\s+", " ", t).strip()
+
+    def _elevo_fala_palavras_v16857(texto):
+        return re.findall(r"[A-Za-zÀ-ÿ0-9]+(?:[-'][A-Za-zÀ-ÿ0-9]+)*", _elevo_fala_limpa_v16857(texto))
+
+    def _elevo_fala_repetida_v16857(texto):
+        p = [w.casefold() for w in _elevo_fala_palavras_v16857(texto)]
+        tri = [tuple(p[i:i + 3]) for i in range(len(p) - 2)]
+        if len(tri) != len(set(tri)):
+            return True
+        contagem = {}
+        for w in p:
+            if len(w) >= 5:
+                contagem[w] = contagem.get(w, 0) + 1
+        return any(v >= 3 for v in contagem.values())
+
+    def _elevo_fala_localizar_v16857(video):
+        """Devolve (início, fim, texto) da fala entre aspas na seção de áudio."""
+        m_ini = re.search(r"(?m)^\s*(?:🎙️|🔊|Áudio\b|Fala\b)", video)
+        if not m_ini:
+            return None
+        resto = video[m_ini.end():]
+        m_fim = re.search(r"(?m)^\s*(?:📝|🎞️|🏁|🔑|###|\[ÉLÉVO)", resto)
+        limite = m_ini.end() + (m_fim.start() if m_fim else len(resto))
+        trecho = video[m_ini.start():limite]
+        candidatos = []
+        for m in re.finditer(r'"([^"]{12,})"|“([^”]{12,})”', trecho):
+            grupo = 1 if m.group(1) is not None else 2
+            txt = m.group(grupo)
+            n = len(_elevo_fala_palavras_v16857(txt))
+            if n >= 6:
+                candidatos.append((n, m_ini.start() + m.start(grupo), m_ini.start() + m.end(grupo), txt))
+        if not candidatos:
+            return None
+        _, ini, fim, txt = max(candidatos)
+        return ini, fim, txt
+
+    def elevo_ajustar_fala_duracao_v16857(roteiro, segundos):
+        import logging
+        log = logging.getLogger("elevo.fala")
+        try:
+            duracao, (minimo, maximo), _ = elevo_tempo_roteiro_v16829(segundos)
+            sec = extrair_blocos_roteiro(roteiro)
+            video = sec.get("prompt_video") or ""
+            loc = _elevo_fala_localizar_v16857(video)
+            if not loc:
+                return roteiro
+            ini, fim, fala = loc
+            n_atual = len(_elevo_fala_palavras_v16857(fala))
+            if minimo <= n_atual <= maximo and not _elevo_fala_repetida_v16857(fala):
+                return roteiro
+            pedido = (
+                f"Fala atual (vídeo de {duracao} segundos):\n{_elevo_fala_limpa_v16857(fala)}\n\n"
+                f"Reescreva a fala para ocupar de {max(duracao - 1, 9)} a {duracao} segundos falados em ritmo "
+                f"natural: entre {minimo} e {maximo} palavras (conte com cuidado). "
+                "Mantenha o mesmo gancho de abertura, a mesma dor, a mesma solução e o mesmo convite final "
+                "para consultar o produto no link nativo do vídeo, com fecho original e linguagem de amiga. "
+                "Cada frase traz informação nova: não repita palavras, expressões ou ideias e não use enchimento. "
+                "Não invente preço, desconto, estoque, prazo, marca ou benefício que não esteja na fala atual. "
+                "Sem colchetes, sem aspas, sem emojis e sem marcações de som. "
+                'Responda somente em JSON: {"fala": "..."}'
+            )
+            melhor, melhor_dist = None, None
+            for _tentativa in range(2):
+                validar_cota_ia()
+                resp = elevo_chat_create_v1685(
+                    model=ELEVO_MODELO_PRODUCAO_V1685,
+                    response_format={"type": "json_object"},
+                    messages=[
+                        {"role": "system", "content": "Você é roteirista de vídeos UGC brasileiros curtos. Responda apenas JSON."},
+                        {"role": "user", "content": pedido},
+                    ],
+                    max_tokens=500, temperature=0.55)
+                try:
+                    nova = str(json.loads(resp.choices[0].message.content or "{}").get("fala", "")).strip()
+                except (json.JSONDecodeError, AttributeError, IndexError, TypeError):
+                    nova = ""
+                nova = re.sub(r'["“”\[\]]', "", nova).strip()
+                if not nova or _elevo_fala_repetida_v16857(nova):
+                    continue
+                k = len(_elevo_fala_palavras_v16857(nova))
+                dist = 0 if minimo <= k <= maximo else min(abs(k - minimo), abs(k - maximo))
+                if melhor is None or dist < melhor_dist:
+                    melhor, melhor_dist = nova, dist
+                if dist == 0:
+                    break
+            # Só troca se a nova fala estiver na faixa (tolerância de 2 palavras).
+            if melhor is None or melhor_dist > 2:
+                log.warning("Fala mantida: ajuste fora da faixa (atual=%s, faixa=%s-%s)", n_atual, minimo, maximo)
+                return roteiro
+            cue = re.match(r"\s*(\[[^\]]{1,80}\])", fala)
+            novo_video = video[:ini] + ((cue.group(1) + " ") if cue else "") + melhor + video[fim:]
+            resultado = _trocar_so_video_v12(roteiro, novo_video)
+            conf = extrair_blocos_roteiro(resultado)
+            if (conf["prompt_imagem"] != sec["prompt_imagem"]
+                    or conf["secao_seo_texto"] != sec["secao_seo_texto"]):
+                return roteiro
+            return resultado
+        except Exception:
+            log.warning("Ajuste de fala ignorado; fala original preservada.", exc_info=True)
+            return roteiro
 
     # V16.8.30 — camada pequena, aplicada SOMENTE ao prompt de VÍDEO final.
     # Ritmos são sugestões naturais, não comandos rígidos ou ações extras obrigatórias.
@@ -6675,7 +9594,8 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                  "Do not force a grab-lift-demonstrate-return sequence into two seconds."),
             12: ("12s: use 00:06–00:09 for ONE continuous, believable hand interaction. "
                  "Allow finger pressure, realistic object mass, a natural wrist correction "
-                 "and one modest focus adjustment; lift and return ONLY if unhurried and fully supported."),
+                 "and one modest focus adjustment; lift and return ONLY if unhurried, fully supported "
+                 "and at the same distance from the lens."),
             15: ("15s: from 00:06–00:10, develop ONE coherent demonstration with "
                  "natural hand contact; from 00:10–00:13, allow a small nonrepeated "
                  "reaction from the EXISTING person or environment, then 00:13–00:15 "
@@ -6738,14 +9658,17 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                 f'EXACT TOTAL LENGTH: {duracao} seconds (9:16). TIMELINE: {p1} product hook, '
                 f'{p2} reveal the same presenter, {p3} one grounded hand interaction, '
                 f'{p4} natural continuous final scene. Do not end at 9 or 10 seconds when a longer duration is selected. '
-                f'Audio voiceover: {minimo}–{maximo} spoken Portuguese words, comfortable human pace, '
-                'without squeezing delivery or extending with artificial silence. '
+                f'Audio voiceover: {minimo}–{maximo} spoken Portuguese words that fill about '
+                f'{max(duracao - 1, 9)}–{duracao}s, comfortable human pace, '
+                'without squeezing delivery, repeating phrases or extending with artificial silence. '
                 'FRAME-TO-FRAME PRODUCT IDENTITY: the APPROVED IMAGE and the separately uploaded '
                 'product reference govern one unchanged physical item per original unit. '
                 'Carry forward exactly the same silhouette, material, original printed graphics, '
                 'relative hand-to-product scale and surface details; no new object interpretation '
-                'when the hand moves or camera reframes. Only perspective and illumination may '
-                'change naturally. No product redraw, shape drift, label shimmer or duplicates. '
+                'when the hand moves. Only illumination may change naturally; the product keeps '
+                'exactly the same on-screen size it has in the APPROVED IMAGE in every frame '
+                '(never slightly larger, never closer to the lens). '
+                'No product redraw, shape drift, label shimmer or duplicates. '
                 'Never invent physical packaging descriptions in this prompt.\n'
                 + elevo_microfisica_adaptativa_v16830(
                     duracao, modo=modo, produto_primeiro_3s=produto_primeiro_3s)
@@ -7031,7 +9954,10 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
             "make it a hero prop, zoom into it, or let it expand during a hand gesture. No product rotation "
             "greater than a tiny natural stabilization (maximum about 3 degrees); no tilt-to-camera, "
             "no label-facing showcase. If the presenter speaks or gestures, the product stays at its "
-            "original location and scale. If exact scale cannot be maintained, keep the product still.",
+            "original location and scale. If exact scale cannot be maintained, keep the product still. "
+            "SIZE REFERENCE = THE APPROVED STILL, NOT THE PRODUCT PHOTO: match the still's on-screen size "
+            "exactly; the separately uploaded product photo only defines identity and must never make "
+            "the item render larger.",
             f"INVENTORY LOCK: exactly {qtd} original source unit(s), each continuously present, "
             "separate and unchanged. Unhandled units remain fixed on their original support. "
             "No duplication, merging, disappearance, substitution, shape drift, label shimmer or resizing.",
@@ -7231,7 +10157,7 @@ RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism:
 🎬 COMANDO DE VÍDEO COMPLETO:
 Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference kit products (one tub held firmly in her hand while the other two tubs rest neatly beside her on the wooden counter against the green varanda background, making all three clearly visible). [CRITICAL PHYSICS & SCALING]: 1:1 real-world scale, strictly realistic size, perfectly proportioned to her hand, do not oversize. DO NOT alter or redraw the reference packaging. SINGLE MOTION TRICK (The Trigger Tap): Her clean free index finger performs a deliberate micro-tap on the lid of the main tub twice to emphasize it. NO hand overlapping, absolute physics stability, NO pixel melting.]
 Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while holding ONLY ONE tub in her hand and keeping the other two tubs resting stationary on the counter right beside her. ENVIRONMENT REINFORCEMENT LOCK: Bright Brazilian kitchen connected to a sunlit tropical varanda with dense green ferns. In the deep background, the caramel dog shifts position slightly.]
-Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+Interaction (Natural Closing): [0:08: The presenter keeps the exact product in clear view and makes a subtle natural pointing gesture, only if it matches her spoken invitation. No floating bag, product UI, digital object or fake shopping button.]
 [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
 
 📦 MOLDE 2: O GANCHO DA TEMPESTADE (Para Frascos Compactos 200ml-250ml - Banheiro Rústico com Vapor e Chuva)
@@ -7769,7 +10695,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         }
         retorno = elevo_mem_recuperar_relevantes_v1(email, digest, scan.get("nome_pt", ""))
         modo_norm = str(modo or "GERAL")
-        modo_norm = "V9.2" if modo_norm.casefold() in ("v9.2", "v92") else ("360º" if "360" in modo_norm.casefold() else ("Produto 3S" if "3s" in modo_norm.casefold() else "GERAL"))
+        modo_norm = "V9.2" if modo_norm.casefold() in ("v9.2", "v92") else ("360º" if "360" in modo_norm.casefold() else ("Produto 3S" if "3s" in modo_norm.casefold() else ("Mãos Viral" if "maos" in modo_norm.casefold() or "mãos" in modo_norm.casefold() else "GERAL")))
         extras = "\\n\\n".join(x for x in (
             elevo_ceo_brain_recuperar_v1708("IMAGEM", modo_norm),
             elevo_ceo_brain_recuperar_v1708("VIDEO", modo_norm)
@@ -7810,7 +10736,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             raise PermissionError("Somente o CEO autenticado pode registrar lições globais.")
         if tipo_midia not in ("IMAGEM", "VIDEO") or polaridade not in ("POSITIVO", "NEGATIVO"):
             raise ValueError("Tipo de mídia ou feedback inválido.")
-        if modo not in ("360º", "V9.2", "Produto 3S", "GERAL"):
+        if modo not in ("360º", "V9.2", "Produto 3S", "Mãos Viral", "GERAL"):
             raise ValueError("Modo inválido.")
         licao = _elevo_mem_texto_seguro_v1(licao, 700)
         if len(licao.strip()) < 8:
@@ -7858,6 +10784,17 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             import logging
             logging.getLogger("elevo.ceo_brain").warning("Memória global CEO indisponível", exc_info=False)
             return ""
+
+    # V16.8.55 — grava o feedback do CEO agora que as funções existem.
+    _brain_pendente_v16855 = st.session_state.pop("elevo_brain_pendente_v16855", None)
+    if _brain_pendente_v16855 and E_O_CEO and "_elevo_brain_slot_v16855" in globals():
+        try:
+            if elevo_ceo_brain_salvar_v1708(*_brain_pendente_v16855):
+                _elevo_brain_slot_v16855.success("Lição registrada na memória global e considerada nas próximas gerações compatíveis.")
+            else:
+                _elevo_brain_slot_v16855.info("Essa mesma lição já estava registrada; nenhuma duplicidade foi criada.")
+        except Exception as erro_brain:
+            _elevo_brain_slot_v16855.error("Não foi possível registrar o feedback: " + str(erro_brain))
 
     # ==========================================================
     # V16.8.21 — AJUSTES EXCLUSIVAMENTE DE VÍDEO (IMAGEM/FALA/SEO INALTERADOS)
@@ -8063,7 +11000,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         'breathing, advanced subsurface scattering, light smartphone sensor grain, NO flash. '
         f'The sole adult Brazilian presenter is {nome}. PERSON-ONLY VISUAL REFERENCE: '
         f'{pessoa}. Preserve her selected face, exact hair, skin, eyes and everyday '
-        'wardrobe; spontaneous intimate friend-to-friend energy, believable body balance '
+        'wardrobe (when a WARDROBE FOR THIS CREATION or user styling request is given above, '
+        'that outfit, accessories and hairstyle replace the reference clothing in the still and the video); spontaneous intimate friend-to-friend energy, believable body balance '
         'and anatomically correct fingers. The same woman remains in the final video. '
         f'[EXACT ÉLÉVO ENVIRONMENT — {ambiente_id}]: {local}. '
         f'[NATURAL LIGHT GRADIENT]: {iluminacao}. '
@@ -8077,7 +11015,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         '[BAGUNCINHA TEMÁTICA — V9]: Natural everyday clutter comes ONLY from '
         'the exact listed environmental objects, casually arranged with realistic '
         'surface contact, never masking the referenced items. '
-        f'[ANIMAL FACTOR — V9]: {animal}; include no extra animal. '
+        f'[ANIMAL FACTOR — V9]: {animal}; include no extra pet (only the distant ambient wildlife already listed in LIVING WORLD may appear). '
         '[REALISTIC CAMERA LOCK]: True smartphone perspective, modest depth of field, '
         'natural lens distortions without enlarging the product, organic texture, '
         'cinematic atmospheric shadows coherent with the same real light source, '
@@ -8093,7 +11031,10 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             shot1 = (
                 'Shot 1 (00:00–00:03, PRODUCT FIRST): For the first FULL three seconds, '
             'keep the exact existing photo-referenced unit(s) in a natural product-led '
-            'shot with unchanged 1:1 proportions. The face stays outside the frame; '
+            'shot with unchanged 1:1 proportions. The face stays outside the frame by aiming '
+            'the phone slightly lower at the SAME distance and lens as the approved still '
+            '(a tilt down, never moving closer or cropping in), so the product keeps exactly '
+            'its on-screen size from the approved still; '
             'hands, if already present, must belong to the same selected presenter. '
             'Camera and original supports stay physically grounded; no macro crop, '
             'digital zoom, artificial enlargement, package reconstruction or hidden '
@@ -8106,11 +11047,29 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             'her supporting hand in the same real environment. One authentic glance '
             'or small hand adjustment may happen; keep the exact 1:1 physical size, '
             'actual source inventory, realistic focus, existing supports and reflections. '
+            'The product keeps exactly the on-screen size of the approved still. '
             'No product hero enlargement, extreme macro or artificial showcase angle.'
             )
+        # V16.8.56 — o produto no VÍDEO deve ter exatamente o mesmo tamanho em tela
+        # da IMAGEM aprovada. Somente texto do vídeo; a imagem não é alterada.
+        trava_tamanho_video_v16856 = (
+            '[ÉLÉVO V16.8.56 — IMAGE-TO-VIDEO PRODUCT SIZE MATCH / FRAME 0 IS THE SIZE AUTHORITY]: '
+            'The approved still (frame 0) defines the on-screen SIZE of every product unit. '
+            'In every video frame each unit keeps EXACTLY the same apparent size it has in the approved '
+            'still: the same share of frame width and height, and the same size relative to the presenter\'s '
+            'face, hand, torso and the surrounding furniture. The separately attached product photo defines '
+            'IDENTITY ONLY (shape, artwork, label, material) — never its size, crop or distance; do not '
+            're-render the item at the scale of that reference photo. Do not make it even slightly larger '
+            'for clarity, label readability or emphasis. Keep the still\'s camera distance, lens field of view '
+            'and crop; the presenter does not lean toward the lens and the hand never brings the product '
+            'closer to the camera than in frame 0. Any small lift happens sideways or upward at the same '
+            'distance from the lens. No push-in, dolly-in, crop-in, digital zoom or perspective change '
+            'that enlarges the product.'
+        )
         video_visual = (
             '🎬 [ÉLÉVO V9 REALITY ENGINE — FINAL VISUAL DIRECTION / ONE SOURCE OF TRUTH]\n'
             + produto_comum + '\n'
+            + trava_tamanho_video_v16856 + '\n'
             + f'[KIT INVENTORY — {qtd_str} ORIGINAL UNIT(S)]: {inventario_imagem} '
         'Maintain every ORIGINAL unit as a distinct rigid object from 00:00 to the final frame. '
         'No disappearance, duplicate, morph, relabeling, change of geometry or extra hand.\n'
@@ -8124,15 +11083,23 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
         'voice and natural mannerisms as the still. Changing her identity must NEVER '
         'change any source-referenced product unit, label or scale.\n'
             + shot1 + '\n'
-            + '🎥 Shot 2 (00:03–00:06, THE GOSSIP LEAN): Gently reframe to the SAME '
-        'selected presenter’s face, not a jump cut or different character; a brief '
-        'natural smartphone autofocus settle follows a small real camera tilt. '
-        'Authentic eye contact, a tiny expressive eyebrow movement, imperfect '
+            + ('🎥 Shot 2 (00:03–00:06, PRESENTER REVEAL): Tilt the phone back up at the SAME '
+        'distance and lens to the approved still\'s exact framing, revealing the SAME selected '
+        'presenter — no lean, push-in or crop toward her face, not a jump cut or different character; '
+        'a brief natural smartphone autofocus settle follows the tilt. '
+               if produto_primeiro_3s else
+               '🎥 Shot 2 (00:03–00:06, THE GOSSIP MOMENT): Keep the approved still\'s framing and '
+        'camera distance. The SAME selected presenter connects with the lens through eyes and '
+        'expression only — no lean toward the camera, no reframe or push toward her face, not a '
+        'jump cut or different character; a brief natural smartphone autofocus settle is allowed. ')
+        + 'Authentic eye contact, a tiny expressive eyebrow movement, imperfect '
         'breath timing and plausible hair drift; real skin pores and minor sensor '
         'noise stay intact. Keep every referenced unit in its physically continuous '
-        'location or trace its visible trajectory if the framing changes.\n'
+        'location and at its frame-0 on-screen size.\n'
             + '🫱 Interaction (00:06–00:08, NATURAL PHYSICAL ACTION): One subtle human '
         'gesture appropriate to the actual object and supported by the image. '
+        'Any lift stays at the same distance from the lens (sideways or upward only, never '
+        'toward the camera) so the product keeps its frame-0 on-screen size. '
         'Before any lift, the same anatomically correct fingers visibly establish '
         'a secure grip; wrist and forearm compensate naturally for real mass and '
         'inertia. Only physically permitted motion occurs; gravity, friction, '
@@ -8344,9 +11311,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             'FRAME ZERO = THE APPROVED STILL IMAGE. Preserve its real room geometry, existing everyday clutter, '
             'the same person, product-unit count, positions, lighting and all visible object identities. '
             'ONE NON-REPEATING ACTION ARC: read the actual initial hand/product contact before moving anything; '
-            'if already holding the item, keep that SAME secure grip and allow only ONE small purposeful presentation '
-            'tilt or natural stabilization; if supported, optionally establish ONE visible grip, make ONE short '
-            'physically possible move, then settle ONCE. Never reset to the start pose, regrip without cause, '
+            'if already holding the item, keep that SAME secure grip and allow only ONE tiny natural '
+            'stabilization (never tilted or brought toward the lens); if supported, optionally establish ONE '
+            'visible grip, make ONE short physically possible move at the same distance from the lens, then '
+            'settle ONCE. The product keeps the exact on-screen size of the approved still. '
+            'Never reset to the start pose, regrip without cause, '
             'repeat a display cycle, repeatedly point/tap/wave, reverse the same move or loop facial expressions. '
             'HUMAN MECHANICS: EXACTLY two arms and two hands, with persistent left/right identity. A hand '
             'holding a product cannot simultaneously touch hair or appear twice. Hair touch is allowed only '
@@ -8381,6 +11350,182 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             raise ValueError('V16.8.36: alteração indevida no SEO.')
         if video.replace(direcao_v10, '', 1) != sec['prompt_video']:
             raise ValueError('V16.8.36: alteração indevida no vídeo pré-existente.')
+        return novo
+
+    # ==========================================================
+    # V16.8.61 — PRODUTO DE VESTIR: A INFLUÊNCIA VESTE O PRODUTO
+    # Aplicado no FINAL do 360º, V9.2 e Produto 3S, só quando o scanner
+    # identifica roupa, calçado ou acessório de vestir. Troca cada frase de
+    # "segurar/apoiar" pela versão "vestindo", ajusta o enquadramento à parte
+    # do corpo e anula a roupa da ficha/look APENAS na área que o produto cobre.
+    # Rosto, cabelo, pele e identidade continuam vindo da influência.
+    # ==========================================================
+    _ELEVO_VESTIR_ZONAS_V16861 = (
+        ("full", r"vestido|macac[ãa]o|jardineira|pijama|biqu[ií]ni|mai[ôo]|sa[ií]da de praia|"
+                 r"dress|jumpsuit|overalls|romper|matching set|pyjamas?|pajamas?|bikini|swimsuit|swimwear"),
+        ("bottom", r"cal[çc]a|short|bermuda|saia|legging|jeans|pantalona|pants|trousers|shorts|skirt|leggings|joggers?"),
+        ("shoes", r"t[êe]nis|sand[áa]lia|sapato|sapatilha|bota|chinelo|rasteirinha|scarpin|sneakers?|"
+                  r"shoes?|boots?|sandals?|high heels|slippers?|flip-?flops?|loafers?"),
+        ("head", r"bon[ée]|chap[ée]u|gorro|[óo]culos|tiara|bandana|baseball cap|bucket hat|hat|beanie|sunglasses|eyeglasses|headband"),
+        ("jewelry", r"colar|brinco|pulseira|rel[óo]gio|anel|tornozeleira|necklace|earrings?|bracelet|"
+                    r"wristwatch|watch|anklet|pendant|choker"),
+        ("top", r"camiseta|camisa|camisete|blusa|cropped|regata|moletom|jaqueta|casaco|cardigan|su[ée]ter|colete|"
+                r"blazer|t-?shirt|tee|shirt|blouse|tank top|hoodie|sweatshirt|jacket|overcoat|trench coat|sweater|bodysuit"),
+    )
+    # Não é para vestir: peça infantil/masculina (a influenciadora adulta apresenta, não veste)
+    # e produtos PARA roupa/calçado (limpeza, cosmético, cabide, decoração).
+    _ELEVO_VESTIR_EXCLUI_V16861 = re.compile(
+        r"(?i)\b(?:infantil|beb[êe]s?|kids?|baby|crian[çc]as?|menin[oa]s?|juvenil|masculin[oa]s?|men's|homem|"
+        r"for men|boys?|girls?|limpa\w*|limpador\w*|cleaner|polish|graxa|spray|creme|cream|lotion|lo[çc][ãa]o|"
+        r"perfume|escova|brush|organizador\w*|organizer|cabides?|hangers?|sab[ãa]o|detergente|amaciante|"
+        r"tira-?manchas?|tinta|dye|esmalte|parede|despertador|wall|alarm|capa para|case|suporte|miniatura|"
+        r"chaveiro|keychain|estampa para|adesivo|sticker)\b")
+    _ELEVO_VESTIR_TEXTO_V16861 = {
+        "top": ("upper body (torso and arms)",
+                "a handheld smartphone selfie at arm's length or a friend's phone, vertical 9:16, HEAD-TO-HIPS framing so "
+                "the whole worn garment, its neckline, sleeves and hem are fully visible on her body",
+                "the lower body (if visible) uses a simple neutral complementary piece"),
+        "bottom": ("lower body (waist, hips and legs)",
+                   "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                   "HEAD-TO-FEET framing so the whole worn garment, waistband, fit and length are fully visible",
+                   "the upper body uses a simple neutral complementary top that does not compete with the product"),
+        "full": ("whole body",
+                 "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                 "HEAD-TO-FEET framing so the whole worn piece or set is fully visible",
+                 "no other garment competes with it; only simple footwear and discreet accessories"),
+        "shoes": ("feet",
+                  "a smartphone on a small tripod at chest height or held by a friend, vertical 9:16, FULL-BODY "
+                  "HEAD-TO-FEET framing with the worn footwear clearly visible and in focus at the bottom of the frame",
+                  "the rest of the outfit is simple and neutral so the footwear stands out"),
+        "head": ("head",
+                 "a handheld smartphone selfie at arm's length, vertical 9:16, HEAD-AND-SHOULDERS framing with the "
+                 "worn item clearly visible",
+                 "the clothing is simple and neutral so the worn item stands out"),
+        "jewelry": ("the natural spot for this piece (neck, ears, wrist or fingers)",
+                    "a handheld smartphone selfie at arm's length, vertical 9:16, HEAD-TO-CHEST framing; if the piece is "
+                    "worn on the wrist or fingers, that hand rests naturally near the chest so the piece is visible",
+                    "the clothing is simple and neutral so the piece stands out"),
+    }
+
+    def elevo_vestir_zona_v16861(scan):
+        """Zona do corpo que o produto ocupa, ou '' quando não é para vestir."""
+        texto = " ".join(str((scan or {}).get(k, "")) for k in ("nome_pt", "tipo_embalagem"))
+        if not texto.strip() or _ELEVO_VESTIR_EXCLUI_V16861.search(texto):
+            return ""
+        achadas = [zona for zona, padrao in _ELEVO_VESTIR_ZONAS_V16861
+                   if re.search(r"(?i)\b(?:" + padrao + r")s?\b", texto)]
+        if not achadas:
+            return ""
+        if "full" in achadas or ("top" in achadas and "bottom" in achadas):
+            return "full"  # vestido, macacão ou conjunto parte de cima + parte de baixo
+        return achadas[0]
+
+    def elevo_vestir_produto_v16861(roteiro, scan, modo="360"):
+        """Converte a matriz final de 'segurar' para 'vestir' sem tocar fala, legendas ou SEO."""
+        zona = elevo_vestir_zona_v16861(scan)
+        if not zona:
+            return roteiro
+        sec = extrair_blocos_roteiro(roteiro)
+        if not all(sec.get(k) for k in ("prompt_imagem", "prompt_video", "secao_seo_texto")):
+            raise ValueError("V16.8.61: roteiro incompleto antes do ajuste de produto de vestir.")
+        area, enquadramento, complemento = _ELEVO_VESTIR_TEXTO_V16861[zona]
+        try:
+            qtd = max(1, min(30, int((scan or {}).get("qtd", 1))))
+        except (ValueError, TypeError):
+            qtd = 1
+        if qtd == 1:
+            uso = (f"She WEARS the single original referenced item on her {area}, correctly sized for her body and "
+                   "worn the way it is designed to be worn. It is NOT held in the hand, NOT folded on furniture and "
+                   "NOT hung nearby.")
+        else:
+            uso = (f"She WEARS exactly ONE of the {qtd} original referenced units on her {area}; the remaining "
+                   f"{qtd - 1} unit(s) are neatly laid flat or hung on the existing furniture in the same scene, each "
+                   "individually visible, never merged, duplicated or recolored.")
+        bloco = (
+            "[ÉLÉVO V16.8.61 — WEARABLE PRODUCT: THE PRESENTER WEARS IT — HIGHEST PRIORITY]: "
+            "The referenced product is a wearable fashion item. " + uso + " "
+            "IDENTITY vs. CLOTHING: from the selected presenter take ONLY her face, hair, skin, eyes, body type, age "
+            "and personality. Any clothing mentioned in her person description, reference photo or WARDROBE request "
+            f"is VOID for the {area}: there the ONLY garment is the referenced product. Other body areas may follow "
+            f"that WARDROBE request only if it does not compete with the product; otherwise {complemento}. "
+            "FIT REALISM: true fabric drape, weight, folds, seams and stretch on a real body; natural creases at "
+            "joints; the print, color, cut, length, logos and details copied exactly from the product reference, "
+            "never redesigned or merged with another garment. "
+            f"FRAMING: {enquadramento}. "
+            "Any wording elsewhere about holding, gripping, lifting or resting the product on a surface does NOT "
+            "apply to the worn unit."
+        )
+        imagem = sec["prompt_imagem"]
+        video = sec["prompt_video"]
+        trocas_imagem = [
+            ("cinematic mid-shot POV handheld mobile phone selfie, vertical 9:16, chest-to-waist framing",
+             "authentic smartphone fashion UGC shot: " + enquadramento),
+            ("Physically correct grip, weight, gravity, true support and small contact shadows.",
+             "Physically correct fit, drape, fabric weight, gravity and natural body contact shadows."),
+            ("If handheld, keep it naturally close to the presenter torso; if not physically hand-holdable, "
+             "rest it on the original stable support. ", "It is worn by the presenter, not held or placed on a support. "),
+        ]
+        for velho, novo in trocas_imagem:
+            imagem = imagem.replace(velho, novo)
+        imagem = re.sub(r"Preserve her selected face, exact hair, skin, eyes and everyday wardrobe \(when a WARDROBE.*?video\);",
+                        "Preserve her selected face, exact hair, skin and eyes; her clothing follows the WEARABLE PRODUCT rule above;",
+                        imagem, count=1, flags=re.S)
+        imagem = imagem.replace("without bringing the held item unnaturally toward the phone lens",
+                                "without bringing the item unnaturally toward the phone lens")
+        # Inventário de kit: mesma frase usada no 360º/V9.2/3S (imagem e vídeo).
+        imagem = re.sub(r"Exactly ONE original referenced unit is shown, in a natural grip only if its actual size "
+                        r"permits; otherwise it rests firmly on the existing stable surface\.", uso, imagem)
+        imagem = re.sub(r"Only ONE may be held naturally if physically feasible; the remaining \d+ rest on an existing "
+                        r"stable support\. If holding is not practical, all remain supported\.", "", imagem)
+        imagem = re.sub(r"If physically hand-holdable, place at most ONE original item in one natural hand at torso "
+                        r"depth and put the remaining (\d+) original unit\(s\) individually on the same existing stable "
+                        r"support; otherwise support all items\. ",
+                        lambda m: f"The presenter wears ONE item; the remaining {m.group(1)} original unit(s) rest "
+                                  "individually laid flat or hung on the same existing furniture. ", imagem)
+        imagem = bloco + "\n" + imagem
+
+        video = re.sub(r"Exactly ONE original referenced unit is shown, in a natural grip only if its actual size "
+                       r"permits; otherwise it rests firmly on the existing stable surface\.", uso, video)
+        video = re.sub(r"Only ONE may be held naturally if physically feasible; the remaining \d+ rest on an existing "
+                       r"stable support\. If holding is not practical, all remain supported\.", "", video)
+        video = video.replace("Maintain every ORIGINAL unit as a distinct rigid object from 00:00 to the final frame.",
+                              "Maintain every ORIGINAL unit as the same distinct physical item from 00:00 to the final "
+                              "frame; the worn unit stays worn the whole time.")
+        video = re.sub(r"(10|12|15)s: (?:between|use|from) .*?(?= (?:Produto 3S: the product remains|Preserve the existing product-led opening))",
+                       lambda m: m.group(1) + "s: ONE unhurried fit movement while WEARING the product (a half-turn, a step or "
+                                 "smoothing the fabric); it is never taken off or held in the hand.",
+                       video, count=1, flags=re.S)
+        video = video.replace("hands never merge with packaging or lose continuous grip.",
+                              "hands never merge with the fabric or the body.")
+        video = re.sub(
+            r"(Shot 1 \(00:00–00:03, NATURAL V9 HOOK\)): .*?(?=\n)",
+            lambda m: m.group(1) + ": A candid smartphone shot opens on the presenter WEARING the referenced item, "
+                      "framed so the whole worn piece is visible, in the same real environment. One natural, small "
+                      "movement (a half-turn, a step or a hand smoothing the fabric) shows the fit; the product keeps "
+                      "exactly its look and on-screen size from the approved still.",
+            video, count=1, flags=re.S)
+        video = re.sub(
+            r"(🫱 Interaction \([^,]*), NATURAL PHYSICAL ACTION\): .*?(?=\n🎞️ Closing)",
+            lambda m: m.group(1) + ", WEARABLE FIT DEMONSTRATION): ONE natural, unhurried move that shows the worn "
+                      "product: a slow quarter-turn to show the side and fit, a hand smoothing the fabric, a light "
+                      "pinch showing thickness and stretch, or a short step showing movement and drape. The garment "
+                      "moves with real weight, inertia and stretch and settles back; it is never taken off, swapped "
+                      "or re-colored. Existing leaves and fabric respond only to a believable breeze; if an animal "
+                      "already exists in this approved scene, only it makes a discreet natural living micro-motion.",
+            video, count=1, flags=re.S)
+        video = re.sub(
+            r"ONE NON-REPEATING ACTION ARC: .*?The product keeps the exact on-screen size of the approved still\. ",
+            "ONE NON-REPEATING ACTION ARC: the product is WORN for the whole clip; she makes ONE natural fit "
+            "movement (quarter-turn, step or smoothing the fabric) and settles ONCE; both hands stay free. "
+            "The worn product keeps the exact look and on-screen size of the approved still. ",
+            video, count=1, flags=re.S)
+        video = bloco + "\n" + video
+        novo = ("### 📸 PROMPT DE IMAGEM\n" + imagem + "\n\n"
+                "### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO\n" + video + "\n\n"
+                "### 🔑 TÍTULOS SEO (Separados)\n" + sec["secao_seo_texto"])
+        conferido = extrair_blocos_roteiro(novo)
+        if conferido["secao_seo_texto"] != sec["secao_seo_texto"]:
+            raise ValueError("V16.8.61: alteração indevida no SEO.")
         return novo
 
     # ==========================================================
@@ -8521,6 +11666,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                 scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro)
                 gancho_sorteado_17 = selecionar_gancho_v11()
+                copy_17_v16875 = elevo_copy_diretriz_v16875(email_sessao, "Produto 3S" if st.session_state.get("elevo_produto_primeiro_3s_v16821", False) else "360º", segundos_video_v16829, scan_17)
                 direcao_v11_17 = selecionar_direcao_fisica_v11(email_sessao, "360")
                 contexto_mem_17, licoes_mem_17 = elevo_mem_contextualizar_v1(
                     email_sessao, "360", scan_17, img_produto.getvalue(),
@@ -8541,7 +11687,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_17.get('regra_pos_vid')}
 
             🚨 [REGRAS INQUEBRÁVEIS DE EXECUÇÃO]:
-            1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com um convite natural para conferir o produto na sacolinha, sem alegar oferta ou lote não confirmado! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
+            1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com convite contextual ao produto e ao link nativo do vídeo, sem falar sacolinha ou alegar oferta não confirmada! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
             2. POSICIONAMENTO FÍSICO UNIVERSAL: Se houver {scan_17.get('qtd')} unidades, use {scan_17.get('regra_pos_img')}. Mantenha as unidades nas mesmas posições em imagem/vídeo. NUNCA descreva aparência, cor, tamanho nominal ou rótulo do produto por texto.
             3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: nos blocos visuais, refira-se ao item apenas como 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
             4. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
@@ -8554,16 +11700,16 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
             Shot 1 (Natural Hook & Physics): [Escreva em inglês seguindo prioritariamente o PROTOCOLO FÍSICO REALISTA V10: smartphone estável, sem zoom agressivo, produto inteiro e contínuo do início ao fim, aplicando {scan_17.get('regra_pos_vid')} + CRITICAL REFERENCE PHYSICS: real-world product-to-hand scale without forced enlargement or miniature packaging + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
             Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while {scan_17.get('regra_pos_vid')}. ENVIRONMENT REINFORCEMENT LOCK: Repita em inglês todos os detalhes do cenário da imagem, plantas vivas, baguncinha e o animal se mexendo sutilmente no fundo.]
-            Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Interaction (Natural Closing): [0:08: The presenter keeps the exact product in clear view and makes a subtle natural pointing gesture, only if it matches her spoken invitation. No floating bag, product UI, digital object or fake shopping button.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
             🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
             Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da {nome_inf_ativa}:
-            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha, sem inventar lote, estoque, desconto ou preço numérico]"
+            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite IA original ligado a este produto, sem sacolinha; cada frase traz informação nova, sem repetir palavras, expressões ou ideias; sem inventar lote, estoque, desconto ou preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
             ⚠️ [PERGUNTA CURTA E FORTE SOBRE A DOR]? 🛑
             ✨ [SENSAÇÃO / SOLUÇÃO IMEDIATA]
-            🛒 CONFIRA NA SACOLINHA 👇
+            ✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]
 
             ### 🔑 TÍTULOS SEO (Separados)
             **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_17.get('dor_pt')}']
@@ -8596,8 +11742,13 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 instrucao_ouro += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                 if licoes_mem_17:
                     instrucao_ouro += "\n\n" + licoes_mem_17
+                if elevo_vestir_zona_v16861(scan_17):
+                    instrucao_ouro += ("\n\n[V16.8.61 — PRODUTO DE VESTIR] A {0} está VESTINDO o produto (não segura na mão). "
+                                       "A fala e o texto na tela falam como quem está usando: caimento, conforto, tecido, como fica no corpo. "
+                                       "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                 # Sempre ao FINAL: prevalece sobre exemplos históricos fixados em 9/10 s.
                 instrucao_ouro += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                instrucao_ouro += copy_17_v16875["texto"]
                 validar_cota_ia()
                 etapa_formato_elevo = "geracao_inicial_recuperacao"
                 conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
@@ -8623,6 +11774,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if st.session_state.get("elevo_produto_primeiro_3s_v16821", False):
                     # A imagem/fala/SEO do Bloco 17 permanecem literalmente intactos.
                     conteudo_texto = elevo_video_produto_3s_v16821(conteudo_texto)
+                # V16.8.57 — fala na medida da duração escolhida, sem repetição.
+                etapa_formato_elevo = "fala_duracao"
+                conteudo_texto = elevo_ajustar_fala_duracao_v16857(conteudo_texto, segundos_video_v16829)
                 # Última etapa universal: nenhuma influenciadora transfere atributos ao produto.
                 conteudo_texto = restaurar_matriz_v9_tres_criacoes_v16824(
                     conteudo_texto, scan_17, nome_inf_ativa, visual_inf_isolado_v16811,
@@ -8646,8 +11800,15 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 conteudo_texto = elevo_v10_fisica_video_apenas_v16836(
                     conteudo_texto,
                     modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
+                # V16.8.61 — produto de vestir: a influência VESTE o produto (sem conflito de roupa).
+                etapa_formato_elevo = "vestir_produto_360_produto_3s"
+                conteudo_texto = elevo_vestir_produto_v16861(
+                    conteudo_texto, scan_17,
+                    modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
                 etapa_formato_elevo = "deduplicar_regras_360_produto_3s"
                 conteudo_texto = elevo_deduplicar_regras_v1706(conteudo_texto)
+                etapa_formato_elevo = "copy_guard_360_produto_3s"
+                conteudo_texto = elevo_copy_guard_v16875(conteudo_texto, email_sessao, scan_17, "360º/3S", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_17_v16875)
                 etapa_formato_elevo = "quality_gate_360_produto_3s"
                 elevo_quality_gate_v1700(
                     conteudo_texto, scan_17,
@@ -8660,6 +11821,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
                 # Substitui o ÚNICO rascunho deste login (sem interferir no Banco 17.3).
                 elevo_rascunho_substituir_v16820(email_sessao, conteudo_texto)
+                elevo_copy_registrar_v16875(conteudo_texto, email_sessao, "360º/3S", copy_17_v16875)
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
             
                 
@@ -8699,6 +11861,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     img_b64_v92 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                     scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92)
                     gancho_sorteado_v92 = selecionar_gancho_v11()
+                    copy_92_v16875 = elevo_copy_diretriz_v16875(email_sessao, "V9.2", segundos_video_v16829, scan_v92)
                     direcao_v11_92 = selecionar_direcao_fisica_v11(email_sessao, "v9.2")
                     contexto_mem_92, licoes_mem_92 = elevo_mem_contextualizar_v1(
                         email_sessao, "v9.2", scan_v92, img_produto.getvalue(),
@@ -8719,7 +11882,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_v92.get('regra_pos_vid')}
 
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
-                1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com convite natural à sacolinha, sem alegar lote ou oferta inexistente!
+                1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com convite inédito para conferir o item no vínculo nativo do vídeo, sem usar sacolinha nem alegar lote ou oferta inexistente!
                 2. Preserve exatamente o AMBIENTE ELEVO escolhido (ou sorteado), com planta, baguncinha e um animal ao fundo; a FOTO anexada é referência exclusiva para o PRODUTO, nunca para o cenário. NÃO descreva fisicamente o produto em texto.
                 3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: no PROMPT DE IMAGEM e no PROMPT DE VÍDEO, mencione apenas 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
                 4. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha quantidade e identidade; apoio manual apenas se o tamanho real permitir, demais na bancada; nenhuma pode desaparecer ao mudar enquadramento.
@@ -8736,12 +11899,12 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
 
                 🎙️ Áudio (Gancho V9.2 — {segundos_video_v16829} Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA, SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM CONVITE ORIGINAL E ÚTIL AO LINK NATIVO DESTE VÍDEO, SEM SACOLINHA; CADA FRASE TRAZ INFORMAÇÃO NOVA, SEM REPETIR PALAVRAS, EXPRESSÕES OU IDEIAS; SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
                 "[SENSAÇÃO / RESULTADO IMEDIATO] ✨"
-                "CORRE NA SACOLINHA 🛒👇"
+                "✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]"
                 [RENDERIZAR ESTAS TRÊS FRASES DIRETAMENTE NO VÍDEO GERADO; tipografia legível, em português, sem cobrir o produto nem introduzir interface TikTok ou marca d’água. NÃO são apenas anotações para edição.]
 
                 Finalização P1 Blindada:
@@ -8783,7 +11946,12 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     instrucao_v92 += "\n\n" + DIRETRIZ_FINAL_ELEVO_V1685
                     if licoes_mem_92:
                         instrucao_v92 += "\n\n" + licoes_mem_92
+                    if elevo_vestir_zona_v16861(scan_v92):
+                        instrucao_v92 += ("\n\n[V16.8.61 — PRODUTO DE VESTIR] A {0} está VESTINDO o produto (não segura na mão). "
+                                          "A fala e o texto na tela falam como quem está usando: caimento, conforto, tecido, como fica no corpo. "
+                                          "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                     instrucao_v92 += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                    instrucao_v92 += copy_92_v16875["texto"]
                     validar_cota_ia()
                     etapa_formato_elevo = "geracao_inicial_recuperacao"
                     conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
@@ -8847,6 +12015,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                             exc_info=True,
                         )
                     # Mesma última barreira do 360º: apenas a identidade humana pode mudar.
+                    # V16.8.57 — fala na medida da duração escolhida, sem repetição.
+                    etapa_formato_elevo = "v92_fala_duracao"
+                    conteudo_v92 = elevo_ajustar_fala_duracao_v16857(conteudo_v92, segundos_video_v16829)
                     etapa_formato_elevo = "v92_restaurar_matriz_identidade"
                     conteudo_v92 = restaurar_matriz_v9_tres_criacoes_v16824(
                         conteudo_v92, scan_v92, nome_inf_ativa, visual_inf_isolado_v16811,
@@ -8864,6 +12035,9 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     etapa_formato_elevo = "v92_fisica_video_v10"
                     conteudo_v92 = elevo_v10_fisica_video_apenas_v16836(
                         conteudo_v92, modo='v9.2')
+                    # V16.8.61 — produto de vestir: a influência VESTE o produto (sem conflito de roupa).
+                    etapa_formato_elevo = "v92_vestir_produto"
+                    conteudo_v92 = elevo_vestir_produto_v16861(conteudo_v92, scan_v92, modo='v9.2')
                     etapa_formato_elevo = "deduplicar_regras_v92"
                     conteudo_v92 = elevo_deduplicar_regras_v1706(conteudo_v92)
                     # V17.0.6: assinatura ligada = assinatura obrigatória; sem falha silenciosa.
@@ -8879,6 +12053,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         _sec_logo_v1706 = extrair_blocos_roteiro(conteudo_v92)
                         if "[ÉLÉVO V17.0.6 — V9.2 FINAL BRAND SIGNATURE — REQUIRED]" not in _sec_logo_v1706["prompt_video"]:
                             raise ValueError("V17.0.6: V9.2 não pode ser aprovada sem a assinatura final.")
+                    etapa_formato_elevo = "copy_guard_v92"
+                    conteudo_v92 = elevo_copy_guard_v16875(conteudo_v92, email_sessao, scan_v92, "V9.2", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_92_v16875)
                     etapa_formato_elevo = "quality_gate_v92"
                     elevo_quality_gate_v1700(conteudo_v92, scan_v92, modo="v9.2")
                     etapa_formato_elevo = "v92_salvar_estado_sessao"
@@ -8890,6 +12066,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     # Mesma regra de rascunho temporário do motor 360º.
                     etapa_formato_elevo = "v92_salvar_rascunho"
                     elevo_rascunho_substituir_v16820(email_sessao, conteudo_v92)
+                    elevo_copy_registrar_v16875(conteudo_v92, email_sessao, "V9.2", copy_92_v16875)
                     st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
@@ -8907,6 +12084,128 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         except Exception: pass
                     loader_v92_slot.empty()
                     mostrar_erro_criacao_v1686(e, "Bloco 17.2 — " + locals().get("etapa_formato_elevo", "preparacao"))
+
+    # ==========================================================
+    # V16.8.60 — EXECUÇÃO DO 4º MOTOR: MÃOS VIRAL
+    # ==========================================================
+    if btn_gerar_maos_v16860 and pode_gerar_roteiro:
+        if not img_produto:
+            st.warning("⚠️ Suba a **📸 Foto do Produto** primeiro!")
+        else:
+            loader_maos_slot_v16860 = st.empty()
+            elevo_render_loader_vip_v1709(loader_maos_slot_v16860, "Mãos Viral")
+            _debito_maos_v16860 = None
+            try:
+                _debito_maos_v16860 = elevo_credito_reservar_v16813(ELEVO_CUSTO_PROMPT_V16813, "PROMPT_MAOS_VIRAL")
+                etapa_formato_elevo = "maos_scanner"
+                img_b64_maos = base64.b64encode(img_produto.getvalue()).decode("utf-8")
+                scan_maos = escanear_dor_e_contagem_da_foto(img_b64_maos)
+                gancho_maos = selecionar_gancho_v11()
+                copy_maos_v16875 = elevo_copy_diretriz_v16875(email_sessao, "Mãos Viral", segundos_video_v16829, scan_maos)
+                direcao_maos = selecionar_direcao_fisica_v11(email_sessao, "maos")
+                ambiente_maos = str(direcao_maos.get("escolhido", ""))
+                categoria_maos = elevo_maos_categoria_v16860(scan_maos)
+                estilo_maos, superficie_maos = elevo_maos_resolver_v16860(
+                    st.session_state.get("elevo_maos_estilo_v16860", "surpresa"),
+                    st.session_state.get("elevo_maos_superficie_v16860", "auto"),
+                    ambiente_maos, categoria_maos)
+                contexto_mem_maos, licoes_mem_maos = elevo_mem_contextualizar_v1(
+                    email_sessao, "maos", scan_maos, img_produto.getvalue(), nome_inf_ativa, ambiente_maos)
+                _acoes_maos = ELEVO_MAOS_ESTILOS_V16860[estilo_maos]["roupa" if categoria_maos == "roupa" else "geral"]
+                _rot_estilo_maos = ELEVO_MAOS_ESTILOS_V16860[estilo_maos]["rotulo"]
+                _rot_sup_maos = ELEVO_MAOS_SUPERFICIES_V16860[superficie_maos]["rotulo"]
+
+                instrucao_maos = f"""
+            Atue como o MOTOR MÃOS VIRAL da ÉLÉVO: vídeos curtos brasileiros em que SÓ AS MÃOS da {nome_inf_ativa} aparecem mostrando o produto (sem rosto), no estilo dos vídeos de produto que mais param a rolagem no TikTok e no Reels.
+
+            🔍 [DIAGNÓSTICO DE NEUROMARKETING EXTRAÍDO DA FOTO ENVIADA]:
+            - Produto/Kit: {scan_maos.get('nome_pt')}
+            - Quantidade Exata de Unidades na Foto: {scan_maos.get('qtd')} unidade(s)
+            - A DOR REAL QUE ELE RESOLVE: {scan_maos.get('dor_pt')}
+            - A SENSAÇÃO / TRANSFORMAÇÃO REAL QUE ELE ENTREGA: {scan_maos.get('solucao_pt')}
+            - ÂNGULO DE GANCHO SORTEADO: {gancho_maos}
+            - ESTILO VISUAL DESTE VÍDEO: {_rot_estilo_maos} • ONDE APARECE: {_rot_sup_maos}
+            - O QUE AS MÃOS FAZEM (já definido pela ÉLÉVO, a fala deve conversar com isso): abertura = {_acoes_maos['hook']}; depois = {_acoes_maos['demo']}
+
+            🚨 [REGRAS]:
+            1. A {nome_inf_ativa} NÃO aparece: a voz dela é NARRAÇÃO EM OFF, como quem filma as próprias mãos. Nunca diga "olha pra mim", "olha minha cara" ou algo que dependa do rosto.
+            2. FALA VIRAL: a primeira frase tem no máximo 6 palavras e prende na hora (curiosidade, choque leve ou confissão). Depois: dor → o que as mãos estão mostrando (sensação concreta: textura, peso, tamanho, caimento) → convite original que retoma o problema e indica o link nativo do item. Sem sacolinha. Tom de amiga, português do Brasil natural.
+            3. É PROIBIDO inventar preço, desconto, estoque, prazo, lote ou benefício que não esteja na dor/sensação acima. Nunca descreva cor, rótulo ou embalagem do produto.
+            4. A parte visual será montada pela matriz fixa da ÉLÉVO; aqui escreva só um rascunho visual curto em inglês.
+
+            ENTREGUE EXATAMENTE NESTE FORMATO DE 3 SEÇÕES:
+
+            ### 📸 PROMPT DE IMAGEM
+            [Rascunho curto em inglês (2 a 4 frases): hands-only shot of the exact referenced product, no face.]
+
+            ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
+            [Rascunho curto em inglês (2 a 4 frases) da ação das mãos.]
+
+            🎙️ Voz da {nome_inf_ativa} (narração em off — {segundos_video_v16829} segundos):
+            "[Escreva em português a fala de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos, aplicando '{gancho_maos}'; cada frase traz informação nova, sem repetir palavras, expressões ou ideias]"
+
+            📝 Texto na Tela (Nativo TikTok):
+            ⚡ [GANCHO CURTO QUE PARA A ROLAGEM]
+            ✨ [SENSAÇÃO QUE AS MÃOS ESTÃO PROVANDO]
+            ✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]
+
+            ### 🔑 TÍTULOS SEO (Separados)
+            **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_maos.get('dor_pt')}']
+            **💡 Solução (Produto):** [Nome completo do produto/kit]
+            **🏷️ Marca (Resenha):** [Marca e nome do produto/kit resenha]
+            """
+                if explicacao_video_usuario and explicacao_video_usuario.strip():
+                    instrucao_maos += f"\n\nNOTA DE DIREÇÃO DO USUÁRIO (respeite na fala e no tom): {explicacao_video_usuario.strip()}"
+                if licoes_mem_maos:
+                    instrucao_maos += "\n\n" + licoes_mem_maos
+                instrucao_maos += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                instrucao_maos += copy_maos_v16875["texto"]
+                instrucao_maos += ("\n\n[MÃOS VIRAL — PRIORIDADE FINAL] Ignore qualquer menção a revelar a apresentadora, "
+                                   "rosto, olhar para a câmera ou entrada da influenciadora: neste motor ela só aparece pelas mãos "
+                                   "e pela voz em off.")
+                validar_cota_ia()
+                etapa_formato_elevo = "maos_geracao"
+                conteudo_maos = gerar_roteiro_com_recuperacao_v1689(
+                    instrucao_maos,
+                    "Você é roteirista de vídeos virais brasileiros de produto em que só as mãos aparecem. "
+                    "Escreva fala curta, magnética e verdadeira, sem inventar ofertas. A foto separada determina o produto.",
+                    temperatura=0.8)
+                etapa_formato_elevo = "maos_fala_duracao"
+                conteudo_maos = elevo_ajustar_fala_duracao_v16857(conteudo_maos, segundos_video_v16829)
+                etapa_formato_elevo = "maos_matriz_visual"
+                conteudo_maos = elevo_matriz_maos_v16860(
+                    conteudo_maos, scan_maos, nome_inf_ativa, visual_inf_isolado_v16811, ambiente_maos,
+                    estilo_maos, superficie_maos, segundos_video_v16829,
+                    observacao_ambiente=st.session_state.get("elevo_ambiente_obs", ""),
+                    categoria=categoria_maos)
+                etapa_formato_elevo = "maos_deduplicar"
+                conteudo_maos = elevo_deduplicar_regras_v1706(conteudo_maos)
+                etapa_formato_elevo = "maos_copy_guard"
+                conteudo_maos = elevo_copy_guard_v16875(conteudo_maos, email_sessao, scan_maos, "Mãos Viral", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_maos_v16875)
+                etapa_formato_elevo = "maos_quality_gate"
+                elevo_quality_gate_v1700(conteudo_maos, scan_maos, modo="maos")
+                st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
+                st.session_state["elevo_roteiro_limpo_sessao_v1688"] = False
+                st.session_state["roteiro_temporario"] = conteudo_maos
+                contexto_mem_maos["roteiro_hash"] = hashlib.sha256(conteudo_maos.encode("utf-8")).hexdigest()
+                st.session_state["elevo_mem_v1_contexto"] = contexto_mem_maos
+                elevo_rascunho_substituir_v16820(email_sessao, conteudo_maos)
+                elevo_copy_registrar_v16875(conteudo_maos, email_sessao, "Mãos Viral", copy_maos_v16875)
+                st.session_state["elevo_hist_erro_gravacao_v16817"] = False
+                loader_maos_slot_v16860.empty()
+                st.success(f"🤲 Mãos Viral pronto: {_rot_estilo_maos} • {_rot_sup_maos} • "
+                           f"{int(segundos_video_v16829)}s ({scan_maos.get('qtd')} unidade(s))!")
+                time.sleep(1)
+                st.rerun()
+            except ElevoCreditoErroV16813 as exc:
+                loader_maos_slot_v16860.empty()
+                st.warning(str(exc))
+            except Exception as e:
+                if _debito_maos_v16860:
+                    try: elevo_credito_estornar_v16813(_debito_maos_v16860, ELEVO_CUSTO_PROMPT_V16813)
+                    except Exception: pass
+                loader_maos_slot_v16860.empty()
+                mostrar_erro_criacao_v1686(e, "Mãos Viral — " + locals().get("etapa_formato_elevo", "preparacao"))
 
     # ==========================================================
     # V16.8.12 — LAPIDAÇÃO VISUAL VIP (EXCLUSIVAMENTE CAMADA DE EXIBIÇÃO)
@@ -9093,12 +12392,18 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
     if st.session_state["roteiro_temporario"]:
         with st.container(border=True, key="elevo_resultado_v16812"):
             partes_roteiro = extrair_blocos_roteiro(st.session_state["roteiro_temporario"])
+            st.markdown(
+                '<div class="elevo-res-topo"><div class="elevo-res-selo">✦</div><div>'
+                '<span class="elevo-res-kicker">PACOTE GERADO</span>'
+                '<div class="elevo-res-titulo">Seu criativo está pronto</div>'
+                f'<small>Vídeo de {int(st.session_state.get("elevo_ultima_duracao_gerada_v16829", 10))}s · '
+                'copie cada parte com um toque</small></div></div>', unsafe_allow_html=True)
         
             if partes_roteiro["prompt_imagem"] and partes_roteiro["prompt_video"]:
                 # 1. SEÇÃO PROMPT DE IMAGEM + BOTÃO À DIREITA
                 col_tit_img, col_btn_img = st.columns([7, 3])
                 with col_tit_img:
-                    st.markdown("### 📸 PROMPT DE IMAGEM")
+                    st.markdown('<div class="elevo-res-bloco"><span class="ic">📸</span><div><b>Prompt de imagem</b><small>Cole no gerador de imagem</small></div></div>', unsafe_allow_html=True)
                 with col_btn_img:
                     render_botao_copiar_vip(partes_roteiro["prompt_imagem"], "📋 Copiar Imagem", "copy_img_360")
             
@@ -9108,7 +12413,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 # 2. SEÇÃO PROMPT DE VÍDEO (ATÉ TEXTO NA TELA) + BOTÃO À DIREITA
                 col_tit_vid, col_btn_vid = st.columns([7, 3])
                 with col_tit_vid:
-                    st.markdown("### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO")
+                    st.markdown('<div class="elevo-res-bloco"><span class="ic">🎬</span><div><b>Prompt de vídeo completo</b><small>Use com a imagem aprovada</small></div></div>', unsafe_allow_html=True)
                 with col_btn_vid:
                     render_botao_copiar_vip(partes_roteiro["prompt_video"], "📋 Copiar Vídeo", "copy_vid_360")
                 
@@ -9120,11 +12425,11 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.divider()
             
                 # 3. SEÇÃO TÍTULOS SEO + BOTÃO 1, BOTÃO 2, BOTÃO 3 EMBAIXO
-                st.markdown("### 🔑 TÍTULOS SEO (Separados)")
+                st.markdown('<div class="elevo-res-bloco"><span class="ic">🔑</span><div><b>Títulos SEO</b><small>Três versões prontas para publicar</small></div></div>', unsafe_allow_html=True)
                 with st.expander("▸ Ver os 3 títulos SEO completos", expanded=False):
                     st.markdown(partes_roteiro["secao_seo_texto"])
             
-                st.markdown("<p style='font-size: 0.85rem; color: #00E5FF; font-weight: 600; margin-top: 10px; margin-bottom: 5px;'>📲 Cópia Rápida de Títulos (Celular/PC):</p>", unsafe_allow_html=True)
+                st.markdown('<div class="elevo-res-rapida">📲 Cópia rápida de títulos</div>', unsafe_allow_html=True)
                 col_t1, col_t2, col_t3 = st.columns(3)
                 with col_t1:
                     render_botao_copiar_vip(partes_roteiro["titulo_1"], "📋 Botão 1 (Título 1)", "copy_t1")
@@ -9229,86 +12534,190 @@ components.html(r"""
   try {
     const doc = window.parent.document;
     const W = window.parent;
-    if (W.__elevoVoice1683 && W.__elevoVoice1683.install) {
-      W.__elevoVoice1683.install();
-      return;
-    }
+    // V16.8.62 — microfone profissional. Instala uma única vez por página.
+    if (W.__elevoVoz16862 && W.__elevoVoz16862.install) { W.__elevoVoz16862.install(); return; }
+    // Desliga a versão antiga (1683) se ainda estiver ativa nesta aba.
+    try { doc.body.setAttribute('data-elevo-no-voice', '1'); } catch (e) {}
+    doc.querySelectorAll('.elevo-voz-btn-1683').forEach(b => b.remove());
+
     const SR = W.SpeechRecognition || W.webkitSpeechRecognition;
-    let gravador = null;
-    let botaoAtivo = null;
+    const ICONE = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2.5" width="6" height="11.5" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0"/><path d="M12 17.5V21"/></svg>';
+    const ONDAS = '<span class="evm-ondas" aria-hidden="true"><i></i><i></i><i></i><i></i></span>';
+
+    // Somente campos de ESCREVER do Streamlit (lista branca): área de texto e campo de texto simples.
     function campoPermitido(el) {
-      if (!el || !el.matches || !el.matches('textarea, input')) return false;
-      const tipo = (el.getAttribute('type') || 'text').toLowerCase();
-      if (!['text','search','url'].includes(tipo)) return false;
-      if (el.disabled || el.readOnly || el.getAttribute('autocomplete') === 'one-time-code') return false;
-      if (el.closest('[data-elevo-no-voice]')) return false;
+      if (!el || !el.matches) return false;
+      let ok = false;
+      if (el.tagName === 'TEXTAREA') ok = !!el.closest('[data-testid="stTextArea"], .stTextArea');
+      else if (el.tagName === 'INPUT') {
+        const tipo = (el.getAttribute('type') || 'text').toLowerCase();
+        ok = tipo === 'text' && !!el.closest('[data-testid="stTextInput"], .stTextInput');
+      }
+      if (!ok) return false;
+      if (el.closest('[data-testid="stSelectbox"], [data-testid="stMultiSelect"], [data-baseweb="select"], [role="listbox"], [data-baseweb="popover"], [data-testid="stNumberInput"], [data-testid="stDateInput"], [data-testid="stTimeInput"], [data-testid="stChatInput"]')) return false;
+      if ((el.getAttribute('role') || '') === 'combobox' || el.hasAttribute('aria-autocomplete')) return false;
+      if (el.disabled || el.readOnly) return false;
       const rotulo = ((el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('placeholder') || '')).toLowerCase();
-      if (/senha|password|token|chave secreta|api.?key|email|e-mail|gmail|código de segurança/.test(rotulo)) return false;
-      if ((el.getAttribute('placeholder') || '').toLowerCase().includes('achado secreto ou minha loja')) return false;
+      if (/senha|password|token|chave secreta|api.?key|e-?mail|gmail|@|código de segurança|achado secreto ou minha loja|link|url|https?:/.test(rotulo)) return false;
       return true;
     }
-    function inserirTexto(el, texto) {
-      const antigo = el.value || '';
-      const novo = antigo.trim() ? antigo.replace(/\s+$/, '') + ' ' + texto.trim() : texto.trim();
+
+    // ---------- Aviso flutuante (estilo app profissional) ----------
+    let toast = null, toastTimer = null;
+    function aviso(texto, estado) {
+      if (!toast) {
+        toast = doc.createElement('div');
+        toast.className = 'evm-toast';
+        toast.setAttribute('role', 'status');
+        toast.setAttribute('aria-live', 'polite');
+        doc.body.appendChild(toast);
+      }
+      clearTimeout(toastTimer);
+      toast.dataset.estado = estado || 'info';
+      const titulo = estado === 'ouvindo' ? 'Ouvindo' : (estado === 'erro' ? 'Microfone' : 'Ditado');
+      toast.innerHTML = (estado === 'ouvindo' ? ONDAS : '<span class="evm-ico">' + ICONE + '</span>') +
+        '<div class="evm-txt"><b>' + titulo + '</b><span></span></div>' +
+        (estado === 'ouvindo' ? '<em>Toque no microfone para parar</em>' : '');
+      toast.querySelector('.evm-txt span').textContent = texto;
+      toast.classList.add('on');
+      if (estado !== 'ouvindo') toastTimer = setTimeout(() => toast && toast.classList.remove('on'), 3800);
+    }
+    function avisoTexto(texto) {
+      if (toast && toast.dataset.estado === 'ouvindo') {
+        const s = toast.querySelector('.evm-txt span');
+        if (s) s.textContent = texto;
+      }
+    }
+    function fecharAviso() { if (toast) toast.classList.remove('on'); }
+
+    // ---------- Escrita no campo + confirmação para o Streamlit ----------
+    function definirValor(el, valor) {
+      const max = parseInt(el.getAttribute('maxlength') || '0', 10);
+      if (max > 0 && valor.length > max) valor = valor.slice(0, max);
       const proto = el.tagName === 'TEXTAREA' ? W.HTMLTextAreaElement.prototype : W.HTMLInputElement.prototype;
-      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, novo);
-      el.dispatchEvent(new W.Event('input', {bubbles:true}));
-      el.dispatchEvent(new W.Event('change', {bubbles:true}));
-      el.focus();
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(el, valor);
+      el.dispatchEvent(new W.Event('input', { bubbles: true }));
     }
-    function stop() {
-      if (gravador) { try {gravador.stop();} catch(e){} }
-      if (botaoAtivo) {botaoAtivo.textContent='🎙️';botaoAtivo.removeAttribute('data-listening');}
-      gravador=null;botaoAtivo=null;
+    function confirmar(el) {
+      // O Streamlit só registra o texto quando o campo "perde o foco".
+      // Sem isso, o texto aparecia na tela mas a criação usava o valor antigo.
+      el.dispatchEvent(new W.Event('change', { bubbles: true }));
+      el.dispatchEvent(new W.FocusEvent('blur'));
+      el.dispatchEvent(new W.FocusEvent('focusout', { bubbles: true }));
     }
-    function toggle(el, btn) {
-      if (gravador) { stop(); return; }
-      if (!SR) { btn.title='Ditado não disponível. Use Chrome/Edge com acesso ao microfone.'; btn.textContent='⚠️';return; }
-      try {
-        gravador = new SR();
-        botaoAtivo = btn;
-        gravador.lang='pt-BR'; gravador.continuous=false; gravador.interimResults=false;
-        gravador.onstart=()=>{btn.textContent='🔴';btn.setAttribute('data-listening','1');};
-        gravador.onresult=(event)=>{
-          let texto='';
-          for(let i=event.resultIndex;i<event.results.length;i++){
-            if(event.results[i].isFinal) texto += event.results[i][0].transcript + ' ';
-          }
-          if(texto.trim()) inserirTexto(el,texto);
-        };
-        gravador.onerror=()=>{btn.title='Verifique a permissão do microfone no navegador.';stop();};
-        gravador.onend=stop;
-        gravador.start();
-      } catch(e) {stop();btn.title='Microfone indisponível neste navegador.';}
+    function juntar(base, novo) {
+      novo = novo.replace(/\s+/g, ' ').trim();
+      if (!novo) return base;
+      const b = base.replace(/\s+$/, '');
+      if (!b || /[.!?]$/.test(b)) novo = novo.charAt(0).toUpperCase() + novo.slice(1);
+      return b ? b + ' ' + novo : novo;
     }
+
+    // ---------- Reconhecimento de voz ----------
+    let sessao = null; // {el, btn, rec, base, finais, parando, ultimo}
+    function encerrar(motivo) {
+      if (!sessao) return;
+      const s = sessao; sessao = null;
+      s.parando = true;
+      try { s.rec.stop(); } catch (e) {}
+      s.btn.removeAttribute('data-ouvindo');
+      s.btn.setAttribute('aria-pressed', 'false');
+      s.btn.title = 'Ditar por voz (português)';
+      s.btn.innerHTML = ICONE;
+      confirmar(s.el);
+      if (motivo) aviso(motivo, motivo.startsWith('✓') ? 'ok' : 'erro'); else fecharAviso();
+    }
+    function iniciar(el, btn) {
+      if (sessao) { const mesmo = sessao.el === el; encerrar(mesmo ? '✓ Texto inserido no campo.' : ''); if (mesmo) return; }
+      if (!SR) { aviso('Ditado por voz não é compatível com este navegador. Use Google Chrome ou Microsoft Edge.', 'erro'); return; }
+      const rec = new SR();
+      rec.lang = 'pt-BR'; rec.continuous = true; rec.interimResults = true; rec.maxAlternatives = 1;
+      const s = { el, btn, rec, base: el.value || '', finais: '', parando: false, ultimo: Date.now(), reinicios: 0 };
+      sessao = s;
+      rec.onstart = () => {
+        btn.setAttribute('data-ouvindo', '1');
+        btn.setAttribute('aria-pressed', 'true');
+        btn.title = 'Parar o ditado';
+        btn.innerHTML = '<span class="evm-quadrado" aria-hidden="true"></span>';
+        aviso('Pode falar, estou escrevendo no campo…', 'ouvindo');
+      };
+      rec.onresult = (ev) => {
+        if (sessao !== s) return;
+        let provisorio = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const r = ev.results[i];
+          if (r.isFinal) s.finais = juntar(s.finais, r[0].transcript);
+          else provisorio += r[0].transcript;
+        }
+        s.ultimo = Date.now();
+        const texto = juntar(juntar(s.base, s.finais), provisorio);
+        definirValor(el, texto);
+        if (!provisorio) confirmar(el);
+        avisoTexto((provisorio || s.finais || '…').slice(-90));
+      };
+      rec.onerror = (e) => {
+        if (sessao !== s) return;
+        const msg = {
+          'not-allowed': 'Permita o uso do microfone: clique no cadeado ao lado do endereço do site e ative “Microfone”.',
+          'service-not-allowed': 'O navegador bloqueou o ditado. Use Google Chrome ou Microsoft Edge.',
+          'audio-capture': 'Nenhum microfone foi encontrado neste aparelho.',
+          'network': 'Sem conexão com o serviço de voz. Verifique a internet e tente de novo.',
+          'no-speech': 'Não ouvi nada. Toque no microfone e fale um pouco mais perto.',
+          'language-not-supported': 'Português não está disponível no ditado deste navegador.'
+        }[e.error];
+        if (e.error === 'no-speech' && s.finais) return; // pausa normal depois de já ter falado
+        if (e.error === 'aborted') return;
+        encerrar(msg || 'O ditado parou. Toque no microfone para tentar de novo.');
+      };
+      rec.onend = () => {
+        if (sessao !== s || s.parando) return;
+        // O Chrome encerra sozinho após pausas: retoma até 20 s sem fala ou o usuário parar.
+        if (Date.now() - s.ultimo < 20000 && s.reinicios < 30) {
+          s.reinicios++;
+          try { rec.start(); return; } catch (err) {}
+        }
+        encerrar(s.finais ? '✓ Texto inserido no campo.' : '');
+      };
+      try { rec.start(); }
+      catch (e) { sessao = null; aviso('Não foi possível ligar o microfone agora. Tente de novo.', 'erro'); }
+    }
+
+    // ---------- Botões ----------
     function instalar() {
-      doc.querySelectorAll('textarea, input').forEach(el=>{
-        if (!campoPermitido(el)) return;
+      doc.querySelectorAll('[data-testid="stTextArea"] textarea, .stTextArea textarea, [data-testid="stTextInput"] input, .stTextInput input').forEach(el => {
         const pai = el.parentElement;
-        if (!pai || pai.querySelector(':scope > .elevo-voz-btn-1683')) return;
-        el.dataset.elevoVoz1683='1';
-        pai.style.position='relative';
-        const b=doc.createElement('button');
-        b.type='button';b.textContent='🎙️';b.title='Ditar texto em português (voz para texto)';
-        b.setAttribute('aria-label','Ditar neste campo'); b.className='elevo-voz-btn-1683';
-        Object.assign(b.style,{position:'absolute',right:'10px',top:'8px',zIndex:'20',border:'1px solid #26718c',
-          borderRadius:'9px',background:'#10263c',color:'#dffaff',height:'32px',width:'35px',fontSize:'15px',
-          cursor:'pointer',padding:'0',lineHeight:'1'});
-        el.style.paddingRight='52px';
-        b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();toggle(el,b);});
+        if (!pai) return;
+        const existente = pai.querySelector(':scope > .evm-btn');
+        if (!campoPermitido(el)) { if (existente) existente.remove(); return; }
+        if (existente) return;
+        pai.style.position = 'relative';
+        const b = doc.createElement('button');
+        b.type = 'button';
+        b.className = 'evm-btn' + (el.tagName === 'TEXTAREA' ? ' evm-area' : ' evm-linha');
+        b.innerHTML = ICONE;
+        b.title = 'Ditar por voz (português)';
+        b.setAttribute('aria-label', 'Ditar por voz neste campo');
+        b.setAttribute('aria-pressed', 'false');
+        el.classList.add('evm-com-mic');
+        b.addEventListener('mousedown', ev => ev.preventDefault()); // não rouba o foco do campo
+        b.addEventListener('click', ev => { ev.preventDefault(); ev.stopPropagation(); iniciar(el, b); });
         pai.appendChild(b);
       });
+      // Remove microfones órfãos (campo saiu da tela) e encerra ditado de campo removido.
+      doc.querySelectorAll('.evm-btn').forEach(b => {
+        if (!b.parentElement || !b.parentElement.querySelector('textarea, input')) b.remove();
+      });
+      if (sessao && !doc.body.contains(sessao.el)) encerrar('');
     }
-    W.__elevoVoice1683={install:instalar};
+    W.__elevoVoz16862 = { install: instalar };
     instalar();
-    let agendado=false;
-    const observer=new W.MutationObserver(()=>{
-      if(agendado) return;
-      agendado=true;
-      W.requestAnimationFrame(()=>{agendado=false;instalar();});
-    });
-    observer.observe(doc.body,{childList:true,subtree:true});
-  } catch(e) { /* Alguns navegadores isolam iframes; digitação manual continua disponível. */ }
+    let agendado = false;
+    new W.MutationObserver(() => {
+      if (agendado) return;
+      agendado = true;
+      W.requestAnimationFrame(() => { agendado = false; instalar(); });
+    }).observe(doc.body, { childList: true, subtree: true });
+  } catch (e) { /* Se o navegador isolar o iframe, a digitação manual continua normal. */ }
 })();
 </script>
 """, height=0, width=0)
@@ -9557,11 +12966,6 @@ if not modo_claro:
     }
     </style>
     """, unsafe_allow_html=True)
-
-
-
-# ==========================================================
-
 
 # ==========================================================
 # ÉLÉVO V16.8.24 — ACABAMENTO VIP APROVADO / SOMENTE INTERFACE
@@ -10386,3 +13790,589 @@ li[role="option"]:hover,li[aria-selected="true"] {color:white!important;backgrou
 }
 </style>
 """, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.54 — CAMADA FINAL: ORGANIZAÇÃO + PROFUNDIDADE "UAU"
+# Mesma paleta do app (azul/ciano/dourado/verde-água). Só layout, sombra e brilho.
+# ==========================================================
+_tokens_v16854 = ({
+    "__TEXT__": "#092853", "__MUTED__": "#566F90", "__ACCENT__": "#1457A1",
+    "__TOPBG__": "radial-gradient(ellipse at 96% 0%,rgba(25,125,255,.13),transparent 46%),linear-gradient(118deg,#FFFFFF,#F3F9FF 70%,#E3F1FF)",
+    "__TOPBORDER__": "#CADDF5",
+    "__TOPSHADOW__": "0 1px 2px rgba(15,45,95,.06),0 12px 28px rgba(22,77,147,.10),0 30px 60px -22px rgba(25,110,230,.28),inset 0 1px 0 #FFFFFF",
+    "__AVBG__": "#FFFFFF",
+    "__CARDSHADOW__": "0 1px 2px rgba(15,45,95,.05),0 10px 24px rgba(22,77,147,.08),0 26px 50px -24px rgba(22,77,147,.22)",
+    "__CARDSHADOW_H__": "0 2px 4px rgba(15,45,95,.06),0 16px 34px rgba(22,77,147,.12),0 34px 64px -26px rgba(25,110,230,.32)",
+    "__BTNSHADOW__": "0 1px 2px rgba(15,45,95,.08),0 6px 16px rgba(22,77,147,.10)",
+    "__BTNSHADOW_H__": "0 2px 4px rgba(15,45,95,.08),0 12px 26px rgba(25,110,230,.22)",
+    "__FOCUS__": "0 0 0 3px rgba(25,125,255,.20)",
+} if modo_claro else {
+    "__TEXT__": "#EAF2FF", "__MUTED__": "#9AAEC8", "__ACCENT__": "#8CCBFF",
+    "__TOPBG__": ("radial-gradient(ellipse at 92% 10%,rgba(62,151,226,.22),transparent 43%),"
+                  "radial-gradient(ellipse at 0% 100%,rgba(216,182,106,.07),transparent 40%),"
+                  "linear-gradient(118deg,rgba(17,37,64,.98),rgba(10,22,39,.96) 58%,rgba(16,35,56,.96))"),
+    "__TOPBORDER__": "rgba(100,174,231,.32)",
+    "__TOPSHADOW__": ("0 26px 60px rgba(0,0,0,.42),0 0 0 1px rgba(84,216,245,.05),"
+                      "0 0 46px rgba(49,132,204,.16),inset 0 1px 0 rgba(229,243,255,.10)"),
+    "__AVBG__": "#0B1628",
+    "__CARDSHADOW__": "0 20px 46px rgba(0,0,0,.34),0 6px 16px rgba(0,0,0,.22),0 0 30px rgba(45,137,207,.06),inset 0 1px 0 rgba(225,240,255,.08)",
+    "__CARDSHADOW_H__": "0 28px 60px rgba(0,0,0,.42),0 0 38px rgba(45,137,207,.16),inset 0 1px 0 rgba(225,240,255,.11)",
+    "__BTNSHADOW__": "0 8px 20px rgba(0,0,0,.30),inset 0 1px 0 rgba(255,255,255,.06)",
+    "__BTNSHADOW_H__": "0 12px 28px rgba(0,0,0,.36),0 0 22px rgba(84,216,245,.22)",
+    "__FOCUS__": "0 0 0 3px rgba(84,216,245,.22),0 0 18px rgba(84,216,245,.18)",
+})
+_css_v16854 = """
+<style>
+/* =================== TOPO =================== */
+.st-key-elevo_topbar_v16853 {
+  position:relative!important;overflow:hidden!important;
+  margin:0 0 24px!important;padding:16px 20px!important;border-radius:24px!important;
+  background:__TOPBG__!important;border:1px solid __TOPBORDER__!important;box-shadow:__TOPSHADOW__!important;}
+/* Feixe de luz percorrendo a borda superior. */
+.st-key-elevo_topbar_v16853::after {
+  content:"";position:absolute;top:0;left:-40%;width:40%;height:2px;pointer-events:none;
+  background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);
+  box-shadow:0 0 14px rgba(84,216,245,.7);animation:elevo-topo-feixe 6.5s cubic-bezier(.6,0,.4,1) infinite;}
+@keyframes elevo-topo-feixe {0%{left:-40%}60%,100%{left:110%}}
+.elevo-topbar-info {display:flex;align-items:center;gap:16px;min-width:0;padding:2px 2px;}
+.elevo-topbar-textos {display:flex;flex-direction:column;gap:5px;min-width:0;}
+.elevo-topbar-avatar {position:relative;flex:0 0 58px;width:58px;height:58px;border-radius:50%;
+  display:grid;place-items:center;isolation:isolate;
+  box-shadow:0 10px 26px rgba(25,110,230,.30),0 0 22px rgba(84,216,245,.22);}
+.elevo-topbar-avatar::before {content:"";position:absolute;inset:0;border-radius:50%;z-index:-2;
+  background:conic-gradient(from 0deg,#54D8F5,#1363D6,#D8B66A,#54D8F5);animation:elevo-avatar-giro 7s linear infinite;}
+.elevo-topbar-avatar::after {content:"";position:absolute;inset:3px;border-radius:50%;z-index:-1;background:__AVBG__;}
+.elevo-topbar-avatar span {font:900 1.45rem Montserrat,sans-serif;line-height:1;
+  background:linear-gradient(135deg,#54D8F5,#1363D6 55%,#D8B66A);-webkit-background-clip:text;background-clip:text;
+  color:transparent!important;-webkit-text-fill-color:transparent!important;}
+.elevo-topbar-avatar em {position:absolute;right:1px;bottom:3px;width:13px;height:13px;border-radius:50%;
+  background:#2FD39A;border:2.5px solid __AVBG__;box-shadow:0 0 10px #2FD39A;}
+@keyframes elevo-avatar-giro {to{transform:rotate(360deg)}}
+.elevo-topbar-kicker {font:800 .64rem Montserrat,sans-serif;letter-spacing:.18em;color:__ACCENT__!important;text-transform:uppercase;}
+.elevo-topbar-titulo {font:850 clamp(1.3rem,2.5vw,1.85rem)/1.12 Montserrat,sans-serif!important;
+  color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;letter-spacing:-.022em;margin:0!important;padding:0!important;
+  overflow-wrap:anywhere;}
+.elevo-topbar-sub {display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:.78rem;}
+.elevo-topbar-sub > span:first-child {color:__MUTED__!important;}
+.elevo-topbar-chip {display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;
+  border:1px solid rgba(71,220,169,.32);background:rgba(33,180,133,.09);
+  font:700 .66rem Montserrat,sans-serif;letter-spacing:.06em;color:#3FBF8F!important;}
+.elevo-topbar-chip i {width:7px;height:7px;border-radius:50%;background:#2FD39A;box-shadow:0 0 8px #2FD39A;
+  animation:elevo-pulso-on 2.2s ease-in-out infinite;}
+@keyframes elevo-pulso-on {50%{box-shadow:0 0 0 5px rgba(47,211,154,0),0 0 14px #2FD39A}}
+.st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] {display:flex;justify-content:flex-end;}
+.st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] p {font-weight:650!important;font-size:.82rem!important;white-space:nowrap;}
+.st-key-elevo_conta_pop_v16853 button,
+.st-key-elevo_topbar_v16853 [data-testid="stPopover"] button {min-height:46px!important;border-radius:14px!important;
+  font-weight:750!important;box-shadow:__BTNSHADOW__!important;}
+
+/* Botão SAIR: presente, sólido e com brilho de alerta. */
+.st-key-btn_logout button {
+  min-height:46px!important;border-radius:14px!important;border:1px solid rgba(255,140,160,.55)!important;
+  background:linear-gradient(135deg,#FF5A78 0%,#FF496B 45%,#D62A4E 100%)!important;
+  color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;font-weight:850!important;letter-spacing:.03em!important;
+  box-shadow:0 10px 24px rgba(255,73,107,.36),0 0 0 1px rgba(255,73,107,.10),inset 0 1px 0 rgba(255,255,255,.28)!important;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease!important;}
+.st-key-btn_logout button * {color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;font-weight:850!important;}
+.st-key-btn_logout button:hover {transform:translateY(-2px)!important;filter:brightness(1.06);
+  box-shadow:0 16px 34px rgba(255,73,107,.48),0 0 26px rgba(255,73,107,.30),inset 0 1px 0 rgba(255,255,255,.32)!important;}
+.st-key-btn_logout button:active {transform:translateY(0)!important;}
+.st-key-btn_logout button:focus-visible {outline:none!important;box-shadow:0 0 0 3px rgba(255,73,107,.35),0 10px 24px rgba(255,73,107,.36)!important;}
+
+/* =================== PROFUNDIDADE GERAL =================== */
+[data-testid="stVerticalBlockBorderWrapper"],[data-testid="stExpander"],[data-testid="stForm"],[data-testid="stMetric"] {
+  box-shadow:__CARDSHADOW__!important;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease!important;}
+[data-testid="stVerticalBlockBorderWrapper"]:hover,[data-testid="stMetric"]:hover {
+  box-shadow:__CARDSHADOW_H__!important;}
+[data-testid="stMetric"]:hover {transform:translateY(-2px);}
+.stButton > button,[data-testid="stFormSubmitButton"] > button,[data-testid="stDownloadButton"] > button {
+  box-shadow:__BTNSHADOW__!important;transition:transform .18s ease,box-shadow .18s ease!important;}
+.stButton > button:hover,[data-testid="stFormSubmitButton"] > button:hover,[data-testid="stDownloadButton"] > button:hover {
+  transform:translateY(-1px);box-shadow:__BTNSHADOW_H__!important;}
+.stButton > button[kind="primary"],[data-testid="stFormSubmitButton"] > button[kind="primary"] {
+  box-shadow:0 10px 26px rgba(19,99,214,.34),inset 0 1px 0 rgba(255,255,255,.22)!important;}
+.stButton > button[kind="primary"]:hover,[data-testid="stFormSubmitButton"] > button[kind="primary"]:hover {
+  box-shadow:0 16px 34px rgba(19,99,214,.44),0 0 24px rgba(84,216,245,.25),inset 0 1px 0 rgba(255,255,255,.26)!important;}
+[data-testid="stTextInput"] input:focus,[data-testid="stTextArea"] textarea:focus,
+[data-baseweb="select"] > div:focus-within {box-shadow:__FOCUS__!important;}
+[data-testid="stPopoverBody"],[data-baseweb="popover"] > div {box-shadow:0 24px 60px rgba(0,0,0,.28),0 0 0 1px rgba(84,216,245,.10)!important;border-radius:16px!important;}
+
+/* Atalhos rápidos com elevação e brilho. */
+.elevo-shortcut-grid a {box-shadow:__CARDSHADOW__!important;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease!important;}
+.elevo-shortcut-grid a:hover {transform:translateY(-3px)!important;box-shadow:__CARDSHADOW_H__!important;}
+
+/* =================== RITMO DAS SEÇÕES =================== */
+.elevo-secao-titulo {display:flex;align-items:center;justify-content:center;gap:10px;margin:10px 0 16px;
+  font:800 clamp(1.02rem,2vw,1.24rem) Montserrat,sans-serif;letter-spacing:.03em;color:#00BFA5!important;
+  -webkit-text-fill-color:#00BFA5!important;}
+.elevo-secao-titulo::before,.elevo-secao-titulo::after {content:"";height:1px;width:clamp(28px,8vw,90px);
+  background:linear-gradient(90deg,transparent,rgba(0,191,165,.6));}
+.elevo-secao-titulo::after {transform:scaleX(-1);}
+.elevo-secao-titulo span {filter:drop-shadow(0 0 7px rgba(0,191,165,.45));}
+[data-testid="stMainBlockContainer"] h3 {margin-top:.4rem!important;margin-bottom:.6rem!important;}
+hr {margin:1.6rem 0!important;opacity:.75;}
+.st-key-elevo_boas_vindas_v16824 {margin-bottom:2px;}
+
+/* =================== COMPUTADOR =================== */
+@media (min-width:1000px) {
+  .block-container {padding-top:1.4rem!important;}
+}
+
+/* =================== CELULAR =================== */
+@media (max-width:767px) {
+  .st-key-elevo_topbar_v16853 {padding:14px 13px!important;border-radius:20px!important;margin-bottom:16px!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] {flex-wrap:wrap!important;gap:.6rem!important;}
+  /* Linha 1: avatar + saudação. Linha 2: tema. Linha 3: conta e sair lado a lado. */
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1),
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
+    flex:1 1 100%!important;width:100%!important;min-width:100%!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3),
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) {
+    flex:1 1 calc(50% - .3rem)!important;width:calc(50% - .3rem)!important;min-width:0!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] {justify-content:flex-start;}
+  .elevo-topbar-avatar {flex-basis:50px;width:50px;height:50px;}
+  .elevo-topbar-avatar span {font-size:1.25rem;}
+  .elevo-topbar-titulo {font-size:1.3rem!important;}
+  .elevo-shortcut-grid {gap:10px!important;margin-bottom:18px!important;}
+  .elevo-shortcut-grid a {padding:14px 15px!important;}
+  [data-testid="stMetric"]:hover,.elevo-shortcut-grid a:hover {transform:none!important;}
+  hr {margin:1.1rem 0!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .st-key-elevo_topbar_v16853::after,.elevo-topbar-avatar::before,.elevo-topbar-chip i {animation:none!important;}
+}
+</style>
+"""
+for _tk_v16854, _tv_v16854 in _tokens_v16854.items():
+    _css_v16854 = _css_v16854.replace(_tk_v16854, _tv_v16854)
+st.markdown(_css_v16854, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.55 — ESTÚDIO: ETAPAS, ELENCO, AMBIENTES E RESULTADO (somente visual)
+# ==========================================================
+_tk_v16855 = ({
+    "__TEXT__": "#0B2A55", "__MUTED__": "#4E6788", "__ACCENT__": "#1457A1",
+    "__HERO__": "radial-gradient(ellipse at 100% 0%,rgba(25,125,255,.12),transparent 50%),linear-gradient(120deg,#FFFFFF,#F3F8FF)",
+    "__CARD__": "linear-gradient(180deg,#FFFFFF,#F6FAFF)",
+    "__BORDER__": "#D3E2F5", "__CHIPBG__": "rgba(25,125,255,.07)", "__CHIPBORDER__": "rgba(25,125,255,.22)",
+    "__SH__": "0 1px 2px rgba(15,45,95,.05),0 12px 28px rgba(22,77,147,.09),0 30px 56px -28px rgba(22,77,147,.25)",
+    "__SHH__": "0 2px 4px rgba(15,45,95,.06),0 20px 40px rgba(22,77,147,.15),0 40px 70px -30px rgba(25,110,230,.35)",
+    "__TILE__": "linear-gradient(135deg,#E8F2FF,#D7E8FF)",
+} if modo_claro else {
+    "__TEXT__": "#EAF2FF", "__MUTED__": "#9AAEC8", "__ACCENT__": "#8CCBFF",
+    "__HERO__": ("radial-gradient(ellipse at 100% 0%,rgba(62,151,226,.20),transparent 50%),"
+                 "linear-gradient(120deg,rgba(17,37,64,.97),rgba(9,20,36,.97))"),
+    "__CARD__": "linear-gradient(165deg,#132A4A,#0A1730 78%)",
+    "__BORDER__": "rgba(100,174,231,.28)", "__CHIPBG__": "rgba(84,216,245,.08)", "__CHIPBORDER__": "rgba(84,216,245,.24)",
+    "__SH__": "0 20px 44px rgba(0,0,0,.36),0 0 26px rgba(45,137,207,.07),inset 0 1px 0 rgba(225,240,255,.08)",
+    "__SHH__": "0 28px 58px rgba(0,0,0,.45),0 0 36px rgba(84,216,245,.16),inset 0 1px 0 rgba(225,240,255,.12)",
+    "__TILE__": "linear-gradient(135deg,rgba(84,216,245,.18),rgba(19,99,214,.22))",
+})
+_css_v16855 = """
+<style>
+/* ---------- CABEÇALHO DE ETAPA ---------- */
+.elevo-hero-sec {position:relative;overflow:hidden;display:flex;gap:18px;align-items:flex-start;
+  padding:22px 24px 16px 26px;margin:6px 0 18px;border-radius:22px;background:__HERO__;
+  border:1px solid __BORDER__;box-shadow:__SH__;}
+.elevo-hero-sec::before {content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
+  background:linear-gradient(180deg,#54D8F5,#1363D6 55%,#D8B66A);}
+.elevo-hero-sec::after {content:"";position:absolute;right:-70px;top:-90px;width:230px;height:230px;border-radius:50%;
+  border:1px solid rgba(84,216,245,.16);box-shadow:0 0 0 22px rgba(84,216,245,.035),0 0 0 48px rgba(84,216,245,.02);pointer-events:none;}
+.elevo-hero-num {position:relative;flex:0 0 64px;height:64px;border-radius:18px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font:900 1.55rem/1 Montserrat,sans-serif;color:#FFFFFF!important;
+  background:linear-gradient(135deg,#1363D6,#22A8E0);box-shadow:0 12px 26px rgba(19,99,214,.36),inset 0 1px 0 rgba(255,255,255,.32);}
+.elevo-hero-num small {font:800 .48rem Montserrat,sans-serif;letter-spacing:.22em;opacity:.85;margin-bottom:4px;color:#FFFFFF!important;}
+.elevo-hero-txt {position:relative;min-width:0;}
+.elevo-hero-kicker {font:800 .64rem Montserrat,sans-serif;letter-spacing:.18em;color:__ACCENT__!important;}
+.elevo-hero-titulo {font:850 clamp(1.2rem,2.3vw,1.68rem)/1.15 Montserrat,sans-serif;letter-spacing:-.02em;
+  color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;margin:5px 0 7px;}
+.elevo-hero-txt p {font-size:.84rem!important;line-height:1.58!important;color:__MUTED__!important;margin:0 0 11px!important;max-width:780px;}
+.elevo-hero-chips {display:flex;flex-wrap:wrap;gap:7px;}
+.elevo-hero-chips span {display:inline-flex;align-items:center;padding:5px 11px;border-radius:99px;
+  font:700 .68rem Montserrat,sans-serif;color:__TEXT__!important;background:__CHIPBG__;border:1px solid __CHIPBORDER__;}
+
+/* ---------- CARDS DO ELENCO (retrato) ---------- */
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 {
+  height:332px!important;padding:0!important;display:flex!important;flex-direction:column;overflow:hidden!important;
+  border-radius:20px!important;background:__CARD__!important;border:1px solid __BORDER__!important;box-shadow:__SH__!important;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover {transform:translateY(-4px);
+  box-shadow:__SHH__!important;border-color:rgba(84,216,245,.55)!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855.ativo {border-color:#54D8F5!important;
+  box-shadow:0 0 0 2px rgba(84,216,245,.55),0 18px 40px rgba(19,99,214,.30),0 0 32px rgba(84,216,245,.25)!important;}
+.elevo-card-v16855 .elevo-elenco-midia {position:relative;flex:0 0 206px;height:206px;overflow:hidden;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-foto {width:100%!important;height:100%!important;
+  flex:none!important;border-radius:0!important;object-fit:cover;object-position:center 22%;transition:transform .6s ease;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover .elevo-elenco-foto {transform:scale(1.06);}
+.elevo-card-v16855 .elevo-elenco-sombra {position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(180deg,rgba(4,10,22,0) 42%,rgba(4,10,22,.55) 70%,rgba(4,10,22,.92) 100%);}
+.elevo-card-v16855 .elevo-elenco-legenda {position:absolute;left:13px;right:13px;bottom:11px;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-legenda .elevo-elenco-nome {
+  margin:0!important;font:850 1rem/1.2 Montserrat,sans-serif!important;color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+  text-shadow:0 2px 12px rgba(0,0,0,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-legenda .elevo-elenco-idade {
+  margin-top:2px;font-size:.72rem!important;color:rgba(235,244,255,.85)!important;-webkit-text-fill-color:rgba(235,244,255,.85)!important;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-status {position:absolute;top:10px;left:10px;margin:0!important;
+  padding:4px 10px;border-radius:99px;font:800 .6rem Montserrat,sans-serif;letter-spacing:.1em;
+  background:rgba(3,22,30,.78);border:1px solid rgba(117,242,207,.65);color:#75F2CF!important;-webkit-text-fill-color:#75F2CF!important;
+  box-shadow:0 0 14px rgba(117,242,207,.35);backdrop-filter:blur(6px);}
+.elevo-card-v16855 .elevo-elenco-corpo {display:flex;flex-direction:column;gap:7px;padding:11px 13px 12px;min-height:0;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-nicho {margin:0!important;min-height:0!important;align-self:flex-start;
+  max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:3px 10px;border-radius:99px;
+  font-size:.66rem!important;font-weight:750!important;color:__ACCENT__!important;-webkit-text-fill-color:__ACCENT__!important;
+  background:__CHIPBG__;border:1px solid __CHIPBORDER__;}
+.st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-desc {font-size:.72rem!important;line-height:1.47!important;
+  color:__MUTED__!important;-webkit-text-fill-color:__MUTED__!important;-webkit-line-clamp:4;max-height:none!important;}
+.st-key-elevo_carrossel_influenciadoras .stButton>button {min-height:42px!important;border-radius:13px!important;font-weight:750!important;}
+
+/* ---------- CARDS DE AMBIENTE ---------- */
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card {height:200px!important;padding:15px 15px 13px!important;border-radius:20px!important;
+  background:__CARD__!important;border:1px solid __BORDER__!important;box-shadow:__SH__!important;
+  transition:transform .25s ease,box-shadow .25s ease,border-color .25s ease!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover {transform:translateY(-4px);box-shadow:__SHH__!important;border-color:rgba(84,216,245,.55)!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card.ativo {border-color:#54D8F5!important;
+  box-shadow:0 0 0 2px rgba(84,216,245,.5),0 16px 36px rgba(19,99,214,.26),0 0 28px rgba(84,216,245,.22)!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .icone {width:46px;height:46px;border-radius:14px;display:grid;place-items:center;
+  font-size:24px!important;margin-bottom:10px!important;background:__TILE__;border:1px solid __CHIPBORDER__;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .nome {font-size:.9rem!important;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .tag {display:inline-block;padding:2px 8px;border-radius:99px;
+  background:__CHIPBG__;border:1px solid __CHIPBORDER__;color:__ACCENT__!important;-webkit-text-fill-color:__ACCENT__!important;}
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card .descricao {color:__MUTED__!important;-webkit-text-fill-color:__MUTED__!important;}
+.st-key-elevo_carrossel_ambientes .stButton>button {min-height:42px!important;border-radius:13px!important;font-weight:750!important;}
+
+/* Barra de "deslize" dos carrosséis. */
+.elevo-carrossel-instrucao {border-radius:14px!important;padding:9px 14px!important;box-shadow:__SH__;}
+
+/* ---------- SELETOR DE MOTOR ---------- */
+.st-key-btn_sel_17 button,.st-key-btn_sel_172 button,.st-key-btn_sel_produto_3s_v16821 button {
+  min-height:58px!important;border-radius:16px!important;font-weight:800!important;letter-spacing:.01em;white-space:normal!important;line-height:1.25!important;}
+.st-key-btn_sel_17 button[kind="primary"],.st-key-btn_sel_172 button[kind="primary"],.st-key-btn_sel_produto_3s_v16821 button[kind="primary"] {
+  box-shadow:0 0 0 2px rgba(84,216,245,.45),0 14px 32px rgba(19,99,214,.38),0 0 26px rgba(84,216,245,.22)!important;}
+.st-key-btn_gerar_360_ativo button,.st-key-btn_v92_ativo button {min-height:56px!important;border-radius:16px!important;
+  font-size:1rem!important;font-weight:850!important;letter-spacing:.04em!important;}
+[data-testid="stFileUploaderDropzone"] {border-radius:16px!important;border-style:dashed!important;border-width:1.5px!important;}
+
+/* ---------- RESULTADO ---------- */
+.st-key-elevo_resultado_v16812 {border-radius:22px!important;}
+.elevo-res-topo {display:flex;align-items:center;gap:14px;padding:4px 2px 14px;margin-bottom:6px;border-bottom:1px solid __BORDER__;}
+.elevo-res-selo {flex:0 0 48px;height:48px;border-radius:15px;display:grid;place-items:center;font-size:1.3rem;color:#FFFFFF!important;
+  background:linear-gradient(135deg,#1363D6,#22A8E0 60%,#D8B66A);box-shadow:0 10px 24px rgba(19,99,214,.35);}
+.elevo-res-kicker {font:800 .62rem Montserrat,sans-serif;letter-spacing:.18em;color:#2FD39A!important;}
+.elevo-res-titulo {font:850 1.2rem/1.2 Montserrat,sans-serif;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;margin:2px 0;}
+.elevo-res-topo small,.elevo-res-bloco small {display:block;font-size:.74rem;color:__MUTED__!important;}
+.elevo-res-bloco {display:flex;align-items:center;gap:11px;padding:4px 0;}
+.elevo-res-bloco .ic {flex:0 0 40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:1.1rem;
+  background:__TILE__;border:1px solid __CHIPBORDER__;}
+.elevo-res-bloco b {display:block;font:800 1rem Montserrat,sans-serif;color:__TEXT__!important;-webkit-text-fill-color:__TEXT__!important;}
+.elevo-res-rapida {margin:12px 0 6px;font:750 .8rem Montserrat,sans-serif;color:__ACCENT__!important;letter-spacing:.02em;}
+.elevo-prompt-previa-v16812 {border-radius:14px!important;border-left:3px solid #54D8F5!important;}
+
+/* ---------- CELULAR ---------- */
+@media (max-width:767px) {
+  .elevo-hero-sec {gap:13px;padding:17px 15px 12px 18px;border-radius:18px;}
+  .elevo-hero-num {flex-basis:50px;height:50px;border-radius:15px;font-size:1.2rem;}
+  .elevo-hero-txt p {font-size:.8rem!important;}
+  .elevo-hero-sec::after {display:none;}
+  .st-key-elevo_carrossel_influenciadoras .elevo-card-v16855:hover,
+  .st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover {transform:none;}
+  .st-key-btn_sel_17 button,.st-key-btn_sel_172 button,.st-key-btn_sel_produto_3s_v16821 button {min-height:50px!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .st-key-elevo_carrossel_influenciadoras .elevo-card-v16855 .elevo-elenco-foto {transition:none!important;}
+}
+</style>
+"""
+for _k_v16855, _v_v16855 in _tk_v16855.items():
+    _css_v16855 = _css_v16855.replace(_k_v16855, _v_v16855)
+st.markdown(_css_v16855, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.57 — TOQUE HACKER: chuva de código sutil + feixe de varredura no fundo.
+# Somente visual, sem cliques (pointer-events:none). Mesma paleta do app.
+# Respeita "reduzir movimento" e pausa quando a aba não está visível.
+# ==========================================================
+_elevo_fx_v16857 = st.components.v2.component(
+    name="elevo_hacker_fx_v16857",
+    html='<canvas id="fx" aria-hidden="true"></canvas><div id="beam" aria-hidden="true"></div>',
+    css=r"""
+#fx{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:2;opacity:.075;mix-blend-mode:screen}
+#fx.claro{opacity:.06;mix-blend-mode:multiply}
+/* V16.8.58 — Faixa gigante de varredura que descia a tela DESLIGADA. */
+#beam{display:none!important;animation:none!important}
+@media (prefers-reduced-motion:reduce){#fx,#beam{display:none}}
+""",
+    js=r"""
+export default function(c){
+  const {parentElement:P,data}=c;
+  const cv=P.querySelector('#fx'),beam=P.querySelector('#beam');
+  if(!cv)return;
+  const claro=!!(data&&data.claro);
+  cv.classList.toggle('claro',claro);beam.classList.toggle('claro',claro);
+  if(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const x=cv.getContext('2d');
+  const G='ÉLÉVO01アイウエオカキクケコサシスセソタチツテト<>/{}[]#$%&*+=01AES256';
+  let W=0,H=0,fs=14,cols=[],act=[],raf=0,last=0,dpr=1;
+  const resize=()=>{dpr=Math.min(1.5,window.devicePixelRatio||1);W=innerWidth*dpr;H=innerHeight*dpr;cv.width=W;cv.height=H;
+    fs=14*dpr;const n=Math.ceil(W/fs);cols=Array.from({length:n},()=>Math.random()*-H/fs);act=Array.from({length:n},()=>Math.random()<.45);};
+  resize();addEventListener('resize',resize);
+  const loop=t=>{raf=requestAnimationFrame(loop);
+    if(document.hidden||t-last<70)return;last=t;
+    x.globalCompositeOperation='destination-out';x.fillStyle='rgba(0,0,0,.16)';
+    x.fillRect(0,0,W,H);x.globalCompositeOperation='source-over';
+    x.font=fs+'px monospace';
+    for(let i=0;i<cols.length;i++){
+      if(!act[i])continue;
+      const y=cols[i]*fs;
+      if(y>0){x.fillStyle=Math.random()<.05?(claro?'#B8862F':'#D8B66A'):(claro?'#1457A1':'#54D8F5');
+        x.fillText(G[(Math.random()*G.length)|0],i*fs,y);}
+      if(y>H&&Math.random()>.97){cols[i]=0;act[i]=Math.random()<.5;}else cols[i]+=1;
+    }
+  };
+  raf=requestAnimationFrame(loop);
+  return()=>{cancelAnimationFrame(raf);removeEventListener('resize',resize);};
+}
+""",
+)
+with st.container(key="elevo_hacker_fx_wrap_v16857"):
+    _elevo_fx_v16857(key="elevo_hacker_fx_v16857", data={"claro": bool(modo_claro)})
+
+_tk_v16857 = ({
+    "__CY__": "#1457A1", "__CYA__": "rgba(20,87,161,", "__TXT__": "#0B2A55", "__MUT__": "#566F90",
+    "__TERMBG__": "linear-gradient(90deg,rgba(255,255,255,.92),rgba(236,245,255,.92))", "__TERMBR__": "#CADDF5",
+    "__SCAN__": "rgba(10,40,90,.016)",
+} if modo_claro else {
+    "__CY__": "#54D8F5", "__CYA__": "rgba(84,216,245,", "__TXT__": "#EAF2FF", "__MUT__": "#8FA6C4",
+    "__TERMBG__": "linear-gradient(90deg,rgba(4,10,20,.94),rgba(8,20,36,.94))", "__TERMBR__": "rgba(84,216,245,.22)",
+    "__SCAN__": "rgba(255,255,255,.022)",
+})
+_css_v16857 = """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&display=swap');
+.st-key-elevo_hacker_fx_wrap_v16857 {height:0!important;min-height:0!important;margin:0!important;padding:0!important;overflow:visible!important;}
+.st-key-elevo_hacker_fx_wrap_v16857 * {margin:0!important;}
+
+/* V16.8.58 — Linhas de varredura CRT (listras de TV) DESLIGADAS na tela principal. */
+.stApp::after {content:none!important;display:none!important;background:none!important;}
+
+/* ---------- BARRA DE TERMINAL ---------- */
+.elevo-term {display:flex;align-items:center;gap:14px;min-width:0;margin:0 0 12px;padding:9px 14px;border-radius:14px;
+  background:__TERMBG__;border:1px solid __TERMBR__;font:500 .74rem/1.2 'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace;
+  color:__MUT__!important;box-shadow:0 8px 24px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.05);overflow:hidden;}
+.elevo-term-dots {display:flex;gap:6px;flex:0 0 auto;}
+.elevo-term-dots i {width:9px;height:9px;border-radius:50%;background:#FF5F6D;}
+.elevo-term-dots i:nth-child(2) {background:#D8B66A;} .elevo-term-dots i:nth-child(3) {background:#2FD39A;}
+.elevo-term-cmd {flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;color:__TXT__!important;}
+.elevo-term-cmd b {color:#2FD39A!important;font-weight:700;} .elevo-term-cmd em {color:__CY__!important;font-style:normal;}
+.elevo-term-typed {display:inline-block;vertical-align:bottom;overflow:hidden;white-space:nowrap;width:0;
+  animation:elevo-term-digita 2.4s steps(var(--n,40)) .4s forwards;}
+@keyframes elevo-term-digita {to {width:calc(var(--n,40) * 1ch);}}
+.elevo-term-cur {display:inline-block;width:.6em;height:1em;margin-left:2px;vertical-align:-2px;background:__CY__;
+  animation:elevo-pisca 1s steps(2) infinite;}
+@keyframes elevo-pisca {50% {opacity:0;}}
+.elevo-term-sts {display:flex;gap:12px;flex:0 0 auto;white-space:nowrap;}
+.elevo-term-sts span {color:__MUT__!important;letter-spacing:.06em;}
+.elevo-term-sts span:first-child {color:#2FD39A!important;}
+
+/* ---------- RÓTULOS EM ESTILO COMANDO ---------- */
+.elevo-hero-kicker,.elevo-topbar-kicker,.elevo-res-kicker {font-family:'JetBrains Mono',ui-monospace,Menlo,Consolas,monospace!important;letter-spacing:.12em!important;}
+.elevo-hero-kicker::before,.elevo-res-kicker::before {content:"> ";opacity:.7;}
+.elevo-hero-kicker::after {content:"_";margin-left:2px;animation:elevo-pisca 1.1s steps(2) infinite;}
+
+/* Título com "falha digital" ao passar o mouse. */
+.elevo-hero-sec:hover .elevo-hero-titulo {animation:elevo-glitch .45s steps(2) 1;}
+@keyframes elevo-glitch {
+  0% {text-shadow:2px 0 rgba(84,216,245,.8),-2px 0 rgba(216,182,106,.8);transform:translateX(0)}
+  33% {text-shadow:-2px 0 rgba(84,216,245,.8),2px 0 rgba(216,182,106,.8);transform:translateX(1px)}
+  66% {text-shadow:1px 0 rgba(84,216,245,.6),-1px 0 rgba(216,182,106,.6);transform:translateX(-1px)}
+  100% {text-shadow:none;transform:none}}
+
+/* Número da etapa com brilho de varredura. */
+.elevo-hero-num {overflow:hidden;}
+.elevo-hero-num::after {content:"";position:absolute;left:-60%;top:0;bottom:0;width:45%;
+  background:linear-gradient(100deg,transparent,rgba(255,255,255,.35),transparent);animation:elevo-brilho 4.5s ease-in-out infinite;}
+@keyframes elevo-brilho {0%,60% {left:-60%} 100% {left:130%}}
+
+/* Cantos de mira (HUD) nos blocos principais. */
+.elevo-hero-sec::after,.elevo-card-v16855::after,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card::after {
+  content:"";position:absolute;inset:9px;pointer-events:none;border-radius:0;opacity:.7;
+  width:auto;height:auto;right:9px;top:9px;border:none;box-shadow:none;
+  background:
+    linear-gradient(__CY__,__CY__) top left/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) top left/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) top right/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) top right/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) bottom left/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) bottom left/1.5px 14px no-repeat,
+    linear-gradient(__CY__,__CY__) bottom right/14px 1.5px no-repeat,linear-gradient(__CY__,__CY__) bottom right/1.5px 14px no-repeat;}
+.elevo-card-v16855,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card {position:relative!important;}
+.elevo-card-v16855::after,.st-key-elevo_carrossel_ambientes .elevo-ambiente-card::after {opacity:0;transition:opacity .25s ease;z-index:3;}
+.elevo-card-v16855:hover::after,.elevo-card-v16855.ativo::after,
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card:hover::after,
+.st-key-elevo_carrossel_ambientes .elevo-ambiente-card.ativo::after {opacity:.85;}
+
+/* Escaneamento do rosto: ao passar o mouse e contínuo na selecionada. */
+.elevo-card-v16855 .elevo-elenco-midia::after {content:"";position:absolute;left:0;right:0;top:-30%;height:30%;pointer-events:none;opacity:0;
+  background:linear-gradient(180deg,transparent,__CYA__.10) 70%,__CYA__.75) 98%,transparent);}
+.elevo-card-v16855:hover .elevo-elenco-midia::after,.elevo-card-v16855.ativo .elevo-elenco-midia::after {
+  opacity:1;animation:elevo-scan-rosto 2.6s cubic-bezier(.45,0,.55,1) infinite;}
+@keyframes elevo-scan-rosto {0% {top:-30%} 100% {top:100%}}
+
+/* Divisores como linha de dados. */
+hr {border:none!important;height:1px!important;background:linear-gradient(90deg,transparent,__CYA__.45),transparent)!important;}
+
+/* Seleção, cursor de digitação e barra de rolagem. */
+::selection {background:__CYA__.30);}
+input,textarea {caret-color:__CY__!important;}
+::-webkit-scrollbar {width:9px;height:9px;}
+::-webkit-scrollbar-track {background:transparent;}
+::-webkit-scrollbar-thumb {background:__CYA__.28);border-radius:9px;border:2px solid transparent;background-clip:padding-box;}
+::-webkit-scrollbar-thumb:hover {background:__CYA__.5);background-clip:padding-box;}
+
+/* Botões com brilho de terminal ao passar o mouse. */
+.stButton > button:hover,[data-testid="stFormSubmitButton"] > button:hover {text-shadow:0 0 10px __CYA__.55);}
+
+@media (max-width:767px) {
+  .elevo-term {gap:10px;padding:8px 11px;font-size:.66rem;}
+  .elevo-term-sts span:not(:first-child) {display:none;}
+  .elevo-term-dots {display:none;}
+  .elevo-hero-sec::after {display:block!important;}
+}
+@media (prefers-reduced-motion:reduce) {
+  .elevo-term-typed {animation:none;width:auto;}
+  .elevo-term-cur,.elevo-hero-kicker::after,.elevo-hero-num::after,.elevo-card-v16855 .elevo-elenco-midia::after {animation:none!important;}
+}
+</style>
+"""
+for _k_v16857, _v_v16857 in _tk_v16857.items():
+    _css_v16857 = _css_v16857.replace(_k_v16857, _v_v16857)
+st.markdown(_css_v16857, unsafe_allow_html=True)
+
+# ==========================================================
+# V16.8.60 — TEXTURA VIP: campos de escrita, abas, envio de foto e microfones.
+# Somente visual. Granulado fino (SVG) + profundidade + foco dourado/ciano.
+# ==========================================================
+_ELEVO_GRAO_V16860 = "url(\"data:image/svg+xml;utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url%28%23n%29'/%3E%3C/svg%3E\")"
+_tk_v16860 = ({
+    "__CAMPO__": "linear-gradient(165deg,#FFFFFF 0%,#F4F8FE 100%)", "__BORDA__": "#CFDDF0",
+    "__FOCO__": "#1457A1", "__FOCOA__": "rgba(20,87,161,.14)", "__TXT__": "#0B2A55",
+    "__ABA__": "linear-gradient(180deg,#FFFFFF,#EEF4FC)", "__ABAATIVA__": "linear-gradient(180deg,#FFF8E6,#FCEFCB)",
+    "__ABATXT__": "#3B5677", "__ABATXTATIVA__": "#6B4E12", "__OURO__": "#B8862F",
+    "__MIC__": "#FFFFFF", "__MICTXT__": "#1457A1", "__MICBORDA__": "#D6E2F1",
+    "__TOAST__": "rgba(255,255,255,.96)", "__TOASTTXT__": "#0B2A55", "__TOASTBORDA__": "#DCE6F3",
+    "__SOMBRA__": "0 3px 10px rgba(20,60,120,.07)", "__PH__": "#8193AB",
+} if modo_claro else {
+    "__CAMPO__": "linear-gradient(165deg,rgba(15,26,44,.94) 0%,rgba(7,12,22,.96) 100%)", "__BORDA__": "rgba(84,216,245,.22)",
+    "__FOCO__": "#54D8F5", "__FOCOA__": "rgba(84,216,245,.14)", "__TXT__": "#EAF2FF",
+    "__ABA__": "linear-gradient(180deg,rgba(20,34,56,.92),rgba(9,15,27,.95))", "__ABAATIVA__": "linear-gradient(180deg,rgba(216,182,106,.24),rgba(216,182,106,.08))",
+    "__ABATXT__": "#9FB3CC", "__ABATXTATIVA__": "#F4DC9A", "__OURO__": "#D8B66A",
+    "__MIC__": "rgba(255,255,255,.06)", "__MICTXT__": "#CFE3F7", "__MICBORDA__": "rgba(255,255,255,.14)",
+    "__TOAST__": "rgba(13,22,38,.94)", "__TOASTTXT__": "#EAF2FF", "__TOASTBORDA__": "rgba(255,255,255,.10)",
+    "__SOMBRA__": "0 6px 18px rgba(0,0,0,.28)", "__PH__": "#7489A8",
+})
+_css_v16860 = """
+<style>
+/* ---------- Campos de escrita com textura ---------- */
+.stTextArea div:has(> textarea), .stTextInput div:has(> input),
+[data-testid="stNumberInput"] div:has(> input),
+.stTextArea [data-baseweb="textarea"], .stTextInput [data-baseweb="input"] {
+  background-image:__GRAO__,__CAMPO__!important; background-color:transparent!important;
+  border:1px solid __BORDA__!important; border-radius:14px!important;
+  box-shadow:__SOMBRA__,inset 0 1px 0 rgba(255,255,255,.05)!important;
+  transition:border-color .2s ease, box-shadow .2s ease;}
+.stTextArea div:has(> textarea):focus-within, .stTextInput div:has(> input):focus-within,
+.stTextArea [data-baseweb="textarea"]:focus-within, .stTextInput [data-baseweb="input"]:focus-within {
+  border-color:__FOCO__!important; box-shadow:0 0 0 3px __FOCOA__,__SOMBRA__!important;}
+.stTextArea textarea, .stTextInput input {background:transparent!important; color:__TXT__!important; caret-color:__FOCO__;}
+.stTextArea textarea {line-height:1.55!important;}
+.stTextArea textarea::placeholder, .stTextInput input::placeholder {color:__PH__!important; -webkit-text-fill-color:__PH__!important; opacity:1!important;}
+
+/* ---------- Envio de foto ---------- */
+[data-testid="stFileUploaderDropzone"] {
+  background-image:__GRAO__,__CAMPO__!important; border:1.5px dashed __OURO__!important; border-radius:16px!important;
+  transition:transform .2s ease, box-shadow .2s ease;}
+[data-testid="stFileUploaderDropzone"]:hover {box-shadow:0 0 0 3px __FOCOA__!important; transform:translateY(-1px);}
+
+/* ---------- Abas ---------- */
+[data-baseweb="tab-list"], [role="tablist"] {
+  background-image:__GRAO__,__ABA__!important; border:1px solid __BORDA__!important; border-radius:14px!important;
+  padding:.3rem!important; gap:.3rem!important; box-shadow:__SOMBRA__!important;}
+[data-baseweb="tab"], [role="tablist"] > button[role="tab"] {
+  border-radius:10px!important; padding:.45rem .9rem!important; transition:background .2s ease;}
+[data-baseweb="tab"] p, [role="tab"] p {color:__ABATXT__!important; font-weight:700!important;}
+[data-baseweb="tab"][aria-selected="true"], [role="tab"][aria-selected="true"] {
+  background:__ABAATIVA__!important; box-shadow:inset 0 0 0 1px __OURO__!important;}
+[data-baseweb="tab"][aria-selected="true"] p, [role="tab"][aria-selected="true"] p {color:__ABATXTATIVA__!important;}
+[data-baseweb="tab-highlight"], [data-baseweb="tab-border"] {display:none!important;}
+[role="tablist"] > [role="tab"], [data-testid="stTab"] {border:none!important; margin:0!important; padding:.45rem .95rem!important; border-radius:10px!important;}
+[role="tablist"] .react-aria-SelectionIndicator {display:none!important;}
+[role="tablist"] > [role="tab"]::after, [role="tablist"] > [role="tab"]::before {display:none!important;}
+
+/* ---------- Abas recolhíveis (expanders) ---------- */
+[data-testid="stExpander"] details {border-radius:14px!important; border-color:__BORDA__!important;
+  background-image:__GRAO__!important;}
+[data-testid="stExpander"] summary {border-radius:14px!important;}
+[data-testid="stExpander"] summary:hover {background:__FOCOA__!important;}
+
+/* ---------- Microfone de ditado V16.8.62 (profissional) ---------- */
+textarea.evm-com-mic {padding-right:50px!important;}
+input.evm-com-mic {padding-right:46px!important;}
+.evm-btn {position:absolute!important; z-index:5; right:8px; width:32px; height:32px; padding:0; margin:0;
+  display:grid; place-items:center; cursor:pointer; border-radius:50%;
+  border:1px solid __MICBORDA__; background:__MIC__; color:__MICTXT__;
+  box-shadow:0 1px 2px rgba(0,0,0,.12),0 4px 12px rgba(0,0,0,.10);
+  transition:transform .15s ease, box-shadow .2s ease, background .2s ease, color .2s ease, opacity .2s ease;
+  opacity:.82;}
+.evm-btn.evm-area {top:8px;}
+.evm-btn.evm-linha {top:50%; transform:translateY(-50%); width:30px; height:30px;}
+.evm-btn:hover, .evm-btn:focus-visible {opacity:1; box-shadow:0 0 0 4px __FOCOA__,0 6px 16px rgba(0,0,0,.14); outline:none;}
+.evm-btn.evm-area:hover {transform:translateY(-1px);}
+.evm-btn.evm-linha:hover {transform:translateY(-50%) scale(1.05);}
+.evm-btn svg {display:block; pointer-events:none;}
+.evm-btn[data-ouvindo] {opacity:1; border-color:transparent; color:#fff;
+  background:linear-gradient(145deg,#F2495E,#C81E3A)!important; animation:evm-anel 1.6s ease-out infinite;}
+.evm-quadrado {width:10px; height:10px; border-radius:3px; background:#fff; display:block;}
+@keyframes evm-anel {
+  0% {box-shadow:0 0 0 0 rgba(242,73,94,.45),0 4px 12px rgba(200,30,58,.35);}
+  70% {box-shadow:0 0 0 10px rgba(242,73,94,0),0 4px 12px rgba(200,30,58,.35);}
+  100% {box-shadow:0 0 0 0 rgba(242,73,94,0),0 4px 12px rgba(200,30,58,.35);}}
+.evm-toast {position:fixed; left:50%; bottom:22px; z-index:1000001; transform:translate(-50%,18px); opacity:0; pointer-events:none;
+  display:flex; align-items:center; gap:12px; min-width:min(360px,92vw); max-width:92vw; padding:11px 16px 11px 13px;
+  border-radius:16px; background:__TOAST__; color:__TOASTTXT__; border:1px solid __TOASTBORDA__;
+  box-shadow:0 18px 44px rgba(0,0,0,.28); backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  font:500 .86rem/1.35 'Source Sans Pro','Inter',system-ui,sans-serif; transition:opacity .22s ease, transform .22s ease;}
+.evm-toast.on {opacity:1; transform:translate(-50%,0);}
+.evm-toast .evm-txt {display:flex; flex-direction:column; min-width:0; flex:1;}
+.evm-toast .evm-txt b {font-weight:700; font-size:.78rem; letter-spacing:.06em; text-transform:uppercase; color:__OURO__;}
+.evm-toast .evm-txt span {white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.evm-toast em {font-style:normal; font-size:.72rem; opacity:.65; white-space:nowrap;}
+.evm-toast .evm-ico {width:30px; height:30px; flex:0 0 30px; border-radius:50%; display:grid; place-items:center;
+  background:__FOCOA__; color:__FOCO__;}
+.evm-toast[data-estado="erro"] .evm-ico {background:rgba(242,73,94,.14); color:#E5485D;}
+.evm-toast[data-estado="erro"] .evm-txt b {color:#E5485D;}
+.evm-toast[data-estado="ok"] .evm-ico {background:rgba(47,211,154,.16); color:#1FAF7E;}
+.evm-toast[data-estado="ok"] .evm-txt b {color:#1FAF7E;}
+.evm-ondas {display:flex; align-items:center; gap:3px; height:30px; width:30px; flex:0 0 30px; justify-content:center;
+  border-radius:50%; background:linear-gradient(145deg,#F2495E,#C81E3A);}
+.evm-ondas i {display:block; width:3px; height:8px; border-radius:2px; background:#fff; animation:evm-onda .9s ease-in-out infinite;}
+.evm-ondas i:nth-child(2) {animation-delay:.15s;} .evm-ondas i:nth-child(3) {animation-delay:.3s;} .evm-ondas i:nth-child(4) {animation-delay:.45s;}
+@keyframes evm-onda {0%,100% {height:6px;} 50% {height:15px;}}
+@media (max-width:767px) {.evm-toast em {display:none;} .evm-toast {bottom:14px;}}
+
+/* ---------- Seletor dos 4 motores ---------- */
+.st-key-elevo_seletor_motores_v16860 .stButton button {min-height:58px!important; border-radius:14px!important;
+  font-weight:800!important; letter-spacing:.01em;}
+.st-key-elevo_seletor_motores_v16860 .stButton button[kind="primary"] {
+  box-shadow:0 8px 22px rgba(216,182,106,.22),inset 0 1px rgba(255,255,255,.25)!important;}
+
+/* ---------- Mundo vivo nos ambientes ---------- */
+.elevo-vida-chip-v16860 {margin:.35rem 0 .55rem; padding:.55rem .75rem; border-radius:12px; font-size:.8rem; line-height:1.5;
+  color:__TXT__; background-image:__GRAO__,__CAMPO__; border:1px solid __BORDA__;}
+.elevo-vida-chip-v16860 b {color:__OURO__;}
+
+@media (prefers-reduced-motion:reduce) {.evm-btn[data-ouvindo], .evm-ondas i {animation:none!important;}}
+@media (max-width:767px) {
+  .st-key-elevo_seletor_motores_v16860 .stButton button {min-height:50px!important; font-size:.82rem!important;}
+}
+</style>
+"""
+_css_v16860 = _css_v16860.replace("__GRAO__", _ELEVO_GRAO_V16860)
+for _k_v16860, _v_v16860 in _tk_v16860.items():
+    _css_v16860 = _css_v16860.replace(_k_v16860, _v_v16860)
+st.markdown(_css_v16860, unsafe_allow_html=True)
