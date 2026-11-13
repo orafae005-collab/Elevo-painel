@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.75 — 20 CR por geração; ganchos/CTAs com diversidade, produto concreto e guardrails TikTok Shop
 # ÉLÉVO V16.8.74 — validação de ambientes de pagamento, comprador de teste no Brick e confirmação real de créditos
 # ÉLÉVO V16.8.73 — PROMOÇÃO RELÂMPAGO R$ 1,00 por 10 min (ligada pelo CEO) para validar o checkout em produção
 # ÉLÉVO V16.8.72 — teste do Mercado Pago com o COMPRADOR DE TESTE como pagador (corrige 401 live credentials)
@@ -108,6 +109,7 @@ import json
 import logging
 import threading
 import html as html_std
+import unicodedata
 from zoneinfo import ZoneInfo
 from gtts import gTTS
 
@@ -239,7 +241,7 @@ if "usuario_logado" not in st.session_state:
 # Não usar apenas usuario_logado=False: o Streamlit conserva session_state.
 SESSAO_DADOS_PRIVADOS = {
     "historico_viva_voz", "ultimo_audio_b64", "ultimo_hash_audio",
-    "historico_v11_cenas", "historico_v11_ganchos", "roteiro_temporario",
+    "historico_v11_cenas", "historico_v11_ganchos", "elevo_copy_hist_v16875", "elevo_copy_escolhas_v16875", "elevo_copy_ultimo_email_v16875", "elevo_copy_ultimas_falas_v16875", "roteiro_temporario",
     "elevo_roteiro_limpo_sessao_v1688", "elevo_hist_restauracao_email_v16819",
     "elevo_hist_erro_gravacao_v16817", "elevo_hist_mensagem_v16817",
     "elevo_roteiro_usuario_v16820",
@@ -1046,12 +1048,302 @@ def validar_cota_ia():
 from threading import RLock
 
 ELEVO_CREDITOS_INICIAIS_V16813 = 100
-ELEVO_CUSTO_PROMPT_V16813 = 10
+ELEVO_CUSTO_PROMPT_V16813 = 20
 ELEVO_CUSTO_FERRAMENTA_V16813 = 3
 ELEVO_CREDITOS_COLS_V16813 = ["Id", "Email", "Data", "Tipo", "Valor", "Referencia", "Autor"]
 ELEVO_PERFIL_COLS_V16813 = ["Email", "Status", "AvatarB64", "Atualizado"]
 ELEVO_PEDIDOS_COLS_V16813 = ["Id", "Email", "Data", "Quantidade", "Mensagem", "Status", "AtendidoEm"]
 ELEVO_ACESSOS_COLS_V16813 = ["Id", "Email", "Data", "Origem"]
+
+# ==========================================================
+# ÉLÉVO V16.8.75 — VARIEDADE REAL DE ABERTURA/FECHO NOS 4 MOTORES
+# Não grava roteiros nem dados dos produtos no Sheets: apenas hashes dos
+# primeiros/últimos termos da fala + códigos de estilos, por conta.
+# Em falha de Sheets, memória da sessão continua funcionando.
+# Os moldes de imagem, a duração 10/12/15 s e o fluxo de pagamento permanecem.
+# ==========================================================
+ELEVO_COPY_COLS_V16875 = ["Id", "Email", "Data", "Motor", "AberturaHash", "FechoHash", "Angulo", "CTA"]
+ELEVO_COPY_ANGULOS_V16875 = [
+    "pergunta específica sobre um incômodo real e demonstrável",
+    "microdescoberta de um detalhe verificável do item",
+    "situação prática do dia a dia antes de citar a solução",
+    "comparação com o próprio uso anterior sem atacar concorrentes",
+    "dica objetiva de escolha ou combinação do produto",
+    "curiosidade legítima sobre a utilidade da peça ou item",
+    "erro comum de uso, mas só quando comprovado",
+    "observação espontânea de design ou acabamento visível",
+    "comentário de amiga baseado na demonstração real",
+    "dificuldade cotidiana que a característica real pode atender",
+    "pergunta inesperada sobre detalhe concreto da referência",
+    "teste visual simples com benefício verificável, sem antes/depois falso",
+    "uma dúvida frequente respondida por característica observável",
+    "pequena história cotidiana sem depoimento ou experiência inventados",
+    "gancho direto com produto e público certo no primeiro instante",
+    "contraste entre expectativa comum e característica demonstrável",
+    "benefício funcional descrito com linguagem simples e sem exagero",
+    "o que observar antes de comprar uma peça ou utensílio",
+    "detalhe da apresentação que evita uma compra por impulso",
+    "explicação breve de por que o formato ou conjunto é prático",
+]
+ELEVO_COPY_CTAS_V16875 = [
+    "Confira os detalhes na sacolinha do vídeo.",
+    "Quer conferir? Veja o produto na sacolinha.",
+    "Toque no carrinho laranja para ver os detalhes.",
+    "Acesse o produto pela sacolinha aqui no vídeo.",
+    "Veja mais informações no carrinho do vídeo.",
+    "Gostou da proposta? Confira na sacolinha.",
+    "Dá uma olhada nos detalhes no carrinho laranja.",
+    "Consulte as opções na sacolinha deste vídeo.",
+    "Confira o item no carrinho do vídeo.",
+    "Encontre os detalhes tocando na sacolinha.",
+    "Se combina com sua rotina, veja no carrinho.",
+    "Veja as informações do produto na sacolinha.",
+    "Pra saber mais, toque no carrinho laranja.",
+    "Explore os detalhes na sacolinha do vídeo.",
+    "Confira se faz sentido pra você no carrinho.",
+    "Toque na sacolinha para conhecer melhor.",
+]
+
+def elevo_copy_normalizar_v16875(texto):
+    texto = unicodedata.normalize("NFKD", str(texto or "").casefold())
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    return re.findall(r"[a-z0-9]+", texto)
+
+
+def elevo_copy_texto_falado_v16875(fala):
+    """Ignora marcações ASMR de direção; a faixa de duração é da locução."""
+    return re.sub(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*", " ", str(fala or "")).strip()
+
+
+def elevo_copy_resumo_v16875(fala):
+    palavras = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(fala))
+    if len(palavras) < 9:
+        return None
+    # 6 termos do primeiro gancho e 6 do encerramento; dispensa roteiros completos.
+    ini = " ".join(palavras[:6]); fim = " ".join(palavras[-6:])
+    return hashlib.sha256(ini.encode("utf8")).hexdigest(), hashlib.sha256(fim.encode("utf8")).hexdigest()
+
+
+def elevo_copy_hist_v16875(email):
+    email = str(email or "").strip().lower()
+    if st.session_state.get("elevo_copy_ultimo_email_v16875") != email:
+        st.session_state["elevo_copy_ultimo_email_v16875"] = email
+        st.session_state["elevo_copy_hist_v16875"] = []
+        st.session_state["elevo_copy_ultimas_falas_v16875"] = []
+        st.session_state["elevo_copy_escolhas_v16875"] = []
+    local = list(st.session_state.get("elevo_copy_hist_v16875", []))
+    try:
+        aba = elevo_aba_v16813("Elevo_Copy_Hashes_V1", ELEVO_COPY_COLS_V16875)
+        registros = aba.get_all_records()
+        for r in registros[-1800:]:
+            if str(r.get("Email", "")).strip().lower() == email:
+                local.append({"ini": str(r.get("AberturaHash", "")),
+                              "fim": str(r.get("FechoHash", "")),
+                              "angulo": str(r.get("Angulo", "")), "cta": str(r.get("CTA", ""))})
+    except Exception as exc:
+        logging.warning("ELEVO_COPY_HIST: fallback de sessao (%s)", type(exc).__name__)
+    return local[-100:]
+
+
+def elevo_copy_diretriz_v16875(email, motor, duracao, scan):
+    hist = elevo_copy_hist_v16875(email)
+    escolhidos = st.session_state.setdefault("elevo_copy_escolhas_v16875", [])
+    usados_ang = [h.get("angulo") for h in hist[-15:]] + [h[0] for h in escolhidos[-15:]]
+    usados_cta = [h.get("cta") for h in hist[-12:]] + [h[1] for h in escolhidos[-12:]]
+    ang_pool = [a for a in ELEVO_COPY_ANGULOS_V16875 if a not in usados_ang]
+    cta_pool = [c for c in ELEVO_COPY_CTAS_V16875 if c not in usados_cta]
+    angulo = random.choice(ang_pool or ELEVO_COPY_ANGULOS_V16875)
+    cta = random.choice(cta_pool or ELEVO_COPY_CTAS_V16875)
+    escolhidos.append((angulo, cta))
+    st.session_state["elevo_copy_escolhas_v16875"] = escolhidos[-24:]
+    anteriores = st.session_state.get("elevo_copy_ultimas_falas_v16875", [])
+    recentes = "; ".join("/".join(elevo_copy_normalizar_v16875(x)[:7]) for x in anteriores[-5:])
+    produto = str((scan or {}).get("nome_pt", "") or "produto da foto").strip()[:120]
+    return {
+        "angulo": angulo, "cta": cta,
+        "texto": (
+            "\n\n[ÉLÉVO V16.8.75 — PRIORIDADE ABSOLUTA SOMENTE COPY/FALA E CTA; NÃO ALTERE IMAGEM, FÍSICA, SEO OU 10/12/15s]\n"
+            f"MOTOR: {motor}. PRODUTO REAL DA REFERÊNCIA: {produto}. "
+            "A máxima é NÃO VENDER O PRODUTO, MAS EXPLICAR UMA SOLUÇÃO OU UTILIDADE REAL. "
+            f"ÂNGULO INÉDITO DESTA CRIAÇÃO: {angulo}. "
+            "ABERTURA: nos primeiros segundos, uma frase curta específica, nova, sem reciclar 'Amiga, para tudo', "
+            "'Olha só', 'É perfeito', 'Você não vai acreditar', ou uma pergunta genérica. "
+            "Fale de uma dor ou situação real e em seguida CITE O PRÓPRIO PRODUTO OU SUA CATEGORIA, "
+            "com ao menos um detalhe ou utilidade observável. Se for moda, mencione a peça, conjunto, "
+            "caimento ou detalhe visível (ex.: body, short, cinto), sem inventar tecido, medida, conforto ou resultado. "
+            "Se for cosmético, fale da categoria e uso verificável; sem resultados clínicos ou milagrosos. "
+            "MEIO: conectar essa característica verificável à necessidade da pessoa; mostrar/demonstrar o item, "
+            "não apenas elogiar a modelo ou dizer que ficou lindo. "
+            f"FINAL: fecho DIFERENTE das criações anteriores. Variação DESTA RODADA: {cta} "
+            "A compra deve ocorrer SOMENTE no link NATIVO do produto vinculado ao vídeo do TikTok Shop. "
+            "Não conduzir a DM, WhatsApp, site, bio, link externo ou QR. "
+            "Se houver sacolinha/carrinho, são referências de FALA ou legenda para edição; "
+            "NUNCA desenhar botões, interface nem objetos 3D no vídeo. "
+            f"A duração original é {duracao}s e sua faixa de fala já definida pelo motor é OBRIGATÓRIA, "
+            "sem aumentar nem encurtar palavras. Em 12/15s há espaço para convite explícito ao carrinho laranja. "
+            "Em 10s o convite deve ser mínimo para priorizar a utilidade do produto. "
+            "PROIBIDO copiar CTA fixo das amostras do Banco 17.3; são exemplos antigos, não falas autorizadas. "
+            "PROIBIDO inventar escassez, promoção, preço, resultado garantido, antes/depois fictício, "
+            "atributo de tecido ou efeito que não esteja comprovado pela foto/dados do produto. "
+            "Fala autêntica, leve, curta, nunca gritaria artificial nem promessas absolutas. "
+            f"Evite aberturas recentes: {recentes or 'nenhuma nesta sessão'}. "
+            "NÃO reescreva o prompt de imagem, títulos SEO nem o mecanismo existente de FALA NA MEDIDA."
+        ),
+    }
+
+
+def elevo_copy_localizar_v16875(roteiro):
+    """Apenas narração entre aspas no bloco de vídeo; não mexe em imagem nem SEO."""
+    p = re.search(r"###\s*🎬\s*PROMPT DE V[ÍI]DEO[^\n]*\n", roteiro, re.I)
+    if not p:
+        return None
+    fim = re.search(r"(?m)^###\s*🔑", roteiro[p.end():])
+    limite_video = p.end() + (fim.start() if fim else len(roteiro[p.end():]))
+    video = roteiro[p.end():limite_video]
+    fala_ini = re.search(r"(?m)^\s*(?:🎙️|🎧|🔊|Áudio\b|Fala\b|Voz\b)", video)
+    if not fala_ini:
+        return None
+    fim_audio = re.search(r"(?m)^\s*(?:📝|Finalização\b|🏁)", video[fala_ini.start():])
+    limite_audio = fala_ini.start() + (fim_audio.start() if fim_audio else len(video))
+    audio = video[fala_ini.start():limite_audio]
+    falas = []
+    for m in re.finditer(r'"([^"\n]{24,})"|“([^”\n]{24,})”', audio):
+        grupo = 1 if m.group(1) is not None else 2
+        valor = m.group(grupo)
+        n = len(elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(valor)))
+        if 12 <= n <= 65:
+            falas.append((n, p.end() + fala_ini.start() + m.start(grupo),
+                          p.end() + fala_ini.start() + m.end(grupo), valor))
+    if not falas:
+        return None
+    _, start, end, valor = max(falas)
+    return start, end, valor
+
+
+def elevo_copy_problemas_v16875(fala, scan, duracao, faixa, historico):
+    p = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(fala))
+    n = len(p)
+    problemas = []
+    if n < faixa[0] - 2 or n > faixa[1] + 2:
+        problemas.append(f"Fala fora da faixa original {faixa[0]}-{faixa[1]} palavras")
+    comp = elevo_copy_resumo_v16875(fala)
+    if comp and (any(h.get("ini") == comp[0] for h in historico[-100:])
+                 or any(h.get("fim") == comp[1] for h in historico[-100:])):
+        problemas.append("Abertura ou chamada final idêntica a vídeo anterior")
+    normal = " ".join(p)
+    if re.search(r"^(?:amiga\s+)?(?:olha\s+so|para\s+tudo|voce\s+nao\s+vai\s+acreditar|esse\s+produto\s+e\s+perfeito)\b", normal):
+        problemas.append("Gancho genérico e muito repetido")
+    proibido = ("lote secreto", "estoque surtou", "estoque enlouqueceu", "ultimas unidades", "so hoje",
+                "desconto imperdivel", "promocao relampago", "cura garantida", "resultado garantido")
+    if any(x in normal for x in proibido):
+        problemas.append("Promessa ou oferta não verificada na referência")
+    if not re.search(r"\b(sacolinha|carrinho|link do produto)\b", normal) and duracao >= 12:
+        problemas.append("Falta convite ao link nativo do produto")
+    nome = " ".join(elevo_copy_normalizar_v16875((scan or {}).get("nome_pt", "")))
+    roupa = bool(re.search(r"\b(body|shorts?|regata|conjunto|roupa|vestido|saia|blusa|calca|camiseta|alfaiataria|vestir)\b", nome))
+    if roupa:
+        detalhes = ("body", "short", "regata", "conjunto", "vestido", "saia", "blusa", "calca",
+                    "camiseta", "alfaiataria", "cinto", "cintura", "caimento", "alca", "peca")
+        if not any(k in p for k in detalhes):
+            problemas.append("Moda sem falar da peça ou de detalhe observável")
+    elif nome:
+        stop = {"produto", "kit", "unidade", "unidades", "para", "com", "de", "da", "do", "dos", "das", "uma", "um", "e", "original"}
+        concretos = {q for q in elevo_copy_normalizar_v16875(nome) if len(q) >= 4 and q not in stop}
+        if concretos and not (concretos & set(p)):
+            problemas.append("Fala não menciona a categoria ou elemento concreto do produto")
+    return problemas
+
+
+def elevo_copy_guard_v16875(roteiro, email, scan, motor, duracao, faixa, diretriz):
+    hist = elevo_copy_hist_v16875(email)
+    loc = elevo_copy_localizar_v16875(roteiro)
+    if not loc:
+        raise ValueError("ÉLÉVO COPY: fala do vídeo não foi localizada; criação não aprovada.")
+    problemas = elevo_copy_problemas_v16875(loc[2], scan, int(duracao), faixa, hist)
+    # Alteração pontual e excepcional: se a fala copiou um gancho, não citou o produto,
+    # nem respeitou o CTA, repará-la SEM mudar imagem, motor, visual, SEO ou duração.
+    if problemas:
+        for tentativa in range(2):
+            loc = elevo_copy_localizar_v16875(roteiro)
+            if not loc:
+                break
+            atual = loc[2]
+            pedido = (
+                f"Produto identificado: {(scan or {}).get('nome_pt', 'item da referência')}\n"
+                f"Duração: {duracao}s. Faixa INALTERÁVEL: {faixa[0]} a {faixa[1]} palavras.\n"
+                f"Texto atual: {atual}\n"
+                f"Problemas a corrigir: {'; '.join(problemas)}.\n"
+                f"Ângulo novo: {diretriz['angulo']}. Fecho sugerido: {diretriz['cta']}.\n"
+                "Reescreva SOMENTE a locução em português brasileiro, conservando o sentido comprovável, "
+                "a duração, um detalhe do produto e a voz da influenciadora. "
+                "Início inédito, situação real -> produto/benefício demonstrável -> convite nativo TikTok Shop, "
+                "sem links externos. Nunca invente atributos, avaliações, preço, cura, oferta ou estoque. "
+                "Não copie frase pronta do roteiro antigo. Responda somente JSON {\"fala\":\"...\"}."
+            )
+            validar_cota_ia()
+            resposta = elevo_chat_create_v1685(
+                model=ELEVO_MODELO_PRODUCAO_V1685,
+                response_format={"type": "json_object"},
+                messages=[{"role": "system", "content": "Revisor de copy UGC realista, conciso, sem frases repetidas ou alegações enganosas. JSON apenas."},
+                          {"role": "user", "content": pedido}],
+                max_tokens=360, temperature=0.9)
+            try:
+                nova = str(json.loads(resposta.choices[0].message.content or '{}').get('fala', '')).strip()
+            except (TypeError, ValueError, AttributeError, IndexError):
+                nova = ""
+            nova = nova.replace('"', '').replace('“', '').replace('”', '').strip()
+            if not nova:
+                continue
+            problemas_novos = elevo_copy_problemas_v16875(nova, scan, int(duracao), faixa, hist)
+            if problemas_novos:
+                problemas = problemas_novos
+                continue
+            prefixo_asrm = re.match(r"^(?:\s*\[[^\]]{1,80}\]\s*)+", atual)
+            if prefixo_asrm and not nova.startswith("["):
+                nova = prefixo_asrm.group(0) + nova
+            roteiro = roteiro[:loc[0]] + nova + roteiro[loc[1]:]
+            problemas = []
+            break
+    if problemas:
+        raise ValueError("ÉLÉVO COPY: não foi possível obter abertura e CTA novos, com produto real e tempo correto. "
+                         "Tente gerar novamente. Seu débito será estornado.")
+    # Variar apenas o texto de CTA editorial, sem adicionar interface ao vídeo bruto.
+    m = re.search(r"(?m)^\s*📝\s*Texto na Tela[^\n]*\n", roteiro)
+    if m:
+        fim = re.search(r"(?m)^\s*(?:###\s*🔑|🏁|Finalização\b)", roteiro[m.end():])
+        end = m.end() + (fim.start() if fim else len(roteiro[m.end():]))
+        trecho = roteiro[m.end():end]
+        variavel = diretriz['cta']
+        novo, n = re.subn(r"(?im)^([^\n]*)(?:CORRE NA SACOLINHA|CONFIRA NA SACOLINHA|CONHEÇA NA SACOLINHA)([^\n]*)$",
+                          lambda match: "🛒 " + variavel, trecho, count=1)
+        if n:
+            roteiro = roteiro[:m.end()] + novo + roteiro[end:]
+    return roteiro
+
+
+def elevo_copy_registrar_v16875(roteiro, email, motor, diretriz):
+    loc = elevo_copy_localizar_v16875(roteiro)
+    if not loc:
+        return
+    hashes = elevo_copy_resumo_v16875(loc[2])
+    if not hashes:
+        return
+    hist = st.session_state.setdefault("elevo_copy_hist_v16875", [])
+    hist.append({"ini": hashes[0], "fim": hashes[1],
+                 "angulo": diretriz["angulo"], "cta": diretriz["cta"]})
+    st.session_state["elevo_copy_hist_v16875"] = hist[-60:]
+    anteriores = st.session_state.setdefault("elevo_copy_ultimas_falas_v16875", [])
+    anteriores.append(loc[2])
+    st.session_state["elevo_copy_ultimas_falas_v16875"] = anteriores[-8:]
+    try:
+        aba = elevo_aba_v16813("Elevo_Copy_Hashes_V1", ELEVO_COPY_COLS_V16875)
+        aba.append_row([secrets.token_hex(8), str(email).strip().lower(),
+                        datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(),
+                        motor, hashes[0], hashes[1], diretriz["angulo"], diretriz["cta"]])
+    except Exception as exc:
+        # Criatividade não falha por indisponibilidade do registro auxiliar.
+        logging.warning("ELEVO_COPY_REGISTRO: memória apenas na sessão (%s)", type(exc).__name__)
+
 
 class ElevoCreditoErroV16813(RuntimeError):
     pass
@@ -1374,12 +1666,12 @@ def elevo_excluir_conta_v16813(email):
 #  de pagamento ANTES de chamar essas funções.
 # ==========================================================
 # V16.8.63 — PLANOS OFICIAIS (mesma lista no checkout e no estúdio do CEO).
-# Cada criação custa ELEVO_CUSTO_PROMPT_V16813 (10) créditos. Para mudar preço
+# Cada criação custa ELEVO_CUSTO_PROMPT_V16813 (20) créditos. Para mudar preço
 # ou créditos, edite só aqui. "selo" aparece no cartão do plano.
 ELEVO_PACOTES_V16859 = {
-    "Start": {"creditos": 3000,  "preco": 29.90, "desc": "≈ 300 criações", "selo": "Para começar"},
-    "Pro":   {"creditos": 6500,  "preco": 49.90, "desc": "≈ 650 criações", "selo": "Mais vendido"},
-    "Elite": {"creditos": 10000, "preco": 77.00, "desc": "≈ 1.000 criações", "selo": "Melhor custo"},
+    "Start": {"creditos": 3000,  "preco": 29.90, "desc": "≈ 150 criações", "selo": "Para começar"},
+    "Pro":   {"creditos": 6500,  "preco": 49.90, "desc": "≈ 325 criações", "selo": "Mais vendido"},
+    "Elite": {"creditos": 10000, "preco": 77.00, "desc": "≈ 500 criações", "selo": "Melhor custo"},
 }
 
 # V16.8.73 — PROMOÇÃO RELÂMPAGO (ligada só pelo CEO, por tempo limitado).
@@ -6757,7 +7049,7 @@ if E_O_CEO:
             with _evc_c4:
                 _evc_obs = st.text_input("📝 Observação interna (opcional)", max_chars=250,
                                          placeholder="Ex.: indicação, cortesia, cliente de março...")
-            st.caption(f"Custos de uso: 360º e V9.2 = {ELEVO_CUSTO_PROMPT_V16813} créditos • "
+            st.caption(f"Custos de uso: 360º, V9.2, Produto 3S e Mãos Viral = {ELEVO_CUSTO_PROMPT_V16813} créditos • "
                        f"outras ferramentas de IA = {ELEVO_CUSTO_FERRAMENTA_V16813} créditos.")
             _evc_enviar = st.form_submit_button("✦ LIBERAR ACESSO VIP", use_container_width=True, type="primary")
 
@@ -8588,6 +8880,7 @@ with _elevo_area_criacao_v16823:
             key="elevo_duracao_video_v16829",
         )
         st.caption("A ÉLÉVO adapta a fala e os movimentos ao tempo escolhido, sem alterar a imagem.")
+        st.caption("🛡️ TikTok Shop: vincule o produto pelo carrinho nativo, confirme que as características anunciadas são reais e sinalize o vídeo como conteúdo gerado por IA na publicação quando aplicável.")
     faixas_fala_v16829 = {10: (20, 25), 12: (28, 31), 15: (36, 39)}  # V16.8.57
     min_palavras_video_v16829, max_palavras_video_v16829 = faixas_fala_v16829[int(segundos_video_v16829)]
 
@@ -8677,7 +8970,7 @@ with _elevo_area_criacao_v16823:
                         st.error("Entre na sua conta para gerar roteiros.")
                         btn_gerar_roteiro = st.button("⚡ LER RÓTULO E GERAR", type="primary", use_container_width=True, disabled=True, key="btn_gerar_360_disabled")
                     else:
-                        txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else "⚡ LER RÓTULO E GERAR • 10 CR"
+                        txt_botao = "⚡ LER RÓTULO E GERAR (Ilimitado)" if E_O_CEO else f"⚡ LER RÓTULO E GERAR • {ELEVO_CUSTO_PROMPT_V16813} CR"
                         btn_gerar_roteiro = st.button(txt_botao, type="primary", use_container_width=True, key="btn_gerar_360_ativo")
                 else:
                     st.success("🧬 **CRIAÇÃO V9.2 ATIVADA!** Clique no botão do **Bloco 17.2** logo abaixo.")
@@ -8743,7 +9036,7 @@ with _elevo_area_criacao_v16823:
                 st.error("Entre na sua conta para gerar roteiros.")
                 btn_gerar_v92 = st.button("🔥 GERAR NA V9.2", type="primary", use_container_width=True, disabled=True, key="btn_v92_disabled")
             else:
-                txt_btn_v92 = "🔥 GERAR NA V9.2 (Ilimitado)" if E_O_CEO else "🔥 GERAR NA V9.2 • 10 CR"
+                txt_btn_v92 = "🔥 GERAR NA V9.2 (Ilimitado)" if E_O_CEO else f"🔥 GERAR NA V9.2 • {ELEVO_CUSTO_PROMPT_V16813} CR"
                 btn_gerar_v92 = st.button(txt_btn_v92, type="primary", use_container_width=True, disabled=v92_logo_invalida_v16837, key="btn_v92_ativo")
 
     # ==========================================================
@@ -11263,6 +11556,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 img_b64_roteiro = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                 scan_17 = escanear_dor_e_contagem_da_foto(img_b64_roteiro)
                 gancho_sorteado_17 = selecionar_gancho_v11()
+                copy_17_v16875 = elevo_copy_diretriz_v16875(email_sessao, "Produto 3S" if st.session_state.get("elevo_produto_primeiro_3s_v16821", False) else "360º", segundos_video_v16829, scan_17)
                 direcao_v11_17 = selecionar_direcao_fisica_v11(email_sessao, "360")
                 contexto_mem_17, licoes_mem_17 = elevo_mem_contextualizar_v1(
                     email_sessao, "360", scan_17, img_produto.getvalue(),
@@ -11344,6 +11638,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                                        "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                 # Sempre ao FINAL: prevalece sobre exemplos históricos fixados em 9/10 s.
                 instrucao_ouro += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                instrucao_ouro += copy_17_v16875["texto"]
                 validar_cota_ia()
                 etapa_formato_elevo = "geracao_inicial_recuperacao"
                 conteudo_texto = gerar_roteiro_com_recuperacao_v1689(
@@ -11402,6 +11697,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     modo='produto_3s' if st.session_state.get('elevo_produto_primeiro_3s_v16821', False) else '360')
                 etapa_formato_elevo = "deduplicar_regras_360_produto_3s"
                 conteudo_texto = elevo_deduplicar_regras_v1706(conteudo_texto)
+                etapa_formato_elevo = "copy_guard_360_produto_3s"
+                conteudo_texto = elevo_copy_guard_v16875(conteudo_texto, email_sessao, scan_17, "360º/3S", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_17_v16875)
                 etapa_formato_elevo = "quality_gate_360_produto_3s"
                 elevo_quality_gate_v1700(
                     conteudo_texto, scan_17,
@@ -11414,6 +11711,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_17
                 # Substitui o ÚNICO rascunho deste login (sem interferir no Banco 17.3).
                 elevo_rascunho_substituir_v16820(email_sessao, conteudo_texto)
+                elevo_copy_registrar_v16875(conteudo_texto, email_sessao, "360º/3S", copy_17_v16875)
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
             
                 
@@ -11453,6 +11751,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     img_b64_v92 = base64.b64encode(img_produto.getvalue()).decode('utf-8')
                     scan_v92 = escanear_dor_e_contagem_da_foto(img_b64_v92)
                     gancho_sorteado_v92 = selecionar_gancho_v11()
+                    copy_92_v16875 = elevo_copy_diretriz_v16875(email_sessao, "V9.2", segundos_video_v16829, scan_v92)
                     direcao_v11_92 = selecionar_direcao_fisica_v11(email_sessao, "v9.2")
                     contexto_mem_92, licoes_mem_92 = elevo_mem_contextualizar_v1(
                         email_sessao, "v9.2", scan_v92, img_produto.getvalue(),
@@ -11542,6 +11841,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                                           "A fala e o texto na tela falam como quem está usando: caimento, conforto, tecido, como fica no corpo. "
                                           "Nunca diga que está segurando, mostrando na mão ou que a peça está na cama/mesa.").format(nome_inf_ativa)
                     instrucao_v92 += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                    instrucao_v92 += copy_92_v16875["texto"]
                     validar_cota_ia()
                     etapa_formato_elevo = "geracao_inicial_recuperacao"
                     conteudo_v92 = gerar_roteiro_com_recuperacao_v1689(
@@ -11643,6 +11943,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                         _sec_logo_v1706 = extrair_blocos_roteiro(conteudo_v92)
                         if "[ÉLÉVO V17.0.6 — V9.2 FINAL BRAND SIGNATURE — REQUIRED]" not in _sec_logo_v1706["prompt_video"]:
                             raise ValueError("V17.0.6: V9.2 não pode ser aprovada sem a assinatura final.")
+                    etapa_formato_elevo = "copy_guard_v92"
+                    conteudo_v92 = elevo_copy_guard_v16875(conteudo_v92, email_sessao, scan_v92, "V9.2", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_92_v16875)
                     etapa_formato_elevo = "quality_gate_v92"
                     elevo_quality_gate_v1700(conteudo_v92, scan_v92, modo="v9.2")
                     etapa_formato_elevo = "v92_salvar_estado_sessao"
@@ -11654,6 +11956,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     # Mesma regra de rascunho temporário do motor 360º.
                     etapa_formato_elevo = "v92_salvar_rascunho"
                     elevo_rascunho_substituir_v16820(email_sessao, conteudo_v92)
+                    elevo_copy_registrar_v16875(conteudo_v92, email_sessao, "V9.2", copy_92_v16875)
                     st.session_state["elevo_hist_erro_gravacao_v16817"] = False
 
 
@@ -11688,6 +11991,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 img_b64_maos = base64.b64encode(img_produto.getvalue()).decode("utf-8")
                 scan_maos = escanear_dor_e_contagem_da_foto(img_b64_maos)
                 gancho_maos = selecionar_gancho_v11()
+                copy_maos_v16875 = elevo_copy_diretriz_v16875(email_sessao, "Mãos Viral", segundos_video_v16829, scan_maos)
                 direcao_maos = selecionar_direcao_fisica_v11(email_sessao, "maos")
                 ambiente_maos = str(direcao_maos.get("escolhido", ""))
                 categoria_maos = elevo_maos_categoria_v16860(scan_maos)
@@ -11745,6 +12049,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 if licoes_mem_maos:
                     instrucao_maos += "\n\n" + licoes_mem_maos
                 instrucao_maos += "\n\n" + elevo_orientar_duracao_v16829(segundos_video_v16829)
+                instrucao_maos += copy_maos_v16875["texto"]
                 instrucao_maos += ("\n\n[MÃOS VIRAL — PRIORIDADE FINAL] Ignore qualquer menção a revelar a apresentadora, "
                                    "rosto, olhar para a câmera ou entrada da influenciadora: neste motor ela só aparece pelas mãos "
                                    "e pela voz em off.")
@@ -11765,6 +12070,8 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                     categoria=categoria_maos)
                 etapa_formato_elevo = "maos_deduplicar"
                 conteudo_maos = elevo_deduplicar_regras_v1706(conteudo_maos)
+                etapa_formato_elevo = "maos_copy_guard"
+                conteudo_maos = elevo_copy_guard_v16875(conteudo_maos, email_sessao, scan_maos, "Mãos Viral", segundos_video_v16829, (min_palavras_video_v16829, max_palavras_video_v16829), copy_maos_v16875)
                 etapa_formato_elevo = "maos_quality_gate"
                 elevo_quality_gate_v1700(conteudo_maos, scan_maos, modo="maos")
                 st.session_state["elevo_ultima_duracao_gerada_v16829"] = int(segundos_video_v16829)
@@ -11773,6 +12080,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 contexto_mem_maos["roteiro_hash"] = hashlib.sha256(conteudo_maos.encode("utf-8")).hexdigest()
                 st.session_state["elevo_mem_v1_contexto"] = contexto_mem_maos
                 elevo_rascunho_substituir_v16820(email_sessao, conteudo_maos)
+                elevo_copy_registrar_v16875(conteudo_maos, email_sessao, "Mãos Viral", copy_maos_v16875)
                 st.session_state["elevo_hist_erro_gravacao_v16817"] = False
                 loader_maos_slot_v16860.empty()
                 st.success(f"🤲 Mãos Viral pronto: {_rot_estilo_maos} • {_rot_sup_maos} • "
