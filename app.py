@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.69 — valor das vendas imune ao formato pt-BR da planilha (29,90 lido como 299)
 # ÉLÉVO V16.8.68 — Mercado Pago: motivo real do erro na tela + botão Testar conexão no painel do CEO
 # ÉLÉVO V16.8.67 — modo teste preenche test@testuser.com no cartão
 # ÉLÉVO V16.8.66 — CARTÃO: instância única do Mercado Pago (corrige "Dado obrigatório" nos campos seguros)
@@ -1585,6 +1586,21 @@ def elevo_mp_diagnostico_v16868():
     return {"ok": True, "linhas": linhas}
 
 
+def elevo_valor_br_v16869(v):
+    """Lê valor em reais vindo da planilha: 29.90, "29,90", "R$ 29,90" ou o 299 antigo."""
+    s = str(v if v is not None else "").replace("R$", "").replace(" ", "").strip()
+    if not s:
+        return 0.0
+    if "," in s and "." in s:
+        s = s.replace(".", "").replace(",", ".")
+    elif "," in s:
+        s = s.replace(",", ".")
+    try:
+        return float(s)
+    except ValueError:
+        return 0.0
+
+
 def elevo_vendas_aba_v16863():
     return elevo_aba_v16813("Elevo_Vendas_V1", ELEVO_VENDAS_COLS_V16863)
 
@@ -1638,7 +1654,7 @@ def elevo_checkout_criar_v16863(plano):
     link = (pref.get("sandbox_init_point") if cfg["token_antigo"] else None) or pref.get("init_point")
     if not link:
         raise ElevoCreditoErroV16813("Não foi possível abrir o pagamento agora.")
-    aba.append_row([pedido, email, plano, creditos, preco, "PENDENTE", "", str(pref.get("id", "")),
+    aba.append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", str(pref.get("id", "")),
                     link, elevo_agora_v16813(), "", ""])
     return {"pedido": pedido, "link": link}
 
@@ -1694,8 +1710,15 @@ def elevo_checkout_confirmar_v16863(payment_id=None):
         linha, reg = meus[pedido]
         try:
             valor_pago = float(pg.get("transaction_amount") or 0)
-            valor_pedido = float(reg.get("Valor") or 0)
-            creditos = int(reg.get("Creditos") or 0)
+            # V16.8.69 — planilha em pt-BR transformava 29,90 em 299 na leitura.
+            # O valor esperado vem do plano oficial; a planilha é só registro.
+            plano_reg = str(reg.get("Plano", ""))
+            if plano_reg in ELEVO_PACOTES_V16859:
+                valor_pedido = float(ELEVO_PACOTES_V16859[plano_reg]["preco"])
+                creditos = int(ELEVO_PACOTES_V16859[plano_reg]["creditos"])
+            else:
+                valor_pedido = elevo_valor_br_v16869(reg.get("Valor"))
+                creditos = int(reg.get("Creditos") or 0)
         except (TypeError, ValueError):
             continue
         if str(pg.get("currency_id")) != "BRL" or valor_pago + 0.009 < valor_pedido or creditos <= 0:
@@ -1765,7 +1788,7 @@ def _elevo_pedido_registrar_v16865(plano, metodo):
     pacote = ELEVO_PACOTES_V16859[plano]
     pedido = "elv_" + secrets.token_hex(10)
     creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
-    elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, preco, "PENDENTE", "", "",
+    elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", "",
                                          "", elevo_agora_v16813(), "", metodo])
     return {"pedido": pedido, "email": email, "creditos": creditos, "preco": preco,
             "titulo": f"ÉLÉVO {plano} — {format(creditos, ',').replace(',', '.')} créditos"}
@@ -6653,11 +6676,19 @@ if E_O_CEO:
                 return 0.0
         _evv_c1, _evv_c2, _evv_c3 = st.columns(3)
         _evv_c1.metric("Vendas pagas", len(_evv_pagos))
-        _evv_c2.metric("Faturamento bruto", "R$ " + f"{sum(_evv_num(r.get('Valor')) for r in _evv_pagos):,.2f}"
+        def _evv_valor(r):
+            p = str(r.get("Plano", ""))
+            return float(ELEVO_PACOTES_V16859[p]["preco"]) if p in ELEVO_PACOTES_V16859 else elevo_valor_br_v16869(r.get("Valor"))
+        _evv_c2.metric("Faturamento bruto", "R$ " + f"{sum(_evv_valor(r) for r in _evv_pagos):,.2f}"
                        .replace(",", "X").replace(".", ",").replace("X", "."))
         _evv_c3.metric("Créditos vendidos", format(int(sum(_evv_num(r.get("Creditos")) for r in _evv_pagos)), ",").replace(",", "."))
         if _evv_regs:
-            st.dataframe([{k: r.get(k, "") for k in ("CriadoEm", "Email", "Plano", "Creditos", "Valor", "Status", "Metodo", "PagoEm")}
+            st.dataframe([{"Data": r.get("CriadoEm", ""), "Cliente": r.get("Email", ""), "Plano": r.get("Plano", ""),
+                           "Créditos": r.get("Creditos", ""),
+                           "Valor": "R$ " + ("%.2f" % _evv_valor(r)).replace(".", ","),
+                           "Status": {"PAGO": "✅ Pago", "PENDENTE": "⏳ Pendente"}.get(str(r.get("Status", "")).upper(), r.get("Status", "")),
+                           "Forma": {"cartao": "💳 Cartão", "pix": "⚡ Pix"}.get(str(r.get("Metodo", "")), r.get("Metodo", "") or "🔗 Link"),
+                           "Pago em": r.get("PagoEm", "")}
                           for r in reversed(_evv_regs[-30:])], use_container_width=True, hide_index=True)
         _evv_planos = []
         for _evv_n, _evv_p in ELEVO_PACOTES_V16859.items():
