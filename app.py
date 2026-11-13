@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.91 — e-mail transacional HTML hacker premium + aviso de spam (somente UX de email)
 # ÉLÉVO V16.8.90 — diagnóstico SMTP seguro: identifica campo ausente sem expor Secrets nem alterar envio
 # ÉLÉVO V16.8.89 — contraste do topo e dos documentos, botão Sair sóbrio (somente UI)
 # ÉLÉVO V16.8.88 — acesso por e-mail/senha; verificação 4h com suspensão; recuperação para contas comuns; sem login social
@@ -100,6 +101,7 @@ import time
 import smtplib
 import ssl
 from email.message import EmailMessage
+from email.utils import formataddr
 from urllib.parse import quote
 import inspect
 import random
@@ -713,6 +715,92 @@ def elevo_otp_digest_v16885(email, tipo, codigo):
     return hmac.new(AUTH_COOKIE_PASSWORD.encode("utf-8"), material, hashlib.sha256).hexdigest()
 
 
+def elevo_email_modelo_v16891(tipo, codigo):
+    """E-mail transacional acessível: conteúdo claro em texto + HTML sem ativos remotos.
+
+    O modelo NÃO altera a geração, validade, limites ou validação do OTP.
+    """
+    if tipo not in ("cadastro", "senha") or not re.fullmatch(r"\d{6}", str(codigo)):
+        raise ValueError("Dados de e-mail inválidos")
+    codigo = str(codigo)
+    if tipo == "cadastro":
+        assunto = "ÉLÉVO | Confirme seu e-mail"
+        titulo = "Confirme seu e-mail"
+        subtitulo = "Seu acesso está quase pronto."
+        descricao = ("Recebemos uma solicitação para confirmar o endereço de e-mail "
+                     "da sua conta ÉLÉVO. Digite o código abaixo na plataforma.")
+        operacao = "VERIFICAÇÃO DE CONTA"
+    else:
+        assunto = "ÉLÉVO | Código para redefinir sua senha"
+        titulo = "Recupere seu acesso"
+        subtitulo = "Uma etapa para proteger sua conta."
+        descricao = ("Recebemos um pedido para redefinir a senha da sua conta ÉLÉVO. "
+                     "Digite o código abaixo na plataforma para continuar.")
+        operacao = "RECUPERAÇÃO DE SENHA"
+    texto = (
+        f"ÉLÉVO | {operacao}\n\n"
+        f"{titulo}\n{descricao}\n\n"
+        f"SEU CÓDIGO: {codigo}\n\n"
+        "Validade: 10 minutos. Este código é de uso único.\n"
+        "Não compartilhe o código, sua senha ou dados de pagamento.\n\n"
+        "Se você não solicitou este código, ignore esta mensagem.\n\n"
+        "Equipe ÉLÉVO | Intelligence Studio\n"
+        "Esta é uma mensagem automática de segurança.\n"
+    )
+    # Tabelas e estilos inline são mais compatíveis com clientes de e-mail,
+    # inclusive em telas pequenas. Nenhum CSS, imagem ou script externo.
+    html_email = """<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Segurança ÉLÉVO</title></head>
+<body style="margin:0;padding:0;background-color:#edf2f7;font-family:Arial,Helvetica,sans-serif;color:#11263e;">
+<div style="display:none!important;visibility:hidden;mso-hide:all;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">
+Seu código de segurança ÉLÉVO vence em 10 minutos.</div>
+<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="background-color:#edf2f7;">
+<tr><td align="center" style="padding:30px 12px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #dce6f0;border-radius:20px;overflow:hidden;">
+<tr><td style="background:#101e31;padding:25px 28px;border-bottom:3px solid #26bba5;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="color:#ffffff;font-size:22px;letter-spacing:2px;font-weight:800;">◈ ÉLÉVO</td>
+<td align="right" style="color:#9edbd5;font-size:10px;letter-spacing:1.4px;font-weight:bold;">SECURE • ACCESS</td>
+</tr></table>
+<div style="color:#b8c9da;font-size:11px;letter-spacing:2px;margin-top:6px;">INTELLIGENCE STUDIO / SEGURANÇA</div>
+</td></tr>
+<tr><td style="padding:30px 28px 12px;">
+<p style="margin:0 0 10px;color:#0d857b;font-size:11px;letter-spacing:1.5px;font-weight:bold;">🔐 __OPERACAO__</p>
+<h1 style="font-family:Arial,Helvetica,sans-serif;font-size:26px;line-height:1.22;letter-spacing:-.4px;color:#102a45;margin:0 0 8px;">__TITULO__</h1>
+<p style="color:#4d657e;font-size:14px;line-height:1.55;margin:0 0 15px;font-weight:bold;">__SUBTITULO__</p>
+<p style="color:#4d6076;font-size:14px;line-height:1.65;margin:0;">__DESCRICAO__</p>
+</td></tr>
+<tr><td style="padding:19px 28px 24px;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:separate;border-radius:14px;overflow:hidden;background:#122b40;">
+<tr><td align="center" style="padding:20px 10px 18px;">
+<div style="font-size:10px;letter-spacing:2.3px;color:#91d7d0;font-weight:bold;">CÓDIGO DE SEGURANÇA</div>
+<div style="font-family:'Courier New',monospace;font-size:38px;letter-spacing:5px;line-height:1.3;color:#ffffff;font-weight:bold;margin:10px 0;">__CODIGO__</div>
+<div style="color:#d2e4ec;font-size:12px;line-height:1.6;">⏳ Válido por <strong>10 minutos</strong> • Uso único</div>
+</td></tr></table>
+</td></tr>
+<tr><td style="padding:0 28px 26px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f2f8f9;border-left:3px solid #1caa9b;border-radius:8px;">
+<tr><td style="padding:14px 15px;font-size:12px;line-height:1.65;color:#29495d;">
+🛡️ <strong>Proteja sua conta:</strong> a ÉLÉVO nunca pede esse código, sua senha ou dados completos do cartão por WhatsApp ou e-mail.
+</td></tr></table>
+<p style="margin:17px 0 0;font-size:12px;line-height:1.6;color:#66778b;">Não reconhece esta solicitação? Ignore esta mensagem. Nenhuma ação é necessária.</p>
+</td></tr>
+<tr><td style="background:#f7fafc;border-top:1px solid #e1e8f0;padding:21px 28px;text-align:center;">
+<p style="font-size:12px;color:#31506b;font-weight:bold;margin:0 0 6px;">ÉLÉVO • Intelligence Studio</p>
+<p style="font-size:11px;color:#75869a;line-height:1.55;margin:0;">Mensagem automática de segurança. Não responda com senhas ou códigos.</p>
+</td></tr>
+</table>
+<p style="font-size:11px;color:#7f90a4;line-height:1.6;max-width:560px;margin:18px 0 0;">Enviada porque houve uma solicitação de acesso ou segurança na ÉLÉVO.</p>
+</td></tr></table>
+</body></html>"""
+    for marcador, valor in (("__CODIGO__",codigo),("__TITULO__",titulo),
+                           ("__SUBTITULO__",subtitulo),("__DESCRICAO__",descricao),
+                           ("__OPERACAO__",operacao)):
+        html_email = html_email.replace(marcador, html_std.escape(valor))
+    return assunto, texto, html_email
+
+
 def elevo_codigo_enviar_v16885(email, tipo):
     """Somente para cadastro e redefinição; 60s de espera, max 5 por dia.
     Salva hash/validade ANTES do envio, com restrição por destinatário e tipo.
@@ -736,14 +824,15 @@ def elevo_codigo_enviar_v16885(email, tipo):
     uid = secrets.token_hex(12)
     aba.append_row([email, tipo, digest, agora, agora + 600, 0, "PENDENTE", uid],
                    value_input_option="RAW")
+    # V16.8.91: e-mail multipart/alternative: texto acessível + HTML compatível.
+    # Não mexer no SMTP, no prazo, no hash nem no banco de códigos.
+    assunto, texto_email, html_email = elevo_email_modelo_v16891(tipo, codigo)
     msg = EmailMessage()
-    msg["Subject"] = "ÉLÉVO | código de verificação"
-    msg["From"] = ELEVO_SMTP_FROM_V16885
+    msg["Subject"] = assunto
+    msg["From"] = formataddr(("ÉLÉVO Segurança", ELEVO_SMTP_FROM_V16885))
     msg["To"] = email
-    msg.set_content(
-        f"Seu código ÉLÉVO é {codigo}.\n\nEle vence em 10 minutos. "
-        "Não informe este código a ninguém.\n\nSe não solicitou, ignore esta mensagem."
-    )
+    msg.set_content(texto_email, charset="utf-8")
+    msg.add_alternative(html_email, subtype="html", charset="utf-8")
     try:
         if ELEVO_SMTP_PORT_V16885 == 465:
             with smtplib.SMTP_SSL(ELEVO_SMTP_HOST_V16885, 465, timeout=15,
@@ -1047,6 +1136,7 @@ def elevo_preconta_aviso_v16887(email):
         return
     segundos = max(0, pendente["expira"] - int(time.time()))
     st.markdown("#### 📩 Verificação do seu e-mail")
+    st.caption("📬 Não encontrou a mensagem? Procure também em **Spam / Lixo eletrônico** e nas abas Promoções ou Atualizações do Gmail. Se estiver no spam, marque **Não é spam**.")
     if pendente["suspensa"]:
         st.error("Sua conta provisória está **suspensa por falta de verificação** após quatro horas. "
                  "Você pode pedir um novo código e confirmar agora para ativá-la; seus dados não foram apagados.")
@@ -1443,6 +1533,7 @@ if not st.session_state["usuario_logado"]:
                             key="elevo_signup_aceite_v16884",value=False)
                         criar_conta_btn = st.form_submit_button("Criar conta com e-mail",use_container_width=True,type="primary")
                     st.caption("Crie sua conta, verifique agora ou depois. Após quatro horas sem confirmação, o cadastro fica suspenso até verificar. Os 100 créditos são liberados somente após a verificação.")
+                    st.caption("📨 O código pode chegar em **Spam / Lixo eletrônico**. Confira essa pasta se não aparecer na caixa de entrada.")
                     if criar_conta_btn:
                         email_clean = novo_email.strip().lower()
                         try:
@@ -1451,7 +1542,7 @@ if not st.session_state["usuario_logado"]:
                                 st.session_state["elevo_preconta_email_v16887"] = email_clean
                             try:
                                 elevo_codigo_enviar_v16885(email_clean,"cadastro")
-                                st.success("Seu cadastro provisório foi criado. Enviamos um código para seu e-mail.")
+                                st.success("Cadastro provisório criado! Confira seu e-mail e, se necessário, Spam / Lixo eletrônico.")
                             except Exception:
                                 st.info("Cadastro provisório criado. Toque em Enviar código para tentar novamente.")
                             st.rerun()
@@ -1500,6 +1591,7 @@ if not st.session_state["usuario_logado"]:
                 with st.expander("🔑 Esqueci minha senha", expanded=False):
                     st.caption("Receba um código no e-mail cadastrado para definir uma nova senha. "
                                "Funciona também em cadastros provisórios ou suspensos por falta de verificação.")
+                    st.caption("📬 Não recebeu? Veja também **Spam / Lixo eletrônico**, Promoções ou Atualizações antes de solicitar outro código.")
                     if elevo_email_envio_pronto_v16885():
                         with st.form("elevo_senha_solicitar_v16885"):
                             email_rec_v16885 = st.text_input("E-mail da conta", key="elevo_rec_email_v16885")
@@ -3421,12 +3513,13 @@ if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
                        "Sua conta antiga continua ativa; confirme quando puder para facilitar a recuperação de acesso.")
             with st.expander("✉ Verificar meu e-mail", expanded=False):
                 st.caption("Enviaremos um código de 6 dígitos para o e-mail da conta. Ele vence em 10 minutos.")
+                st.caption("📬 Confira também **Spam / Lixo eletrônico** se o código não chegar na caixa de entrada.")
                 c1, c2 = st.columns(2)
                 with c1:
                     if st.button("Enviar código", key="elevo_legacy_send_v16888", use_container_width=True):
                         try:
                             elevo_codigo_enviar_v16885(_email_aviso_v16888, "cadastro")
-                            st.success("Código enviado. Confira sua caixa de entrada.")
+                            st.success("Código enviado. Confira sua caixa de entrada e também Spam / Lixo eletrônico.")
                         except (RuntimeError,ValueError) as exc:
                             st.warning(str(exc))
                         except Exception:
