@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.86 — WhatsApp flutuante nativo e animado (correção de SVG gigante/HTML exposto)
 # ÉLÉVO V16.8.85 — atendimento WhatsApp, menu lateral e email verificado por OTP (ativação segura)
 # ÉLÉVO V16.8.84 — termos/privacidade versionados + Google OIDC com vínculo seguro (ativação pelo operador)
 # ÉLÉVO V16.8.83 — Painel CEO reorganizado, patentes, suspensão e promoções percentuais
@@ -821,30 +822,67 @@ def elevo_senha_redefinir_v16885(email, nova_senha):
     return True
 
 
-# Ajuda fixa dentro da página, inclusive no login. Não coleta dados do cliente.
-st.markdown(f"""<style>
-.elevo-wa-v16885{{position:fixed;right:20px;bottom:28px;z-index:99990;
- display:inline-flex;align-items:center;gap:9px;padding:11px 17px 11px 13px;
- border-radius:999px;background:linear-gradient(145deg,#12875C,#0D694A);
- border:1px solid rgba(230,255,242,.25);color:#FFF!important;text-decoration:none!important;
- font:800 .82rem Montserrat,Arial,sans-serif;letter-spacing:.01em;
- box-shadow:0 8px 25px rgba(0,0,0,.23),inset 0 1px rgba(255,255,255,.13);
- transition:transform .16s ease,box-shadow .16s ease;}}
-.elevo-wa-v16885:hover{{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.27);}}
-.elevo-wa-v16885:focus-visible{{outline:3px solid #D7FFF3;outline-offset:3px;}}
-.elevo-wa-v16885 svg{{width:22px;height:22px;flex-shrink:0;}}
-@media(max-width:700px){{.elevo-wa-v16885{{right:12px;bottom:90px;padding:12px;}}
- .elevo-wa-v16885 .elevo-wa-legenda-v16885{{display:none;}}}}
-@media(prefers-reduced-motion:reduce){{.elevo-wa-v16885{{transition:none;}}}}
-</style><a class="elevo-wa-v16885" href="{ELEVO_WHATSAPP_LINK_V16885}"
- target="_blank" rel="noopener noreferrer" aria-label="Ajuda pelo WhatsApp da ÉLÉVO"
- title="Falar com suporte ÉLÉVO no WhatsApp">
- <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg">
- <path d="M20.1 11.65a8.12 8.12 0 0 1-11.91 7.19L3.5 20l1.23-4.53a8.14 8.14 0 1 1 15.37-3.82Z"
- stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
- <path d="M8.1 8.2c.3-.5.62-.53.94-.53.28 0 .49.08.66.47l.62 1.39c.1.24.06.42-.1.62l-.51.59c.48 1.1 1.32 1.96 2.49 2.49l.64-.72c.2-.24.4-.29.69-.17l1.45.68c.4.2.44.46.36.76-.22.82-1.31 1.35-2.12 1.26-3.1-.36-5.42-2.76-5.54-5.65-.02-.46.17-.95.42-1.19Z"
- fill="white"/></svg><span class="elevo-wa-legenda-v16885">Precisa de ajuda?</span></a>""",
- unsafe_allow_html=True)
+# ÉLÉVO V16.8.86 — BOTÃO WHATSAPP NATIVO FLUTUANTE (sem HTML/SVG bruto).
+# O st.markdown anterior podia separar o HTML multilinha: atributos apareciam
+# como texto e o SVG ocupava a tela. Usar um link_button nativo elimina isso.
+# Contato e URL continuam sendo os MESMOS definidos em V16.8.85.
+st.markdown("""<style>
+/* Isola o botão no canto direito — nunca altera links e ícones do restante da página. */
+.st-key-elevo_wa_fab_v16886 {
+  position:fixed!important; right:20px!important; bottom:78px!important;
+  z-index:99990!important; width:max-content!important;
+  max-width:calc(100vw - 24px)!important;
+  margin:0!important; padding:0!important; background:transparent!important;
+  border:none!important; box-shadow:none!important;
+}
+.st-key-elevo_wa_fab_v16886 [data-testid="stLinkButton"] {
+  width:max-content!important; max-width:100%!important;
+}
+.st-key-elevo_wa_fab_v16886 a {
+  box-sizing:border-box!important; display:inline-flex!important;
+  align-items:center!important; justify-content:center!important;
+  gap:7px!important; width:auto!important;
+  min-width:106px!important; max-width:180px!important;
+  height:46px!important; min-height:46px!important;
+  padding:0 16px!important; border-radius:999px!important;
+  background:linear-gradient(135deg,#158568 0%,#0E6668 100%)!important;
+  border:1px solid rgba(148,231,211,.42)!important;
+  color:#FFFFFF!important;
+  box-shadow:0 9px 24px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.12)!important;
+  text-decoration:none!important; font-weight:750!important;
+  font-size:.83rem!important; line-height:1!important;
+  animation:elevo-wa-respiro-v16886 6s ease-in-out infinite;
+  transition:transform .2s ease,filter .2s ease;
+}
+.st-key-elevo_wa_fab_v16886 a:hover {
+  transform:translateY(-3px)!important;
+  filter:brightness(1.08)!important;
+}
+.st-key-elevo_wa_fab_v16886 a:focus-visible {
+  outline:3px solid #BEFFF3!important; outline-offset:3px!important;
+}
+.st-key-elevo_wa_fab_v16886 a p,
+.st-key-elevo_wa_fab_v16886 a span {color:#FFFFFF!important; font-weight:750!important;}
+@keyframes elevo-wa-respiro-v16886 {
+  0%,100% {box-shadow:0 9px 24px rgba(0,0,0,.24),0 0 0 0 rgba(58,210,172,0);}
+  72% {box-shadow:0 9px 24px rgba(0,0,0,.24),0 0 0 0 rgba(58,210,172,.30);}
+  85% {box-shadow:0 9px 24px rgba(0,0,0,.24),0 0 0 8px rgba(58,210,172,0);}
+}
+@media (max-width:700px) {
+  .st-key-elevo_wa_fab_v16886 {right:12px!important; bottom:88px!important;}
+  .st-key-elevo_wa_fab_v16886 a {
+    min-width:98px!important; height:43px!important; min-height:43px!important;
+    padding:0 13px!important; font-size:.78rem!important;
+  }
+}
+@media (prefers-reduced-motion:reduce) {
+  .st-key-elevo_wa_fab_v16886 a {animation:none!important; transition:none!important;}
+}
+</style>""", unsafe_allow_html=True)
+with st.container(key="elevo_wa_fab_v16886"):
+    st.link_button("💬 Ajuda", ELEVO_WHATSAPP_LINK_V16885,
+                   help="Falar com o suporte da ÉLÉVO pelo WhatsApp",
+                   use_container_width=False)
 
 
 def google_identidade_atual():
