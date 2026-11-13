@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.85 — atendimento WhatsApp, menu lateral e email verificado por OTP (ativação segura)
+# ÉLÉVO V16.8.84 — termos/privacidade versionados + Google OIDC com vínculo seguro (ativação pelo operador)
 # ÉLÉVO V16.8.83 — Painel CEO reorganizado, patentes, suspensão e promoções percentuais
 # ÉLÉVO V16.8.82 — acentos azul/esmeralda na Central de Operação (somente UI da carteira)
 # ÉLÉVO V16.8.81 — CARTEIRA EM DOIS CARTÕES PREMIUM (IDENTIDADE + SALDO), MODOS CLARO/ESCURO
@@ -90,6 +92,11 @@
 import base64
 import requests
 import time
+import smtplib
+import ssl
+from email.message import EmailMessage
+from urllib.parse import quote
+import inspect
 import random
 import streamlit as st
 
@@ -276,6 +283,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_acesso_registrado_v16813", "elevo_acesso_google_id_v16813",
     "elevo_bv_epoca_local_v16814", "elevo_bv_chave_v16814",
     "elevo_bv_password_nonce_v16814", "elevo_bv_google_nonce_v16814",
+    "elevo_cadastro_otp_pendente_v16885", "elevo_senha_otp_email_v16885",
 }
 
 def limpar_sessao_privada():
@@ -494,6 +502,350 @@ def google_habilitado():
         return False
 
 GOOGLE_ATIVO = google_habilitado()
+
+# ==========================================================
+# V16.8.84 — DOCUMENTOS LEGAIS E ACEITES (PLANILHA SEPARADA).
+# Login Google é OIDC padrão do Streamlit, sem Gmail/Drive scopes.
+# Ativação de documentos exige dados reais do responsável e do contato;
+# isso evita publicar uma política contendo informações inventadas.
+# ==========================================================
+ELEVO_LEGAL_VERSAO_V16884 = "2026-11-13-v2"
+ELEVO_LEGAL_COLUNAS_V16884 = ["Id", "Email", "Versao", "Data", "Origem", "TermosAceitos", "PoliticaInformada"]
+ELEVO_SUPORTE_EMAIL_V16884 = str(st.secrets.get("ELEVO_SUPORTE_EMAIL", "") or "").strip().lower()
+ELEVO_RESPONSAVEL_V16884 = str(st.secrets.get("ELEVO_RESPONSAVEL_LEGAL", "") or "").strip()
+ELEVO_LEGAL_ATIVO_V16884 = bool(
+    re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", ELEVO_SUPORTE_EMAIL_V16884)
+    and len(ELEVO_RESPONSAVEL_V16884) >= 3
+)
+ELEVO_URL_TERMOS_V16884 = str(st.secrets.get("ELEVO_TERMOS_URL", "") or "").strip()
+ELEVO_URL_PRIVACIDADE_V16884 = str(st.secrets.get("ELEVO_PRIVACIDADE_URL", "") or "").strip()
+
+
+def elevo_legal_textos_v16884():
+    responsavel = ELEVO_RESPONSAVEL_V16884 or "[IDENTIFICAR RESPONSÁVEL PELA PLATAFORMA]"
+    contato = ELEVO_SUPORTE_EMAIL_V16884 or "[INSERIR E-MAIL DE SUPORTE DA ÉLÉVO]"
+    termos = f"""### Termos de Uso — ÉLÉVO
+**Versão {ELEVO_LEGAL_VERSAO_V16884}**
+
+**Operador:** {responsavel}  
+**Contato:** {contato}
+
+**1. Serviço.** A ÉLÉVO oferece ferramentas de criação assistida por inteligência artificial,
+roteiros, prompts e recursos de gestão de créditos. Os resultados dependem da qualidade dos dados,
+da revisão humana e de serviços externos; não há promessa de vendas, alcance ou viralização.
+
+**2. Conta e acesso.** O usuário deve fornecer informações corretas, preservar seus acessos e
+não compartilhar credenciais. É possível entrar por senha ou por Google, quando habilitado. A
+conta Google não autoriza leitura de mensagens do Gmail ou arquivos do Drive.
+
+**3. Créditos e compras.** O saldo e o preço de cada pacote são exibidos antes da compra. Uma
+criação consome os créditos mostrados no aplicativo; os valores podem ser atualizados com aviso
+adequado. Créditos pagos são adicionados após confirmação do pagamento pelo Mercado Pago, não
+por simples envio de comprovante. Promoções têm condições e validade mostradas na oferta.
+
+**4. Uso responsável.** O cliente é responsável por revisar a veracidade das informações
+publicitárias, direitos de imagem, marcas, autorização de uso de conteúdo e políticas das
+plataformas em que publicar. É proibido usar o serviço em atividades ilícitas ou fraudulentas.
+
+**5. Moderação.** Contas podem ser suspensas ou bloqueadas diante de descumprimento dos Termos,
+abuso comprovado ou riscos à segurança, com possibilidade de contato pelo canal informado.
+
+**6. Suporte, cancelamento e direitos.** Questões sobre compras, arrependimento, reembolsos e
+serviço serão avaliadas conforme a legislação aplicável, incluindo o Código de Defesa do
+Consumidor quando cabível. Estes Termos não eliminam direitos legalmente garantidos.
+
+**7. Atualizações.** Alterações relevantes poderão exigir novo aceite. A versão aceita e a
+data serão registradas para comprovação.
+"""
+    privacidade = f"""### Política de Privacidade — ÉLÉVO
+**Versão {ELEVO_LEGAL_VERSAO_V16884}**
+
+**Responsável pelo tratamento:** {responsavel}  
+**Contato para privacidade e solicitações LGPD:** {contato}
+
+**Quais dados usamos.** Nome/apelido, e-mail, hash da senha quando houver, identificação Google
+(`sub`) se a pessoa vincular sua conta, foto de perfil opcional, registros de créditos, compras,
+aceite dos Termos, histórico administrativo de acesso e moderação, códigos de confirmação
+armazenados como hash, horário e tentativas de uso para cadastro ou recuperação. Os códigos
+expiram em dez minutos; registros técnicos devem seguir a política de retenção do operador.
+Pedidos pagos podem envolver informações de pagamento processadas pelo Mercado Pago. O aplicativo não precisa ter acesso às
+mensagens do Gmail ou aos arquivos Google Drive dos clientes para fazer login.
+
+**Para que servem.** Cadastro/autenticação, prestação do serviço, proteção das contas,
+gerenciamento de créditos, pagamentos, atendimento, controle de abusos e cumprimento de
+obrigações legais. Conforme a finalidade, as bases legais podem incluir execução de contrato,
+cumprimento de obrigação legal e legítimo interesse, sujeito à avaliação aplicável. Tratamentos
+que dependam de consentimento específico exigirão manifestação separada.
+
+**Com quem compartilhamos.** Provedores técnicos essenciais ao serviço, como Streamlit
+(hospedagem), Google (identidade e armazenamento administrativo via conta de serviço),
+Mercado Pago (pagamentos), OpenAI (geração por IA), serviço de envio de e-mail (códigos de
+verificação) e eventuais serviços de síntese de voz, na medida necessária à função utilizada.
+Ao optar por contato no WhatsApp, a pessoa é direcionada ao serviço externo de mensagens.
+Não comercializamos cadastros de clientes.
+
+**Proteção e conservação.** Aplicamos controles de acesso e proteção de credenciais. Os dados
+são conservados pelo tempo necessário às finalidades e obrigações legais, conforme revisão do
+operador; o prazo específico e as condições de descarte devem ser formalizados pelo responsável.
+O uso de provedores externos pode envolver processamento fora do Brasil, sujeito às salvaguardas
+legais correspondentes.
+
+**Seus direitos.** Você pode solicitar informações sobre tratamento, acesso, correção,
+exclusão quando cabível, portabilidade quando aplicável e demais direitos previstos na LGPD,
+pelo canal indicado acima. A revogação de consentimento específico, quando existente, não
+impede tratamentos fundados em outras bases legais adequadas.
+
+**Atualizações.** Mudanças relevantes nesta política serão comunicadas na plataforma."""
+    return termos, privacidade
+
+
+def elevo_legal_aba_v16884():
+    if robo_sheets is None:
+        raise RuntimeError("Banco de consentimentos indisponível")
+    planilha = elevo_pasta_principal_v16816()
+    try:
+        return planilha.worksheet("Elevo_Aceites_Legais_V1")
+    except gspread.exceptions.WorksheetNotFound:
+        try:
+            aba = planilha.add_worksheet(title="Elevo_Aceites_Legais_V1", rows=2000, cols=7)
+            aba.append_row(ELEVO_LEGAL_COLUNAS_V16884, value_input_option="RAW")
+            return aba
+        except Exception:
+            return planilha.worksheet("Elevo_Aceites_Legais_V1")
+
+
+@st.cache_data(ttl=40, show_spinner=False)
+def elevo_legal_ja_aceitou_v16884(email):
+    email = str(email or "").strip().lower()
+    if not email:
+        return False
+    for registro in elevo_legal_aba_v16884().get_all_records():
+        if (str(registro.get("Email", "")).strip().lower() == email
+                and str(registro.get("Versao", "")).strip() == ELEVO_LEGAL_VERSAO_V16884
+                and str(registro.get("TermosAceitos", "")).strip().upper() == "SIM"
+                and str(registro.get("PoliticaInformada", "")).strip().upper() == "SIM"):
+            return True
+    return False
+
+
+def elevo_legal_registrar_v16884(email, origem):
+    if not ELEVO_LEGAL_ATIVO_V16884:
+        raise RuntimeError("Documentos legais ainda não foram configurados pelo operador")
+    email = str(email or "").strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise ValueError("Conta sem e-mail válido")
+    if elevo_legal_ja_aceitou_v16884(email):
+        return True
+    elevo_legal_aba_v16884().append_row(
+        [secrets.token_hex(12), email, ELEVO_LEGAL_VERSAO_V16884,
+         datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat(timespec="seconds"),
+         str(origem or "painel")[:32], "SIM", "SIM"], value_input_option="RAW")
+    elevo_legal_ja_aceitou_v16884.clear()
+    return True
+
+
+def elevo_legal_exibir_documentos_v16884():
+    with st.expander("📜 Ler Termos de Uso e Política de Privacidade", expanded=False):
+        texto_termos, texto_politica = elevo_legal_textos_v16884()
+        tab_termos, tab_privacidade = st.tabs(["Termos de Uso", "Privacidade"])
+        with tab_termos:
+            st.markdown(texto_termos)
+            if ELEVO_URL_TERMOS_V16884.startswith("https://"):
+                st.link_button("Ver termos publicados", ELEVO_URL_TERMOS_V16884)
+        with tab_privacidade:
+            st.markdown(texto_politica)
+            if ELEVO_URL_PRIVACIDADE_V16884.startswith("https://"):
+                st.link_button("Ver política publicada", ELEVO_URL_PRIVACIDADE_V16884)
+
+
+# ==========================================================
+# V16.8.85 — CANAL OFICIAL + VERIFICAÇÃO DE E-MAIL (CÓDIGO DE 6 DÍGITOS)
+# NUNCA pede a senha do Gmail; o Google OAuth continua sem escopos de Gmail.
+# Não utiliza nem altera as abas financeiras/contas de crédito.
+# ==========================================================
+ELEVO_WHATSAPP_V16885 = re.sub(r"\D", "", str(st.secrets.get("ELEVO_WHATSAPP_NUMERO", "5577998048938")))
+if not re.fullmatch(r"55\d{10,11}", ELEVO_WHATSAPP_V16885):
+    ELEVO_WHATSAPP_V16885 = "5577998048938"
+ELEVO_WHATSAPP_LINK_V16885 = (
+    "https://wa.me/" + ELEVO_WHATSAPP_V16885
+    + "?text=" + quote("Olá! Preciso de ajuda com minha conta na ÉLÉVO.", safe="")
+)
+ELEVO_SMTP_HOST_V16885 = str(st.secrets.get("ELEVO_SMTP_HOST", "") or "").strip()
+ELEVO_SMTP_USER_V16885 = str(st.secrets.get("ELEVO_SMTP_USER", "") or "").strip()
+ELEVO_SMTP_PASSWORD_V16885 = str(st.secrets.get("ELEVO_SMTP_PASSWORD", "") or "")
+ELEVO_SMTP_FROM_V16885 = str(st.secrets.get("ELEVO_SMTP_FROM", "") or "").strip()
+try:
+    ELEVO_SMTP_PORT_V16885 = int(st.secrets.get("ELEVO_SMTP_PORT", 587))
+except (ValueError, TypeError):
+    ELEVO_SMTP_PORT_V16885 = 587
+
+
+def elevo_email_envio_pronto_v16885():
+    return bool(ELEVO_SMTP_HOST_V16885 and ELEVO_SMTP_USER_V16885
+                and ELEVO_SMTP_PASSWORD_V16885 and ELEVO_SMTP_PORT_V16885 in (465, 587)
+                and re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", ELEVO_SMTP_FROM_V16885))
+
+
+def elevo_codigo_aba_v16885():
+    if robo_sheets is None:
+        raise RuntimeError("Serviço de verificação indisponível")
+    p = elevo_pasta_principal_v16816()
+    nome = "Elevo_Codigos_Email_V1"
+    try:
+        return p.worksheet(nome)
+    except gspread.exceptions.WorksheetNotFound:
+        try:
+            aba = p.add_worksheet(title=nome, rows=3000, cols=8)
+            aba.append_row(["Email", "Tipo", "Hash", "Emitido", "Expira", "Tentativas", "Estado", "Id"],
+                           value_input_option="RAW")
+            return aba
+        except Exception:
+            return p.worksheet(nome)
+
+
+def elevo_otp_digest_v16885(email, tipo, codigo):
+    material = f"elevo-otp-v1|{tipo}|{email.lower()}|{codigo}".encode("utf-8")
+    return hmac.new(AUTH_COOKIE_PASSWORD.encode("utf-8"), material, hashlib.sha256).hexdigest()
+
+
+def elevo_codigo_enviar_v16885(email, tipo):
+    """Somente para cadastro e redefinição; 60s de espera, max 5 por dia.
+    Salva hash/validade ANTES do envio, com restrição por destinatário e tipo.
+    """
+    if not elevo_email_envio_pronto_v16885():
+        raise RuntimeError("O envio de e-mails ainda não foi ativado pela ÉLÉVO.")
+    email = str(email or "").strip().lower()
+    if tipo not in ("cadastro", "senha") or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise ValueError("Dados de verificação inválidos")
+    aba = elevo_codigo_aba_v16885()
+    agora = int(time.time())
+    regs = aba.get_all_records()
+    recentes = [r for r in regs if str(r.get("Email", "")).strip().lower() == email
+               and str(r.get("Tipo", "")) == tipo and 0 <= agora - int(r.get("Emitido") or 0) < 86400]
+    if recentes and agora - int(recentes[-1].get("Emitido") or 0) < 60:
+        raise ValueError("Aguarde 1 minuto antes de solicitar outro código.")
+    if len(recentes) >= 5:
+        raise ValueError("Limite de solicitações atingido. Tente amanhã ou fale com o suporte.")
+    codigo = f"{secrets.randbelow(1_000_000):06d}"
+    digest = elevo_otp_digest_v16885(email, tipo, codigo)
+    uid = secrets.token_hex(12)
+    aba.append_row([email, tipo, digest, agora, agora + 600, 0, "PENDENTE", uid],
+                   value_input_option="RAW")
+    msg = EmailMessage()
+    msg["Subject"] = "ÉLÉVO | código de verificação"
+    msg["From"] = ELEVO_SMTP_FROM_V16885
+    msg["To"] = email
+    msg.set_content(
+        f"Seu código ÉLÉVO é {codigo}.\n\nEle vence em 10 minutos. "
+        "Não informe este código a ninguém.\n\nSe não solicitou, ignore esta mensagem."
+    )
+    try:
+        if ELEVO_SMTP_PORT_V16885 == 465:
+            with smtplib.SMTP_SSL(ELEVO_SMTP_HOST_V16885, 465, timeout=15,
+                                  context=ssl.create_default_context()) as c:
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+        else:
+            with smtplib.SMTP(ELEVO_SMTP_HOST_V16885, 587, timeout=15) as c:
+                c.starttls(context=ssl.create_default_context())
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+    except Exception:
+        logging.warning("ELEVO_OTP: envio falhou (sem expor email, codigo ou segredo)")
+        raise RuntimeError("Não foi possível enviar o código. Confira a configuração do e-mail de suporte.")
+    return True
+
+
+def elevo_codigo_confirmar_v16885(email, tipo, codigo):
+    """Código de uso único. Prioriza o mais recente, expira em 10 min, máx 5 erros."""
+    email = str(email or "").strip().lower()
+    codigo = str(codigo or "").strip()
+    if tipo not in ("cadastro", "senha") or not re.fullmatch(r"\d{6}", codigo):
+        return False
+    aba = elevo_codigo_aba_v16885()
+    registros = aba.get_all_records()
+    for indice in range(len(registros) - 1, -1, -1):
+        r = registros[indice]
+        if str(r.get("Email", "")).strip().lower() != email or str(r.get("Tipo", "")) != tipo:
+            continue
+        # Só o pedido mais recente pode ser usado. Depois de consumido,
+        # bloqueado ou expirado, códigos anteriores NÃO são reativados.
+        if str(r.get("Estado", "")).strip().upper() != "PENDENTE":
+            return False
+        linha = indice + 2
+        if int(r.get("Expira") or 0) < int(time.time()):
+            aba.update_cell(linha, 7, "EXPIRADO")
+            return False
+        tentativas = int(r.get("Tentativas") or 0) + 1
+        if tentativas > 5:
+            aba.update_cell(linha, 7, "BLOQUEADO")
+            return False
+        valido = hmac.compare_digest(str(r.get("Hash", "")),
+                                     elevo_otp_digest_v16885(email, tipo, codigo))
+        aba.update_cell(linha, 6, tentativas)
+        if valido:
+            aba.update_cell(linha, 7, "CONSUMIDO")
+            return True
+        if tentativas >= 5:
+            aba.update_cell(linha, 7, "BLOQUEADO")
+        return False
+    return False
+
+
+def elevo_conta_verificada_criar_v16885(email, nome, hash_senha):
+    """Cadastra a senha já hasheada somente após OTP confirmado, sem recobrar créditos."""
+    email = str(email or "").strip().lower()
+    if not hash_senha.startswith("pbkdf2_sha256$"):
+        raise ValueError("Senha não protegida")
+    if usuario_cadastrado_por_email(email):
+        raise ValueError("Este e-mail já possui conta. Use Entrar.")
+    aba = elevo_aba_principal_v16816("Banco_Usuarios")
+    aba.append_row([email, str(nome).strip()[:60], hash_senha], value_input_option="RAW")
+    elevo_aurora_cadastrar_primeiro_acesso_v16816(email)
+    return True
+
+
+def elevo_senha_redefinir_v16885(email, nova_senha):
+    """Usar somente depois de um código de redefinição válido e consumido."""
+    email = str(email or "").strip().lower()
+    if email == str(EMAIL_MESTRE).strip().lower():
+        raise ValueError("A senha da conta CEO é administrada separadamente.")
+    if len(nova_senha) < 10:
+        raise ValueError("Use uma senha de pelo menos 10 caracteres.")
+    aba = elevo_aba_principal_v16816("Banco_Usuarios")
+    indices = [i for i, e in enumerate(aba.col_values(1), start=1)
+               if i > 1 and str(e).strip().lower() == email]
+    if len(indices) != 1:
+        raise RuntimeError("Não foi possível redefinir a senha desta conta.")
+    aba.update_cell(indices[0], 3, senha_hash(nova_senha))
+    return True
+
+
+# Ajuda fixa dentro da página, inclusive no login. Não coleta dados do cliente.
+st.markdown(f"""<style>
+.elevo-wa-v16885{{position:fixed;right:20px;bottom:28px;z-index:99990;
+ display:inline-flex;align-items:center;gap:9px;padding:11px 17px 11px 13px;
+ border-radius:999px;background:linear-gradient(145deg,#12875C,#0D694A);
+ border:1px solid rgba(230,255,242,.25);color:#FFF!important;text-decoration:none!important;
+ font:800 .82rem Montserrat,Arial,sans-serif;letter-spacing:.01em;
+ box-shadow:0 8px 25px rgba(0,0,0,.23),inset 0 1px rgba(255,255,255,.13);
+ transition:transform .16s ease,box-shadow .16s ease;}}
+.elevo-wa-v16885:hover{{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.27);}}
+.elevo-wa-v16885:focus-visible{{outline:3px solid #D7FFF3;outline-offset:3px;}}
+.elevo-wa-v16885 svg{{width:22px;height:22px;flex-shrink:0;}}
+@media(max-width:700px){{.elevo-wa-v16885{{right:12px;bottom:90px;padding:12px;}}
+ .elevo-wa-v16885 .elevo-wa-legenda-v16885{{display:none;}}}}
+@media(prefers-reduced-motion:reduce){{.elevo-wa-v16885{{transition:none;}}}}
+</style><a class="elevo-wa-v16885" href="{ELEVO_WHATSAPP_LINK_V16885}"
+ target="_blank" rel="noopener noreferrer" aria-label="Ajuda pelo WhatsApp da ÉLÉVO"
+ title="Falar com suporte ÉLÉVO no WhatsApp">
+ <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" xmlns="http://www.w3.org/2000/svg">
+ <path d="M20.1 11.65a8.12 8.12 0 0 1-11.91 7.19L3.5 20l1.23-4.53a8.14 8.14 0 1 1 15.37-3.82Z"
+ stroke="white" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+ <path d="M8.1 8.2c.3-.5.62-.53.94-.53.28 0 .49.08.66.47l.62 1.39c.1.24.06.42-.1.62l-.51.59c.48 1.1 1.32 1.96 2.49 2.49l.64-.72c.2-.24.4-.29.69-.17l1.45.68c.4.2.44.46.36.76-.22.82-1.31 1.35-2.12 1.26-3.1-.36-5.42-2.76-5.54-5.65-.02-.46.17-.95.42-1.19Z"
+ fill="white"/></svg><span class="elevo-wa-legenda-v16885">Precisa de ajuda?</span></a>""",
+ unsafe_allow_html=True)
+
 
 def google_identidade_atual():
     """Somente Google autenticado/validado e com e-mail verificado."""
@@ -872,7 +1224,14 @@ if not st.session_state["usuario_logado"]:
                     else:
                         # V16.8.63 — cadastro aberto de novo: primeiro acesso com Google cria a conta.
                         st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
+                        elevo_legal_exibir_documentos_v16884()
+                        _google_aceita_v16884 = st.checkbox(
+                            "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
+                            key="elevo_google_aceite_v16884", value=False)
                         if st.button("✨ Criar meu acesso com Google", use_container_width=True, key="btn_criar_google_v16863"):
+                            if ELEVO_LEGAL_ATIVO_V16884 and not _google_aceita_v16884:
+                                st.warning("Leia e aceite os Termos para criar a conta.")
+                                st.stop()
                             try:
                                 if st.query_params.get("elevo_acesso") == "novo":
                                     del st.query_params["elevo_acesso"]
@@ -884,6 +1243,8 @@ if not st.session_state["usuario_logado"]:
                                 if not cadastrado:
                                     raise RuntimeError("Falha ao criar conta")
                                 ativar_identidade(ident_google["email"], ident_google["nome"], "google")
+                                if ELEVO_LEGAL_ATIVO_V16884 and _google_aceita_v16884:
+                                    st.session_state["elevo_legal_pendente_v16884"] = ident_google["email"]
                                 st.rerun()
                             except Exception:
                                 st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
@@ -908,6 +1269,9 @@ if not st.session_state["usuario_logado"]:
                     novo_nome = st.text_input("👤 Como quer ser chamado?", placeholder="Seu nome ou apelido", max_chars=60)
                     novo_email = st.text_input("📧 Seu melhor e-mail (Gmail)", placeholder="exemplo@gmail.com", max_chars=120)
                     nova_senha = st.text_input("🔑 Crie uma senha", type="password", placeholder="Mínimo de 8 caracteres", max_chars=64)
+                    _signup_aceita_v16884 = st.checkbox(
+                        "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
+                        key="elevo_signup_aceite_v16884", value=False)
                     criar_conta_btn = st.form_submit_button("✨ CRIAR MINHA CONTA", use_container_width=True, type="primary")
                 st.markdown('<p class="evl-help">🎁 Conta nova já começa com <b>100 créditos</b> para testar.</p>',
                             unsafe_allow_html=True)
@@ -916,6 +1280,8 @@ if not st.session_state["usuario_logado"]:
                     if not novo_nome.strip() or not email_clean or not nova_senha: st.warning("⚠️ Preencha os 3 campos.")
                     elif not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email_clean): st.warning("Informe um e-mail válido.")
                     elif len(nova_senha) < 8: st.warning("A senha deve ter ao menos 8 caracteres.")
+                    elif ELEVO_LEGAL_ATIVO_V16884 and not _signup_aceita_v16884:
+                        st.warning("Para criar a conta, leia e aceite os Termos de Uso.")
                     elif email_clean == EMAIL_MESTRE.strip().lower(): st.error("🚨 Este e-mail é reservado ao CEO.")
                     else:
                         with st.spinner("Criando a sua conta..."):
@@ -923,11 +1289,58 @@ if not st.session_state["usuario_logado"]:
                             if usuarios is not None:
                                 if any(str(u.get("Email","")).strip().lower() == email_clean for u in usuarios):
                                     st.error("🚨 Este e-mail já está cadastrado! Use a aba Entrar.")
-                                elif conectar_banco_usuarios("salvar", email_clean, novo_nome.strip(), nova_senha):
-                                    entrar_usuario(email_clean, novo_nome.strip())
-                                    st.rerun()
-                                else: st.error("❌ Falha ao gravar no servidor. Tente novamente.")
+                                elif not elevo_email_envio_pronto_v16885():
+                                    st.warning("Antes de criar uma conta por senha, é necessário verificar o e-mail. "
+                                               "Configure o SMTP da ÉLÉVO ou use o cadastro com Google.")
+                                else:
+                                    try:
+                                        elevo_codigo_enviar_v16885(email_clean, "cadastro")
+                                        st.session_state["elevo_cadastro_otp_pendente_v16885"] = {
+                                            "email": email_clean, "nome": novo_nome.strip(),
+                                            "hash": senha_hash(nova_senha),
+                                            "aceite": bool(_signup_aceita_v16884)}
+                                        st.success("Enviamos um código para verificar seu e-mail. "
+                                                   "Informe-o no formulário de confirmação abaixo.")
+                                    except Exception as exc:
+                                        st.warning(str(exc) if isinstance(exc, (RuntimeError, ValueError))
+                                                   else "Não foi possível enviar o código de verificação.")
                             else: st.error("❌ Falha de conexão com o banco.")
+                # Confirmação do cadastro por código enviado ao e-mail, sem salvar senha bruta.
+                _pendente_cadastro_v16885 = st.session_state.get("elevo_cadastro_otp_pendente_v16885")
+                if _pendente_cadastro_v16885:
+                    st.info("Código de 6 dígitos enviado para **" +
+                            _pendente_cadastro_v16885["email"] + "** (válido por 10 minutos).")
+                    with st.form("elevo_cadastro_confirmacao_v16885"):
+                        codigo_cadastro_v16885 = st.text_input("Código recebido no e-mail", max_chars=6,
+                                                               placeholder="000000")
+                        confirmar_cadastro_v16885 = st.form_submit_button(
+                            "✓ Verificar e criar conta", use_container_width=True, type="primary")
+                    if confirmar_cadastro_v16885:
+                        try:
+                            if not elevo_codigo_confirmar_v16885(
+                                    _pendente_cadastro_v16885["email"], "cadastro", codigo_cadastro_v16885):
+                                st.error("Código incorreto ou vencido. Solicite outro para continuar.")
+                            else:
+                                elevo_conta_verificada_criar_v16885(
+                                    _pendente_cadastro_v16885["email"], _pendente_cadastro_v16885["nome"],
+                                    _pendente_cadastro_v16885["hash"])
+                                entrar_usuario(_pendente_cadastro_v16885["email"], _pendente_cadastro_v16885["nome"])
+                                if ELEVO_LEGAL_ATIVO_V16884 and _pendente_cadastro_v16885["aceite"]:
+                                    st.session_state["elevo_legal_pendente_v16884"] = _pendente_cadastro_v16885["email"]
+                                st.session_state.pop("elevo_cadastro_otp_pendente_v16885", None)
+                                st.rerun()
+                        except Exception:
+                            st.error("Não foi possível confirmar o código ou criar a conta. Tente novamente.")
+                if GOOGLE_ATIVO:
+                    if st.button("🌐 Criar conta com Google verificado", key="elevo_criar_google_v16885",
+                                 use_container_width=True):
+                        if st.query_params.get("elevo_acesso") == "novo":
+                            del st.query_params["elevo_acesso"]
+                        st.session_state.pop("elevo_logout_pendente", None)
+                        st.login("google")
+                elif not elevo_email_envio_pronto_v16885():
+                    st.caption("🔐 O cadastro verificado ficará disponível após configurar Google OAuth "
+                               "ou o envio de códigos por e-mail nos Secrets.")
             with aba_login:
                 with st.form("form_login"):
                     email_input = st.text_input("E-mail", placeholder="seuemail@gmail.com")
@@ -958,7 +1371,7 @@ if not st.session_state["usuario_logado"]:
 
                 if GOOGLE_ATIVO:
                     st.markdown('<div class="evl-or">OU</div>', unsafe_allow_html=True)
-                    if st.button("🌐 Continuar com Google", key="btn_login_google", use_container_width=True):
+                    if st.button("🌐 Entrar ou vincular com Google", key="btn_login_google", use_container_width=True):
                         # Clique explícito: permita a nova autenticação Google.
                         if st.query_params.get("elevo_acesso") == "novo":
                             del st.query_params["elevo_acesso"]
@@ -967,8 +1380,64 @@ if not st.session_state["usuario_logado"]:
                         cookies.save()
                         st.login("google")
 
+                with st.expander("🔑 Esqueci minha senha", expanded=False):
+                    st.caption("Receba um código no e-mail cadastrado para definir uma nova senha. "
+                               "Contas Google podem entrar pelo botão Google.")
+                    if elevo_email_envio_pronto_v16885():
+                        with st.form("elevo_senha_solicitar_v16885"):
+                            email_rec_v16885 = st.text_input("E-mail da conta", key="elevo_rec_email_v16885")
+                            enviar_rec_v16885 = st.form_submit_button("Enviar código de recuperação",
+                                                                        use_container_width=True)
+                        if enviar_rec_v16885:
+                            _rec_email = email_rec_v16885.strip().lower()
+                            if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", _rec_email):
+                                st.warning("Digite um e-mail válido.")
+                            else:
+                                try:
+                                    _rec_conta = usuario_cadastrado_por_email(_rec_email)
+                                    if _rec_conta and _rec_email != EMAIL_MESTRE.strip().lower():
+                                        elevo_codigo_enviar_v16885(_rec_email, "senha")
+                                        st.session_state["elevo_senha_otp_email_v16885"] = _rec_email
+                                    st.info("Se existir uma conta elegível, o código será enviado ao e-mail informado.")
+                                except (ValueError, RuntimeError) as exc:
+                                    st.warning(str(exc))
+                                except Exception:
+                                    st.warning("Serviço indisponível. Tente novamente mais tarde.")
+                        _email_otp_senha_v16885 = st.session_state.get("elevo_senha_otp_email_v16885")
+                        if _email_otp_senha_v16885:
+                            with st.form("elevo_senha_confirmar_v16885"):
+                                _senha_codigo = st.text_input("Código de 6 dígitos", max_chars=6,
+                                                             key="elevo_reset_codigo_v16885")
+                                _senha_nova = st.text_input("Nova senha (mínimo 10 caracteres)",
+                                                             type="password", key="elevo_reset_senha_v16885")
+                                _senha_nova_2 = st.text_input("Confirme a nova senha", type="password",
+                                                               key="elevo_reset_senha2_v16885")
+                                _senha_confirm = st.form_submit_button("Redefinir senha", use_container_width=True)
+                            if _senha_confirm:
+                                if len(_senha_nova) < 10 or _senha_nova != _senha_nova_2:
+                                    st.warning("A senha precisa ter pelo menos 10 caracteres e ser igual à confirmação.")
+                                else:
+                                    try:
+                                        if not elevo_codigo_confirmar_v16885(
+                                                _email_otp_senha_v16885, "senha", _senha_codigo):
+                                            st.error("Código inválido, vencido ou já utilizado.")
+                                        else:
+                                            elevo_senha_redefinir_v16885(_email_otp_senha_v16885, _senha_nova)
+                                            st.session_state.pop("elevo_senha_otp_email_v16885", None)
+                                            st.success("Senha redefinida. Entre novamente usando a nova senha.")
+                                    except Exception:
+                                        st.error("Não foi possível atualizar a senha. Fale com o suporte.")
+                    else:
+                        st.info("Recuperação automática por e-mail ainda não configurada. "
+                                "Use o WhatsApp de suporte, sem compartilhar senhas ou códigos.")
+                        st.link_button("Conversar no WhatsApp", ELEVO_WHATSAPP_LINK_V16885,
+                                       use_container_width=True)
+
+            elevo_legal_exibir_documentos_v16884()
+            if not GOOGLE_ATIVO:
+                st.caption("🔐 O botão Google aparece após configurar o OAuth do Google Cloud e os Secrets do Streamlit.")
             st.markdown("""
-            <p class="evl-help">Esqueceu a senha? <b>Fale com o suporte da ÉLÉVO</b>.</p>
+            <p class="evl-help">Login protegido · Google verificado ou código por e-mail.</p>
             <div class="evl-foot"><span>Conexão protegida</span><span>Senha criptografada</span><span>Sessão de 30 dias</span></div>
             """, unsafe_allow_html=True)
     st.stop()
@@ -2631,6 +3100,56 @@ if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
             pass
 
 # ==========================================================
+# V16.8.84 — ACEITE VERSIONADO OBRIGATÓRIO ANTES DO PAINEL DO CLIENTE.
+# Contas antigas: uma vez por versão; novas contas: registrar confirmação feita
+# no cadastro. Se o Sheets falhar, bloquear somente o aceite (fail-closed).
+# Não altera nem lê os valores das abas de créditos/pagamentos.
+# ==========================================================
+if (ELEVO_LEGAL_ATIVO_V16884 and st.session_state.get("usuario_logado")
+        and not elevo_admin_v16813()):
+    _legal_email_v16884 = str(st.session_state.get("email_usuario", "")).strip().lower()
+    try:
+        _legal_ok_v16884 = elevo_legal_ja_aceitou_v16884(_legal_email_v16884)
+    except Exception:
+        _legal_ok_v16884 = False
+    if not _legal_ok_v16884:
+        _legal_pendente_v16884 = st.session_state.get("elevo_legal_pendente_v16884")
+        if _legal_pendente_v16884 == _legal_email_v16884:
+            try:
+                elevo_legal_registrar_v16884(_legal_email_v16884,
+                    str(st.session_state.get("auth_metodo", "cadastro")))
+                _legal_ok_v16884 = True
+                st.session_state.pop("elevo_legal_pendente_v16884", None)
+            except Exception:
+                st.warning("Conta criada, mas não foi possível registrar o aceite. Tente novamente.")
+        if not _legal_ok_v16884:
+            st.markdown("""<style>
+            .elevo-legal-gate-v16884{max-width:710px;margin:4vh auto 1rem;padding:1.5rem;
+               border-radius:22px;background:linear-gradient(135deg,#112237,#0D192B);
+               border:1px solid rgba(102,209,201,.30);box-shadow:0 18px 48px rgba(0,0,0,.25);
+               color:#EEF6FF}
+            .elevo-legal-gate-v16884 h2{color:#EEF6FF!important;margin:0 0 .3rem!important}
+            </style><div class="elevo-legal-gate-v16884"><h2>💎 Antes de continuar</h2>
+            <p>Confira os documentos da ÉLÉVO. Seu aceite ficará registrado com a versão e a data.</p></div>""",
+                unsafe_allow_html=True)
+            elevo_legal_exibir_documentos_v16884()
+            _legal_checkbox_v16884 = st.checkbox(
+                "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
+                key="elevo_aceite_login_v16884", value=False)
+            if st.button("✓ Concordar e acessar a ÉLÉVO", type="primary",
+                         use_container_width=True, key="elevo_aceitar_v16884"):
+                if not _legal_checkbox_v16884:
+                    st.warning("Marque a confirmação para continuar.")
+                else:
+                    try:
+                        elevo_legal_registrar_v16884(_legal_email_v16884,
+                            str(st.session_state.get("auth_metodo", "login")))
+                        st.rerun()
+                    except Exception:
+                        st.error("Não foi possível registrar sua confirmação no momento.")
+            st.stop()
+
+# ==========================================================
 # 2. DESIGN E TEMA DINÂMICO (🔥 V7.4 - LOGO ÉLÉVO CLÁSSICA + LED VERDE VIVO)
 # ==========================================================
 # V16.8.22.2 — APENAS PADRÃO INICIAL DO TEMA: celular claro, computador escuro.
@@ -2681,9 +3200,39 @@ st.markdown(
     f'<span>MOTORES 3/3</span><span>{_agora_topo_v16853.strftime("%H:%M")}</span></span>'
     '</div>', unsafe_allow_html=True)
 
+# V16.8.85 — painel lateral de atendimento sem trocar a página principal.
+# Versões do Streamlit anteriores a 1.65 exibem diálogo central como fallback.
+if "position" in inspect.signature(st.dialog).parameters:
+    _elevo_drawer_decorator_v16885 = st.dialog("Central de Ajuda · ÉLÉVO", position="right", width="small")
+else:
+    _elevo_drawer_decorator_v16885 = st.dialog("Central de Ajuda · ÉLÉVO", width="small")
+
+@_elevo_drawer_decorator_v16885
+def elevo_abrir_central_ajuda_v16885():
+    st.caption("Atendimento, segurança e orientações sem sair da plataforma.")
+    tab_aj, tab_seg, tab_termos = st.tabs(["💬 Ajuda", "🔐 Conta", "📜 Documentos"])
+    with tab_aj:
+        st.markdown("**Fale com a equipe ÉLÉVO**")
+        st.write("Dúvidas sobre login, compra de créditos, pagamentos e uso dos motores.")
+        st.link_button("💬 Abrir WhatsApp do suporte", ELEVO_WHATSAPP_LINK_V16885,
+                       use_container_width=True)
+        if ELEVO_SUPORTE_EMAIL_V16884:
+            st.caption("E-mail: " + ELEVO_SUPORTE_EMAIL_V16884)
+        st.info("Nunca compartilhe sua senha, códigos de confirmação ou dados completos do cartão.")
+    with tab_seg:
+        st.markdown("**Acesso com Google**")
+        st.write("O Google verifica a identidade. O login não dá acesso às suas mensagens do Gmail.")
+        st.write("Para vincular uma conta existente, use **Minha conta → Vincular Google** no topo.")
+        st.markdown("**Recuperação de senha**")
+        st.write("Saia da conta e escolha **Esqueci minha senha** na tela de login. "
+                 "O código só é enviado quando a central de e-mails estiver configurada.")
+        st.caption("A conta administrativa (CEO) tem credenciais próprias nos Secrets.")
+    with tab_termos:
+        elevo_legal_exibir_documentos_v16884()
+
 with st.container(border=True, key="elevo_topbar_v16853"):
-    _tb_info_v16853, _tb_tema_v16853, _tb_conta_v16853, _tb_sair_v16853 = st.columns(
-        [4.6, 1.35, 1.3, 1.1], gap="small", vertical_alignment="center")
+    _tb_info_v16853, _tb_tema_v16853, _tb_ajuda_v16885, _tb_conta_v16853, _tb_sair_v16853 = st.columns(
+        [3.35, 1.4, 1.2, 1.4, 1.0], gap="small", vertical_alignment="center")
 
     # O toggle precisa existir antes do CSS do tema (modo_claro é usado logo abaixo).
     with _tb_tema_v16853:
@@ -2701,6 +3250,11 @@ with st.container(border=True, key="elevo_topbar_v16853"):
             f'<div class="elevo-topbar-sub"><span>{_data_topo_v16853}</span>'
             '<span class="elevo-topbar-chip"><i></i>Painel ativo</span></div>'
             '</div></div>', unsafe_allow_html=True)
+
+    with _tb_ajuda_v16885:
+        if st.button("☰ Ajuda", key="elevo_ajuda_topo_v16885", use_container_width=True,
+                     help="Abrir central de ajuda e segurança"):
+            elevo_abrir_central_ajuda_v16885()
 
     with _tb_conta_v16853:
         with st.popover("👤 Minha conta", use_container_width=True, key="elevo_conta_pop_v16853"):
@@ -7218,6 +7772,12 @@ if E_O_CEO:
     st.markdown("#### 💠 Console de gestão ÉLÉVO")
     st.caption("Liberações e patentes • Promoções de crédito • Moderação de acesso • Auditoria de vendas")
     # V16.8.51 — voz principal fixa: Francisca. Laboratório de amostras removido.
+    with st.expander("🔐 Google Login e documentos legais • Status", expanded=False):
+        st.write("Google (OIDC):", "✅ Configurado" if GOOGLE_ATIVO else "⚠️ Falta configurar Google Cloud e Secrets")
+        st.write("Documentos legais:", "✅ Aceite versionado ativo" if ELEVO_LEGAL_ATIVO_V16884 else
+                 "⚠️ Cadastre ELEVO_SUPORTE_EMAIL e ELEVO_RESPONSAVEL_LEGAL nos Secrets para ativar o aceite")
+        st.caption("As credenciais Google devem ficar apenas nos Secrets, nunca no GitHub. As contas Google "
+                   "continuam vinculadas pelo identificador Google; o histórico de aceites fica em aba própria.")
     # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
     # Não altera o registro diário nem consome a saudação de usuários.
     with st.container(border=True):
@@ -14210,13 +14770,14 @@ hr {margin:1.6rem 0!important;opacity:.75;}
 @media (max-width:767px) {
   .st-key-elevo_topbar_v16853 {padding:14px 13px!important;border-radius:20px!important;margin-bottom:16px!important;}
   .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] {flex-wrap:wrap!important;gap:.6rem!important;}
-  /* Linha 1: avatar + saudação. Linha 2: tema. Linha 3: conta e sair lado a lado. */
+  /* Linha 1: avatar + saudação. Linha 2: tema. Linha 3: Ajuda, Minha conta e Sair. */
   .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(1),
   .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(2) {
     flex:1 1 100%!important;width:100%!important;min-width:100%!important;}
   .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(3),
-  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4) {
-    flex:1 1 calc(50% - .3rem)!important;width:calc(50% - .3rem)!important;min-width:0!important;}
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(4),
+  .st-key-elevo_topbar_v16853 [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]:nth-child(5) {
+    flex:1 1 calc(33.333% - .4rem)!important;width:calc(33.333% - .4rem)!important;min-width:0!important;}
   .st-key-elevo_topbar_v16853 [data-testid="stCheckbox"] {justify-content:flex-start;}
   .elevo-topbar-avatar {flex-basis:50px;width:50px;height:50px;}
   .elevo-topbar-avatar span {font-size:1.25rem;}
