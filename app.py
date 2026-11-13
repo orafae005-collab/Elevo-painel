@@ -1,3 +1,5 @@
+# ÉLÉVO V16.8.71 — erro "live credentials" explicado corretamente + teste diz o ambiente da Public Key
+# ÉLÉVO V16.8.70 — motivo da recusa gravado na venda + pagamento de teste automático no painel do CEO
 # ÉLÉVO V16.8.69 — valor das vendas imune ao formato pt-BR da planilha (29,90 lido como 299)
 # ÉLÉVO V16.8.68 — Mercado Pago: motivo real do erro na tela + botão Testar conexão no painel do CEO
 # ÉLÉVO V16.8.67 — modo teste preenche test@testuser.com no cartão
@@ -1526,11 +1528,11 @@ def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
     tecnico = f"HTTP {resp.status_code} • {msg_mp}" + (f" • causa: {causas_txt}" if causas_txt else "")
     logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, tecnico)
     baixo = (msg_mp + " " + causas_txt).lower()
-    if resp.status_code == 401 or "invalid access token" in baixo or "invalid_token" in baixo:
+    if "live credentials" in baixo:
+        amigavel = ("Chaves misturadas: uma é de PRODUÇÃO e a outra de TESTE. Copie a public_key e o access_token "
+                    "da MESMA aba (Teste) da MESMA aplicação no Mercado Pago.")
+    elif resp.status_code == 401 or "invalid access token" in baixo or "invalid_token" in baixo:
         amigavel = "Access Token inválido ou expirado. Confira a chave no Secrets do app."
-    elif "live credentials" in baixo:
-        amigavel = ("Chave de PRODUÇÃO usada com cartão de teste. Para testar, use as chaves da aba Teste "
-                    "(access_token e public_key) com modo = \"teste\".")
     elif "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
         amigavel = ("Pix indisponível: a conta Mercado Pago ainda não tem chave Pix cadastrada. "
                     "Use o cartão ou cadastre uma chave Pix.")
@@ -1547,6 +1549,61 @@ def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
     else:
         amigavel = "O Mercado Pago recusou a operação. Veja o detalhe abaixo."
     raise ElevoMPErroV16868(amigavel, tecnico)
+
+
+def elevo_mp_pagamento_teste_v16870():
+    """Pagamento de R$ 1,00 com o cartão de TESTE oficial (Mastercard, titular APRO), feito
+    pelo servidor: Public Key gera o token e o Access Token cobra. Só roda em conta de teste."""
+    cfg = elevo_mp_config_v16863()
+    try:
+        pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+    except Exception:
+        pk = ""
+    if not cfg["token"] or not pk:
+        return ["❌ Falta access_token ou public_key no Secrets."]
+    try:
+        eu = _elevo_mp_req_v16863("GET", "/users/me")
+    except ElevoMPErroV16868 as exc:
+        return ["❌ " + str(exc), "Detalhe: " + exc.tecnico]
+    if not str(eu.get("nickname", "")).upper().startswith("TEST"):
+        return ["⚠️ Este teste só roda com as chaves de TESTE (nunca cobra cartão real)."]
+    linhas = []
+    try:
+        r = requests.post(ELEVO_MP_API_V16863 + "/v1/card_tokens", params={"public_key": pk}, timeout=25, json={
+            "card_number": "5480832801033311", "expiration_month": 11, "expiration_year": 2030,
+            "security_code": "123",
+            "cardholder": {"name": "APRO", "identification": {"type": "CPF", "number": "12345678909"}}})
+        try:
+            dados_tk = r.json() or {}
+        except ValueError:
+            dados_tk = {}
+    except Exception as exc:
+        return [f"❌ Não foi possível falar com o Mercado Pago ({type(exc).__name__})."]
+    if r.status_code >= 400 or not dados_tk.get("id"):
+        return ["❌ A Public Key não conseguiu gerar o token do cartão de teste.",
+                f"Detalhe: HTTP {r.status_code} • {str(dados_tk.get('message', ''))[:200]}"]
+    linhas.append("✅ Passo 1: a Public Key gerou o token do cartão de teste.")
+    if dados_tk.get("live_mode") is True:
+        linhas.append("❌ **A sua Public Key é de PRODUÇÃO**, mas o Access Token é de TESTE. "
+                      "No Mercado Pago, abra a aplicação → Credenciais → aba **Teste**, copie a **Public Key** "
+                      "dessa aba e troque no Secrets. Esse é o motivo do erro 'live credentials'.")
+        return linhas
+    if dados_tk.get("live_mode") is False:
+        linhas.append("✅ A Public Key é de TESTE, igual ao Access Token.")
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", headers={"X-Idempotency-Key": "diag_" + secrets.token_hex(8)}, json={
+            "transaction_amount": 1.0, "token": dados_tk["id"], "description": "Teste de integração ÉLÉVO",
+            "installments": 1, "payment_method_id": "master",
+            "payer": {"email": "test@testuser.com", "identification": {"type": "CPF", "number": "12345678909"}}})
+    except ElevoMPErroV16868 as exc:
+        linhas.append("❌ Passo 2: o Access Token recusou o pagamento. " + str(exc))
+        linhas.append("Detalhe: " + exc.tecnico)
+        return linhas
+    linhas.append(f"✅ Passo 2: pagamento criado • status **{pg.get('status')}** ({pg.get('status_detail', '')}).")
+    if pg.get("status") == "approved":
+        linhas.append("🎉 Suas chaves e o Mercado Pago estão 100%. Se o formulário da página ainda falhar, "
+                      "o motivo aparece na coluna Detalhe da tabela abaixo.")
+    return linhas
 
 
 def elevo_mp_diagnostico_v16868():
@@ -1805,6 +1862,19 @@ def _elevo_pedido_anotar_pagamento_v16865(pedido, payment_id):
         logging.warning("ELEVO_VENDA: não anotou o pagamento %s no pedido %s", payment_id, pedido)
 
 
+def _elevo_pedido_falha_v16870(pedido, tecnico):
+    """Grava o motivo da recusa no próprio pedido (coluna Link) e marca FALHOU."""
+    try:
+        aba = elevo_vendas_aba_v16863()
+        for i, r in enumerate(aba.get_all_records()):
+            if str(r.get("Id")) == pedido:
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("Status") + 1, "FALHOU")
+                aba.update_cell(i + 2, ELEVO_VENDAS_COLS_V16863.index("Link") + 1, ("ERRO: " + str(tecnico))[:400])
+                break
+    except Exception:
+        logging.warning("ELEVO_VENDA: não anotou a falha do pedido %s", pedido)
+
+
 def elevo_pix_criar_v16865(plano, nome, cpf):
     nome = re.sub(r"\s+", " ", str(nome or "")).strip()
     if len(nome) < 3 or not re.search(r"[A-Za-zÀ-ÿ]", nome):
@@ -1825,7 +1895,11 @@ def elevo_pix_criar_v16865(plano, nome, cpf):
                   "last_name": (partes[1] if len(partes) > 1 else partes[0])[:60],
                   "identification": {"type": "CPF", "number": cpf_ok}},
     }
-    pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    except ElevoMPErroV16868 as exc:
+        _elevo_pedido_falha_v16870(ped["pedido"], exc.tecnico)
+        raise
     dados = ((pg.get("point_of_interaction") or {}).get("transaction_data") or {})
     if not dados.get("qr_code"):
         raise ElevoCreditoErroV16813("O Pix não foi gerado. Tente novamente em instantes.")
@@ -1869,9 +1943,15 @@ def elevo_cartao_pagar_v16865(plano, form):
     if ident.get("number"):
         corpo["payer"]["identification"] = {"type": str(ident.get("type") or "CPF")[:10],
                                             "number": re.sub(r"\D", "", str(ident.get("number")))[:20]}
-    pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    try:
+        pg = _elevo_mp_req_v16863("POST", "/v1/payments", json=corpo, headers={"X-Idempotency-Key": ped["pedido"]})
+    except ElevoMPErroV16868 as exc:
+        _elevo_pedido_falha_v16870(ped["pedido"], exc.tecnico)
+        raise
     _elevo_pedido_anotar_pagamento_v16865(ped["pedido"], pg.get("id"))
     status = str(pg.get("status", ""))
+    if status == "rejected":
+        _elevo_pedido_falha_v16870(ped["pedido"], "recusado: " + str(pg.get("status_detail", "")))
     creditados = elevo_checkout_confirmar_v16863(pg.get("id")) if status == "approved" else []
     return {"status": status, "detalhe": str(pg.get("status_detail", "")), "creditados": creditados,
             "plano": plano, "creditos": ped["creditos"]}
@@ -6663,6 +6743,11 @@ if E_O_CEO:
             with st.spinner("Conferindo as chaves..."):
                 for _evv_l in elevo_mp_diagnostico_v16868()["linhas"]:
                     st.markdown(_evv_l)
+        if _evv_cfg["teste"] and st.button("🧪 Fazer pagamento de teste automático (R$ 1,00, cartão de teste)",
+                                           key="elevo_mp_pagteste_v16870", use_container_width=True):
+            with st.spinner("Gerando token e pagando com o cartão de teste..."):
+                for _evv_l in elevo_mp_pagamento_teste_v16870():
+                    st.markdown(_evv_l)
         try:
             _evv_regs = elevo_vendas_aba_v16863().get_all_records()
         except Exception:
@@ -6686,9 +6771,10 @@ if E_O_CEO:
             st.dataframe([{"Data": r.get("CriadoEm", ""), "Cliente": r.get("Email", ""), "Plano": r.get("Plano", ""),
                            "Créditos": r.get("Creditos", ""),
                            "Valor": "R$ " + ("%.2f" % _evv_valor(r)).replace(".", ","),
-                           "Status": {"PAGO": "✅ Pago", "PENDENTE": "⏳ Pendente"}.get(str(r.get("Status", "")).upper(), r.get("Status", "")),
+                           "Status": {"PAGO": "✅ Pago", "PENDENTE": "⏳ Pendente", "FALHOU": "❌ Falhou"}.get(str(r.get("Status", "")).upper(), r.get("Status", "")),
                            "Forma": {"cartao": "💳 Cartão", "pix": "⚡ Pix"}.get(str(r.get("Metodo", "")), r.get("Metodo", "") or "🔗 Link"),
-                           "Pago em": r.get("PagoEm", "")}
+                           "Pago em": r.get("PagoEm", ""),
+                           "Detalhe": str(r.get("Link", ""))[6:] if str(r.get("Link", "")).startswith("ERRO: ") else ""}
                           for r in reversed(_evv_regs[-30:])], use_container_width=True, hide_index=True)
         _evv_planos = []
         for _evv_n, _evv_p in ELEVO_PACOTES_V16859.items():
