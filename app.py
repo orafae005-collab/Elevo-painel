@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.83 — Painel CEO reorganizado, patentes, suspensão e promoções percentuais
 # ÉLÉVO V16.8.82 — acentos azul/esmeralda na Central de Operação (somente UI da carteira)
 # ÉLÉVO V16.8.81 — CARTEIRA EM DOIS CARTÕES PREMIUM (IDENTIDADE + SALDO), MODOS CLARO/ESCURO
 # ÉLÉVO V16.8.80 — carteira modo escuro fosco + nome com microefeito hacker (modo claro intocado)
@@ -1501,7 +1502,7 @@ def elevo_perfil_atualizar_v16813(email, *, status=None, avatar=None):
         raise PermissionError("Conta diferente da sessão.")
     if status is not None and not elevo_admin_v16813():
         raise PermissionError("Somente o CEO pode bloquear contas.")
-    if status not in (None, "ATIVO", "BLOQUEADO", "REMOVIDO"):
+    if status not in (None, "ATIVO", "SUSPENSO", "BLOQUEADO", "REMOVIDO"):
         raise ValueError("Estado inválido")
     with elevo_credito_lock_v16813():
         aba, indice, _ = elevo_perfil_registro_v16813(email, criar=True)
@@ -1513,6 +1514,34 @@ def elevo_perfil_atualizar_v16813(email, *, status=None, avatar=None):
             aba.update_cell(indice, 3, avatar)
         aba.update_cell(indice, 4, elevo_agora_v16813())
         elevo_invalidar_leituras_v16816()
+
+# V16.8.83 — Auditoria isolada de moderação. Não grava dados no livro de créditos.
+ELEVO_MODERACAO_COLS_V16883 = ["Id", "Email", "Acao", "Motivo", "Autor", "Data"]
+
+def elevo_moderacao_registrar_v16883(email, acao, motivo=""):
+    if not elevo_admin_v16813():
+        raise PermissionError("Gestão de contas exclusiva do CEO.")
+    email = str(email or "").strip().lower()
+    if not email or email == str(EMAIL_MESTRE).strip().lower():
+        raise ValueError("Não é permitido moderar a conta administrativa.")
+    if acao not in ("SUSPENSO", "BLOQUEADO", "ATIVO"):
+        raise ValueError("Estado de moderação inválido")
+    motivo = re.sub(r"\s+", " ", str(motivo or "")).strip()[:240]
+    if acao != "ATIVO" and len(motivo) < 5:
+        raise ValueError("Informe um motivo com pelo menos 5 caracteres.")
+    # A operação de status tem precedência; o registro é de auditoria.
+    elevo_perfil_atualizar_v16813(email, status=acao)
+    aviso = ""
+    try:
+        aba = elevo_aba_v16813("Elevo_Moderacao_V1", ELEVO_MODERACAO_COLS_V16883)
+        aba.append_row([secrets.token_hex(12), email, acao, motivo,
+                        elevo_email_v16813(), elevo_agora_v16813()],
+                       value_input_option="RAW")
+    except Exception:
+        aviso = "O acesso foi alterado, mas a anotação do motivo não foi confirmada no histórico."
+        logging.warning("ELEVO_MODERACAO: status atualizado, falha na anotação")
+    return aviso
+
 
 def elevo_creditos_apurar_v16813(registros, email):
     """Livro imutável. Débitos simultâneos são aceitos na ordem das linhas do Sheets.
@@ -1836,18 +1865,123 @@ def elevo_promo_definir_v16873(minutos):
     _elevo_promo_ate_cache_v16873.clear()
 
 
+# V16.8.83 — Campanha de percentual aplicável aos 3 planos oficiais.
+# O identificador de cada plano PROMOCIONAL carrega a foto do preço em centavos,
+# permitindo confirmar compras mesmo DEPOIS que a campanha encerra ou muda.
+# A função elevo_valor_br_v16869 e o livro Elevo_Creditos_V1 NÃO são alterados.
+from decimal import Decimal, ROUND_HALF_UP
+ELEVO_PROMO_CHAVE_V16883 = "promo_percentual_v16883"
+
+@st.cache_data(ttl=8, show_spinner=False)
+def _elevo_promo_dados_cache_v16883():
+    """Lê campanha do Sheets com cache curto, sem congelar o relógio de expiração."""
+    try:
+        linhas = elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873).get_all_records()
+        config = next((r for r in linhas if str(r.get("Chave", "")) == ELEVO_PROMO_CHAVE_V16883), None)
+        dados = json.loads(str(config.get("Valor", ""))) if config else {}
+        return {"percentual": int(dados.get("percentual", 0)), "ate": int(dados.get("ate", 0))}
+    except Exception:
+        logging.warning("ELEVO_PROMO: campanha indisponível, preço oficial mantido")
+        return {"percentual": 0, "ate": 0}
+
+
+def elevo_promo_config_v16883():
+    dados = _elevo_promo_dados_cache_v16883()
+    ate = int(dados["ate"])
+    pct = int(dados["percentual"])
+    restante = max(0, ate-int(time.time()))
+    if 1 <= pct <= 80 and restante > 0:
+        return {"percentual":pct, "ate":ate, "restante":restante}
+    return {"percentual":0, "ate":0, "restante":0}
+
+def elevo_promo_definir_v16883(percentual, minutos):
+    if not elevo_admin_v16813():
+        raise PermissionError("Somente o CEO controla descontos.")
+    percentual, minutos = int(percentual), int(minutos)
+    if (percentual == 0 and minutos != 0) or (percentual != 0 and
+          (percentual < 1 or percentual > 80 or minutos not in (10, 30, 60, 120, 360, 1440))):
+        raise ValueError("Desconto de 1% a 80% e duração válida; 0% somente para encerrar.")
+    dados = {"percentual": percentual if minutos > 0 else 0,
+             "ate": int(time.time()) + minutos * 60 if percentual and minutos > 0 else 0}
+    valor = json.dumps(dados, separators=(",", ":"), ensure_ascii=True)
+    aba = elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873)
+    for indice, r in enumerate(aba.get_all_records(), start=2):
+        if str(r.get("Chave", "")) == ELEVO_PROMO_CHAVE_V16883:
+            aba.update_cell(indice, 2, valor)
+            aba.update_cell(indice, 3, elevo_agora_v16813())
+            break
+    else:
+        aba.append_row([ELEVO_PROMO_CHAVE_V16883, valor, elevo_agora_v16813()],
+                       value_input_option="RAW")
+    _elevo_promo_dados_cache_v16883.clear()
+
+def elevo_promo_preco_v16883(plano, percentual):
+    base = Decimal(str(ELEVO_PACOTES_V16859[plano]["preco"]))
+    centavos = int((base * Decimal(100-int(percentual))).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+    return centavos
+
+def elevo_promo_plano_v16883(plano, percentual):
+    base = ELEVO_PACOTES_V16859[plano]
+    centavos = elevo_promo_preco_v16883(plano, percentual)
+    if centavos < 100:  # Não criar cobrança inferior a R$ 1,00.
+        return None
+    dados = dict(base)
+    dados.update(preco=centavos/100, preco_original=float(base["preco"]),
+                 percentual=int(percentual), selo=f"⚡ -{int(percentual)}%",
+                 desc="Mesmo pacote, preço promocional", promocional=True)
+    return (f"{plano}_OF{int(percentual)}_{centavos}", dados)
+
+def elevo_promo_moeda_br_v16883(valor):
+    return f"{Decimal(str(valor)):,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+
+
+def elevo_promo_nome_v16883(chave):
+    m = re.fullmatch(r"(Start|Pro|Elite)_OF([1-9][0-9]?)_([0-9]{3,6})", str(chave))
+    return f"{m.group(1)} · {m.group(2)}% OFF" if m else str(chave)
+
+
 def elevo_planos_ativos_v16873():
-    """Planos à venda agora (oficiais + relâmpago enquanto o CEO deixar ligado)."""
-    planos = dict(ELEVO_PACOTES_V16859)
+    """Planos à venda agora; campanhas têm ID estável com preço em centavos."""
+    campanha = elevo_promo_config_v16883()
+    pct = int(campanha["percentual"])
+    if pct:
+        planos = {}
+        for nome in ELEVO_PACOTES_V16859:
+            oferta = elevo_promo_plano_v16883(nome, pct)
+            if oferta:
+                planos[oferta[0]] = oferta[1]
+    else:
+        planos = dict(ELEVO_PACOTES_V16859)
+    # Compatibilidade com promoção técnica histórica já iniciada (não reativada).
     if elevo_promo_restante_v16873() > 0:
         planos[ELEVO_PLANO_RELAMPAGO_V16873["nome"]] = ELEVO_PLANO_RELAMPAGO_V16873
     return planos
 
 
 def elevo_plano_info_v16873(plano, para_venda=False):
-    """Preço/créditos OFICIAIS de um plano. para_venda=True exige que esteja à venda agora."""
+    """Reconstrói valor congelado de uma oferta sem depender de localidade do Sheets.
+
+    No início da compra, somente a campanha ATIVA é elegível.
+    Na confirmação, reconhece o preço gravado no ID da campanha encerrada.
+    """
     if plano in ELEVO_PACOTES_V16859:
+        if para_venda and elevo_promo_config_v16883()["percentual"]:
+            return None  # Impede compra ao preço antigo durante uma oferta ativa.
         return ELEVO_PACOTES_V16859[plano]
+    match = re.fullmatch(r"(Start|Pro|Elite)_OF([1-9][0-9]?)_([0-9]{3,6})", str(plano or ""))
+    if match:
+        nome, pct, preco_centavos = match.group(1), int(match.group(2)), int(match.group(3))
+        if not 1 <= pct <= 80 or preco_centavos < 100:
+            return None
+        if para_venda:
+            campanha = elevo_promo_config_v16883()
+            if campanha["percentual"] != pct or elevo_promo_preco_v16883(nome, pct) != preco_centavos:
+                return None
+        base = ELEVO_PACOTES_V16859[nome]
+        info = dict(base)
+        info.update(preco=preco_centavos/100, preco_original=float(base["preco"]),
+                    percentual=pct, selo=f"⚡ -{pct}%", promocional=True)
+        return info
     if plano == ELEVO_PLANO_RELAMPAGO_V16873["nome"]:
         if para_venda and elevo_promo_restante_v16873() <= 0:
             return None
@@ -2349,7 +2483,7 @@ def _elevo_pedido_registrar_v16865(plano, metodo):
     elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", "",
                                          "", elevo_agora_v16813(), "", metodo])
     return {"pedido": pedido, "email": email, "creditos": creditos, "preco": preco,
-            "titulo": f"ÉLÉVO {plano} — {format(creditos, ',').replace(',', '.')} créditos"}
+            "titulo": f"ÉLÉVO {elevo_promo_nome_v16883(plano)} — {format(creditos, ',').replace(',', '.')} créditos"}
 
 
 def _elevo_pedido_anotar_pagamento_v16865(pedido, payment_id):
@@ -2479,7 +2613,7 @@ if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
             cookies.pop("login", None)
             cookies.save()
             limpar_sessao_ao_sair()
-            st.error("Sua conta está bloqueada ou foi removida. Contate o administrador.")
+            st.error("Sua conta está suspensa, bloqueada ou foi removida. Contate o administrador.")
             st.stop()
         # Na interface, uma leitura curta em cache é suficiente; reserva de
         # créditos executa uma leitura nova e valida o banco novamente.
@@ -4535,21 +4669,28 @@ export default function (component) {
         _wal_sel = st.session_state["elevo_wal_plano_v16865"]
         _wal_planos = elevo_planos_ativos_v16873()
         if _wal_sel not in _wal_planos:
-            _wal_sel = st.session_state["elevo_wal_plano_v16865"] = "Pro"
-        _wal_promo_s = elevo_promo_restante_v16873()
+            _wal_sel = next((p for p in _wal_planos if p.startswith("Pro")), next(iter(_wal_planos), "Pro"))
+            st.session_state["elevo_wal_plano_v16865"] = _wal_sel
+        _wal_promo_campanha = elevo_promo_config_v16883()
+        _wal_promo_s = int(_wal_promo_campanha["restante"])
         if _wal_promo_s > 0:
-            st.markdown(f"<div class='wal-resumo' style='border-color:#D8B66A'><span>⚡ <b style='font-size:.95rem'>Oferta relâmpago</b> "
-                        f"• 100 créditos por R$ 1,00</span><b>termina em {_wal_promo_s // 60:02d}:{_wal_promo_s % 60:02d}</b></div>",
+            st.markdown(f"<div class='wal-resumo' style='border-color:rgba(44,190,173,.42)'><span>⚡ <b style='font-size:.95rem'>Promoção ÉLÉVO</b> "
+                        f"• {_wal_promo_campanha['percentual']}% OFF nos planos</span>"
+                        f"<b>termina em {_wal_promo_s // 60:02d}:{_wal_promo_s % 60:02d}</b></div>",
                         unsafe_allow_html=True)
+        elif elevo_promo_restante_v16873():
+            st.caption("⚡ Oferta técnica temporária ativa.")
         _wal_cols = st.columns(len(_wal_planos))
         for _wal_c, (_wal_nome, _wal_p) in zip(_wal_cols, _wal_planos.items()):
             with _wal_c:
                 _wal_ativo = _wal_nome == _wal_sel
                 st.markdown(
                     f"<div class='wal-plano{' sel' if _wal_ativo else ''}'><div class='selo'>{html_std.escape(_wal_p.get('selo', ''))}</div>"
-                    f"<div class='nome'>{html_std.escape(_wal_nome.upper())}</div>"
+                    f"<div class='nome'>{html_std.escape(elevo_promo_nome_v16883(_wal_nome).upper())}</div>"
                     f"<div class='cr'>{format(int(_wal_p['creditos']), ',').replace(',', '.')}<small> CR</small></div>"
-                    f"<div class='preco'><sup>R$</sup>{('%.2f' % float(_wal_p['preco'])).replace('.', ',')}</div>"
+                    + (f"<small style='color:#829CB8;text-decoration:line-through'>De R$ {float(_wal_p['preco_original']):.2f}</small>".replace('.',',')
+                       if _wal_p.get('promocional') else "")
+                    + f"<div class='preco'><sup>R$</sup>{('%.2f' % float(_wal_p['preco'])).replace('.', ',')}</div>"
                     f"<div class='desc'>{html_std.escape(_wal_p['desc'])}</div></div>", unsafe_allow_html=True)
                 if st.button("✓ Selecionado" if _wal_ativo else "Escolher", key=f"elevo_wal_sel_{_wal_nome}_v16865",
                              type="primary" if _wal_ativo else "secondary", use_container_width=True):
@@ -4559,7 +4700,7 @@ export default function (component) {
         _wal_pk = _wal_planos[_wal_sel]
         _wal_valor_txt = "R$ " + ("%.2f" % float(_wal_pk["preco"])).replace(".", ",")
         st.markdown(
-            f"<div class='wal-resumo'><span>Plano <b style='font-size:.95rem'>{html_std.escape(_wal_sel)}</b> • "
+            f"<div class='wal-resumo'><span>Plano <b style='font-size:.95rem'>{html_std.escape(elevo_promo_nome_v16883(_wal_sel))}</b> • "
             f"{format(int(_wal_pk['creditos']), ',').replace(',', '.')} créditos</span><b>{_wal_valor_txt}</b></div>",
             unsafe_allow_html=True)
 
@@ -7074,6 +7215,8 @@ def elevo_ler_painel_v16814(forcar=False):
 # ÉLÉVO V16.8.13 — PAINEL DE CONTAS VIP (EXCLUSIVO CEO)
 # ==========================================================
 if E_O_CEO:
+    st.markdown("#### 💠 Console de gestão ÉLÉVO")
+    st.caption("Liberações e patentes • Promoções de crédito • Moderação de acesso • Auditoria de vendas")
     # V16.8.51 — voz principal fixa: Francisca. Laboratório de amostras removido.
     # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
     # Não altera o registro diário nem consome a saudação de usuários.
@@ -7110,80 +7253,83 @@ if E_O_CEO:
     # ==========================================================
     # V16.8.59 — ESTÚDIO VIP DE CONTAS (o CEO libera cada acesso)
     # ==========================================================
-    st.markdown("""
-    <style>
-    .st-key-elevo_ceo_contas_v16859 {
-      border-radius:24px !important; padding:clamp(1.1rem,2.4vw,1.8rem) !important; position:relative; overflow:hidden;
-      background:radial-gradient(ellipse 60% 80% at 100% 0%,rgba(216,182,106,.16),transparent 65%),
-                 linear-gradient(155deg,#0E1828 0%,#070C16 100%) !important;
-      border:1px solid rgba(216,182,106,.38) !important;
-      box-shadow:0 22px 60px rgba(0,0,0,.35),0 0 40px rgba(216,182,106,.08),inset 0 1px rgba(255,255,255,.06) !important;}
-    .st-key-elevo_ceo_contas_v16859::before {content:""; position:absolute; left:0; right:0; top:0; height:2px;
-      background:linear-gradient(90deg,transparent,#54D8F5,#D8B66A,transparent);}
-    .evc-top {display:flex; align-items:center; gap:14px; margin-bottom:.4rem;}
-    .evc-crown {flex:0 0 52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:1.5rem;
-      background:linear-gradient(145deg,rgba(216,182,106,.25),rgba(216,182,106,.06)); border:1px solid rgba(216,182,106,.45);}
-    .evc-kick {font:700 .62rem 'JetBrains Mono',monospace; letter-spacing:.2em; color:#D8B66A !important; margin:0;}
-    .evc-title {font-family:Montserrat,sans-serif !important; color:#F4F7FC !important; margin:.15rem 0 0 !important; padding:0 !important;
-      font-size:clamp(1.2rem,2.2vw,1.55rem) !important; font-weight:800 !important;}
-    .evc-lead {color:#A9BAD1 !important; font-size:.86rem; margin:.2rem 0 .9rem; line-height:1.5;}
-    .evc-steps {display:flex; flex-wrap:wrap; gap:8px; margin:0 0 1rem;}
-    .evc-steps span {padding:5px 11px; border-radius:30px; font:600 .7rem Montserrat,sans-serif; color:#CFE6F5;
-      background:rgba(84,216,245,.07); border:1px solid rgba(84,216,245,.22);}
-    .evc-steps b {color:#D8B66A; margin-right:4px;}
-    .evc-packs {display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin:.2rem 0 1rem;}
-    .evc-pack {padding:.75rem .85rem; border-radius:16px; background:rgba(255,255,255,.025); border:1px solid rgba(84,216,245,.16);}
-    .evc-pack b {display:block; color:#F4DC9A; font:800 .84rem Montserrat,sans-serif; letter-spacing:.06em;}
-    .evc-pack strong {display:block; color:#EAF2FF; font:800 1.2rem Montserrat,sans-serif; margin:.15rem 0;}
-    .evc-pack small {color:#8FA6C4; font-size:.72rem;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stForm"] {border:1px solid rgba(84,216,245,.14) !important;
-      background:rgba(3,7,13,.35) !important; border-radius:18px !important; padding:1rem 1rem .6rem !important;}
-    .st-key-elevo_ceo_contas_v16859 label, .st-key-elevo_ceo_contas_v16859 label p,
+    # V16.8.83 — CSS CEO isolado: acompanha modo claro/escuro e segue a paleta azul/esmeralda.
+    _ceo_tema_v16883 = ({
+        "{BG}": "linear-gradient(145deg,#FFFFFF,#F2F8FF)", "{TEXT}": "#102F56", "{SUB}": "#587392",
+        "{BOX}": "#FFFFFF", "{BOX2}": "#F5FAFF", "{BORDER}": "rgba(51,124,198,.24)",
+        "{ACCENT}": "#087B9B", "{BTN}": "linear-gradient(110deg,#126AC0,#159BAA)",
+        "{ONBTN}": "#FFFFFF", "{SHADOW}": "0 12px 34px rgba(27,78,140,.09)"
+    } if modo_claro else {
+        "{BG}": "linear-gradient(145deg,#172437,#0D1929)", "{TEXT}": "#F2F7FC", "{SUB}": "#A2BBD0",
+        "{BOX}": "#1C2A3B", "{BOX2}": "#101E2F", "{BORDER}": "rgba(117,170,205,.23)",
+        "{ACCENT}": "#5CE0D1", "{BTN}": "linear-gradient(110deg,#196A9A,#158777)",
+        "{ONBTN}": "#FFFFFF", "{SHADOW}": "0 18px 42px rgba(0,0,0,.28)"
+    })
+    _ceo_css_v16883 = """<style>
+    .st-key-elevo_ceo_contas_v16859 {padding:clamp(1rem,2.4vw,1.7rem)!important; border-radius:22px!important;
+      border:1px solid {BORDER}!important; background:{BG}!important; box-shadow:{SHADOW}!important;}
+    .st-key-elevo_ceo_contas_v16859::before {content:none!important;}
+    .evc-top {display:flex;gap:12px;align-items:center;margin-bottom:.55rem;}
+    .evc-crown {height:46px;width:46px;flex:0 0 46px;border-radius:14px;display:grid;place-items:center;
+      font-size:1.3rem;color:{ACCENT};background:{BOX2};border:1px solid {BORDER};}
+    .evc-kick {font:800 .65rem monospace;letter-spacing:.1em;color:{ACCENT}!important;margin:0;}
+    .evc-title {font:800 clamp(1.2rem,2.4vw,1.6rem) Montserrat,sans-serif!important;
+      color:{TEXT}!important;margin:3px 0!important;padding:0!important;}
+    .evc-lead {color:{SUB}!important;font-size:.86rem;line-height:1.6;margin:.2rem 0 1rem;}
+    .evc-steps {display:flex;flex-wrap:wrap;gap:9px;margin:.2rem 0 1rem;}
+    .evc-steps span {padding:6px 10px;border-radius:24px;background:{BOX2};border:1px solid {BORDER};
+      font:700 .72rem Montserrat,sans-serif;color:{TEXT};}
+    .evc-steps b {color:{ACCENT};margin-right:4px;}
+    .evc-packs {display:grid;grid-template-columns:repeat(auto-fit,minmax(125px,1fr));gap:10px;margin:.2rem 0 1.1rem;}
+    .evc-pack {background:{BOX2};border:1px solid {BORDER};border-radius:16px;padding:.85rem;}
+    .evc-pack b {display:block;color:{ACCENT};font:800 .83rem Montserrat,sans-serif;}
+    .evc-pack strong {display:block;color:{TEXT};font:800 1.15rem Montserrat,sans-serif;margin:.2rem 0;}
+    .evc-pack small {color:{SUB};font:.73rem Montserrat,sans-serif;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stForm"] {border:1px solid {BORDER}!important;
+      border-radius:16px!important;background:{BOX2}!important;padding:1rem!important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button {background:{BTN}!important;
+      border:0!important;border-radius:12px!important;min-height:48px!important;box-shadow:none!important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button p {color:{ONBTN}!important;font-weight:800!important;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stMarkdownContainer"] p,
     .st-key-elevo_ceo_contas_v16859 [data-testid="stWidgetLabel"] p,
     .st-key-elevo_ceo_contas_v16859 [data-testid="stCaptionContainer"] p,
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stMarkdownContainer"] p {color:#C9D6E8 !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-baseweb="input"], .st-key-elevo_ceo_contas_v16859 [data-baseweb="base-input"],
-    .st-key-elevo_ceo_contas_v16859 [data-baseweb="textarea"] {background:rgba(4,8,15,.8) !important;
-      border-color:rgba(84,216,245,.24) !important; border-radius:12px !important;}
-    .st-key-elevo_ceo_contas_v16859 input, .st-key-elevo_ceo_contas_v16859 textarea {color:#F1F5F9 !important;
-      background:transparent !important; -webkit-text-fill-color:#F1F5F9 !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] button {background:rgba(84,216,245,.08) !important; color:#EAF2FF !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button {min-height:50px !important; border:none !important;
-      border-radius:14px !important; background:linear-gradient(100deg,#B88A2E,#D8B66A 45%,#F4DC9A) !important;
-      box-shadow:0 10px 28px rgba(216,182,106,.28),inset 0 1px rgba(255,255,255,.45) !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stFormSubmitButton"] button p {color:#120D03 !important;
-      font:800 .88rem Montserrat,sans-serif !important; letter-spacing:.14em !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button {border-color:rgba(216,182,106,.35) !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button p {color:#EAF2FF !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[aria-checked="true"],
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stSegmentedControl"] button[kind*="Active"] {
-      background:linear-gradient(100deg,rgba(216,182,106,.32),rgba(216,182,106,.14)) !important; border-color:#D8B66A !important;}
-    .st-key-elevo_ceo_contas_v16859 .stTextInput div:has(> input), .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] div:has(> input),
-    .st-key-elevo_ceo_contas_v16859 .stTextArea div:has(> textarea) {background-color:rgba(4,8,15,.85) !important;
-      border:1px solid rgba(84,216,245,.24) !important; border-radius:12px !important;}
-    .st-key-elevo_ceo_contas_v16859 input::placeholder, .st-key-elevo_ceo_contas_v16859 textarea::placeholder {color:#5F7594 !important; -webkit-text-fill-color:#5F7594 !important;}
-    .st-key-elevo_ceo_contas_v16859 .stTextInput button {background:transparent !important; border:none !important;}
-    .st-key-elevo_ceo_contas_v16859 .stTextInput button svg {fill:#8FA6C4 !important; color:#8FA6C4 !important;}
-    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button {background:rgba(4,8,15,.85) !important; border-color:rgba(216,182,106,.35) !important;}
-    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button span {color:#C9D6E8 !important;}
-    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] {background:linear-gradient(100deg,#B88A2E,#D8B66A) !important; border-color:#F4DC9A !important;}
-    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] p, .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] span {color:#120D03 !important; font-weight:800 !important;}
-    .st-key-elevo_ceo_contas_v16859 .stButton button {background:rgba(255,255,255,.04) !important; border:1px solid rgba(84,216,245,.3) !important; border-radius:12px !important;}
-    .st-key-elevo_ceo_contas_v16859 .stButton button p {color:#EAF2FF !important; font-weight:700 !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"], .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] pre {background:#050A12 !important; border-radius:14px !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] {border:1px dashed rgba(216,182,106,.45) !important;}
-    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code, .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"] code span {color:#EAF2FF !important;}
-    .evc-ok {margin:.9rem 0 .5rem; padding:1rem 1.1rem; border-radius:18px;
-      background:linear-gradient(110deg,rgba(47,211,154,.13),rgba(47,211,154,.03)); border:1px solid rgba(47,211,154,.38);}
-    .evc-ok h4 {color:#7CF0C5 !important; margin:0 0 .35rem !important; padding:0 !important; font:800 1rem Montserrat,sans-serif !important;}
-    .evc-ok p {color:#CFEFE3 !important; margin:0; font-size:.85rem; line-height:1.55;}
-    .evc-ok code {color:#F4DC9A !important; background:rgba(0,0,0,.3) !important;}
-    .st-key-elevo_ceo_contas_v16859 details {border-color:rgba(84,216,245,.18) !important; background:rgba(3,7,13,.3) !important; border-radius:14px !important;}
-    .st-key-elevo_ceo_contas_v16859 details summary p {color:#EAF2FF !important; font-weight:700 !important;}
-    .st-key-elevo_ceo_contas_v16859 li {color:#C9D6E8 !important;}
-    </style>
-    """, unsafe_allow_html=True)
-
+    .st-key-elevo_ceo_contas_v16859 label {color:{TEXT}!important;}
+    .st-key-elevo_ceo_contas_v16859 .stTextInput div:has(> input),
+    .st-key-elevo_ceo_contas_v16859 .stTextArea div:has(> textarea),
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stNumberInput"] div:has(> input) {
+      background:{BOX}!important;border:1px solid {BORDER}!important;border-radius:12px!important;}
+    .st-key-elevo_ceo_contas_v16859 input,
+    .st-key-elevo_ceo_contas_v16859 textarea {color:{TEXT}!important;-webkit-text-fill-color:{TEXT}!important;}
+    .st-key-elevo_ceo_contas_v16859 input::placeholder {opacity:.58;}
+    .st-key-elevo_ceo_contas_v16859 [data-testid="stCode"],
+    .st-key-elevo_ceo_contas_v16859 details {border:1px solid {BORDER}!important;border-radius:13px!important;}
+    .evc-ok {border:1px solid rgba(45,196,159,.37);background:rgba(32,173,144,.10);padding:1rem;border-radius:14px;}
+    .evc-ok h4 {color:{ACCENT}!important;margin:0!important;}
+    .evc-ok p {color:{TEXT}!important;}
+    .evc-ok code {color:{TEXT};}
+    .st-key-elevo_ceo_contas_v16859 [role="radiogroup"] button[aria-checked="true"] {border-color:{ACCENT}!important;}
+    .st-key-elevo_ceo_contas_v16859 .stButton button {border-radius:12px!important;}
+    .elevo-ceo-promocard-v16883 {background:{BOX2};border:1px solid {BORDER};border-radius:16px;
+      padding:.8rem 1rem;min-height:94px;}
+    .elevo-ceo-promocard-v16883 b {color:{TEXT};font-size:.95rem;}
+    .elevo-ceo-promocard-v16883 span {color:{SUB};font-size:.82rem;}
+    .elevo-ceo-promocard-v16883 strong {color:{ACCENT};font-size:1.3rem;}
+    </style>"""
+    for _a, _b in _ceo_tema_v16883.items():
+        _ceo_css_v16883 = _ceo_css_v16883.replace(_a,_b)
+    st.markdown(_ceo_css_v16883, unsafe_allow_html=True)
+    _ceo_barra_css_v16883 = ("background:linear-gradient(125deg,#F1FAFF,#E9F8F7);color:#0F375D;"
+                              "border:1px solid rgba(48,136,167,.23);box-shadow:0 9px 24px rgba(35,94,145,.07)"
+                              if modo_claro else
+                              "background:linear-gradient(130deg,#102B42,#113E4B);color:#EEF6FE;"
+                              "border:1px solid rgba(96,218,202,.22);box-shadow:0 9px 26px rgba(0,0,0,.18)")
+    st.markdown("<style>"
+        f".elevo-admin-header-v16813 {{{_ceo_barra_css_v16883};}}"
+        + ".elevo-admin-header-v16813 p:first-child {color:#198F96!important;}"
+        + ".st-key-elevo_ceo_contas_v16859 [role='radiogroup'] button[aria-checked='true'] {"
+        + "background:linear-gradient(110deg,#175C87,#17877D)!important;border-color:#4ACFC0!important;}"
+        + ".st-key-elevo_ceo_contas_v16859 [role='radiogroup'] button[aria-checked='true'] p {color:#FFFFFF!important;}"
+        + "</style>", unsafe_allow_html=True)
     with st.container(key="elevo_ceo_contas_v16859"):
         _evc_packs_html = "".join(
             f"<div class='evc-pack'><b>{html_std.escape(_n)}</b>"
@@ -7193,8 +7339,8 @@ if E_O_CEO:
         st.markdown(f"""
         <div class="evc-top"><div class="evc-crown">👑</div><div>
           <p class="evc-kick">ÉLÉVO • ESTÚDIO DE ACESSOS VIP</p>
-          <h3 class="evc-title">Criar nova conta VIP</h3></div></div>
-        <p class="evc-lead">O cadastro público foi desligado. Só entra quem você liberar aqui, já com o saldo de créditos que você escolher.</p>
+          <h3 class="evc-title">Liberar nova conta</h3></div></div>
+        <p class="evc-lead">Acesso liberado pelo CEO. Novos usuários começam como <b>🌱 Iniciante</b>; apenas compras reais confirmadas elevam a patente. Saldo manual não altera a patente.</p>
         <div class="evc-steps"><span><b>1</b>Dados da pessoa</span><span><b>2</b>Pacote de créditos</span><span><b>3</b>Enviar o convite</span></div>
         <div class="evc-packs">{_evc_packs_html}</div>
         """, unsafe_allow_html=True)
@@ -7218,7 +7364,7 @@ if E_O_CEO:
             with _evc_c4:
                 _evc_obs = st.text_input("📝 Observação interna (opcional)", max_chars=250,
                                          placeholder="Ex.: indicação, cortesia, cliente de março...")
-            st.caption(f"Custos de uso: 360º, V9.2, Produto 3S e Mãos Viral = {ELEVO_CUSTO_PROMPT_V16813} créditos • "
+            st.caption(f"Os quatro motores = {ELEVO_CUSTO_PROMPT_V16813} CR por geração • "
                        f"outras ferramentas de IA = {ELEVO_CUSTO_FERRAMENTA_V16813} créditos.")
             _evc_enviar = st.form_submit_button("✦ LIBERAR ACESSO VIP", use_container_width=True, type="primary")
 
@@ -7274,17 +7420,20 @@ if E_O_CEO:
                 st.session_state.pop("elevo_ceo_conta_criada_v16859", None)
                 st.rerun()
 
-        with st.expander("🧭 Guia rápido: como isso se liga ao futuro painel de vendas", expanded=False):
+        with st.expander("🧭 Regras atuais de acesso, patentes e créditos", expanded=False):
             st.markdown(
-                "- **Pacotes:** os planos acima (Start, Pro, Elite) ficam em `ELEVO_PACOTES_V16859` "
-                "no código. Para mudar créditos ou colocar preço, edite só essa lista. O painel de vendas vai usar a mesma.\n"
-                "- **Venda para cliente novo:** quando o pagamento for aprovado, o sistema chama "
-                "`elevo_criar_conta_vip_v16859(...)` com `origem=\"VENDA\"` e `referencia=\"venda:<id do pagamento>\"`. "
-                "A referência impede conta ou crédito em dobro.\n"
-                "- **Recarga para cliente antigo:** `elevo_credito_admin_v16813(email, qtd, \"ADD\", \"venda:<id>\")`.\n"
-                "- **Relatórios:** toda conta criada fica anotada na aba **Elevo_Contas_V1** da sua planilha "
-                "(plano, créditos, preço, origem, referência, data e quem criou).\n"
-                "- **Pedidos de crédito** dos usuários continuam chegando na Gestão de usuários, logo abaixo.")
+                "**Acesso:** o CEO libera uma conta com senha e saldo inicial. O cadastro manual não conta "
+                "como compra para subir de patente.\n\n"
+                "**Patentes:** Iniciante (0 compras), Bronze (1), Prata (2), Ouro (3–4), "
+                "Diamante (5 ou mais), sempre com compras efetivamente pagas e creditadas.\n\n"
+                "**Moderação:** Suspenso e Bloqueado interrompem acesso; reativação depende da ação do CEO. "
+                "Cada alteração registra o motivo em `Elevo_Moderacao_V1` sem alterar o saldo.\n\n"
+                "**Promoções:** o desconto percentual é calculado no servidor para Start, Pro e Elite. "
+                "O preço da promoção permanece associado ao pedido, inclusive depois que a campanha termina.\n\n"
+                "**Pagamento:** cliente já cadastrado paga com Pix ou cartão, e os créditos só são "
+                "lançados depois da confirmação real do Mercado Pago. Não use a edição manual de "
+                "créditos para corrigir valores de vendas sem conferência."
+            )
     st.divider()
     # ==========================================================
     # V16.8.63 — PAINEL DE VENDAS DO CEO (Mercado Pago)
@@ -7304,18 +7453,53 @@ if E_O_CEO:
             _evv_pk = ""
         if _evv_cfg["token"] and not _evv_pk:
             st.caption("💳 Cartão dentro do app desligado: falta a **public_key** nos Secrets (o Pix funciona).")
-        _evv_promo = elevo_promo_restante_v16873()
-        if _evv_promo > 0:
-            st.success(f"⚡ Promoção relâmpago LIGADA: 100 créditos por R$ 1,00 • termina em {_evv_promo // 60} min {_evv_promo % 60} s.")
-            if st.button("⏹ Encerrar promoção agora", key="elevo_promo_off_v16873", use_container_width=True):
+        st.markdown("#### ⚡ Campanhas e promoções")
+        st.caption("Você escolhe a porcentagem. A oferta modifica somente o preço dos planos Start, Pro e Elite; os créditos não mudam. Encerrada a campanha, novas compras voltam ao preço normal.")
+        _evv_cfg_promo = elevo_promo_config_v16883()
+        if _evv_cfg_promo["percentual"]:
+            st.success(f"✅ Campanha ativa: **{_evv_cfg_promo['percentual']}% OFF** • "
+                       f"restam aproximadamente {_evv_cfg_promo['restante']//60} minuto(s).")
+        else:
+            st.info("Sem desconto percentual ativo. Tabela oficial em vigor.")
+        _evv_pct = st.slider("Desconto para os três planos (%)", min_value=1, max_value=80, value=10,
+                             key="elevo_ceo_promo_percentual_v16883")
+        _evv_dur = st.selectbox("Duração da campanha", [10, 30, 60, 120, 360, 1440], index=0,
+                                format_func=lambda n: (f"{n} minutos" if n<60 else f"{n//60} hora(s)"),
+                                key="elevo_ceo_promo_duracao_v16883")
+        _evv_preview = st.columns(3, gap="small")
+        for _evv_box, (_evv_nome, _evv_plano) in zip(_evv_preview, ELEVO_PACOTES_V16859.items()):
+            with _evv_box:
+                _preco_cent = elevo_promo_preco_v16883(_evv_nome, _evv_pct)
+                st.markdown(f"<div class='elevo-ceo-promocard-v16883'><b>{_evv_nome}</b>"
+                            f"<div><span>De R$ {elevo_promo_moeda_br_v16883(_evv_plano['preco'])}</span></div>"
+                            f"<strong>R$ {elevo_promo_moeda_br_v16883(_preco_cent/100)}</strong>"
+                            f"<div><span>{int(_evv_plano['creditos']):,} créditos • {_evv_pct}% OFF</span></div></div>"
+                            .replace(f"{int(_evv_plano['creditos']):,}",f"{int(_evv_plano['creditos']):,}".replace(',', '.')),
+                            unsafe_allow_html=True)
+        _c_ligar, _c_parar = st.columns(2)
+        with _c_ligar:
+            if st.button("⚡ Ativar promoção", key="elevo_ceo_promo_ligar_v16883", type="primary",
+                         use_container_width=True):
+                try:
+                    elevo_promo_definir_v16883(_evv_pct, _evv_dur)
+                    st.rerun()
+                except Exception:
+                    st.error("Não foi possível ativar. Confira o acesso à aba Elevo_Config_V1.")
+        with _c_parar:
+            if st.button("⏹ Encerrar desconto", key="elevo_ceo_promo_parar_v16883",
+                         use_container_width=True, disabled=not bool(_evv_cfg_promo["percentual"])):
+                try:
+                    elevo_promo_definir_v16883(0, 0)
+                    st.rerun()
+                except Exception:
+                    st.error("Não foi possível encerrar a campanha agora.")
+        if elevo_promo_restante_v16873():
+            st.warning("Uma oferta técnica antiga de R$ 1,00 ainda está ativa. Desative-a para evitar duas campanhas paralelas.")
+            if st.button("Encerrar oferta técnica antiga", key="elevo_ceo_legacy_promo_off_v16883"):
                 elevo_promo_definir_v16873(0)
                 st.rerun()
-        elif st.button("⚡ Liberar promoção relâmpago: R$ 1,00 por 10 minutos", key="elevo_promo_on_v16873",
-                       use_container_width=True, type="primary"):
-            elevo_promo_definir_v16873(10)
-            st.rerun()
-        st.caption("A promoção aparece para todos os clientes como um 4º plano e some sozinha no fim do prazo. "
-                   "Use para uma compra REAL de R$ 1,00 com uma conta comum e valide o checkout em produção.")
+        st.caption("Os valores promocionais ficam registrados por pedido, em centavos, com identificador próprio. Não altere a planilha de créditos nem o formato das células de vendas.")
+        st.divider()
         if st.button("🔌 Testar conexão com o Mercado Pago", key="elevo_mp_diag_v16868", use_container_width=True):
             with st.spinner("Conferindo as chaves..."):
                 for _evv_l in elevo_mp_diagnostico_v16868()["linhas"]:
@@ -7375,11 +7559,11 @@ if E_O_CEO:
             "`modo = \"producao\"`. Faça uma compra real de baixo valor e confira o saldo.\n"
             "5. Pronto: o cliente paga com Pix ou cartão e os créditos entram sozinhos quando ele volta ao app "
             "ou toca em **Já paguei, verificar**.")
-    st.markdown("<div class='elevo-admin-header-v16813'><p>👑 ÉLÉVO • CENTRAL ADMINISTRATIVA VIP</p>"
-                "<h3>🛡️ Gestão inteligente de usuários</h3>"
-                "<p>Contas, créditos, solicitações e acessos — sem digitar e-mails para administrar.</p></div>",
+    st.markdown("<div class='elevo-admin-header-v16813'><p>💠 ÉLÉVO • CONSOLE CEO</p>"
+                "<h3>🛡️ Central de contas e patentes</h3>"
+                "<p>Liberações, suspensões, reativações, patentes e pedidos de créditos.</p></div>",
                 unsafe_allow_html=True)
-    _gestao_painel_v16816 = st.expander("🛡️ ABRIR GESTÃO DE USUÁRIOS • V16.8.16", expanded=False, on_change="rerun")
+    _gestao_painel_v16816 = st.expander("👥 GERENCIAR CONTAS • PATENTES • SUSPENSÕES", expanded=False, on_change="rerun")
     with _gestao_painel_v16816:
         if _gestao_painel_v16816.open:
             _forcar_painel_v16814 = st.button("↻ Atualizar informações", key="elevo_admin_recarregar_v16814",
@@ -7408,10 +7592,12 @@ if E_O_CEO:
                         _acessos_por_email_v16813[chave].append(acesso)
                 _consumo_v16813 = sum(1 for r in _ledger_v16813 if str(r.get("Tipo", "")).upper() == "DEBIT")
                 _m1, _m2, _m3, _m4 = st.columns(4, gap="small")
-                _m1.metric("👥 Usuários", len(_usuarios_v16813))
+                _m1.metric("👥 Contas", len(_usuarios_v16813))
                 _m2.metric("📮 Pedidos pendentes", len(_pedidos_pendentes_v16813))
-                _m3.metric("🔑 Acessos registrados", len(_acessos_v16813))
-                _m4.metric("⚡ Gerações cobradas", _consumo_v16813)
+                _m3.metric("⏸ Suspensas", sum(1 for r in _usuarios_v16813
+                    if str(_perfis_por_email_v16813.get(str(r.get("Email", "")).strip().lower(), {}).get("Status", "ATIVO")).upper() == "SUSPENSO"))
+                _m4.metric("🔑 Acessos registrados", len(_acessos_v16813))
+                st.caption(f"Gerações cobradas: {_consumo_v16813} • Quatro motores: {ELEVO_CUSTO_PROMPT_V16813} CR cada.")
                 if _pedidos_pendentes_v16813:
                     with st.container(border=True):
                         st.markdown("#### 📮 Pedidos para sua aprovação")
@@ -7449,11 +7635,32 @@ if E_O_CEO:
                                             st.error("Falha ao recusar solicitação.")
                 _busca_admin_v16813 = st.text_input("🔍 Localizar conta (nome ou e-mail)",
                                                     placeholder="Filtrar seus usuários...", key="elevo_admin_search_v16813")
-                _usuarios_filtrados_v16813 = [u for u in _usuarios_v16813
-                                             if _busca_admin_v16813.strip().lower() in
-                                             (str(u.get("Nome", ""))+" "+str(u.get("Email", ""))).lower()]
-                st.caption(f"Mostrando {len(_usuarios_filtrados_v16813)} conta(s). Créditos iniciais: definidos por você ao criar a conta • "
-                           "360º e V9.2: 10 • Radar/outras solicitações de IA: 3.")
+                _filtros_c1, _filtros_c2 = st.columns(2)
+                with _filtros_c1:
+                    _filtro_status_v16883 = st.selectbox("Situação", ["Todas", "Ativas", "Suspensas", "Bloqueadas"],
+                                                         key="elevo_ceo_filtro_status_v16883")
+                with _filtros_c2:
+                    _filtro_patente_v16883 = st.selectbox("Patente", ["Todas", "Iniciante", "Bronze VIP", "Prata VIP",
+                                                                  "Ouro VIP", "Diamante VIP"],
+                                                          key="elevo_ceo_filtro_patente_v16883")
+                _patentes_admin_v16883 = {}
+                _usuarios_filtrados_v16813 = []
+                for _usr in _usuarios_v16813:
+                    _email_filter = str(_usr.get("Email", "")).strip().lower()
+                    _status_filter = str(_perfis_por_email_v16813.get(_email_filter, {}).get("Status", "ATIVO")).strip().upper()
+                    if _busca_admin_v16813.strip().lower() not in (str(_usr.get("Nome", ""))+" "+_email_filter).lower():
+                        continue
+                    if _filtro_status_v16883 != "Todas" and {
+                        "Ativas": "ATIVO", "Suspensas": "SUSPENSO", "Bloqueadas": "BLOQUEADO"
+                    }[_filtro_status_v16883] != _status_filter:
+                        continue
+                    _pat = elevo_patente_por_lancamentos_v16878(_ledger_v16813, _email_filter)
+                    _patentes_admin_v16883[_email_filter] = _pat
+                    if _filtro_patente_v16883 != "Todas" and _pat["nome"] != _filtro_patente_v16883:
+                        continue
+                    _usuarios_filtrados_v16813.append(_usr)
+                st.caption(f"{len(_usuarios_filtrados_v16813)} conta(s) encontradas • Patentes baseadas exclusivamente em compras aprovadas."
+                           f" Criação: {ELEVO_CUSTO_PROMPT_V16813} CR por motor, outras ferramentas: {ELEVO_CUSTO_FERRAMENTA_V16813} CR.")
                 for _u_v16813 in _usuarios_filtrados_v16813[:100]:
                     _email_u_v16813 = str(_u_v16813.get("Email", "")).strip().lower()
                     if not _email_u_v16813 or _email_u_v16813 == EMAIL_MESTRE.strip().lower():
@@ -7479,7 +7686,11 @@ if E_O_CEO:
                             st.metric("💎 Saldo", int(_saldo_u_v16813))
                         with _row3:
                             st.metric("🔑 Logins", _total_u_v16813)
-                        st.caption(f"Status: {'🟢 Ativa' if _status_u_v16813 == 'ATIVO' else '🔴 Bloqueada'} • "
+                        _pat_u_v16883 = _patentes_admin_v16883.get(_email_u_v16813) or elevo_patente_por_lancamentos_v16878(_ledger_v16813, _email_u_v16813)
+                        _status_nome_v16883 = {"ATIVO":"🟢 Ativa", "SUSPENSO":"⏸ Suspensa",
+                                               "BLOQUEADO":"⛔ Bloqueada", "REMOVIDO":"🗑️ Removida"}.get(_status_u_v16813, "⚠️ Em verificação")
+                        st.caption(f"Patente: {_pat_u_v16883['icone']} {_pat_u_v16883['nome']} • {_pat_u_v16883['compras']} compra(s) confirmada(s)")
+                        st.caption(f"Status: {_status_nome_v16883} • "
                                    f"Primeiro acesso: {_primeiro_u_v16813} • "
                                    f"Último acesso: {_ultimo_u_v16813} • "
                                    f"Usos cobrados: {_calc_u_v16813['usos']}")
@@ -7512,16 +7723,34 @@ if E_O_CEO:
                                         except Exception:
                                             st.error("Falha ao adicionar créditos.")
                         with _acao2:
-                            if st.button("✅ Reativar" if _status_u_v16813 == "BLOQUEADO" else "⛔ Bloquear",
-                                         key="elevo_block_"+_email_u_v16813, use_container_width=True,
-                                         disabled=_painel_leitura_apenas_v16814):
-                                try:
-                                    elevo_perfil_atualizar_v16813(_email_u_v16813,
-                                        status="ATIVO" if _status_u_v16813 == "BLOQUEADO" else "BLOQUEADO")
-                                    elevo_invalidar_painel_v16814()
-                                    st.rerun()
-                                except Exception:
-                                    st.error("Não foi possível alterar o acesso.")
+                            with st.popover("🛡️ Suspender / liberar", use_container_width=True):
+                                st.caption(f"Acesso atual: {_status_nome_v16883}")
+                                _acoes_v16883 = ["⏸ Suspender até reativação", "⛔ Bloquear acesso", "✅ Reativar conta"]
+                                _acao_mod_v16883 = st.selectbox("Alterar acesso", _acoes_v16883,
+                                                                key="elevo_ceo_mod_acao_"+_email_u_v16813)
+                                _novo_status_v16883 = {"⏸ Suspender até reativação":"SUSPENSO",
+                                                       "⛔ Bloquear acesso":"BLOQUEADO",
+                                                       "✅ Reativar conta":"ATIVO"}[_acao_mod_v16883]
+                                _motivo_mod_v16883 = st.text_input("Motivo para o registro", max_chars=240,
+                                    placeholder="Ex.: uso indevido / solicitação / análise administrativa",
+                                    key="elevo_ceo_mod_motivo_"+_email_u_v16813)
+                                st.caption("Suspensão e bloqueio impedem acesso e compras. A patente e o histórico financeiro não são apagados.")
+                                if st.button("Confirmar alteração", key="elevo_ceo_mod_conf_"+_email_u_v16813,
+                                             type="primary", use_container_width=True,
+                                             disabled=_painel_leitura_apenas_v16814 or _novo_status_v16883 == _status_u_v16813):
+                                    try:
+                                        aviso = elevo_moderacao_registrar_v16883(_email_u_v16813, _novo_status_v16883,
+                                                                                 _motivo_mod_v16883)
+                                        elevo_invalidar_painel_v16814()
+                                        if aviso:
+                                            st.warning(aviso)
+                                        else:
+                                            st.success("Acesso atualizado e registrado.")
+                                        st.rerun()
+                                    except ValueError as exc:
+                                        st.warning(str(exc))
+                                    except Exception:
+                                        st.error("Não foi possível alterar o acesso. Verifique a conexão.")
                         with _acao3:
                             with st.popover("🗑️ Remover conta", use_container_width=True):
                                 st.warning("Esta ação remove o cadastro, revoga o acesso e não pode ser desfeita aqui. "
