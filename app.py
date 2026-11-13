@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.89 — contraste do topo e dos documentos, botão Sair sóbrio (somente UI)
 # ÉLÉVO V16.8.88 — acesso por e-mail/senha; verificação 4h com suspensão; recuperação para contas comuns; sem login social
 # ÉLÉVO V16.8.87 — login estilo app premium; Google à vista; pré-cadastro por 4h
 # ÉLÉVO V16.8.86 — WhatsApp flutuante nativo e animado (correção de SVG gigante/HTML exposto)
@@ -638,6 +639,16 @@ def elevo_legal_registrar_v16884(email, origem):
 
 
 def elevo_legal_exibir_documentos_v16884():
+    # Contraste explícito do leitor legal na tela de login (tema escuro).
+    st.markdown("""<style>
+    .st-key-elevo_login_card_v16859 [data-testid="stExpander"] [data-testid="stMarkdownContainer"] :is(h1,h2,h3,h4,h5,h6,p,li,strong,em,code),
+    .st-key-elevo_login_card_v16859 [data-testid="stExpander"] summary :is(span,p) {
+      color:#E7F2FF!important;-webkit-text-fill-color:#E7F2FF!important;
+    }
+    .st-key-elevo_login_card_v16859 [data-testid="stExpander"] a {color:#83D8F0!important;-webkit-text-fill-color:#83D8F0!important;}
+    .st-key-elevo_login_card_v16859 [data-testid="stExpander"] [role="tab"] p {color:#B5C9DF!important;-webkit-text-fill-color:#B5C9DF!important;}
+    .st-key-elevo_login_card_v16859 [data-testid="stExpander"] [role="tab"][aria-selected="true"] p {color:#B8FBE8!important;-webkit-text-fill-color:#B8FBE8!important;}
+    </style>""", unsafe_allow_html=True)
     with st.expander("📜 Ler Termos de Uso e Política de Privacidade", expanded=False):
         texto_termos, texto_politica = elevo_legal_textos_v16884()
         tab_termos, tab_privacidade = st.tabs(["Termos de Uso", "Privacidade"])
@@ -3319,6 +3330,8 @@ else:
 
 @_elevo_drawer_decorator_v16885
 def elevo_abrir_central_ajuda_v16885():
+    # Marcador visual para escopar o CSS apenas à Central de Ajuda.
+    st.markdown('<div class="elevo-ajuda-contraste-v16889" style="display:none" aria-hidden="true">ÉLÉVO</div>', unsafe_allow_html=True)
     st.caption("Atendimento, segurança e orientações sem sair da plataforma.")
     tab_aj, tab_seg, tab_termos = st.tabs(["💬 Ajuda", "🔐 Conta", "📜 Documentos"])
     with tab_aj:
@@ -15376,3 +15389,169 @@ _css_v16860 = _css_v16860.replace("__GRAO__", _ELEVO_GRAO_V16860)
 for _k_v16860, _v_v16860 in _tk_v16860.items():
     _css_v16860 = _css_v16860.replace(_k_v16860, _v_v16860)
 st.markdown(_css_v16860, unsafe_allow_html=True)
+
+# ==========================================================
+# ÉLÉVO V16.8.89 — AJUSTE VISUAL FINAL E ISOLADO
+# Topo: contraste Ajuda/Minha conta/Sair nos dois temas.
+# Central de Ajuda: títulos, corpo, documentos e abas visíveis.
+# Nenhum callback, saldo, regra de conta ou operação financeira alterado.
+# ==========================================================
+_elevo_ui_v16889 = ({
+    "@BTN_BG@": "linear-gradient(135deg,#183554,#12283F)",
+    "@BTN_BORDER@": "rgba(31,92,143,.35)",
+    "@BTN_TXT@": "#FFFFFF",
+    "@EXIT_BG@": "linear-gradient(135deg,#A34455,#843847)",
+    "@EXIT_BORDER@": "rgba(154,60,74,.48)",
+    "@EXIT_SHADOW@": "0 6px 16px rgba(111,44,59,.16)",
+    "@DIALOG_BG@": "linear-gradient(156deg,#FCFEFF,#F2F7FD)",
+    "@DIALOG_TXT@": "#133256",
+    "@DIALOG_SUB@": "#435E7D",
+    "@DIALOG_BORDER@": "#D4E2F3",
+    "@DIALOG_TABS@": "#E8F1FA",
+    "@DIALOG_ACTIVE@": "#DBF5EE",
+    "@DIALOG_ACTIVE_TXT@": "#095F63",
+    "@DIALOG_CARD@": "#FFFFFF",
+    "@DIALOG_LINK@": "#116C92",
+    "@DIALOG_SHADOW@": "0 22px 56px rgba(16,59,117,.14)",
+} if modo_claro else {
+    "@BTN_BG@": "linear-gradient(135deg,#203B56,#132A42)",
+    "@BTN_BORDER@": "rgba(121,183,222,.32)",
+    "@BTN_TXT@": "#F0F9FF",
+    "@EXIT_BG@": "linear-gradient(135deg,#9D4656,#783948)",
+    "@EXIT_BORDER@": "rgba(215,112,129,.32)",
+    "@EXIT_SHADOW@": "0 7px 17px rgba(0,0,0,.20)",
+    "@DIALOG_BG@": "linear-gradient(160deg,#15263C,#0C1B2F)",
+    "@DIALOG_TXT@": "#F0F6FF",
+    "@DIALOG_SUB@": "#C0D0E4",
+    "@DIALOG_BORDER@": "rgba(139,186,224,.26)",
+    "@DIALOG_TABS@": "#1A314A",
+    "@DIALOG_ACTIVE@": "#15545C",
+    "@DIALOG_ACTIVE_TXT@": "#D1FFF5",
+    "@DIALOG_CARD@": "#13283F",
+    "@DIALOG_LINK@": "#86DDED",
+    "@DIALOG_SHADOW@": "0 26px 64px rgba(0,0,0,.38)",
+})
+_elevo_css_v16889 = """<style>
+/* Contraste do topo; não modifica botões de outros componentes. */
+.st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button,
+.st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button,
+.st-key-elevo_topbar_v16853 .st-key-btn_logout button {
+  min-height:46px!important; border-radius:13px!important;
+  background:@BTN_BG@!important; border:1px solid @BTN_BORDER@!important;
+  color:@BTN_TXT@!important;-webkit-text-fill-color:@BTN_TXT@!important;
+  text-shadow:none!important; font-weight:750!important;
+  box-shadow:0 5px 13px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.08)!important;
+  transition:background .15s ease,box-shadow .15s ease,transform .15s ease!important;
+}
+.st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button *,
+.st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button *,
+.st-key-elevo_topbar_v16853 .st-key-btn_logout button * {
+  color:@BTN_TXT@!important;-webkit-text-fill-color:@BTN_TXT@!important;
+  opacity:1!important;text-shadow:none!important;
+}
+.st-key-elevo_topbar_v16853 .st-key-btn_logout button {
+  background:@EXIT_BG@!important;border-color:@EXIT_BORDER@!important;
+  box-shadow:@EXIT_SHADOW@,inset 0 1px 0 rgba(255,255,255,.12)!important;
+}
+.st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button:hover,
+.st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button:hover,
+.st-key-elevo_topbar_v16853 .st-key-btn_logout button:hover {
+  filter:brightness(1.09);transform:translateY(-1px)!important;
+  box-shadow:0 8px 20px rgba(0,0,0,.22)!important;
+}
+.st-key-elevo_topbar_v16853 .st-key-btn_logout button:focus-visible,
+.st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button:focus-visible,
+.st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button:focus-visible {
+  outline:2px solid #6BCBD7!important;outline-offset:2px!important;
+}
+/* Apenas o diálogo que inclui o marcador da Central de Ajuda. */
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889) {
+  color:@DIALOG_TXT@!important;
+  background:@DIALOG_BG@!important;
+  border:1px solid @DIALOG_BORDER@!important;
+  box-shadow:@DIALOG_SHADOW@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  :is(h1,h2,h3,h4,h5,h6,[data-testid="stHeading"]),
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stMarkdownContainer"] :is(h1,h2,h3,h4,h5,h6,p,li,strong,em),
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stCaptionContainer"] :is(p,span),
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stExpander"] summary :is(p,span) {
+  color:@DIALOG_TXT@!important;-webkit-text-fill-color:@DIALOG_TXT@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  :is([data-testid="stCaptionContainer"],small) {
+  color:@DIALOG_SUB@!important;-webkit-text-fill-color:@DIALOG_SUB@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [role="tablist"] {
+  background:@DIALOG_TABS@!important;border:1px solid @DIALOG_BORDER@!important;
+  box-shadow:none!important;gap:5px!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [role="tab"] {
+  color:@DIALOG_SUB@!important;background:transparent!important;
+  border-radius:10px!important;box-shadow:none!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [role="tab"] :is(p,span) {
+  color:@DIALOG_SUB@!important;-webkit-text-fill-color:@DIALOG_SUB@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [role="tab"][aria-selected="true"] {
+  background:@DIALOG_ACTIVE@!important;
+  box-shadow:inset 0 0 0 1px @DIALOG_BORDER@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [role="tab"][aria-selected="true"] :is(p,span) {
+  color:@DIALOG_ACTIVE_TXT@!important;-webkit-text-fill-color:@DIALOG_ACTIVE_TXT@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stExpander"] {
+  color:@DIALOG_TXT@!important;background:@DIALOG_CARD@!important;
+  border:1px solid @DIALOG_BORDER@!important;border-radius:13px!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  a:not([data-testid]) {
+  color:@DIALOG_LINK@!important;-webkit-text-fill-color:@DIALOG_LINK@!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  :is([data-testid="stLinkButton"] a,.stButton button) {
+  background:#146B73!important;border:1px solid rgba(133,226,223,.28)!important;
+  color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+  border-radius:12px!important;box-shadow:0 5px 16px rgba(0,0,0,.12)!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  :is([data-testid="stLinkButton"] a,.stButton button) * {
+  color:#FFFFFF!important;-webkit-text-fill-color:#FFFFFF!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stAlert"] {
+  background:@DIALOG_CARD@!important;border-color:@DIALOG_BORDER@!important;
+  box-shadow:none!important;
+}
+[role="dialog"]:has(.elevo-ajuda-contraste-v16889)
+  [data-testid="stAlert"] :is(p,span,strong) {
+  color:@DIALOG_TXT@!important;-webkit-text-fill-color:@DIALOG_TXT@!important;
+}
+@media(max-width:767px){
+  .st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button,
+  .st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button,
+  .st-key-elevo_topbar_v16853 .st-key-btn_logout button {
+    min-height:46px!important;padding-inline:5px!important;
+    font-size:clamp(.70rem,2.9vw,.84rem)!important;
+  }
+}
+@media(prefers-reduced-motion:reduce){
+  .st-key-elevo_topbar_v16853 .st-key-btn_logout button,
+  .st-key-elevo_topbar_v16853 .st-key-elevo_ajuda_topo_v16885 button,
+  .st-key-elevo_topbar_v16853 .st-key-elevo_conta_pop_v16853 button {
+    transition:none!important;transform:none!important;
+  }
+}
+</style>"""
+for _elevo_cor_v16889, _elevo_valor_v16889 in _elevo_ui_v16889.items():
+    _elevo_css_v16889 = _elevo_css_v16889.replace(_elevo_cor_v16889, _elevo_valor_v16889)
+st.markdown(_elevo_css_v16889, unsafe_allow_html=True)
