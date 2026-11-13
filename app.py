@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.95 — checkout cartão: acompanhamento de pendências, consulta segura sem nova cobrança (UI + leitura)
 # ÉLÉVO V16.8.94 — presente de 200 CR para novos cadastros, banner mobile e preservação dos INIT históricos
 # ÉLÉVO V16.8.93 — contraste legível em todas as patentes (somente CSS, modo claro/escuro)
 # ÉLÉVO V16.8.92 — e-mail de agradecimento por compra aprovada, após créditos confirmados (sem mexer no financeiro)
@@ -295,6 +296,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_bv_password_nonce_v16814", "elevo_bv_google_nonce_v16814",
     "elevo_cadastro_otp_pendente_v16885", "elevo_senha_otp_email_v16885",
     "elevo_preconta_email_v16887", "elevo_email_aviso_adiado_v16888",
+    "elevo_cartao_acompanhamento_v16895", "elevo_cartao_restaurado_v16895",
 }
 
 def limpar_sessao_privada():
@@ -3465,7 +3467,63 @@ def elevo_cartao_pagar_v16865(plano, form):
         _elevo_pedido_falha_v16870(ped["pedido"], "recusado: " + str(pg.get("status_detail", "")))
     creditados = elevo_checkout_confirmar_v16863(pg.get("id")) if status == "approved" else []
     return {"status": status, "detalhe": str(pg.get("status_detail", "")), "creditados": creditados,
-            "plano": plano, "creditos": ped["creditos"]}
+            "plano": plano, "creditos": ped["creditos"],
+            "payment_id": str(pg.get("id") or ""), "pedido": ped["pedido"]}
+
+
+# ==========================================================
+# V16.8.95 — ACOMPANHAMENTO SEGURO DE CARTÃO, SEM NOVA COBRANÇA.
+# A consulta GET nunca cria um pagamento. Somente a rotina antiga de
+# confirmação pode lançar créditos, após verificar titular, pedido,
+# valor, moeda e aprovação no Mercado Pago.
+# ==========================================================
+def elevo_cartao_mensagem_v16895(status, detalhe):
+    status, detalhe = str(status or "").lower(), str(detalhe or "").lower()
+    if status == "approved":
+        return "Aprovado", "Pagamento aprovado. Conferindo os créditos na carteira."
+    if status in ("pending", "in_process", "authorized"):
+        explicacoes = {
+            "pending_review_manual": "O Mercado Pago está analisando esta transação. A conclusão pode levar até dois dias úteis.",
+            "pending_contingency": "O Mercado Pago ainda está processando o pagamento. Aguarde a confirmação oficial.",
+            "pending_challenge": "A instituição pode exigir uma confirmação adicional. Verifique o aplicativo do seu banco e os detalhes no Mercado Pago.",
+            "pending_capture": "Pagamento autorizado, aguardando captura. Ainda não foi concluído.",
+        }
+        return "Em análise", explicacoes.get(detalhe, "O Mercado Pago ainda não confirmou o pagamento. Não envie outra cobrança enquanto estiver pendente.")
+    if status == "rejected":
+        return "Recusado", ELEVO_CARTAO_RECUSA_V16865.get(
+            detalhe, "Pagamento recusado pelo emissor ou pela análise de segurança. Consulte o Mercado Pago ou utilize outro meio de pagamento.")
+    if status in ("cancelled", "refunded", "charged_back"):
+        return "Não concluído", "Este pagamento foi cancelado, estornado ou contestado. Nenhum novo crédito será liberado por esta transação."
+    return "Não confirmado", "Não foi possível determinar o estado final. Confira a transação no Mercado Pago antes de tentar novamente."
+
+
+def elevo_cartao_consultar_v16895(payment_id, pedido):
+    """Consulta um pagamento existente e confirma apenas se for de pedido do usuário."""
+    email = elevo_email_v16813()
+    pid, pedido = str(payment_id or ""), str(pedido or "")
+    if not st.session_state.get("usuario_logado") or not email or elevo_admin_v16813():
+        raise PermissionError("Entre na conta que realizou a compra.")
+    if not re.fullmatch(r"\d{1,24}", pid) or not re.fullmatch(r"elv_[0-9a-f]{20}", pedido):
+        raise ValueError("Referência de pagamento inválida.")
+    registros = elevo_vendas_aba_v16863().get_all_records()
+    validos = [r for r in registros
+               if str(r.get("Id", "")) == pedido
+               and str(r.get("Email", "")).strip().lower() == email
+               and str(r.get("Metodo", "")).strip().lower() in ("cartao", "credit_card", "debit_card")]
+    if not validos:
+        raise PermissionError("Pedido não pertence a esta conta.")
+    registrado = str(validos[-1].get("PaymentId", "") or "").strip()
+    if registrado and registrado != pid:
+        raise PermissionError("Identificador não corresponde ao pedido registrado.")
+    pg = _elevo_mp_req_v16863("GET", f"/v1/payments/{pid}")
+    if (str(pg.get("id", "")) != pid or str(pg.get("external_reference", "")) != pedido):
+        raise PermissionError("Pagamento não corresponde ao pedido.")
+    status, detalhe = str(pg.get("status", "")), str(pg.get("status_detail", ""))
+    creditados = elevo_checkout_confirmar_v16863(pid) if status == "approved" else []
+    if status == "rejected" and str(validos[-1].get("Status", "")).upper() == "PENDENTE":
+        _elevo_pedido_falha_v16870(pedido, "recusado: " + detalhe)
+    return {"status": status, "detalhe": detalhe, "payment_id": pid,
+            "pedido": pedido, "creditados": creditados}
 
 
 def elevo_pagamento_status_v16865(payment_id):
@@ -5841,24 +5899,91 @@ export default function (component) {
                             st.warning("Não foi possível gerar o Pix agora. Tente novamente.")
                     st.caption("Aprovação na hora, 24h por dia. O CPF é exigido pelo Banco Central para Pix.")
             with _wal_t_cartao:
+                # V16.8.95: recuperar transação de cartão já criada, inclusive
+                # após atualizar a página. Nunca guarda dados do cartão.
                 _wal_public = ""
                 try:
                     _wal_public = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
                 except Exception:
-                    _wal_public = ""
+                    pass
+                _wal_email_ativo = str(elevo_email_v16813() or "").strip().lower()
+                _wal_ativo = st.session_state.get("elevo_cartao_acompanhamento_v16895") or {}
+                if _wal_ativo and _wal_ativo.get("email") != _wal_email_ativo:
+                    st.session_state.pop("elevo_cartao_acompanhamento_v16895", None)
+                    _wal_ativo = {}
+                _wal_historico_indisponivel = False
+                if not _wal_ativo and not st.session_state.get("elevo_cartao_restaurado_v16895"):
+                    st.session_state["elevo_cartao_restaurado_v16895"] = True
+                    try:
+                        _wal_registros = elevo_vendas_aba_v16863().get_all_records()
+                        _wal_pendentes = [r for r in _wal_registros
+                            if str(r.get("Email", "")).strip().lower() == _wal_email_ativo
+                            and str(r.get("Status", "")).upper() == "PENDENTE"
+                            and str(r.get("Metodo", "")).strip().lower() == "cartao"
+                            and str(r.get("PaymentId", "") or "").isdigit()
+                            and re.fullmatch(r"elv_[0-9a-f]{20}", str(r.get("Id", "")))]
+                        if _wal_pendentes:
+                            r = _wal_pendentes[-1]
+                            _wal_ativo = {"email": _wal_email_ativo,
+                                "plano": str(r.get("Plano", "")),
+                                "pedido": str(r.get("Id", "")),
+                                "payment_id": str(r.get("PaymentId", "")),
+                                "status": "pending", "detalhe": ""}
+                            st.session_state["elevo_cartao_acompanhamento_v16895"] = _wal_ativo
+                    except Exception:
+                        # Se não é possível conferir pedidos em aberto, não iniciar outra cobrança.
+                        _wal_historico_indisponivel = True
+                        st.warning("O histórico está indisponível. Nova cobrança por cartão temporariamente bloqueada; confira antes no Mercado Pago.")
                 _wal_res = st.session_state.pop("elevo_cartao_res_v16865", None)
                 if _wal_res and _wal_res.get("msg"):
-                    st.error("❌ " + _wal_res["msg"])
+                    st.warning("⚠️ " + _wal_res["msg"])
                     if _wal_res.get("tecnico"):
-                        st.caption("Detalhe do Mercado Pago: " + _wal_res["tecnico"])
+                        st.caption("Diagnóstico: " + str(_wal_res["tecnico"])[:160])
                 elif _wal_res:
-                    if _wal_res["status"] == "in_process" or _wal_res["status"] == "pending":
-                        st.info("⏳ Pagamento em análise pelo Mercado Pago. Os créditos entram assim que for aprovado "
-                                "(normalmente em poucos minutos).")
-                    elif _wal_res["status"] == "rejected":
-                        st.error("❌ " + ELEVO_CARTAO_RECUSA_V16865.get(
-                            _wal_res["detalhe"], "Pagamento recusado. Tente outro cartão ou o Pix."))
-                if not _wal_public:
+                    _wal_nome, _wal_txt = elevo_cartao_mensagem_v16895(
+                        _wal_res.get("status"), _wal_res.get("detalhe"))
+                    if _wal_res.get("status") == "rejected":
+                        st.error("❌ " + _wal_nome + ". " + _wal_txt)
+                    elif _wal_res.get("status") == "approved":
+                        st.info("✅ " + _wal_nome + ". " + _wal_txt)
+                    else:
+                        st.info("⏳ " + _wal_nome + ". " + _wal_txt)
+                if _wal_ativo:
+                    _wal_nome, _wal_txt = elevo_cartao_mensagem_v16895(
+                        _wal_ativo.get("status"), _wal_ativo.get("detalhe"))
+                    st.info(f"💳 **Pagamento existente — {_wal_nome}**. {_wal_txt}")
+                    st.caption("Não é necessário pagar novamente. Consulte a mesma transação para verificar alterações de status.")
+                    if st.button("🔎 Verificar status do pagamento", key="elevo_cartao_consultar_v16895",
+                                 use_container_width=True):
+                        try:
+                            with st.spinner("Consultando o Mercado Pago sem fazer nova cobrança..."):
+                                _wal_verificado = elevo_cartao_consultar_v16895(
+                                    _wal_ativo["payment_id"], _wal_ativo["pedido"])
+                            if _wal_verificado["creditados"]:
+                                st.session_state["elevo_checkout_sucesso_v16863"] = _wal_verificado["creditados"]
+                                st.session_state["elevo_carteira_painel_v16865"] = None
+                                st.session_state.pop("elevo_cartao_acompanhamento_v16895", None)
+                                elevo_invalidar_leituras_v16816()
+                                st.rerun()
+                            if _wal_verificado["status"] in ("rejected", "cancelled", "refunded", "charged_back"):
+                                st.session_state.pop("elevo_cartao_acompanhamento_v16895", None)
+                            else:
+                                _wal_ativo["status"] = _wal_verificado["status"]
+                                _wal_ativo["detalhe"] = _wal_verificado["detalhe"]
+                                st.session_state["elevo_cartao_acompanhamento_v16895"] = _wal_ativo
+                            _wal_verificado["msg"] = ("Aprovado pelo Mercado Pago, mas ainda não foi possível confirmar "
+                                  "o lançamento dos créditos. Não pague de novo; tente verificar ou fale com o suporte."
+                                  if _wal_verificado["status"] == "approved" else "")
+                            st.session_state["elevo_cartao_res_v16865"] = _wal_verificado
+                            st.rerun()
+                        except (PermissionError, ValueError, ElevoCreditoErroV16813) as _wal_e:
+                            st.warning("Não foi possível conferir: " + str(_wal_e))
+                        except Exception:
+                            st.warning("A consulta está temporariamente indisponível. Não tente outro pagamento antes de verificar a transação.")
+                    st.caption("O formulário de nova cobrança fica oculto enquanto esta transação estiver pendente.")
+                elif _wal_historico_indisponivel:
+                    st.info("Aguarde o histórico voltar e atualize a página antes de usar cartão.")
+                elif not _wal_public:
                     st.info("💳 Cartão em configuração. Use o **Pix** enquanto isso.")
                 else:
                     st.session_state.setdefault("elevo_cartao_tentativa_v16865", 0)
@@ -5867,8 +5992,7 @@ export default function (component) {
                         key=f"elevo_brick_{_wal_chave}_v16865",
                         data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
                               "email": ("" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813),
-                              "tema": "default" if modo_claro else "dark",
-                              "chave": _wal_chave})
+                              "tema": "default" if modo_claro else "dark", "chave": _wal_chave})
                     _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
                     if _wal_form:
                         try:
@@ -5878,24 +6002,27 @@ export default function (component) {
                                 st.session_state["elevo_checkout_sucesso_v16863"] = _wal_r["creditados"]
                                 st.session_state["elevo_carteira_painel_v16865"] = None
                                 elevo_invalidar_leituras_v16816()
-                            elif _wal_r["status"] == "approved":
-                                st.session_state["elevo_cartao_res_v16865"] = {
-                                    "status": "pending", "detalhe": "",
-                                    "msg": "O Mercado Pago aprovou, mas os créditos ainda não foram confirmados. "
-                                           "Não pague novamente; verifique o histórico ou contate o suporte."
-                                }
                             else:
+                                if _wal_r["status"] in ("pending", "in_process", "authorized", "approved"):
+                                    if str(_wal_r.get("payment_id") or "").isdigit():
+                                        st.session_state["elevo_cartao_acompanhamento_v16895"] = {
+                                            "email": _wal_email_ativo, "plano": _wal_sel,
+                                            "payment_id": str(_wal_r["payment_id"]), "pedido": _wal_r["pedido"],
+                                            "status": _wal_r["status"], "detalhe": _wal_r.get("detalhe", "")}
+                                if _wal_r["status"] == "approved":
+                                    _wal_r["msg"] = ("Pagamento aprovado, mas os créditos ainda não foram sincronizados. "
+                                                     "Não pague novamente; use Verificar status.")
                                 st.session_state["elevo_cartao_res_v16865"] = _wal_r
                         except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
-                            st.session_state["elevo_cartao_res_v16865"] = {"status": "rejected", "detalhe": "",
-                                                                           "msg": str(_wal_exc),
-                                                                           "tecnico": getattr(_wal_exc, "tecnico", "")}
+                            st.session_state["elevo_cartao_res_v16865"] = {
+                                "status": "rejected", "detalhe": "", "msg": str(_wal_exc),
+                                "tecnico": getattr(_wal_exc, "tecnico", "")}
                             st.warning(str(_wal_exc))
                         except Exception as _wal_exc2:
                             logging.exception("ELEVO_CARTAO")
                             st.session_state["elevo_cartao_res_v16865"] = {
-                                "status": "rejected", "detalhe": "",
-                                "msg": "Não foi possível confirmar esta tentativa. Confira o histórico de pagamentos antes de tentar novamente.",
+                                "status": "indeterminado", "detalhe": "",
+                                "msg": "Não foi possível confirmar esta tentativa. Confira o histórico no Mercado Pago antes de tentar novamente.",
                                 "tecnico": f"erro interno: {type(_wal_exc2).__name__}"}
                         st.session_state["elevo_cartao_tentativa_v16865"] += 1
                         st.rerun()
