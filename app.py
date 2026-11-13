@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.80 — carteira modo escuro fosco + nome com microefeito hacker (modo claro intocado)
 # ÉLÉVO V16.8.79 — textura premium na carteira da Central de Operação (somente UI do cartão)
 # ÉLÉVO V16.8.78 — PATENTES DE FIDELIDADE POR COMPRAS CONFIRMADAS (SEM ALTERAR PAGAMENTOS)
 # ÉLÉVO V16.8.77 — saudação diária VIP discreta na tela principal (sem navegação)
@@ -4093,6 +4094,56 @@ _wal_css = """<style>
 for _wal_k, _wal_v in _wal_tk.items():
     _wal_css = _wal_css.replace(_wal_k, _wal_v)
 st.markdown(_wal_css, unsafe_allow_html=True)
+
+# V16.8.80 — AJUSTE LOCAL DE APRESENTAÇÃO: SOMENTE carteira NO MODO ESCURO.
+# Preserva por completo o CSS anterior no modo claro, assim como backend, saldo,
+# patentes, compra de créditos, pagamentos, animações globais e outros componentes.
+if not modo_claro:
+    st.markdown("""<style>
+    /* Fosco premium: sem faixas LED, sem textura riscada e sem neon no cartão. */
+    .st-key-elevo_carteira_v16865 {
+      background:linear-gradient(132deg,#202631 0%,#161D28 55%,#19212B 100%)!important;
+      border:1px solid rgba(159,178,203,.20)!important;
+      box-shadow:0 16px 38px rgba(0,0,0,.29),
+                 0 3px 9px rgba(0,0,0,.12),
+                 inset 0 1px 0 rgba(255,255,255,.055)!important;
+    }
+    .st-key-elevo_carteira_v16865::before {
+      background:radial-gradient(ellipse at 88% 8%,rgba(179,161,119,.055),transparent 38%),
+                 radial-gradient(ellipse at 10% 94%,rgba(115,147,170,.045),transparent 45%)!important;
+      opacity:1!important;
+    }
+    .st-key-elevo_carteira_v16865::after {
+      background:linear-gradient(180deg,rgba(255,255,255,.032),transparent 18%)!important;
+      opacity:1!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-avatar {
+      background:conic-gradient(from 200deg,#AA9871,#688095,#425363,#AA9871)!important;
+      box-shadow:0 5px 13px rgba(0,0,0,.19)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip {
+      box-shadow:0 3px 10px rgba(0,0,0,.12),inset 0 1px rgba(255,255,255,.12)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip-ceo {
+      background:linear-gradient(105deg,#AF9160,#DCC79B)!important;
+    }
+    /* Apenas o nome da conta recebe um leve toque hacker periódico. */
+    .st-key-elevo_carteira_v16865 .wal-quem b {
+      color:#EBEFF5!important;
+      animation:elevo-wal-nome-hack-v16880 11s steps(1,end) infinite;
+      will-change:auto;
+    }
+    @keyframes elevo-wal-nome-hack-v16880 {
+      0%,72%,75%,78%,100% {opacity:1;transform:translateX(0);text-shadow:none;}
+      73% {opacity:.69;transform:translateX(.55px);text-shadow:1px 0 rgba(118,170,190,.22);}
+      74% {opacity:.91;transform:translateX(-.35px);text-shadow:-1px 0 rgba(185,156,105,.13);}
+      76% {opacity:.81;transform:translateX(0);text-shadow:.6px 0 rgba(118,170,190,.15);}
+      77% {opacity:.97;transform:translateX(0);text-shadow:none;}
+    }
+    @media (prefers-reduced-motion:reduce) {
+      .st-key-elevo_carteira_v16865 .wal-quem b {animation:none!important;}
+    }
+    </style>""", unsafe_allow_html=True)
 
 _evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
 if _evp_sucesso and not E_O_CEO:
