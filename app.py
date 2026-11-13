@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.77 — saudação diária VIP discreta na tela principal (sem navegação)
 # ÉLÉVO V16.8.76 — FINAIS IA POR PRODUTO; sem sacolinha na fala/CTA; hooks e créditos preservados
 # ÉLÉVO V16.8.75 — 20 CR por geração; ganchos/CTAs com diversidade, produto concreto e guardrails TikTok Shop
 # ÉLÉVO V16.8.74 — validação de ambientes de pagamento, comprador de teste no Brick e confirmação real de créditos
@@ -3620,446 +3621,188 @@ if (st.session_state.get("usuario_logado")
         and st.session_state.get("elevo_vip_diaria_audio_v16840")
         and (not st.session_state.get("elevo_vip_diaria_exibida_v16840", False)
              or st.session_state.get("elevo_vip_preview_ceo_v16842", False))):
-    # V16.8.54 — AURORA HOLOGRÁFICA: personagem digital 3D em partículas que fala,
-    # boca sincronizada com a voz (Web Audio), boot de terminal, legendas palavra a palavra.
-    # Mesmo contrato da versão anterior: data{name, phrase, audio} -> trigger "closed".
+    # V16.8.77 — apresentação diária compacta, dentro do painel atual.
+    # A mensagem, o áudio, o controle por conta/data e o callback continuam os mesmos.
+    # Não existe nova rota, navegação ou tela inteira: somente um cartão flutuante.
     _vip = st.components.v2.component(
-        name="elevo_vip_daily_protocol_v16854",
-        html=r"""<main id="vip" aria-label="Transmissão diária ÉLÉVO">
-  <canvas id="rain" aria-hidden="true"></canvas>
-  <div class="fx-grid" aria-hidden="true"></div>
-  <div class="fx-scan" aria-hidden="true"></div>
-  <div class="fx-vig" aria-hidden="true"></div>
-  <header class="hud hud-top">
-    <span class="brand">◈ ÉLÉVO <b>// NEURAL LINK</b></span>
-    <span class="sec"><i></i>CANAL CRIPTOGRAFADO</span>
-    <span id="clock" class="clock">--:--:--</span>
-  </header>
-  <section class="shell">
-    <div class="avatar">
-      <div class="ring ring-ticks"></div>
-      <div class="ring ring-a"></div>
-      <div class="ring ring-b"></div>
-      <canvas id="face" role="img" aria-label="Aurora, assistente digital da ÉLÉVO, falando"></canvas>
-      <div class="tag tl">ID<b>AUR-0X1E</b></div>
-      <div class="tag tr">VOZ<b id="tagvox">00%</b></div>
-      <div class="tag bl">SYNC<b id="tagsync">00%</b></div>
-      <div class="tag br">NÚCLEO<b>ONLINE</b></div>
-      <div class="who"><b>AURORA</b><span>INTELIGÊNCIA DIGITAL ÉLÉVO</span></div>
-    </div>
-    <div class="console">
-      <div class="term-head"><i></i><i></i><i></i><span>aurora@elevo-core:~$</span><button id="skip" type="button" class="skip">PULAR ⟶</button></div>
-      <pre id="boot" class="boot"></pre>
-      <div class="ident">
-        <div class="kicker">PROTOCOLO DE ACESSO VIP</div>
-        <h2 id="nome" class="glitch" data-text=""></h2>
-      </div>
-      <div class="subs-label"><span></span>TRANSMISSÃO DO DIA<span></span></div>
-      <p id="frase" class="subs" aria-live="polite"></p>
-      <div class="meter"><div id="prog"></div></div>
-      <div id="status" class="status">INICIALIZANDO NÚCLEO...</div>
-      <div class="actions">
-        <button id="play" type="button">▶ ATIVAR TRANSMISSÃO</button>
-        <button id="close" type="button">ENTRAR NA ÉLÉVO <span>→</span></button>
+        name="elevo_vip_daily_protocol_v16877",
+        html=r"""<section id="evd" aria-label="Mensagem diária ÉLÉVO" role="complementary">
+  <canvas id="evd-rain" aria-hidden="true"></canvas>
+  <div class="evd-glow" aria-hidden="true"></div>
+  <div class="evd-main">
+    <header class="evd-head">
+      <div class="evd-brand"><span class="evd-brandmark">◈</span><span>ÉLÉVO <small>INTELLIGENCE STUDIO</small></span></div>
+      <button type="button" id="evd-skip" class="evd-skip" aria-label="Pular mensagem diária">PULAR <span aria-hidden="true">×</span></button>
+    </header>
+    <div class="evd-ident">
+      <div class="evd-orbit" aria-hidden="true"><div class="evd-diamond">◆</div><i></i><i></i><i></i><i></i></div>
+      <div class="evd-title-group"><div class="evd-kicker"><span class="evd-online"></span> CONEXÃO VIP • MENSAGEM DO DIA</div>
+        <h2 id="evd-name">Seu dia começa aqui.</h2>
+        <p class="evd-sub">Uma mensagem especial para acompanhar seu próximo movimento.</p>
       </div>
     </div>
-  </section>
-  <footer class="hud hud-bot"><span>ÉLÉVO SYSTEMS</span><span class="mid">AMBIENTE PROTEGIDO • BRASIL</span><span>V16.8.54 / ONLINE</span></footer>
-  <audio id="audio" preload="auto" playsinline></audio>
-</main>""",
-        css=r"""#vip,#vip *{box-sizing:border-box}
-#vip{position:fixed;inset:0;z-index:999999;display:flex;flex-direction:column;overflow:hidden;color:#eafaff;
-  font-family:Montserrat,Inter,Arial,sans-serif;
-  background:radial-gradient(ellipse 60% 70% at 28% 48%,#0e2c45 0%,#07121f 48%,#02050b 100%);
-  animation:vin .7s ease both}
-#vip.out{animation:vout .75s ease forwards}
-#rain{position:absolute;inset:0;width:100%;height:100%;opacity:.26;pointer-events:none}
-.fx-grid{position:absolute;inset:0;pointer-events:none;opacity:.5;
-  background-image:linear-gradient(rgba(0,220,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,220,255,.05) 1px,transparent 1px);
-  background-size:48px 48px;mask-image:radial-gradient(ellipse at 30% 50%,#000 0%,transparent 70%);-webkit-mask-image:radial-gradient(ellipse at 30% 50%,#000 0%,transparent 70%)}
-.fx-scan{position:absolute;inset:0;pointer-events:none;z-index:5;
-  background:repeating-linear-gradient(0deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px)}
-.fx-scan::after{content:"";position:absolute;left:0;right:0;height:120px;top:-120px;
-  background:linear-gradient(180deg,transparent,rgba(84,216,245,.06),transparent);animation:sweep 7s linear infinite}
-.fx-vig{position:absolute;inset:0;pointer-events:none;z-index:4;background:radial-gradient(ellipse at center,transparent 55%,rgba(0,0,0,.7) 100%)}
-.hud{position:relative;z-index:6;display:flex;justify-content:space-between;align-items:center;gap:12px;
-  padding:14px clamp(14px,3vw,28px);font:600 10px/1 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.22em;color:#78c3d4}
-.hud b{color:#eafaff;font-weight:700}
-.sec{color:#8de6c8}.sec i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#55f0b4;box-shadow:0 0 10px #55f0b4;margin-right:8px;vertical-align:-1px;animation:blink 1.6s steps(2) infinite}
-.clock{color:#d8b66a}
-.hud-bot{color:#3f6b7a;font-size:8px}
-.shell{position:relative;z-index:6;flex:1;min-height:0;width:100%;max-width:1280px;margin:0 auto;
-  display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);align-items:center;gap:clamp(18px,4vw,60px);
-  padding:0 clamp(16px,4.5vw,64px)}
-.avatar{position:relative;justify-self:center;width:min(100%,64vh,580px);aspect-ratio:1/1;animation:rise 1s cubic-bezier(.16,1,.3,1) both}
-#face{position:absolute;inset:0;width:100%;height:100%;display:block}
-.ring{position:absolute;border-radius:50%;pointer-events:none}
-.ring-ticks{inset:1%;background:repeating-conic-gradient(from 0deg,rgba(84,216,245,.55) 0 .5deg,transparent .5deg 5deg);
-  -webkit-mask:radial-gradient(closest-side,transparent 95.5%,#000 96%,#000 99%,transparent 99.5%);
-  mask:radial-gradient(closest-side,transparent 95.5%,#000 96%,#000 99%,transparent 99.5%);animation:spin 60s linear infinite}
-.ring-a{inset:5%;border:1px solid rgba(84,216,245,.18);box-shadow:inset 0 0 60px rgba(0,200,255,.06)}
-.ring-b{inset:8%;border:2px solid transparent;border-top-color:rgba(216,182,106,.75);border-right-color:rgba(216,182,106,.18);
-  filter:drop-shadow(0 0 6px rgba(216,182,106,.5));animation:spin 10s linear infinite reverse}
-.tag{position:absolute;z-index:3;font:600 9px/1.6 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.18em;color:#5fa6b7;
-  padding:6px 9px;border:1px solid rgba(84,216,245,.18);background:rgba(3,12,22,.55);border-radius:8px;backdrop-filter:blur(6px)}
-.tag b{display:block;color:#c9fbff;font-weight:700;letter-spacing:.12em}
-.tl{top:9%;left:0}.tr{top:9%;right:0;text-align:right}.bl{bottom:13%;left:0}.br{bottom:13%;right:0;text-align:right}
-.tr b,.bl b{color:#d8b66a}
-.who{position:absolute;left:50%;bottom:0;transform:translateX(-50%);text-align:center;z-index:3;white-space:nowrap}
-.who b{display:block;font:900 15px/1 Montserrat,sans-serif;letter-spacing:.5em;color:#eafaff;text-shadow:0 0 18px rgba(84,216,245,.7)}
-.who span{display:block;margin-top:6px;font:600 8px/1 ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#6fb8c8}
-.console{position:relative;max-height:calc(100vh - 110px);overflow:auto;border-radius:22px;
-  background:linear-gradient(150deg,rgba(9,26,44,.88),rgba(3,9,18,.93));border:1px solid rgba(49,218,239,.30);
-  box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.03) inset,0 0 70px rgba(0,200,237,.13),inset 0 1px 0 rgba(255,255,255,.07);
-  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);animation:rise 1s .15s cubic-bezier(.16,1,.3,1) both;scrollbar-width:none}
-.console::-webkit-scrollbar{display:none}
-.console::before{content:"";position:absolute;inset:0 0 auto;height:1px;background:linear-gradient(90deg,transparent,rgba(119,199,255,.6),rgba(216,182,106,.45),transparent)}
-.term-head{display:flex;align-items:center;gap:7px;padding:12px 16px;border-bottom:1px solid rgba(84,216,245,.12);
-  font:600 10px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:#6fb8c8;background:rgba(0,0,0,.18)}
-.term-head i{width:9px;height:9px;border-radius:50%;background:#ff5f6d}.term-head i:nth-child(2){background:#d8b66a}.term-head i:nth-child(3){background:#55f0b4}
-.term-head span{margin-left:8px;flex:1}
-.boot{margin:14px 22px 4px;min-height:7.6em;font:500 11.5px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;color:#6fe3f5;white-space:pre-wrap;word-break:break-word}
-.boot .ok{color:#55f0b4}.boot .gd{color:#d8b66a}
-.boot .cur{display:inline-block;width:7px;height:13px;background:#6fe3f5;vertical-align:-2px;animation:blink 1s steps(2) infinite}
-.ident{padding:4px 22px 0}
-.kicker{font:800 9.5px Montserrat,sans-serif;letter-spacing:.38em;color:#d8b66a}
-.glitch{position:relative;margin:8px 0 2px;font:900 clamp(24px,3.4vw,40px)/1.08 Montserrat,sans-serif;letter-spacing:.04em;color:#f2fcff;
-  text-shadow:0 0 26px rgba(0,223,255,.45);overflow-wrap:anywhere}
-.glitch::before,.glitch::after{content:attr(data-text);position:absolute;inset:0;pointer-events:none}
-.glitch::before{color:#54d8f5;transform:translate(2px,0);clip-path:inset(0 0 100% 0);animation:g1 3.6s infinite steps(1)}
-.glitch::after{color:#d8b66a;transform:translate(-2px,0);clip-path:inset(100% 0 0 0);animation:g2 3.6s infinite steps(1)}
-.subs-label{display:flex;align-items:center;gap:12px;margin:16px 22px 6px;font:700 8.5px ui-monospace,Menlo,monospace;letter-spacing:.3em;color:#8ebdca}
-.subs-label span{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(54,223,244,.6))}
-.subs-label span:last-child{transform:scaleX(-1)}
-.subs{margin:6px 22px 14px;font:500 clamp(15px,1.55vw,18px)/1.7 Montserrat,Inter,sans-serif;color:rgba(209,229,236,.26);min-height:3.4em}
-.subs span{transition:color .25s,text-shadow .25s}
-.subs span.on{color:#dcedf3}
-.subs span.now{color:#fff;text-shadow:0 0 16px rgba(84,216,245,.85)}
-.meter{margin:0 22px;height:3px;border-radius:9px;background:rgba(84,216,245,.12);overflow:hidden}
-.meter div{height:100%;width:0;border-radius:9px;background:linear-gradient(90deg,#26dfff,#4b91f2,#d8b66a);box-shadow:0 0 12px #26dfff;transition:width .2s linear}
-.status{margin:12px 22px 4px;font:600 9px ui-monospace,Menlo,monospace;letter-spacing:.22em;color:#78cbd8}
-.actions{display:flex;flex-wrap:wrap;gap:10px;padding:10px 22px 22px}
-.actions button{display:none;align-items:center;justify-content:center;gap:10px;border-radius:999px;padding:14px 24px;cursor:pointer;
-  font:800 11px Montserrat,sans-serif;letter-spacing:.16em;transition:transform .2s,box-shadow .2s,filter .2s}
-.actions button:hover{transform:translateY(-2px);filter:brightness(1.08)}
-#play{background:linear-gradient(110deg,#07506a,#0a8aa0);color:#fff;border:1px solid #40eaff;box-shadow:0 0 26px rgba(0,223,255,.3)}
-#close{background:linear-gradient(110deg,#9b783b,#d8b66a 55%,#f0d495);color:#09121b;border:1px solid #f2d28c;
-  box-shadow:0 12px 34px rgba(216,182,106,.38),0 0 30px rgba(216,182,106,.22);animation:pulse 2.2s ease-in-out infinite}
-#close span{font-size:16px}
-.skip{opacity:0;pointer-events:none;border:1px solid rgba(84,216,245,.25);background:transparent;color:#8ebdca;border-radius:999px;
-  padding:5px 11px;font:700 9px ui-monospace,Menlo,monospace;letter-spacing:.16em;cursor:pointer;transition:opacity .4s,color .2s,border-color .2s}
-.skip.show{opacity:1;pointer-events:auto}.skip:hover{color:#fff;border-color:#54d8f5}
-@keyframes vin{from{opacity:0}to{opacity:1}}
-@keyframes vout{to{opacity:0;transform:scale(1.04);filter:blur(10px)}}
-@keyframes rise{from{opacity:0;transform:translateY(18px) scale(.97);filter:blur(6px)}to{opacity:1;transform:none;filter:none}}
-@keyframes spin{to{transform:rotate(360deg)}}
-@keyframes blink{50%{opacity:0}}
-@keyframes sweep{to{top:100%}}
-@keyframes pulse{50%{box-shadow:0 12px 40px rgba(216,182,106,.55),0 0 44px rgba(216,182,106,.32)}}
-@keyframes g1{0%,86%,100%{clip-path:inset(0 0 100% 0)}88%{clip-path:inset(12% 0 58% 0);transform:translate(4px,-1px)}91%{clip-path:inset(62% 0 8% 0);transform:translate(-3px,1px)}94%{clip-path:inset(30% 0 44% 0);transform:translate(3px,0)}}
-@keyframes g2{0%,87%,100%{clip-path:inset(100% 0 0 0)}89%{clip-path:inset(48% 0 22% 0);transform:translate(-4px,1px)}92%{clip-path:inset(8% 0 70% 0);transform:translate(3px,-1px)}95%{clip-path:inset(70% 0 4% 0);transform:translate(-2px,0)}}
-@media (max-width:860px){
-  #vip{overflow-y:auto}
-  .shell{display:flex;flex-direction:column;flex:none;gap:6px;padding:0 14px 18px}
-  .avatar{width:min(84vw,44vh,360px)}
-  .console{max-height:none;overflow:visible;width:100%;max-width:560px}
-  .tag{font-size:7.5px;padding:4px 6px}
-  .tl,.tr{top:4%}.bl,.br{bottom:12%}
-  .who b{font-size:12px}
-  .boot{min-height:6.4em;font-size:10.5px;margin:12px 16px 2px}
-  .ident,.subs-label,.subs,.meter,.status{margin-left:16px;margin-right:16px}.ident{padding:0 16px;margin:0}
-  .actions{padding:10px 16px 18px}.actions button{flex:1 1 100%}
-  .hud{padding:12px 14px;font-size:8.5px;letter-spacing:.14em}.hud-top .sec{display:none}.hud-bot .mid{display:none}
-}
-@media (prefers-reduced-motion:reduce){#vip *,#vip{animation:none!important;transition:none!important}}""",
+    <div class="evd-terminal" aria-hidden="true"><span class="evd-terminal-dots"><i></i><i></i><i></i></span>
+      <span id="evd-boot">&gt; sistema ÉLÉVO • conectado</span><span class="evd-cursor"></span></div>
+    <p id="evd-text" class="evd-text" aria-live="off"></p>
+    <div class="evd-voice"><span id="evd-voice-icon">◉</span><span id="evd-status" role="status" aria-live="polite">Mensagem pronta para ouvir</span>
+      <div id="evd-bars" class="evd-bars" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div>
+    <div class="evd-progress"><span id="evd-progress-fill"></span></div>
+    <footer class="evd-actions">
+      <button type="button" id="evd-play" class="evd-play">▶ OUVIR</button>
+      <button type="button" id="evd-close" class="evd-close">CONTINUAR NO PAINEL <span aria-hidden="true">→</span></button>
+    </footer>
+    <div class="evd-footnote">ÉLÉVO • SUA CENTRAL CONTINUA ABERTA</div>
+  </div>
+  <audio id="evd-audio" preload="metadata" playsinline></audio>
+</section>""",
+        css=r"""
+#evd,#evd *{box-sizing:border-box}
+#evd{position:fixed;right:clamp(12px,2.4vw,32px);bottom:clamp(12px,2.4vw,30px);z-index:2147482000;
+ width:min(472px,calc(100vw - 24px));max-height:min(79vh,690px);overflow:hidden;
+ border:1px solid rgba(91,213,239,.42);border-radius:22px;
+ background:linear-gradient(145deg,rgba(12,27,47,.985),rgba(5,12,27,.99));
+ color:#edf6ff;font-family:Montserrat,Inter,system-ui,sans-serif;
+ box-shadow:0 25px 75px rgba(0,0,0,.42),0 0 0 1px rgba(255,255,255,.045) inset,0 0 42px rgba(48,181,226,.13);
+ isolation:isolate;animation:evd-in .5s cubic-bezier(.18,1,.3,1) both}
+#evd.evd-leaving{animation:evd-out .22s ease-in both}
+#evd-rain{position:absolute;inset:0;width:100%;height:100%;z-index:0;opacity:.12;pointer-events:none}
+.evd-glow{position:absolute;top:-110px;right:-100px;width:310px;height:260px;border-radius:50%;pointer-events:none;
+ background:radial-gradient(circle,rgba(47,171,230,.22),transparent 72%);z-index:0}
+.evd-main{position:relative;z-index:1;max-height:min(79vh,690px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+ scrollbar-color:rgba(84,216,245,.3) transparent}
+.evd-head{display:flex;justify-content:space-between;align-items:center;gap:10px;border-bottom:1px solid rgba(99,193,233,.13);
+ padding:15px 19px 13px;background:rgba(3,11,22,.25)}
+.evd-brand{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:900;letter-spacing:.13em;line-height:1.1}
+.evd-brandmark{font-size:24px;color:#d8b66a;text-shadow:0 0 18px rgba(216,182,106,.42)}
+.evd-brand small{display:block;margin-top:4px;color:#7cb3cb;font:600 8px ui-monospace,Consolas,monospace;letter-spacing:.18em}
+.evd-skip{flex:none;padding:8px 10px;border:1px solid rgba(156,192,212,.28);border-radius:10px;background:rgba(255,255,255,.035);
+ color:#c4d8e7;font:800 10px Montserrat,system-ui,sans-serif;letter-spacing:.08em;cursor:pointer}
+.evd-skip span{font-size:18px;vertical-align:-1px;margin-left:3px}.evd-skip:hover,.evd-skip:focus-visible{border-color:#54d8f5;color:white}
+.evd-ident{display:flex;align-items:center;gap:18px;margin:17px 20px 8px}
+.evd-orbit{width:75px;height:75px;flex:0 0 75px;border-radius:50%;position:relative;display:grid;place-items:center;
+ border:1px solid rgba(84,216,245,.3);box-shadow:0 0 27px rgba(84,216,245,.10),inset 0 0 22px rgba(84,216,245,.09)}
+.evd-orbit::before{content:'';position:absolute;inset:7px;border:1px dashed rgba(84,216,245,.4);border-radius:50%;animation:evd-spin 19s linear infinite}
+.evd-orbit::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid transparent;border-top-color:#d8b66a;
+ border-right-color:rgba(216,182,106,.18);animation:evd-spin 6s linear infinite reverse}
+.evd-diamond{font-size:34px;color:#d8b66a;text-shadow:0 0 21px rgba(216,182,106,.48);animation:evd-float 3s ease-in-out infinite}
+.evd-orbit i{position:absolute;width:4px;height:4px;background:#54d8f5;border-radius:50%;box-shadow:0 0 8px #54d8f5}
+.evd-orbit i:nth-of-type(1){top:3px;left:18px}.evd-orbit i:nth-of-type(2){right:2px;top:30px}
+.evd-orbit i:nth-of-type(3){bottom:6px;left:16px}.evd-orbit i:nth-of-type(4){bottom:22px;right:6px}
+.evd-title-group{min-width:0;flex:1}.evd-kicker{color:#d8b66a;font:700 9px/1.5 ui-monospace,Consolas,monospace;letter-spacing:.09em}
+.evd-online{display:inline-block;width:6px;height:6px;background:#4dd9b4;border-radius:50%;box-shadow:0 0 7px #4dd9b4;margin-right:5px}
+#evd-name{font:900 clamp(17px,3.5vw,22px)/1.2 Montserrat,system-ui,sans-serif;overflow-wrap:anywhere;margin:6px 0 6px;color:#eefaff}
+.evd-sub{font:500 11px/1.45 Montserrat,system-ui,sans-serif;color:#adc5d7;margin:0}
+.evd-terminal{display:flex;align-items:center;gap:9px;margin:16px 20px 0;padding:9px 12px;
+ border:1px solid rgba(84,216,245,.17);border-radius:10px;background:rgba(0,9,18,.58);color:#69d1e9;
+ font:600 10px/1.4 ui-monospace,Consolas,monospace}
+.evd-terminal-dots{display:flex;gap:4px}.evd-terminal-dots i{width:6px;height:6px;background:#e96b75;border-radius:50%}
+.evd-terminal-dots i:nth-child(2){background:#d8b66a}.evd-terminal-dots i:nth-child(3){background:#4dd9b4}
+.evd-cursor{width:5px;height:12px;background:#54d8f5;animation:evd-blink 1s steps(2) infinite}
+.evd-text{margin:15px 20px 15px;font:500 clamp(13px,2.3vw,14px)/1.65 Montserrat,system-ui,sans-serif;
+ color:#edf6ff;overflow-wrap:anywhere;max-height:200px;overflow:auto;scrollbar-width:thin;scrollbar-color:rgba(84,216,245,.25) transparent}
+.evd-voice{display:flex;align-items:center;gap:8px;margin:0 20px 10px;color:#9ebfd1;font:700 10px/1.2 ui-monospace,Consolas,monospace}
+#evd-voice-icon{color:#55e5bf}.evd-bars{margin-left:auto;display:flex;align-items:center;gap:3px;height:19px;opacity:.6}
+.evd-bars i{display:block;width:3px;height:5px;background:#54d8f5;border-radius:3px}
+#evd.evd-speaking .evd-bars i{animation:evd-eq .75s ease-in-out infinite alternate}
+.evd-bars i:nth-child(2){animation-delay:.12s!important}.evd-bars i:nth-child(3){animation-delay:.22s!important}
+.evd-bars i:nth-child(4){animation-delay:.08s!important}.evd-bars i:nth-child(5){animation-delay:.34s!important}
+.evd-bars i:nth-child(6){animation-delay:.16s!important}.evd-bars i:nth-child(7){animation-delay:.25s!important}
+.evd-progress{height:3px;background:rgba(84,216,245,.12);margin:0 20px 14px;border-radius:20px;overflow:hidden}
+.evd-progress span{display:block;height:100%;width:0%;background:linear-gradient(90deg,#40d4ef,#d8b66a);transition:width .15s linear}
+.evd-actions{display:flex;align-items:stretch;gap:9px;margin:0 20px 12px}
+.evd-actions button{border-radius:11px;padding:12px 11px;cursor:pointer;font:800 11px/1.2 Montserrat,system-ui,sans-serif;min-height:42px}
+.evd-play{border:1px solid rgba(84,216,245,.52);background:rgba(54,161,205,.16);color:#cef6ff;flex:0 0 115px}
+.evd-close{background:linear-gradient(120deg,#c7a157,#ebd49c);border:1px solid #ebd49c;color:#101827;flex:1;box-shadow:0 7px 25px rgba(216,182,106,.16)}
+.evd-close span{font-size:15px}.evd-actions button:hover{filter:brightness(1.06)}
+.evd-actions button:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.evd-footnote{text-align:center;color:#66869f;font:700 9px ui-monospace,Consolas,monospace;letter-spacing:.1em;padding:0 10px 13px}
+@keyframes evd-in{from{opacity:0;transform:translateY(25px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes evd-out{to{opacity:0;transform:translateY(12px) scale(.99)}}
+@keyframes evd-spin{to{transform:rotate(360deg)}}@keyframes evd-float{50%{transform:translateY(-4px)}}
+@keyframes evd-eq{to{height:18px;background:#d8b66a}}@keyframes evd-blink{50%{opacity:0}}
+@media(max-width:620px){#evd{right:10px;bottom:10px;width:calc(100vw - 20px);max-height:78dvh;border-radius:19px}
+.evd-main{max-height:78dvh}.evd-head{padding:12px 14px}.evd-ident{margin:14px 15px 7px;gap:12px}
+.evd-orbit{width:58px;height:58px;flex-basis:58px}.evd-diamond{font-size:25px}
+.evd-terminal{margin:12px 15px 0}.evd-text{margin:12px 15px;max-height:22dvh}
+.evd-voice{margin:0 15px 9px}.evd-progress{margin:0 15px 12px}.evd-actions{margin:0 15px 9px}
+.evd-brand{font-size:11px}.evd-brand small{font-size:7px}.evd-kicker{font-size:8px}}
+@media(max-width:355px){.evd-actions{flex-wrap:wrap}.evd-play{flex:1 1 100%}.evd-close{flex:1 1 100%}}
+@media(prefers-reduced-motion:reduce){#evd,#evd *{animation:none!important;transition:none!important}}
+""",
         js=r"""export default function(c){
   const {parentElement:P,data,setTriggerValue}=c;
-  const $=s=>P.querySelector(s);
-  const root=$('#vip'),a=$('#audio'),pb=$('#play'),cb=$('#close'),sk=$('#skip'),st=$('#status'),fr=$('#frase'),
-        pg=$('#prog'),bootEl=$('#boot'),nm=$('#nome'),face=$('#face'),rain=$('#rain'),clk=$('#clock'),tv=$('#tagvox'),ts=$('#tagsync');
-  if(!root||!a||!face||!data||!data.audio)return;
-  const RM=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
-  const name=String(data.name||'IDENTIDADE RECONHECIDA');
-  nm.textContent=name;nm.setAttribute('data-text',name);
-
-  /* ---------- legendas sincronizadas ---------- */
-  const words=String(data.phrase||'').split(/\s+/).filter(Boolean);
-  fr.textContent='';
-  const spans=words.map(w=>{const s=document.createElement('span');s.textContent=w+' ';fr.appendChild(s);return s;});
-  const wts=words.map(w=>w.length+3),tot=wts.reduce((x,y)=>x+y,0)||1;let acc=0;const cum=wts.map(w=>(acc+=w)/tot);
-  let lastIdx=-2;
-  const setWords=idx=>{if(idx===lastIdx)return;lastIdx=idx;spans.forEach((s,k)=>{s.classList.toggle('on',k<idx);s.classList.toggle('now',k===idx);});};
-  a.src='data:audio/mpeg;base64,'+data.audio;
-
-  let fc=0,done=false,playing=false,raf=0,ctx=null,an=null,tbuf=null,fbuf=null,amp=0,t0=performance.now(),timers=[];
-  let yaw=0,pitch=0,tYaw=0,tPitch=0,blinkAt=performance.now()+2600,blinkT=0,glitchAt=performance.now()+3000;
-  const T=(fn,ms)=>{const id=setTimeout(fn,ms);timers.push(id);return id;};
-
-  /* ---------- áudio + analisador (boca reage à voz real) ---------- */
-  async function tryAnalyser(){
-    if(an)return true;
-    try{
-      const AC=window.AudioContext||window.webkitAudioContext;if(!AC)return false;
-      if(!ctx)ctx=new AC();
-      if(ctx.state!=='running'){await Promise.race([ctx.resume(),new Promise(r=>setTimeout(r,250))]);}
-      if(ctx.state!=='running')return false;
-      const src=ctx.createMediaElementSource(a);an=ctx.createAnalyser();an.fftSize=512;an.smoothingTimeConstant=.72;
-      src.connect(an);an.connect(ctx.destination);
-      tbuf=new Uint8Array(an.fftSize);fbuf=new Uint8Array(an.frequencyBinCount);return true;
-    }catch(e){an=null;return false;}
-  }
-  const showBtn=(b,on)=>{b.style.display=on?'inline-flex':'none';};
-  async function play(){
-    if(done)return;
-    await tryAnalyser();
-    try{await a.play();playing=true;root.classList.add('playing');showBtn(pb,false);st.textContent='TRANSMISSÃO SEGURA • AURORA FALANDO';}
-    catch(e){st.textContent='TOQUE EM ATIVAR TRANSMISSÃO PARA OUVIR';showBtn(pb,true);}
-  }
-  const onPlayClick=()=>{play();};
-  const finish=()=>{
-    if(done)return;done=true;try{a.pause();}catch(e){}
-    root.classList.add('out');
-    T(()=>{root.style.display='none';cancelAnimationFrame(raf);setTriggerValue('closed',true);},760);
+  const get=id=>P.querySelector('#'+id);
+  const root=get('evd'),audio=get('evd-audio'),btnPlay=get('evd-play'),btnSkip=get('evd-skip'),btnClose=get('evd-close');
+  const status=get('evd-status'),fill=get('evd-progress-fill'),txt=get('evd-text'),name=get('evd-name'),boot=get('evd-boot');
+  const rain=get('evd-rain');
+  if(!root||!audio||!data)return;
+  let closed=false,raf=0,last=0,cleanupTimer=0;
+  const reduced=!!(window.matchMedia&&window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  const displayName=String(data.name||'MEMBRO VIP').trim();
+  name.textContent='Olá, '+displayName.replace(/\s+/g,' ').slice(0,46)+'!';
+  txt.textContent=String(data.phrase||'Sua mensagem do dia está pronta.');
+  audio.src='data:audio/mpeg;base64,'+String(data.audio||'');
+  const setStatus=s=>{if(status)status.textContent=s;};
+  const setPlay=s=>{if(btnPlay)btnPlay.textContent=s;};
+  const finish=()=>{if(closed)return;closed=true;audio.pause();root.classList.remove('evd-speaking');
+    root.classList.add('evd-leaving');cancelAnimationFrame(raf);
+    cleanupTimer=setTimeout(()=>setTriggerValue('closed',true),reduced?0:220);
   };
-  const onEnded=()=>{playing=false;root.classList.remove('playing');setWords(words.length);pg.style.width='100%';ts.textContent='100%';
-    st.textContent='IDENTIDADE CONFIRMADA • ACESSO LIBERADO';showBtn(cb,true);showBtn(pb,false);};
-  const onErr=()=>{playing=false;st.textContent='ÁUDIO INDISPONÍVEL • ACESSO LIBERADO';setWords(words.length);showBtn(cb,true);showBtn(pb,false);};
-  pb.addEventListener('click',onPlayClick);cb.addEventListener('click',finish);sk.addEventListener('click',finish);
-  a.addEventListener('ended',onEnded);a.addEventListener('error',onErr);
-
-  /* ---------- sequência de boot estilo terminal ---------- */
-  const lines=[
-    ['> núcleo neural ÉLÉVO ','OK','ok'],
-    ['> handshake criptográfico [AES-256] ','OK','ok'],
-    ['> identidade: ',name,'gd'],
-    ['> materializando AURORA ','100%','ok'],
-    ['> canal de voz aberto. transmitindo','','']
-  ];
-  const esc=s=>s.replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
-  function renderBoot(li,ci,full){
-    let h='';
-    for(let i=0;i<lines.length;i++){
-      if(i>li)break;const [txt,res,cls]=lines[i];
-      if(i<li||full){h+=esc(txt)+(res?'<span class="'+cls+'">'+esc(res)+'</span>':'')+'\n';}
-      else{h+=esc(txt.slice(0,ci));}
-    }
-    bootEl.innerHTML=h+'<span class="cur"></span>';
+  const toggle=async()=>{
+    if(closed)return;
+    if(!audio.paused){audio.pause();return;}
+    if(!data.audio){setStatus('Áudio indisponível. A mensagem está escrita acima.');return;}
+    try{await audio.play();}catch(_){setStatus('Toque em OUVIR para ativar o áudio no navegador.');setPlay('▶ OUVIR');}
+  };
+  const onPlaying=()=>{root.classList.add('evd-speaking');setStatus('ÉLÉVO • MENSAGEM EM REPRODUÇÃO');setPlay('Ⅱ PAUSAR');};
+  const onPause=()=>{root.classList.remove('evd-speaking');if(!audio.ended){setStatus('ÁUDIO PAUSADO');setPlay('▶ OUVIR');}};
+  const onEnded=()=>{root.classList.remove('evd-speaking');fill.style.width='100%';setStatus('MENSAGEM CONCLUÍDA • BOM TRABALHO!');
+    setPlay('↺ OUVIR NOVAMENTE');};
+  const onError=()=>{root.classList.remove('evd-speaking');setStatus('Áudio indisponível; continue pelo painel.');setPlay('▶ OUVIR');};
+  const onTime=()=>{if(audio.duration&&Number.isFinite(audio.duration))fill.style.width=Math.min(100,audio.currentTime/audio.duration*100)+'%';};
+  const onKey=e=>{if(e.key==='Escape'&&!closed)finish();};
+  btnPlay.addEventListener('click',toggle);btnSkip.addEventListener('click',finish);btnClose.addEventListener('click',finish);
+  audio.addEventListener('playing',onPlaying);audio.addEventListener('pause',onPause);
+  audio.addEventListener('ended',onEnded);audio.addEventListener('error',onError);audio.addEventListener('timeupdate',onTime);
+  P.addEventListener('keydown',onKey);
+  // A chuva de código existe apenas dentro do cartão: não substitui a tela principal.
+  if(!reduced&&rain&&rain.getContext){
+    const ctx=rain.getContext('2d');const letters='ÉLÉVO01<>{}#◆';let W=1,H=1,cols=[],step=14;
+    const resize=()=>{const r=rain.getBoundingClientRect();const d=Math.min(1.5,window.devicePixelRatio||1);
+      W=rain.width=Math.max(1,Math.round(r.width*d));H=rain.height=Math.max(1,Math.round(r.height*d));
+      step=13*d;cols=Array.from({length:Math.ceil(W/step)},()=>-Math.random()*H/step);};
+    resize();
+    const draw=t=>{raf=requestAnimationFrame(draw);if(closed||t-last<105)return;last=t;
+      ctx.fillStyle='rgba(6,17,29,.16)';ctx.fillRect(0,0,W,H);ctx.font=step+'px monospace';
+      for(let i=0;i<cols.length;i++){const y=cols[i]*step;
+        ctx.fillStyle=Math.random()<.05?'#d8b66a':'#54d8f5';ctx.fillText(letters[Math.floor(Math.random()*letters.length)],i*step,y);
+        cols[i]=y>H&&Math.random()>.97?0:cols[i]+.7;}
+    };raf=requestAnimationFrame(draw);
   }
-  function runBoot(done_){
-    if(RM){renderBoot(lines.length-1,0,true);done_();return;}
-    let li=0,ci=0;
-    const step=()=>{
-      if(done)return;
-      const txt=lines[li][0];
-      if(ci<=txt.length){renderBoot(li,ci,false);ci+=2;T(step,14);return;}
-      let h='';for(let i=0;i<=li;i++){const [t,r,cl]=lines[i];h+=esc(t)+(r?'<span class="'+cl+'">'+esc(r)+'</span>':'')+'\n';}
-      bootEl.innerHTML=h+'<span class="cur"></span>';
-      li++;ci=0;
-      if(li<lines.length)T(step,120);else T(done_,200);
-    };
-    step();
+  const terminalLines=['> perfil autenticado','> interface VIP sincronizada','> Aurora pronta para conversar'];
+  if(!reduced){let i=0;const tick=()=>{if(closed)return;boot.textContent=terminalLines[i%terminalLines.length];i++;};tick();
+    const interval=setInterval(tick,2600);
+    // O timer é limpo no desmontar e após PULAR.
+    var clearTerminal=()=>clearInterval(interval);
   }
-
-  /* ---------- modelo 3D da cabeça holográfica (nuvem de pontos) ---------- */
-  const pts=[];const ROWS=62,COLS=74;
-  const gauss=(dx,dy,sx,sy)=>Math.exp(-((dx*dx)/sx+(dy*dy)/sy));
-  for(let i=1;i<ROWS;i++){
-    const phi=i/ROWS*Math.PI;
-    for(let j=0;j<COLS;j++){
-      const th=(j+(i%2)*.5)/COLS*Math.PI*2;
-      let y=Math.cos(phi)*1.0,r=Math.sin(phi),x=r*Math.sin(th)*.74,z=r*Math.cos(th)*.84;
-      if(y<-.3){const k=Math.min(1,(-y-.3)/.7);x*=1-.36*k*k-.08*k;z*=1-.14*k;}
-      if(y>.35){x*=1+.05*(y-.35);}
-      const fr_=Math.max(0,Math.cos(th));
-      z-=fr_*.085*(gauss(x-.25,y-.1,.011,.005)+gauss(x+.25,y-.1,.011,.005));
-      z+=fr_*.045*gauss(0,y-.22,1,.004)*(Math.abs(x)<.46?1:0);
-      z+=fr_*.2*gauss(x,y+.06,.006,.03);
-      z+=fr_*.035*(gauss(x-.33,y+.12,.02,.02)+gauss(x+.33,y+.12,.02,.02));
-      z+=fr_*.05*gauss(x,y+.35,.03,.004);
-      const jaw=(y<-.355&&fr_>.25&&Math.abs(x)<.5)?Math.min(1,(fr_-.25)*2.2):0;
-      pts.push({x,y,z,jaw,fr:fr_,g:Math.random()<.05,
-        sx:(Math.random()-.5)*7,sy:(Math.random()-.5)*7,sz:(Math.random()-.5)*7,d:Math.random()*.45});
-    }
-  }
-  /* pescoço, ombros e cabelo: transformam a cabeça em personagem */
-  const add=(x,y,z,g,dim)=>pts.push({x,y,z,jaw:0,fr:0,g:!!g,dim:dim||1,
-    sx:(Math.random()-.5)*7,sy:(Math.random()-.5)*7,sz:(Math.random()-.5)*7,d:Math.random()*.45});
-  for(let i=0;i<14;i++){const y=-.78-i*.032;for(let j=0;j<40;j++){const th=j/40*Math.PI*2;add(Math.sin(th)*.27,y,Math.cos(th)*.25-.05,0,.8);}}
-  for(let i=0;i<20;i++){const v=i/19,y=-1.22-v*.42;const w=.32+Math.sqrt(v)*1.05;
-    for(let j=0;j<70;j++){const u=j/69*2-1;const x=u*w;const z=Math.sqrt(Math.max(0,1-u*u))*(.32+.1*v)-.08;
-      if(Math.abs(u)<.22&&v<.18)continue;add(x,y-(Math.abs(u)>.7?(Math.abs(u)-.7)*.25:0),z,Math.random()<.04,.85);}}
-  for(let i=0;i<46;i++){const v=i/45,phi=.05+v*1.9;
-    for(let j=0;j<46;j++){const th=Math.PI*(.5+j/45*1.0)+((i%2)*.03);
-      let y=Math.cos(Math.min(phi,Math.PI))*1.08,r=Math.sin(Math.min(phi,Math.PI*.98));
-      if(phi>Math.PI*.55){y=-.25-(phi-Math.PI*.55)*.95;r=1.0+(phi-Math.PI*.55)*.25;}
-      const x=Math.sin(th)*.84*r,z=Math.cos(th)*.9*r-.04;
-      if(z>.12&&y<.62)continue;add(x+(Math.random()-.5)*.02,y,z,Math.random()<.18,.7);}}
-  const near=(tx,ty)=>{let b=0,bd=1e9;pts.forEach((p,k)=>{if(p.fr<.6)return;const d=(p.x-tx)**2+(p.y-ty)**2;if(d<bd){bd=d;b=k;}});return pts[b];};
-  const eyeL=near(-.25,.1),eyeR=near(.25,.1),mouth=near(0,-.355);
-
-  /* ---------- canvas ---------- */
-  const fx=face.getContext('2d'),rx=rain.getContext('2d');
-  let W=0,H=0,DPR=1,RW=0,RH=0,cols=[],fs=14;
-  const glyphs='ÉLÉVO01アイウエオカキクケコサシスセソ<>/{}#$%&*+=AURORA0110';
-  function resize(){
-    DPR=Math.min(2,window.devicePixelRatio||1);
-    const r=face.getBoundingClientRect();W=Math.max(10,r.width*DPR);H=Math.max(10,r.height*DPR);face.width=W;face.height=H;
-    RW=Math.max(10,root.clientWidth*DPR);RH=Math.max(10,root.clientHeight*DPR);rain.width=RW;rain.height=RH;
-    fs=13*DPR;cols=Array.from({length:Math.ceil(RW/fs)},()=>Math.random()*RH/fs);
-    rx.fillStyle='#02050b';rx.fillRect(0,0,RW,RH);
-  }
-  resize();
-  const ro=(typeof ResizeObserver!=='undefined')?new ResizeObserver(resize):null;if(ro)ro.observe(root);
-  window.addEventListener('resize',resize);
-  const onMove=e=>{const r=root.getBoundingClientRect();tYaw=((e.clientX-r.left)/r.width-.5)*.7;tPitch=((e.clientY-r.top)/r.height-.5)*.3;};
-  root.addEventListener('pointermove',onMove);
-
-  let lastRain=0;
-  function drawRain(now){
-    if(now-lastRain<45)return;lastRain=now;
-    rx.fillStyle='rgba(2,5,11,.14)';rx.fillRect(0,0,RW,RH);
-    rx.font=fs+'px monospace';
-    for(let i=0;i<cols.length;i++){
-      const ch=glyphs[(Math.random()*glyphs.length)|0],y=cols[i]*fs;
-      rx.fillStyle=Math.random()<.04?'#d8b66a':(Math.random()<.12?'#bff8ff':'#1fb9d6');
-      rx.fillText(ch,i*fs,y);
-      if(y>RH&&Math.random()>.975)cols[i]=0;else cols[i]+=1;
-    }
-  }
-
-  const ease=t=>1-Math.pow(1-Math.min(1,Math.max(0,t)),3);
-  function proj(x,y,z,CX,CY,R){
-    const cy_=Math.cos(yaw),sy_=Math.sin(yaw);const x1=x*cy_+z*sy_,z1=-x*sy_+z*cy_;
-    const cp=Math.cos(pitch),sp=Math.sin(pitch);const y1=y*cp-z1*sp,z2=y*sp+z1*cp;
-    const s=3.4/(3.4-z2);return [CX+x1*s*R,CY-y1*s*R,z2,s];
-  }
-
-  function frame(now){
-    raf=requestAnimationFrame(frame);fc++;
-    const t=(now-t0)/1000;
-    if(!RM)drawRain(now);
-
-    /* amplitude da voz */
-    let target=0;
-    if(playing&&an){an.getByteTimeDomainData(tbuf);let s=0;for(let i=0;i<tbuf.length;i++){const v=(tbuf[i]-128)/128;s+=v*v;}
-      target=Math.min(1,Math.sqrt(s/tbuf.length)*4.6);an.getByteFrequencyData(fbuf);}
-    else if(playing){const g=Math.sin(t*2.7)>-.55?1:.15;target=g*Math.max(0,.5*Math.abs(Math.sin(t*10.7))*(.55+.45*Math.sin(t*3.3))+.18*Math.random());}
-    amp+=(target-amp)*(target>amp?.5:.22);
-    if(tv&&fc%6===0)tv.textContent=String(Math.round(amp*100)).padStart(2,'0')+'%';
-
-    /* legendas e progresso */
-    if(a.duration&&isFinite(a.duration)&&playing){
-      const p=a.currentTime/a.duration;pg.style.width=(p*100).toFixed(1)+'%';ts.textContent=String(Math.round(p*100)).padStart(2,'0')+'%';
-      let idx=cum.findIndex(v=>v>=p);if(idx<0)idx=words.length-1;setWords(idx);
-    }
-
-    /* movimento da cabeça */
-    const idleY=Math.sin(t*.45)*.22+Math.sin(t*.17)*.08,idleP=Math.sin(t*.6)*.05-.04;
-    yaw+=((RM?0:idleY+tYaw)-yaw)*.04;pitch+=((RM?0:idleP+tPitch)-pitch)*.04;
-    const nod=playing?amp*.04:0;
-
-    const CX=W/2,CY=H*.38,R=Math.min(W,H)*.235;
-    fx.clearRect(0,0,W,H);
-    fx.globalCompositeOperation='lighter';
-
-    /* projetor holográfico */
-    const cone=fx.createLinearGradient(0,CY+R*1.6,0,H*.97);
-    cone.addColorStop(0,'rgba(38,223,255,0)');cone.addColorStop(1,'rgba(38,223,255,.16)');
-    fx.fillStyle=cone;fx.beginPath();fx.moveTo(CX-R*1.4,CY+R*1.62);fx.lineTo(CX+R*1.4,CY+R*1.62);fx.lineTo(CX+R*1.7,H*.95);fx.lineTo(CX-R*1.7,H*.95);fx.closePath();fx.fill();
-    fx.save();fx.translate(CX,H*.95);fx.scale(1,.18);
-    const base=fx.createRadialGradient(0,0,0,0,0,R*1.15);base.addColorStop(0,'rgba(120,240,255,.55)');base.addColorStop(1,'rgba(38,223,255,0)');
-    fx.fillStyle=base;fx.beginPath();fx.arc(0,0,R*1.15,0,Math.PI*2);fx.fill();fx.restore();
-
-    /* halo de espectro ao redor da cabeça */
-    const N=96,hr=R*1.62;
-    for(let i=0;i<N;i++){
-      const ang=i/N*Math.PI*2-Math.PI/2;
-      let v=fbuf&&playing?fbuf[(i<N/2?i:N-i)*2+2]/255:(playing?amp*(.4+.6*Math.abs(Math.sin(i*.7+t*6))):.04+.03*Math.sin(i*.5+t*2));
-      const L=R*(.03+v*.32);
-      fx.strokeStyle=i%8===0?'rgba(216,182,106,'+(.35+v*.6)+')':'rgba(84,216,245,'+(.18+v*.7)+')';
-      fx.lineWidth=Math.max(1,1.6*DPR);
-      fx.beginPath();fx.moveTo(CX+Math.cos(ang)*hr,CY+Math.sin(ang)*hr);fx.lineTo(CX+Math.cos(ang)*(hr+L),CY+Math.sin(ang)*(hr+L));fx.stroke();
-    }
-
-    /* nuvem de pontos */
-    const asm=RM?1:ease((t-.25)/1.9);
-    const band=((t*.35)%1.6)-.8;
-    const jawDrop=amp*.15;
-    for(let k=0;k<pts.length;k++){
-      const p=pts[k];
-      const e=RM?1:ease((t-.25-p.d)/1.6);
-      let x=p.x,y=p.y-(p.jaw*jawDrop)-nod,z=p.z;
-      if(e<1){x=p.sx+(x-p.sx)*e;y=p.sy+(y-p.sy)*e;z=p.sz+(z-p.sz)*e;}
-      const q=proj(x,y,z,CX,CY,R);
-      const depth=(q[2]+1)/2;
-      let al=(.05+.75*depth*depth)*(p.dim||1);
-      if(Math.abs(p.y-band)<.035)al=Math.min(1,al+.6);
-      if(!RM&&Math.random()<.002)al=1;
-      fx.globalAlpha=al*(.25+.75*asm);
-      fx.fillStyle=p.g?'#e4c27b':(depth>.8?'#c9fbff':'#26dfff');
-      const sz=(1.15+depth*.9)*DPR*q[3]*.9;
-      fx.fillRect(q[0]-sz/2,q[1]-sz/2,sz,sz);
-    }
-    fx.globalAlpha=1;
-
-    /* olhos com piscar */
-    if(now>blinkAt){blinkT=now;blinkAt=now+2600+Math.random()*3200;}
-    const bk=now-blinkT<140?Math.max(.08,Math.abs((now-blinkT)/70-1)):1;
-    [eyeL,eyeR].forEach(ep=>{
-      const q=proj(ep.x,ep.y-nod,ep.z+.02,CX,CY,R);
-      const ew=R*.13*q[3],eh=R*.045*q[3]*bk;
-      fx.save();fx.translate(q[0],q[1]);
-      const g=fx.createRadialGradient(0,0,0,0,0,ew*1.6);g.addColorStop(0,'rgba(170,250,255,.55)');g.addColorStop(1,'rgba(38,223,255,0)');
-      fx.fillStyle=g;fx.beginPath();fx.ellipse(0,0,ew*1.6,ew*1.0,0,0,Math.PI*2);fx.fill();
-      fx.strokeStyle='rgba(200,252,255,.95)';fx.lineWidth=1.4*DPR;fx.beginPath();fx.ellipse(0,0,ew,eh,0,0,Math.PI*2);fx.stroke();
-      if(bk>.5){fx.fillStyle='#e9feff';fx.shadowColor='#26dfff';fx.shadowBlur=14*DPR;
-        fx.beginPath();fx.arc(yaw*ew*.6,pitch*eh*2,Math.max(1.5,eh*.75),0,Math.PI*2);fx.fill();fx.shadowBlur=0;}
-      fx.restore();
-    });
-
-    /* boca luminosa */
-    {
-      const q=proj(mouth.x,mouth.y-nod-jawDrop*.45,mouth.z+.02,CX,CY,R);
-      const mw=R*(.16+amp*.03)*q[3],mh=Math.max(1.2*DPR,R*amp*.11*q[3]);
-      fx.save();fx.translate(q[0],q[1]);
-      const g=fx.createRadialGradient(0,0,0,0,0,mw*1.4);g.addColorStop(0,'rgba(120,240,255,'+(.25+amp*.55)+')');g.addColorStop(1,'rgba(38,223,255,0)');
-      fx.fillStyle=g;fx.beginPath();fx.ellipse(0,0,mw*1.4,mw*.6+mh,0,0,Math.PI*2);fx.fill();
-      fx.strokeStyle='rgba(215,252,255,.95)';fx.lineWidth=1.5*DPR;fx.shadowColor='#26dfff';fx.shadowBlur=12*DPR;
-      fx.beginPath();fx.moveTo(-mw,0);fx.quadraticCurveTo(0,-mh*.6-1.5*DPR,mw,0);fx.quadraticCurveTo(0,mh*1.4+1.5*DPR,-mw,0);fx.stroke();
-      fx.restore();
-    }
-    fx.globalCompositeOperation='source-over';
-
-    /* glitch holográfico ocasional */
-    if(!RM&&now>glitchAt){
-      const n=3+((Math.random()*4)|0);
-      for(let i=0;i<n;i++){const sh=(Math.random()*H*.06)|0,sy=(Math.random()*(H-sh))|0,dx=((Math.random()-.5)*W*.05)|0;
-        if(sh>2)fx.drawImage(face,0,sy,W,sh,dx,sy,W,sh);}
-      if(Math.random()<.35)glitchAt=now+2500+Math.random()*4000;
-    }
-
-    /* relógio */
-    if(clk&&fc%30===1){const d=new Date();clk.textContent=[d.getHours(),d.getMinutes(),d.getSeconds()].map(v=>String(v).padStart(2,'0')).join(':');}
-  }
-  raf=requestAnimationFrame(frame);
-
-  runBoot(()=>{if(done)return;st.textContent='ESTABELECENDO CONEXÃO DE VOZ...';sk.classList.add('show');play();});
-
-  return()=>{
-    done=true;cancelAnimationFrame(raf);timers.forEach(clearTimeout);
-    pb.removeEventListener('click',onPlayClick);cb.removeEventListener('click',finish);sk.removeEventListener('click',finish);
-    a.removeEventListener('ended',onEnded);a.removeEventListener('error',onErr);root.removeEventListener('pointermove',onMove);
-    window.removeEventListener('resize',resize);if(ro)ro.disconnect();
-    try{a.pause();}catch(e){}try{if(ctx)ctx.close();}catch(e){}
+  // Tentar autoplay sem bloquear o painel; navegadores podem exigir toque.
+  if(data.audio){const pending=audio.play();if(pending&&typeof pending.catch==='function'){
+    pending.catch(()=>{if(!closed){setStatus('MENSAGEM PRONTA • TOQUE EM OUVIR');setPlay('▶ OUVIR');}});
+  }}else{setStatus('Mensagem disponível em texto.');}
+  return()=>{closed=true;cancelAnimationFrame(raf);clearTimeout(cleanupTimer);if(clearTerminal)clearTerminal();
+    try{audio.pause();audio.removeAttribute('src');audio.load();}catch(_){}
+    btnPlay.removeEventListener('click',toggle);btnSkip.removeEventListener('click',finish);btnClose.removeEventListener('click',finish);
+    audio.removeEventListener('playing',onPlaying);audio.removeEventListener('pause',onPause);
+    audio.removeEventListener('ended',onEnded);audio.removeEventListener('error',onError);audio.removeEventListener('timeupdate',onTime);
+    P.removeEventListener('keydown',onKey);
   };
 }"""
     )
     _vip(key="elevo_vip_daily_overlay_v16841",
-         data={"name": _vip_nome.upper(),
+         data={"name": _vip_nome,
                "phrase": st.session_state.get("elevo_vip_diaria_frase_v16840", ""),
                "audio": st.session_state["elevo_vip_diaria_audio_v16840"]},
          on_closed_change=_elevo_vip_fechar_v16840)
-
 
 # ==========================================================
 # 3. PAINEL CENTRAL DE OPERAÇÃO E MULTI-UTILIZADOR
