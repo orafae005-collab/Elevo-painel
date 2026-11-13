@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.90 — diagnóstico SMTP seguro: identifica campo ausente sem expor Secrets nem alterar envio
 # ÉLÉVO V16.8.89 — contraste do topo e dos documentos, botão Sair sóbrio (somente UI)
 # ÉLÉVO V16.8.88 — acesso por e-mail/senha; verificação 4h com suspensão; recuperação para contas comuns; sem login social
 # ÉLÉVO V16.8.87 — login estilo app premium; Google à vista; pré-cadastro por 4h
@@ -7932,7 +7933,37 @@ if E_O_CEO:
     # V16.8.51 — voz principal fixa: Francisca. Laboratório de amostras removido.
     with st.expander("📩 E-mail automático e documentos legais • Status", expanded=False):
         st.write("Envio por e-mail:", "🟢 Secrets presentes" if elevo_email_envio_pronto_v16885()
-                 else "⚠️ Falta configurar SMTP nos Secrets")
+                 else "⚠️ Configuração SMTP incompleta")
+        # V16.8.90: diagnóstico SOMENTE do CEO. Nunca mostra senha, tokens ou valores.
+        _smtp_requisitos_v16890 = {
+            "ELEVO_SMTP_HOST": bool(ELEVO_SMTP_HOST_V16885),
+            "ELEVO_SMTP_PORT": ELEVO_SMTP_PORT_V16885 in (465, 587),
+            "ELEVO_SMTP_USER": bool(ELEVO_SMTP_USER_V16885),
+            "ELEVO_SMTP_PASSWORD": bool(ELEVO_SMTP_PASSWORD_V16885),
+            "ELEVO_SMTP_FROM": bool(re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", ELEVO_SMTP_FROM_V16885)),
+        }
+        _smtp_pendentes_v16890 = [nome for nome, ok in _smtp_requisitos_v16890.items() if not ok]
+        with st.expander("🩺 Diagnóstico seguro do Gmail (sem mostrar senhas)", expanded=bool(_smtp_pendentes_v16890)):
+            for _smtp_nome_v16890, _smtp_ok_v16890 in _smtp_requisitos_v16890.items():
+                st.write(("✅ " if _smtp_ok_v16890 else "❌ ") + _smtp_nome_v16890)
+            if _smtp_pendentes_v16890:
+                st.warning("Revise nos Secrets as chaves com ❌. Elas devem ficar no topo do arquivo, antes de qualquer seção [nome].")
+                _smtp_secoes_v16890 = []
+                try:
+                    for _sec_nome_v16890, _sec_valor_v16890 in st.secrets.items():
+                        if hasattr(_sec_valor_v16890, "keys"):
+                            _chaves_no_grupo = [k for k in _smtp_requisitos_v16890 if k in _sec_valor_v16890]
+                            if _chaves_no_grupo:
+                                _smtp_secoes_v16890.append(str(_sec_nome_v16890) + ": " + ", ".join(_chaves_no_grupo))
+                except (AttributeError, TypeError):
+                    pass
+                if _smtp_secoes_v16890:
+                    st.error("Chaves encontradas dentro de seção errada: " + " | ".join(_smtp_secoes_v16890))
+                if not _smtp_requisitos_v16890["ELEVO_SMTP_PORT"]:
+                    st.caption("Porta aceita: 587 (STARTTLS) ou 465 (SSL).")
+            else:
+                st.success("Todos os campos SMTP foram reconhecidos. Use o botão de teste abaixo para verificar a conexão real.")
+            st.caption("Por segurança, o diagnóstico mostra apenas nomes de chaves e estado, nunca credenciais.")
         st.caption("O teste abaixo confirma conexão e aceitação do envio pelo servidor. Confira também a chegada da mensagem.")
         if st.button("📨 Enviar e-mail de teste ao suporte", key="elevo_smtp_test_v16888"):
             try:
