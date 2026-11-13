@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.79 — textura premium na carteira da Central de Operação (somente UI do cartão)
 # ÉLÉVO V16.8.78 — PATENTES DE FIDELIDADE POR COMPRAS CONFIRMADAS (SEM ALTERAR PAGAMENTOS)
 # ÉLÉVO V16.8.77 — saudação diária VIP discreta na tela principal (sem navegação)
 # ÉLÉVO V16.8.76 — FINAIS IA POR PRODUTO; sem sacolinha na fala/CTA; hooks e créditos preservados
@@ -3980,12 +3981,28 @@ _wal_tk = ({
     "__GLOW__": "radial-gradient(circle at 85% 0%,rgba(216,182,106,.16),transparent 55%)",
 })
 _wal_css = """<style>
-.st-key-elevo_carteira_v16865 {border-radius:26px!important; padding:clamp(1rem,2.6vw,1.6rem)!important;
-  background:__GLOW__,__FUNDO__!important; border:1px solid __BORDA__!important; box-shadow:__SOMBRA__!important;
-  position:relative; overflow:hidden; margin-bottom:.6rem;}
-.wal-topo {display:flex; align-items:center; gap:14px;}
+.st-key-elevo_carteira_v16865 {border-radius:28px!important; padding:clamp(1rem,2.6vw,1.6rem)!important;
+  background:__GLOW__,__FUNDO__!important; border:1px solid __BORDA__!important;
+  box-shadow:__SOMBRA__, inset 0 1px 0 rgba(255,255,255,.07), inset 0 -18px 34px rgba(255,255,255,.015)!important;
+  position:relative; overflow:hidden; margin-bottom:.6rem; isolation:isolate;}
+.st-key-elevo_carteira_v16865::before{content:""; position:absolute; inset:0; pointer-events:none; z-index:0;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(84,216,245,.16), transparent 24%),
+    radial-gradient(circle at 88% 0%, rgba(216,182,106,.16), transparent 26%),
+    radial-gradient(circle at 50% 125%, rgba(84,216,245,.07), transparent 30%),
+    linear-gradient(118deg, rgba(255,255,255,.07) 0%, rgba(255,255,255,.025) 16%, transparent 33%, transparent 68%, rgba(84,216,245,.05) 100%);
+  opacity:.98;}
+.st-key-elevo_carteira_v16865::after{content:""; position:absolute; inset:1px; border-radius:27px; pointer-events:none; z-index:0;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,0) 14%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 18px);
+  opacity:.72;}
+.st-key-elevo_carteira_v16865 > div,
+.st-key-elevo_carteira_v16865 [data-testid="stVerticalBlock"]{position:relative; z-index:1;}
+.wal-topo {display:flex; align-items:center; gap:14px; position:relative; z-index:1;}
 .wal-avatar {width:58px; height:58px; flex:0 0 58px; border-radius:50%; padding:3px;
-  background:conic-gradient(from 200deg,#F4DC9A,#54D8F5,#1457A1,#F4DC9A); display:grid; place-items:center;}
+  background:conic-gradient(from 200deg,#F4DC9A,#54D8F5,#1457A1,#F4DC9A); display:grid; place-items:center;
+  box-shadow:0 10px 22px rgba(0,0,0,.18), 0 0 0 1px rgba(255,255,255,.08);}
 .wal-avatar > * {width:52px; height:52px; border-radius:50%; object-fit:cover; display:grid; place-items:center;
   background:__CARD__; color:__ACENTO__;}
 .wal-avatar svg {width:26px; height:26px;}
@@ -3995,7 +4012,8 @@ _wal_css = """<style>
 .wal-chip {flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
   font:800 .62rem Montserrat,sans-serif; letter-spacing:.06em; padding:7px 11px;
   border-radius:30px; white-space:nowrap; line-height:1.15; text-align:center;
-  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+  color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);
+  box-shadow:0 8px 20px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.32);}
 .wal-chip-iniciante {color:__SUB__; background:__CARD__; border:1px solid __CARDBORDA__;}
 .wal-chip-bronze {color:#8F4B26; background:linear-gradient(105deg,#E8B78A,#F7DABD); border:1px solid #CD936C;}
 .wal-chip-prata {color:#283F61; background:linear-gradient(105deg,#D7E2EF,#FFFFFF); border:1px solid #A0B1CB;}
@@ -4009,8 +4027,8 @@ _wal_css = """<style>
   .wal-avatar > *{width:42px;height:42px}.wal-chip{font-size:.55rem;padding:7px 8px;max-width:112px;
   white-space:normal;letter-spacing:0}.wal-quem b{font-size:1rem}.wal-quem span{font-size:.7rem}
   .wal-patente-progresso{font-size:.62rem}}
-.wal-saldo {margin-top:1.1rem; padding-top:1rem; border-top:1px dashed __BORDA__; display:flex; align-items:flex-end;
-  justify-content:space-between; gap:12px; flex-wrap:wrap;}
+.wal-saldo {margin-top:1.08rem; padding:1rem 0 0; border-top:1px dashed __BORDA__; display:flex; align-items:flex-end;
+  justify-content:space-between; gap:12px; flex-wrap:wrap; position:relative; z-index:1;}
 .wal-rot {color:__SUB__; font:700 .68rem Montserrat,sans-serif; letter-spacing:.16em; text-transform:uppercase;}
 .wal-num {color:__TXT__; font:900 clamp(2.3rem,7vw,3.1rem)/1 Montserrat,sans-serif; letter-spacing:-.02em; margin-top:.25rem;}
 .wal-num small {font-size:.95rem; color:__OURO__; margin-left:6px; letter-spacing:.04em;}
