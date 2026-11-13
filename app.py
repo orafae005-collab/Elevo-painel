@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.78 — PATENTES DE FIDELIDADE POR COMPRAS CONFIRMADAS (SEM ALTERAR PAGAMENTOS)
 # ÉLÉVO V16.8.77 — saudação diária VIP discreta na tela principal (sem navegação)
 # ÉLÉVO V16.8.76 — FINAIS IA POR PRODUTO; sem sacolinha na fala/CTA; hooks e créditos preservados
 # ÉLÉVO V16.8.75 — 20 CR por geração; ganchos/CTAs com diversidade, produto concreto e guardrails TikTok Shop
@@ -1556,6 +1557,53 @@ def elevo_creditos_apurar_v16813(registros, email):
     return {"saldo": max(0, saldo), "iniciada":iniciada,
             "possui_registros": possui_registros,
             "aceitos":aceitos, "estornos":estornos, "usos":usos}
+
+
+# ==========================================================
+# ÉLÉVO V16.8.78 — PATENTES DE CLIENTES
+# Somente transações confirmadas pelo fluxo Mercado Pago e creditadas
+# em Elevo_Creditos_V1: Tipo=ADD, Autor=MERCADOPAGO, Ref=venda:<payment_id>.
+# Não depende do saldo, não conta bônus, SET manual, INIT ou solicitações.
+# Não altera o livro financeiro nem as regras de pagamento.
+# ==========================================================
+def elevo_patente_por_lancamentos_v16878(lancamentos, email):
+    """Retorna patente pela quantidade de pagamentos únicos efetivamente creditados."""
+    email = str(email or "").strip().lower()
+    pagamentos = set()
+    for reg in lancamentos:
+        if str(reg.get("Email", "")).strip().lower() != email:
+            continue
+        if str(reg.get("Tipo", "")).strip().upper() != "ADD":
+            continue
+        if str(reg.get("Autor", "")).strip().upper() != "MERCADOPAGO":
+            continue
+        referencia = str(reg.get("Referencia", "")).strip().lower()
+        if not re.fullmatch(r"venda:[0-9]+", referencia):
+            continue
+        try:
+            if int(reg.get("Valor", 0) or 0) <= 0:
+                continue
+        except (TypeError, ValueError):
+            continue
+        pagamentos.add(referencia)
+
+    total = len(pagamentos)
+    # Níveis por recompra: uma transação real representa um passo no histórico.
+    if total >= 5:
+        return {"nome": "Diamante VIP", "icone": "💎", "classe": "diamante",
+                "compras": total, "proxima": "Patente máxima conquistada"}
+    if total >= 3:
+        return {"nome": "Ouro VIP", "icone": "🥇", "classe": "ouro",
+                "compras": total, "proxima": f"Faltam {5-total} compra(s) para Diamante VIP"}
+    if total == 2:
+        return {"nome": "Prata VIP", "icone": "🥈", "classe": "prata",
+                "compras": total, "proxima": "Falta 1 compra para Ouro VIP"}
+    if total == 1:
+        return {"nome": "Bronze VIP", "icone": "🥉", "classe": "bronze",
+                "compras": total, "proxima": "Falta 1 compra para Prata VIP"}
+    return {"nome": "Iniciante", "icone": "🌱", "classe": "iniciante",
+            "compras": 0, "proxima": "Sua primeira compra libera Bronze VIP"}
+
 
 def elevo_credito_eventos_v16813():
     return elevo_aba_v16813("Elevo_Creditos_V1", ELEVO_CREDITOS_COLS_V16813).get_all_records()
@@ -3944,8 +3992,23 @@ _wal_css = """<style>
 .wal-quem {min-width:0; flex:1;}
 .wal-quem b {display:block; color:__TXT__; font:800 1.12rem Montserrat,sans-serif; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
 .wal-quem span {display:block; color:__SUB__; font-size:.8rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.wal-chip {flex:0 0 auto; font:800 .62rem Montserrat,sans-serif; letter-spacing:.14em; padding:6px 11px; border-radius:30px;
+.wal-chip {flex:0 0 auto; display:inline-flex; align-items:center; justify-content:center;
+  font:800 .62rem Montserrat,sans-serif; letter-spacing:.06em; padding:7px 11px;
+  border-radius:30px; white-space:nowrap; line-height:1.15; text-align:center;
   color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-chip-iniciante {color:__SUB__; background:__CARD__; border:1px solid __CARDBORDA__;}
+.wal-chip-bronze {color:#8F4B26; background:linear-gradient(105deg,#E8B78A,#F7DABD); border:1px solid #CD936C;}
+.wal-chip-prata {color:#283F61; background:linear-gradient(105deg,#D7E2EF,#FFFFFF); border:1px solid #A0B1CB;}
+.wal-chip-ouro {color:#533300; background:linear-gradient(105deg,#E8B13B,#FFE7A0); border:1px solid #C99A41;}
+.wal-chip-diamante {color:#073C64; background:linear-gradient(105deg,#A6E8FC,#FFFFFF,#D8B66A); border:1px solid #64BFE3;
+  box-shadow:0 3px 16px rgba(84,216,245,.18);}
+.wal-chip-ceo {color:#120D03; background:linear-gradient(100deg,#B88A2E,#F4DC9A);}
+.wal-patente-progresso {display:block; font:600 .68rem Montserrat,sans-serif; margin-top:4px;
+  color:__SUB__; line-height:1.3;}
+@media(max-width:480px){.wal-topo{gap:9px}.wal-avatar{width:48px;height:48px;flex-basis:48px}
+  .wal-avatar > *{width:42px;height:42px}.wal-chip{font-size:.55rem;padding:7px 8px;max-width:112px;
+  white-space:normal;letter-spacing:0}.wal-quem b{font-size:1rem}.wal-quem span{font-size:.7rem}
+  .wal-patente-progresso{font-size:.62rem}}
 .wal-saldo {margin-top:1.1rem; padding-top:1rem; border-top:1px dashed __BORDA__; display:flex; align-items:flex-end;
   justify-content:space-between; gap:12px; flex-wrap:wrap;}
 .wal-rot {color:__SUB__; font:700 .68rem Montserrat,sans-serif; letter-spacing:.16em; text-transform:uppercase;}
@@ -4024,6 +4087,26 @@ if _wal_ret and not E_O_CEO:
     st.session_state["elevo_carteira_painel_v16865"] = "recarga"
 _wal_painel = st.session_state.get("elevo_carteira_painel_v16865")
 
+# V16.8.78 — Consulta local da patente a partir do MESMO histórico de créditos
+# já cacheado para o saldo. Na falha do banco, não inventar compras nem rebaixar
+# visualmente o cliente: apresentar temporariamente "Em verificação".
+if E_O_CEO:
+    _wal_patente_v16878 = {"nome": "CEO", "icone": "👑", "classe": "ceo",
+                           "compras": 0, "proxima": "Administração ÉLÉVO"}
+else:
+    try:
+        _wal_patente_v16878 = elevo_patente_por_lancamentos_v16878(
+            elevo_creditos_ler_cache_v16816(), _elevo_email_painel_v16813)
+    except Exception:
+        _wal_patente_v16878 = {"nome": "Em verificação", "icone": "◈", "classe": "iniciante",
+                               "compras": None, "proxima": "Histórico temporariamente indisponível"}
+_wal_chip_patente_v16878 = (
+    f"<span class='wal-chip wal-chip-{_wal_patente_v16878['classe']}' "
+    f"title='Patente baseada em compras confirmadas'>"
+    f"{_wal_patente_v16878['icone']} {html_std.escape(_wal_patente_v16878['nome'])}</span>"
+)
+_wal_progresso_v16878 = html_std.escape(_wal_patente_v16878["proxima"])
+
 with st.container(key="elevo_carteira_v16865"):
     if E_O_CEO:
         _wal_bloco = ("<div><div class='wal-rot'>Saldo</div><div class='wal-num'>∞<small>CR</small></div>"
@@ -4041,8 +4124,9 @@ with st.container(key="elevo_carteira_v16865"):
     st.markdown(
         "<div class='wal-topo'>"
         f"<div class='wal-avatar'>{_elevo_avatar_miolo_v16827}</div>"
-        f"<div class='wal-quem'><b>{_elevo_nome_painel_v16813}</b><span>{html_std.escape(_elevo_email_painel_v16813)}</span></div>"
-        "<span class='wal-chip'>💎 VIP</span></div>"
+        f"<div class='wal-quem'><b>{_elevo_nome_painel_v16813}</b><span>{html_std.escape(_elevo_email_painel_v16813)}</span>"
+        f"<small class='wal-patente-progresso'>{_wal_progresso_v16878}</small></div>"
+        f"{_wal_chip_patente_v16878}</div>"
         f"<div class='wal-saldo'>{_wal_bloco}</div>", unsafe_allow_html=True)
     if not E_O_CEO:
         with st.container(key="elevo_carteira_acoes_v16865"):
