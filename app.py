@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.68 — Mercado Pago: motivo real do erro na tela + botão Testar conexão no painel do CEO
 # ÉLÉVO V16.8.67 — modo teste preenche test@testuser.com no cartão
 # ÉLÉVO V16.8.66 — CARTÃO: instância única do Mercado Pago (corrige "Dado obrigatório" nos campos seguros)
 # ÉLÉVO V16.8.65 — CARTEIRA VIP REDESENHADA + CHECKOUT DENTRO DO APP (Pix com QR Code e cartão seguro)
@@ -1492,29 +1493,96 @@ def elevo_mp_ativo_v16863():
     return bool(elevo_mp_config_v16863()["token"])
 
 
+class ElevoMPErroV16868(ElevoCreditoErroV16813):
+    """Erro do Mercado Pago com o motivo técnico real (sem chaves) para diagnóstico."""
+    def __init__(self, mensagem, tecnico=""):
+        super().__init__(mensagem)
+        self.tecnico = tecnico
+
+
 def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
     cfg = elevo_mp_config_v16863()
     if not cfg["token"]:
         raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
     headers = {"Authorization": f"Bearer {cfg['token']}", "Content-Type": "application/json"}
     headers.update(kwargs.pop("headers", {}))
-    resp = requests.request(metodo, ELEVO_MP_API_V16863 + caminho, headers=headers, timeout=20, **kwargs)
-    if resp.status_code >= 400:
+    try:
+        resp = requests.request(metodo, ELEVO_MP_API_V16863 + caminho, headers=headers, timeout=25, **kwargs)
+    except Exception as exc:
+        raise ElevoMPErroV16868("Sem conexão com o Mercado Pago agora. Tente de novo em instantes.",
+                                f"conexão: {type(exc).__name__}")
+    if resp.status_code < 400:
+        return resp.json()
+    # V16.8.68 — mostra o MOTIVO REAL devolvido pelo Mercado Pago.
+    try:
+        corpo_erro = resp.json() or {}
+    except Exception:
+        corpo_erro = {"message": (resp.text or "")[:200]}
+    msg_mp = str(corpo_erro.get("message", "") or corpo_erro.get("error", ""))[:220]
+    causas = corpo_erro.get("cause") or []
+    causas_txt = "; ".join(f"{c.get('code', '')} {c.get('description', '')}".strip()
+                           for c in causas if isinstance(c, dict))[:300]
+    tecnico = f"HTTP {resp.status_code} • {msg_mp}" + (f" • causa: {causas_txt}" if causas_txt else "")
+    logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, tecnico)
+    baixo = (msg_mp + " " + causas_txt).lower()
+    if resp.status_code == 401 or "invalid access token" in baixo or "invalid_token" in baixo:
+        amigavel = "Access Token inválido ou expirado. Confira a chave no Secrets do app."
+    elif "live credentials" in baixo:
+        amigavel = ("Chave de PRODUÇÃO usada com cartão de teste. Para testar, use as chaves da aba Teste "
+                    "(access_token e public_key) com modo = \"teste\".")
+    elif "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
+        amigavel = ("Pix indisponível: a conta Mercado Pago ainda não tem chave Pix cadastrada. "
+                    "Use o cartão ou cadastre uma chave Pix.")
+    elif "card_token" in baixo or "card token" in baixo or ("token" in baixo and caminho == "/v1/payments"):
+        amigavel = ("O cartão não foi reconhecido pelo Mercado Pago. Verifique se a public_key e o access_token "
+                    "são da MESMA aplicação e do MESMO ambiente (os dois de Teste ou os dois de Produção).")
+    elif "invalid users" in baixo or "collector" in baixo or "payer" in baixo and "email" in baixo:
+        amigavel = ("O Mercado Pago recusou o pagador. No modo teste use o e-mail test@testuser.com; "
+                    "em produção, o comprador não pode ser a própria conta vendedora.")
+    elif "identification" in baixo or "cpf" in baixo or "document" in baixo:
+        amigavel = "O Mercado Pago recusou o documento (CPF). Confira e tente de novo."
+    elif resp.status_code >= 500:
+        amigavel = "O Mercado Pago está instável agora. Tente de novo em instantes."
+    else:
+        amigavel = "O Mercado Pago recusou a operação. Veja o detalhe abaixo."
+    raise ElevoMPErroV16868(amigavel, tecnico)
+
+
+def elevo_mp_diagnostico_v16868():
+    """Testa as chaves do Secrets: dono da conta, ambiente e coerência com a public_key."""
+    cfg = elevo_mp_config_v16863()
+    if not cfg["token"]:
+        return {"ok": False, "linhas": ["❌ Falta o access_token no Secrets."]}
+    linhas = []
+    try:
+        eu = _elevo_mp_req_v16863("GET", "/users/me")
+    except ElevoMPErroV16868 as exc:
+        return {"ok": False, "linhas": ["❌ " + str(exc), "Detalhe: " + exc.tecnico]}
+    apelido = str(eu.get("nickname", ""))
+    conta_teste = apelido.upper().startswith("TEST")
+    linhas.append(f"✅ Access Token válido • conta {apelido or eu.get('id')} • país {eu.get('site_id', '?')}")
+    linhas.append("🧪 Esta chave é de TESTE (conta de teste vendedora)." if conta_teste
+                  else "💰 Esta chave é de PRODUÇÃO (conta real).")
+    if conta_teste != bool(cfg["teste"]):
+        linhas.append("⚠️ O `modo` no Secrets não combina com a chave: use modo = \"teste\" para chave de teste "
+                      "e modo = \"producao\" para chave de produção.")
+    try:
+        pk = str(dict(st.secrets.get("mercadopago", {})).get("public_key", "") or "").strip()
+    except Exception:
+        pk = ""
+    if not pk:
+        linhas.append("⚠️ Falta a public_key: o cartão dentro do app fica desligado (Pix funciona).")
+    else:
         try:
-            msg_mp = str((resp.json() or {}).get("message", ""))[:200]
+            r = requests.get(ELEVO_MP_API_V16863 + "/v1/payment_methods", params={"public_key": pk}, timeout=20)
+            if r.status_code < 400:
+                linhas.append("✅ Public Key válida.")
+            else:
+                linhas.append(f"❌ Public Key recusada pelo Mercado Pago (HTTP {r.status_code}). Copie de novo.")
         except Exception:
-            msg_mp = ""
-        logging.warning("MERCADOPAGO %s %s -> %s %s", metodo, caminho, resp.status_code, msg_mp)
-        baixo = msg_mp.lower()
-        if "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
-            raise ElevoCreditoErroV16813("Pix indisponível: a conta Mercado Pago da ÉLÉVO ainda não tem chave Pix "
-                                         "cadastrada. Use o cartão ou tente mais tarde.")
-        if "identification" in baixo or "cpf" in baixo:
-            raise ElevoCreditoErroV16813("O Mercado Pago recusou o CPF informado. Confira e tente de novo.")
-        if "token" in baixo and caminho == "/v1/payments":
-            raise ElevoCreditoErroV16813("Os dados do cartão expiraram. Preencha o formulário novamente.")
-        raise ElevoCreditoErroV16813("O Mercado Pago não respondeu agora. Tente de novo em instantes.")
-    return resp.json()
+            linhas.append("⚠️ Não foi possível conferir a Public Key agora.")
+        linhas.append("ℹ️ A public_key e o access_token precisam ser da MESMA aplicação e da MESMA aba (Teste ou Produção).")
+    return {"ok": True, "linhas": linhas}
 
 
 def elevo_vendas_aba_v16863():
@@ -3869,6 +3937,8 @@ export default function (component) {
                             st.rerun()
                         except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
                             st.warning(str(_wal_exc))
+                            if getattr(_wal_exc, "tecnico", ""):
+                                st.caption("Detalhe do Mercado Pago: " + _wal_exc.tecnico)
                         except Exception:
                             st.warning("Não foi possível gerar o Pix agora. Tente novamente.")
                     st.caption("Aprovação na hora, 24h por dia. O CPF é exigido pelo Banco Central para Pix.")
@@ -3881,6 +3951,8 @@ export default function (component) {
                 _wal_res = st.session_state.pop("elevo_cartao_res_v16865", None)
                 if _wal_res and _wal_res.get("msg"):
                     st.error("❌ " + _wal_res["msg"])
+                    if _wal_res.get("tecnico"):
+                        st.caption("Detalhe do Mercado Pago: " + _wal_res["tecnico"])
                 elif _wal_res:
                     if _wal_res["status"] == "in_process" or _wal_res["status"] == "pending":
                         st.info("⏳ Pagamento em análise pelo Mercado Pago. Os créditos entram assim que for aprovado "
@@ -3913,10 +3985,15 @@ export default function (component) {
                                 st.session_state["elevo_cartao_res_v16865"] = _wal_r
                         except (ValueError, PermissionError, ElevoCreditoErroV16813) as _wal_exc:
                             st.session_state["elevo_cartao_res_v16865"] = {"status": "rejected", "detalhe": "",
-                                                                           "msg": str(_wal_exc)}
+                                                                           "msg": str(_wal_exc),
+                                                                           "tecnico": getattr(_wal_exc, "tecnico", "")}
                             st.warning(str(_wal_exc))
-                        except Exception:
-                            st.warning("Não foi possível processar o cartão agora. Nada foi cobrado; tente de novo.")
+                        except Exception as _wal_exc2:
+                            logging.exception("ELEVO_CARTAO")
+                            st.session_state["elevo_cartao_res_v16865"] = {
+                                "status": "rejected", "detalhe": "",
+                                "msg": "Não foi possível processar o cartão agora. Nada foi cobrado; tente de novo.",
+                                "tecnico": f"erro interno: {type(_wal_exc2).__name__}"}
                         st.session_state["elevo_cartao_tentativa_v16865"] += 1
                         st.rerun()
                     st.caption("Até 12x. O número do cartão é digitado no formulário seguro do Mercado Pago "
@@ -6559,6 +6636,10 @@ if E_O_CEO:
             _evv_pk = ""
         if _evv_cfg["token"] and not _evv_pk:
             st.caption("💳 Cartão dentro do app desligado: falta a **public_key** nos Secrets (o Pix funciona).")
+        if st.button("🔌 Testar conexão com o Mercado Pago", key="elevo_mp_diag_v16868", use_container_width=True):
+            with st.spinner("Conferindo as chaves..."):
+                for _evv_l in elevo_mp_diagnostico_v16868()["linhas"]:
+                    st.markdown(_evv_l)
         try:
             _evv_regs = elevo_vendas_aba_v16863().get_all_records()
         except Exception:
