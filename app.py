@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.76 — FINAIS IA POR PRODUTO; sem sacolinha na fala/CTA; hooks e créditos preservados
 # ÉLÉVO V16.8.75 — 20 CR por geração; ganchos/CTAs com diversidade, produto concreto e guardrails TikTok Shop
 # ÉLÉVO V16.8.74 — validação de ambientes de pagamento, comprador de teste no Brick e confirmação real de créditos
 # ÉLÉVO V16.8.73 — PROMOÇÃO RELÂMPAGO R$ 1,00 por 10 min (ligada pelo CEO) para validar o checkout em produção
@@ -1085,24 +1086,36 @@ ELEVO_COPY_ANGULOS_V16875 = [
     "detalhe da apresentação que evita uma compra por impulso",
     "explicação breve de por que o formato ou conjunto é prático",
 ]
+# A IA decide a frase de encerramento; isto NÃO é um banco de frases prontas.
+# Objetivos alternados, para variar conforme o que a câmera realmente demonstra.
 ELEVO_COPY_CTAS_V16875 = [
-    "Confira os detalhes na sacolinha do vídeo.",
-    "Quer conferir? Veja o produto na sacolinha.",
-    "Toque no carrinho laranja para ver os detalhes.",
-    "Acesse o produto pela sacolinha aqui no vídeo.",
-    "Veja mais informações no carrinho do vídeo.",
-    "Gostou da proposta? Confira na sacolinha.",
-    "Dá uma olhada nos detalhes no carrinho laranja.",
-    "Consulte as opções na sacolinha deste vídeo.",
-    "Confira o item no carrinho do vídeo.",
-    "Encontre os detalhes tocando na sacolinha.",
-    "Se combina com sua rotina, veja no carrinho.",
-    "Veja as informações do produto na sacolinha.",
-    "Pra saber mais, toque no carrinho laranja.",
-    "Explore os detalhes na sacolinha do vídeo.",
-    "Confira se faz sentido pra você no carrinho.",
-    "Toque na sacolinha para conhecer melhor.",
+    "convidar a conferir o detalhe concreto do item no link nativo deste vídeo",
+    "transformar a dúvida inicial em uma pergunta curta e convidar a descobrir a resposta na descrição do produto",
+    "conectar uma necessidade cotidiana a uma opção de compra sem pressionar",
+    "mostrar por que vale observar o acabamento e direcionar aos detalhes",
+    "convidar a comparar a peça com o que a pessoa já costuma usar",
+    "propor que a pessoa avalie se a solução cabe em sua própria rotina",
+    "enfatizar a facilidade de consultar as opções pelo link deste vídeo",
+    "fechar com curiosidade autêntica sobre um atributo realmente visível",
+    "convidar a conferir variantes ou tamanhos apenas se constarem no cadastro do produto",
+    "encerrar com uma pergunta de identificação sobre a dor e apontar os detalhes",
+    "relembrar um benefício verificável e sugerir uma conferência breve",
+    "levar a pessoa a examinar como o item funciona no uso mostrado",
+    "fechar como dica útil de amiga e convidar a conhecer o produto",
+    "sugerir olhar de perto o mesmo detalhe apresentado na cena",
+    "usar uma transição natural entre demonstração e consulta do link nativo",
+    "pedir que observe se o item atende à necessidade antes de decidir",
+    "encerrar com contraste cotidiano sem comparar ou depreciar marcas",
+    "convidar a visualizar como a combinação serviria à rotina pessoal",
+    "usar um gesto discreto de apontar abaixo, apenas se natural na cena",
+    "criar senso de oportunidade de conhecer a oferta real, sem alegar prazo ou estoque",
+    "convidar a verificar o preço atual no link, sem afirmar valor ou desconto",
+    "encerrar com frase curta, curiosa e nova, com menção opcional ao carrinho laranja",
+    "fazer pergunta com escolha concreta entre duas aplicações reais do produto",
+    "conectar o benefício observado a uma ação simples: consultar o produto neste vídeo",
 ]
+
+
 
 def elevo_copy_normalizar_v16875(texto):
     texto = unicodedata.normalize("NFKD", str(texto or "").casefold())
@@ -1162,34 +1175,40 @@ def elevo_copy_diretriz_v16875(email, motor, duracao, scan):
     return {
         "angulo": angulo, "cta": cta,
         "texto": (
-            "\n\n[ÉLÉVO V16.8.75 — PRIORIDADE ABSOLUTA SOMENTE COPY/FALA E CTA; NÃO ALTERE IMAGEM, FÍSICA, SEO OU 10/12/15s]\n"
-            f"MOTOR: {motor}. PRODUTO REAL DA REFERÊNCIA: {produto}. "
-            "A máxima é NÃO VENDER O PRODUTO, MAS EXPLICAR UMA SOLUÇÃO OU UTILIDADE REAL. "
-            f"ÂNGULO INÉDITO DESTA CRIAÇÃO: {angulo}. "
-            "ABERTURA: nos primeiros segundos, uma frase curta específica, nova, sem reciclar 'Amiga, para tudo', "
-            "'Olha só', 'É perfeito', 'Você não vai acreditar', ou uma pergunta genérica. "
-            "Fale de uma dor ou situação real e em seguida CITE O PRÓPRIO PRODUTO OU SUA CATEGORIA, "
-            "com ao menos um detalhe ou utilidade observável. Se for moda, mencione a peça, conjunto, "
-            "caimento ou detalhe visível (ex.: body, short, cinto), sem inventar tecido, medida, conforto ou resultado. "
-            "Se for cosmético, fale da categoria e uso verificável; sem resultados clínicos ou milagrosos. "
-            "MEIO: conectar essa característica verificável à necessidade da pessoa; mostrar/demonstrar o item, "
-            "não apenas elogiar a modelo ou dizer que ficou lindo. "
-            f"FINAL: fecho DIFERENTE das criações anteriores. Variação DESTA RODADA: {cta} "
-            "A compra deve ocorrer SOMENTE no link NATIVO do produto vinculado ao vídeo do TikTok Shop. "
-            "Não conduzir a DM, WhatsApp, site, bio, link externo ou QR. "
-            "Se houver sacolinha/carrinho, são referências de FALA ou legenda para edição; "
-            "NUNCA desenhar botões, interface nem objetos 3D no vídeo. "
-            f"A duração original é {duracao}s e sua faixa de fala já definida pelo motor é OBRIGATÓRIA, "
-            "sem aumentar nem encurtar palavras. Em 12/15s há espaço para convite explícito ao carrinho laranja. "
-            "Em 10s o convite deve ser mínimo para priorizar a utilidade do produto. "
-            "PROIBIDO copiar CTA fixo das amostras do Banco 17.3; são exemplos antigos, não falas autorizadas. "
-            "PROIBIDO inventar escassez, promoção, preço, resultado garantido, antes/depois fictício, "
-            "atributo de tecido ou efeito que não esteja comprovado pela foto/dados do produto. "
-            "Fala autêntica, leve, curta, nunca gritaria artificial nem promessas absolutas. "
+            "\n\n[ÉLÉVO V16.8.76 — PRIORIDADE MÁXIMA NA FALA E NO ENCERRAMENTO, "
+            "PRESERVAR FOTO, FÍSICA, SEO, PERSONA E DURAÇÃO 10/12/15s]\n"
+            f"MOTOR: {motor}. PRODUTO DA FOTO: {produto}. "
+            "NOSSO LEMA: não vendemos um produto, ajudamos a pessoa a resolver uma necessidade real. "
+            f"ABERTURA (primeiro segundo): escolha este ângulo de forma ORIGINAL: {angulo}. "
+            "Comece por uma dor plausível ou microcuriosidade concreta; evite frases genéricas, "
+            "exageros, promessas de viralização, chamadas repetidas ou supostas experiências pessoais não reais. "
+            "Até o MEIO do vídeo, cite o produto ou sua categoria e mostre uma característica "
+            "observável que a câmera consegue demonstrar. Para moda, é obrigatório falar da peça "
+            "(body, short, cinto, caimento visível etc.), sem inventar material, medida, conforto ou efeito. "
+            "Para beleza, fale do tipo de item, uso demonstrável e necessidade, sem prometer cura ou resultado clínico. "
+            "A apresentadora fala como gente de verdade, próxima, específica e respeitosa. "
+            f"FINAL: a IA precisa ESCREVER UMA FRASE INÉDITA PARA ESTE PRODUTO, usando só como direção criativa: {cta}. "
+            "Esta direção NÃO é fala pronta. Não copie nenhum encerramento das amostras históricas. "
+            "PROIBIDO falar ou escrever 'sacolinha' em qualquer variação, mesmo que algum molde antigo mande. "
+            "O fecho não pode ficar igual ou muito parecido ao das criações anteriores. "
+            "Faça o final conversar com a dor inicial, gerando motivo concreto para conferir o item. "
+            "Em 12 ou 15 segundos, pode usar de modo alternado 'link aqui embaixo', 'link do vídeo' "
+            "ou 'carrinho laranja' quando esse destino existir no TikTok Shop; não force o mesmo comando. "
+            "Em 10 segundos, priorize solução e um microconvite final natural. Não direcione para "
+            "DM, WhatsApp, bio, sites externos ou QR: só para o vínculo nativo do produto no vídeo. "
+            "Urgência apenas honesta: sem inventar desconto, estoque baixo, último dia, preço, "
+            "prazo, compra garantida ou promoção; destaque vantagem promocional somente se vier "
+            "explicitamente confirmada nos dados deste produto. Na ausência de prova, convide a "
+            "CONSULTAR preço e disponibilidade, sem afirmar qualquer promoção. "
+            "NUNCA desenhe botões, interface da plataforma, selo, link falso ou objeto 3D no vídeo. "
+            f"O motor já determina a faixa de palavras de {duracao} segundos: RESPEITE-A, "
+            "não aumente nem diminua a duração, não mude a imagem ou títulos SEO. "
             f"Evite aberturas recentes: {recentes or 'nenhuma nesta sessão'}. "
-            "NÃO reescreva o prompt de imagem, títulos SEO nem o mecanismo existente de FALA NA MEDIDA."
+            "Não repita o mesmo verbo de CTA nem o mesmo jeito de iniciar sempre. "
+            "Antes de entregar, revise começo, utilidade concreta e último período."
         ),
     }
+
 
 
 def elevo_copy_localizar_v16875(roteiro):
@@ -1229,28 +1248,51 @@ def elevo_copy_problemas_v16875(fala, scan, duracao, faixa, historico):
     comp = elevo_copy_resumo_v16875(fala)
     if comp and (any(h.get("ini") == comp[0] for h in historico[-100:])
                  or any(h.get("fim") == comp[1] for h in historico[-100:])):
-        problemas.append("Abertura ou chamada final idêntica a vídeo anterior")
+        problemas.append("Abertura ou encerramento idêntico a uma criação anterior")
     normal = " ".join(p)
+    if re.search(r"\bsacolinhas?\b|\bsacolas?\b", normal):
+        problemas.append("Termo sacolinha/sacola proibido na fala")
     if re.search(r"^(?:amiga\s+)?(?:olha\s+so|para\s+tudo|voce\s+nao\s+vai\s+acreditar|esse\s+produto\s+e\s+perfeito)\b", normal):
-        problemas.append("Gancho genérico e muito repetido")
+        problemas.append("Gancho inicial genérico")
     proibido = ("lote secreto", "estoque surtou", "estoque enlouqueceu", "ultimas unidades", "so hoje",
-                "desconto imperdivel", "promocao relampago", "cura garantida", "resultado garantido")
+                "desconto imperdivel", "promocao relampago", "cura garantida", "resultado garantido", "quase de graca")
     if any(x in normal for x in proibido):
-        problemas.append("Promessa ou oferta não verificada na referência")
-    if not re.search(r"\b(sacolinha|carrinho|link do produto)\b", normal) and duracao >= 12:
-        problemas.append("Falta convite ao link nativo do produto")
+        problemas.append("Oferta, escassez ou efeito não comprovado")
+    # Dado da foto não garante oferta; não alegar promoção no áudio sem registro verificável.
+    oferta_ok = bool((scan or {}).get("oferta_confirmada") or (scan or {}).get("promocao_verificada"))
+    if not oferta_ok and re.search(r"\b(?:desconto|promocao|oferta especial|preco caiu|esta acabando|vai esgotar|so resta)\b", normal):
+        problemas.append("Oferta ou disponibilidade não confirmada")
+    # Fecho relevante e identificável, mas sem obrigar vocábulo/CTA específico.
+    if int(duracao) >= 12:
+        cauda = " ".join(p[-18:])
+        if not re.search(r"\b(confira|confere|veja|olhe|olha|toque|clique|clic(a|ar)|acesse|consulte|descubra|escolha|aproveite|verifique|conheca|da uma olhada|vale conferir|ver mais)\b", cauda):
+            problemas.append("Encerramento não convida a pessoa a conhecer o produto")
+    # Detectar variações quase idênticas na sessão; em Sheets já são impedidas as 6 palavras finais idênticas.
+    def similar(a,b):
+        aa = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(a))
+        bb = elevo_copy_normalizar_v16875(elevo_copy_texto_falado_v16875(b))
+        if len(aa) < 10 or len(bb) < 10:
+            return False
+        # Comparar início E final; evita variações cosméticas do mesmo gancho/convite.
+        import difflib
+        abertura = difflib.SequenceMatcher(None, " ".join(aa[:12]), " ".join(bb[:12])).ratio()
+        fecho = difflib.SequenceMatcher(None, " ".join(aa[-12:]), " ".join(bb[-12:])).ratio()
+        return max(abertura, fecho) >= 0.83
+    recentes_sessao = list(st.session_state.get("elevo_copy_ultimas_falas_v16875", []))[-20:]
+    if any(similar(fala, anterior) for anterior in recentes_sessao):
+        problemas.append("Abertura ou final muito parecido com outra criação da sessão")
     nome = " ".join(elevo_copy_normalizar_v16875((scan or {}).get("nome_pt", "")))
     roupa = bool(re.search(r"\b(body|shorts?|regata|conjunto|roupa|vestido|saia|blusa|calca|camiseta|alfaiataria|vestir)\b", nome))
     if roupa:
         detalhes = ("body", "short", "regata", "conjunto", "vestido", "saia", "blusa", "calca",
                     "camiseta", "alfaiataria", "cinto", "cintura", "caimento", "alca", "peca")
         if not any(k in p for k in detalhes):
-            problemas.append("Moda sem falar da peça ou de detalhe observável")
+            problemas.append("Moda sem referência à peça ou a detalhe observável")
     elif nome:
         stop = {"produto", "kit", "unidade", "unidades", "para", "com", "de", "da", "do", "dos", "das", "uma", "um", "e", "original"}
         concretos = {q for q in elevo_copy_normalizar_v16875(nome) if len(q) >= 4 and q not in stop}
         if concretos and not (concretos & set(p)):
-            problemas.append("Fala não menciona a categoria ou elemento concreto do produto")
+            problemas.append("Fala não menciona categoria ou elemento concreto do produto")
     return problemas
 
 
@@ -1273,11 +1315,13 @@ def elevo_copy_guard_v16875(roteiro, email, scan, motor, duracao, faixa, diretri
                 f"Duração: {duracao}s. Faixa INALTERÁVEL: {faixa[0]} a {faixa[1]} palavras.\n"
                 f"Texto atual: {atual}\n"
                 f"Problemas a corrigir: {'; '.join(problemas)}.\n"
-                f"Ângulo novo: {diretriz['angulo']}. Fecho sugerido: {diretriz['cta']}.\n"
+                f"Ângulo novo: {diretriz['angulo']}. Estratégia criativa do final: {diretriz['cta']}. NÃO copie esta frase literalmente.\n"
                 "Reescreva SOMENTE a locução em português brasileiro, conservando o sentido comprovável, "
                 "a duração, um detalhe do produto e a voz da influenciadora. "
-                "Início inédito, situação real -> produto/benefício demonstrável -> convite nativo TikTok Shop, "
-                "sem links externos. Nunca invente atributos, avaliações, preço, cura, oferta ou estoque. "
+                "Crie nova frase de abertura e novo ENCERRAMENTO contextual ao produto e à dor. "
+                "Proibido usar sacolinha ou sacola; para 12/15s alterne entre link aqui embaixo, "
+                "link nativo do vídeo, carrinho laranja ou convite de consulta natural, SEM reciclar frases prontas. "
+                "Não conduza a link externo. Não invente atributos, avaliações, preço, cura, oferta ou estoque. "
                 "Não copie frase pronta do roteiro antigo. Responda somente JSON {\"fala\":\"...\"}."
             )
             validar_cota_ia()
@@ -1307,17 +1351,43 @@ def elevo_copy_guard_v16875(roteiro, email, scan, motor, duracao, faixa, diretri
     if problemas:
         raise ValueError("ÉLÉVO COPY: não foi possível obter abertura e CTA novos, com produto real e tempo correto. "
                          "Tente gerar novamente. Seu débito será estornado.")
-    # Variar apenas o texto de CTA editorial, sem adicionar interface ao vídeo bruto.
-    m = re.search(r"(?m)^\s*📝\s*Texto na Tela[^\n]*\n", roteiro)
-    if m:
-        fim = re.search(r"(?m)^\s*(?:###\s*🔑|🏁|Finalização\b)", roteiro[m.end():])
-        end = m.end() + (fim.start() if fim else len(roteiro[m.end():]))
-        trecho = roteiro[m.end():end]
-        variavel = diretriz['cta']
-        novo, n = re.subn(r"(?im)^([^\n]*)(?:CORRE NA SACOLINHA|CONFIRA NA SACOLINHA|CONHEÇA NA SACOLINHA)([^\n]*)$",
-                          lambda match: "🛒 " + variavel, trecho, count=1)
-        if n:
-            roteiro = roteiro[:m.end()] + novo + roteiro[end:]
+    # O texto na tela acompanha o encerramento REAL da fala, nunca uma frase fixa.
+    # Restrito ao bloco de vídeo, respeitando foto e SEO literalmente.
+    loc = elevo_copy_localizar_v16875(roteiro)
+    fala_final = loc[2] if loc else ""
+    limpo = re.sub(r"^\s*\[[^]]+\]\s*", "", fala_final).strip()
+    periodos = [x.strip() for x in re.split(r"(?<=[.!?])\s+", limpo) if x.strip()]
+    fecho = (periodos[-1] if periodos else limpo).strip().strip('"“”')
+    if len(elevo_copy_normalizar_v16875(fecho)) > 16:
+        fecho = " ".join(fecho.split()[-12:])
+    fecho = re.sub(r"(?i)\bsacolinhas?\b", "link do produto", fecho)
+    inicio_video = re.search(r"###\s*🎬\s*PROMPT DE V[ÍI]DEO[^\n]*\n", roteiro, re.I)
+    if inicio_video:
+        fim_video = re.search(r"(?m)^###\s*🔑", roteiro[inicio_video.end():])
+        fim_pos = inicio_video.end() + (fim_video.start() if fim_video else len(roteiro[inicio_video.end():]))
+        video = roteiro[inicio_video.end():fim_pos]
+        pos_tela = re.search(r"(?m)^\s*📝\s*Texto na Tela[^\n]*", video)
+        if pos_tela:
+            antes, tela = video[:pos_tela.start()], video[pos_tela.start():]
+            linhas = tela.splitlines(keepends=True)
+            for i, linha in enumerate(linhas):
+                if (re.search(r"(?i)\bsacolinhas?\b|\bsacolas?\b", linha)
+                    or ("FINAL INÉDITO COERENTE" in linha)
+                    or ("🛒" in linha and "📝" not in linha)):
+                    # Especialmente fallback da matriz com três legendas na mesma linha.
+                    if "📝" in linha and "🛒" in linha:
+                        linhas[i] = re.sub(r"🛒[^\n]*", "✨ " + fecho, linha)
+                    else:
+                        prefixo = re.match(r"^(\s*)([\"“]?)", linha)
+                        margem = prefixo.group(1) if prefixo else ""
+                        abre = prefixo.group(2) if prefixo else ""
+                        fecha = '"' if abre == '"' else '”' if abre == '“' else ''
+                        termino = "\n" if linha.endswith("\n") else ""
+                        linhas[i] = margem + abre + "✨ " + fecho + fecha + termino
+            video = antes + "".join(linhas)
+        # Eliminar eventual menção ao termo legado que a IA tenha posto em anotações de vídeo.
+        video = re.sub(r"(?i)\bsacolinhas?\b", "link do produto", video)
+        roteiro = roteiro[:inicio_video.end()] + video + roteiro[fim_pos:]
     return roteiro
 
 
@@ -9428,7 +9498,7 @@ NO FAKE REALISM: no extreme zoom jumps, sudden background swap, invented plants,
                 f"Reescreva a fala para ocupar de {max(duracao - 1, 9)} a {duracao} segundos falados em ritmo "
                 f"natural: entre {minimo} e {maximo} palavras (conte com cuidado). "
                 "Mantenha o mesmo gancho de abertura, a mesma dor, a mesma solução e o mesmo convite final "
-                "para a sacolinha, com tom de amiga e português do Brasil natural. "
+                "para consultar o produto no link nativo do vídeo, com fecho original e linguagem de amiga. "
                 "Cada frase traz informação nova: não repita palavras, expressões ou ideias e não use enchimento. "
                 "Não invente preço, desconto, estoque, prazo, marca ou benefício que não esteja na fala atual. "
                 "Sem colchetes, sem aspas, sem emojis e sem marcações de som. "
@@ -10047,7 +10117,7 @@ RAW photography, close-up POV handheld mobile phone shot. Extreme hyper-realism:
 🎬 COMANDO DE VÍDEO COMPLETO:
 Shot 1 (Macro Hook & Physics): [POV intensely erratic handheld mobile video, documentary chaos aesthetic. Extreme dynamic spatial movement, heavy camera shake, raw UGC vlog style. The extreme edges of the camera lens catch bright natural light flares from the varanda plants. Starts with an aggressive Macro Zoom In exclusively on the EXACT reference kit products (one tub held firmly in her hand while the other two tubs rest neatly beside her on the wooden counter against the green varanda background, making all three clearly visible). [CRITICAL PHYSICS & SCALING]: 1:1 real-world scale, strictly realistic size, perfectly proportioned to her hand, do not oversize. DO NOT alter or redraw the reference packaging. SINGLE MOTION TRICK (The Trigger Tap): Her clean free index finger performs a deliberate micro-tap on the lid of the main tub twice to emphasize it. NO hand overlapping, absolute physics stability, NO pixel melting.]
 Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto Aurora's face (straight bangs, wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while holding ONLY ONE tub in her hand and keeping the other two tubs resting stationary on the counter right beside her. ENVIRONMENT REINFORCEMENT LOCK: Bright Brazilian kitchen connected to a sunlit tropical varanda with dense green ferns. In the deep background, the caramel dog shifts position slightly.]
-Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+Interaction (Natural Closing): [0:08: The presenter keeps the exact product in clear view and makes a subtle natural pointing gesture, only if it matches her spoken invitation. No floating bag, product UI, digital object or fake shopping button.]
 [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
 
 📦 MOLDE 2: O GANCHO DA TEMPESTADE (Para Frascos Compactos 200ml-250ml - Banheiro Rústico com Vapor e Chuva)
@@ -11577,7 +11647,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_17.get('regra_pos_vid')}
 
             🚨 [REGRAS INQUEBRÁVEIS DE EXECUÇÃO]:
-            1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com um convite natural para conferir o produto na sacolinha, sem alegar oferta ou lote não confirmado! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
+            1. FALA COM LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, NUNCA faça propaganda genérica ("Você sabia que o segredo chegou?"). Comece rasgando a dor `{scan_17.get('dor_pt')}`, entregue a sensação física `{scan_17.get('solucao_pt')}` com intimidade de amiga fofoqueira do bem, e feche com convite contextual ao produto e ao link nativo do vídeo, sem falar sacolinha ou alegar oferta não confirmada! E NUNCA fale de "coreanas" a menos que a palavra "Coreana" esteja literalmente escrita em `{scan_17.get('nome_pt')}`!
             2. POSICIONAMENTO FÍSICO UNIVERSAL: Se houver {scan_17.get('qtd')} unidades, use {scan_17.get('regra_pos_img')}. Mantenha as unidades nas mesmas posições em imagem/vídeo. NUNCA descreva aparência, cor, tamanho nominal ou rótulo do produto por texto.
             3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: nos blocos visuais, refira-se ao item apenas como 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
             4. Escreva os blocos visuais (`PROMPT DE IMAGEM`, `Shot 1`, `Shot 2`, `Interaction (3D CTA)`, `[PRISTINE CANVAS LOCK]`) 100% em INGLÊS PURO e ultra-denso!
@@ -11590,16 +11660,16 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             ### 🎬 PROMPT DE VÍDEO COMPLETO E UNIFICADO
             Shot 1 (Natural Hook & Physics): [Escreva em inglês seguindo prioritariamente o PROTOCOLO FÍSICO REALISTA V10: smartphone estável, sem zoom agressivo, produto inteiro e contínuo do início ao fim, aplicando {scan_17.get('regra_pos_vid')} + CRITICAL REFERENCE PHYSICS: real-world product-to-hand scale without forced enlargement or miniature packaging + SINGLE MOTION TRICK (The Trigger Tap on the lid of the single unit held / ou movimento da peça de roupa). NO hand overlapping, absolute physics stability, NO pixel melting.]
             Shot 2 (Whip Pan & Visceral Emotion): [0:03: WHIP PAN and brutal focus pull! The camera violently tilts up and snaps focus onto {nome_inf_ativa}'s face (wireless lapel microphone clearly visible on her shirt, flawless skin with visible pores). VISCERAL EMOTION ACTIVE: She leans in aggressively towards the lens (The Gossip Lean), her chest heaving with heavy, urgent breathing, pupils visibly dilated, and she flashes a breathless, intensely serious expression of pure warning while {scan_17.get('regra_pos_vid')}. ENVIRONMENT REINFORCEMENT LOCK: Repita em inglês todos os detalhes do cenário da imagem, plantas vivas, baguncinha e o animal se mexendo sutilmente no fundo.]
-            Interaction (3D CTA): [0:08: She aggressively points her free index finger downwards towards the bottom corner of the screen. At this precise second, a highly realistic 3D floating orange shopping bag object materializes in the air near her pointing finger, casting realistic shadows. It is a physical 3D element pointing towards the UI button location.]
+            Interaction (Natural Closing): [0:08: The presenter keeps the exact product in clear view and makes a subtle natural pointing gesture, only if it matches her spoken invitation. No floating bag, product UI, digital object or fake shopping button.]
             [PRISTINE CANVAS LOCK - ZERO WATERMARKS]: [Strict requirement: The video frame must be completely devoid of any platform UI, handles, usernames, profile pictures, corner watermarks, or embedded social media logos from frame 0 to the final second. Pure clean video feed only.]
             🎙️ Áudio e Fala da {nome_inf_ativa} (Português — 100% Blindada Contra o Robô):
             Áudio (Inglês de fundo): [Audio captured via a wireless lapel microphone. Micro-ASMR intro (sound of product tap). Authentic room acoustics with subtle background ambient tones. Enthusiastic, urgent, conspiratorial voice, speaking as if revealing a highly guarded secret].
             Fala da {nome_inf_ativa}:
-            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite à sacolinha; cada frase traz informação nova, sem repetir palavras, expressões ou ideias; sem inventar lote, estoque, desconto ou preço numérico]"
+            "[Escreva em português uma fala visceral e magnética de {min_palavras_video_v16829} a {max_palavras_video_v16829} palavras para {segundos_video_v16829} segundos aplicando '{gancho_sorteado_17}', atacando diretamente a dor '{scan_17.get('dor_pt')}', entregando a sensação '{scan_17.get('solucao_pt')}' e fechando com convite IA original ligado a este produto, sem sacolinha; cada frase traz informação nova, sem repetir palavras, expressões ou ideias; sem inventar lote, estoque, desconto ou preço numérico]"
             📝 Texto na Tela (Nativo TikTok - Foco na Dor):
             ⚠️ [PERGUNTA CURTA E FORTE SOBRE A DOR]? 🛑
             ✨ [SENSAÇÃO / SOLUÇÃO IMEDIATA]
-            🛒 CONFIRA NA SACOLINHA 👇
+            ✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]
 
             ### 🔑 TÍTULOS SEO (Separados)
             **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_17.get('dor_pt')}']
@@ -11772,7 +11842,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
                 - REGRA OBRIGATÓRIA DE POSICIONAMENTO NO VÍDEO (DO INÍCIO AO FIM): {scan_v92.get('regra_pos_vid')}
 
                 🚨 [REGRAS INQUEBRÁVEIS V9.2]:
-                1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com convite natural à sacolinha, sem alegar lote ou oferta inexistente!
+                1. LEMA 'DOR -> SENSAÇÃO -> SOLUÇÃO': Na fala da {nome_inf_ativa}, é PROIBIDO soar como vendedor ou comercial fraco! Comece colocando o dedo na ferida (`{scan_v92.get('dor_pt')}`), entregue a sensação visceral do resultado (`{scan_v92.get('solucao_pt')}`) com tom de amiga fofoqueira urgente, e feche com convite inédito para conferir o item no vínculo nativo do vídeo, sem usar sacolinha nem alegar lote ou oferta inexistente!
                 2. Preserve exatamente o AMBIENTE ELEVO escolhido (ou sorteado), com planta, baguncinha e um animal ao fundo; a FOTO anexada é referência exclusiva para o PRODUTO, nunca para o cenário. NÃO descreva fisicamente o produto em texto.
                 3. BLOQUEIO ABSOLUTO DE DESCRIÇÃO DO PRODUTO: no PROMPT DE IMAGEM e no PROMPT DE VÍDEO, mencione apenas 'the exact product from the separately supplied reference image' ou 'the exact referenced items'. É PROIBIDO descrever cor, frasco, pote, tampa, rótulo, volume, textura de embalagem ou nome gráfico do produto.
                 4. Se houver {scan_v92.get('qtd')} unidades na foto, mantenha quantidade e identidade; apoio manual apenas se o tamanho real permitir, demais na bancada; nenhuma pode desaparecer ao mudar enquadramento.
@@ -11789,12 +11859,12 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
 
                 🎙️ Áudio (Gancho V9.2 — {segundos_video_v16829} Segundos):
                 (Abre em 0.0s com micro-efeito ASMR do produto/ambiente e um suspiro de advertência).
-                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM UM CONVITE À SACOLINHA; CADA FRASE TRAZ INFORMAÇÃO NOVA, SEM REPETIR PALAVRAS, EXPRESSÕES OU IDEIAS; SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
+                "[Micro-efeito ASMR + Suspiro] [ESCREVA EM PORTUGUÊS A FALA DE {segundos_video_v16829} SEGUNDOS ({min_palavras_video_v16829} A {max_palavras_video_v16829} PALAVRAS) APLICANDO '{gancho_sorteado_v92}': COMECE ATACANDO A DOR '{scan_v92.get('dor_pt')}', ENTREGUE A SENSAÇÃO '{scan_v92.get('solucao_pt')}' COM PROXIMIDADE DE AMIGA E FECHE COM CONVITE ORIGINAL E ÚTIL AO LINK NATIVO DESTE VÍDEO, SEM SACOLINHA; CADA FRASE TRAZ INFORMAÇÃO NOVA, SEM REPETIR PALAVRAS, EXPRESSÕES OU IDEIAS; SEM ESTOQUE OU PROMOÇÃO INVENTADOS, ZERO PREÇO NUMÉRICO]"
 
                 📝 Texto na Tela (Nativo TikTok - Foco na Dor):
                 "⚠️ [PERGUNTA CURTA E AFIADA SOBRE A DOR]? 🛑"
                 "[SENSAÇÃO / RESULTADO IMEDIATO] ✨"
-                "CORRE NA SACOLINHA 🛒👇"
+                "✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]"
                 [RENDERIZAR ESTAS TRÊS FRASES DIRETAMENTE NO VÍDEO GERADO; tipografia legível, em português, sem cobrir o produto nem introduzir interface TikTok ou marca d’água. NÃO são apenas anotações para edição.]
 
                 Finalização P1 Blindada:
@@ -12019,7 +12089,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
 
             🚨 [REGRAS]:
             1. A {nome_inf_ativa} NÃO aparece: a voz dela é NARRAÇÃO EM OFF, como quem filma as próprias mãos. Nunca diga "olha pra mim", "olha minha cara" ou algo que dependa do rosto.
-            2. FALA VIRAL: a primeira frase tem no máximo 6 palavras e prende na hora (curiosidade, choque leve ou confissão). Depois: dor → o que as mãos estão mostrando (sensação concreta: textura, peso, tamanho, caimento) → convite natural para a sacolinha. Tom de amiga, português do Brasil natural.
+            2. FALA VIRAL: a primeira frase tem no máximo 6 palavras e prende na hora (curiosidade, choque leve ou confissão). Depois: dor → o que as mãos estão mostrando (sensação concreta: textura, peso, tamanho, caimento) → convite original que retoma o problema e indica o link nativo do item. Sem sacolinha. Tom de amiga, português do Brasil natural.
             3. É PROIBIDO inventar preço, desconto, estoque, prazo, lote ou benefício que não esteja na dor/sensação acima. Nunca descreva cor, rótulo ou embalagem do produto.
             4. A parte visual será montada pela matriz fixa da ÉLÉVO; aqui escreva só um rascunho visual curto em inglês.
 
@@ -12037,7 +12107,7 @@ Não modificar vídeo, SEO, duração 10/12/15s, física ambiental nem UI.
             📝 Texto na Tela (Nativo TikTok):
             ⚡ [GANCHO CURTO QUE PARA A ROLAGEM]
             ✨ [SENSAÇÃO QUE AS MÃOS ESTÃO PROVANDO]
-            🛒 CONFIRA NA SACOLINHA 👇
+            ✨ [FINAL INÉDITO COERENTE COM A FALA E O PRODUTO]
 
             ### 🔑 TÍTULOS SEO (Separados)
             **🔍 Geral (Dor):** [Título focado na solução da dor '{scan_maos.get('dor_pt')}']
