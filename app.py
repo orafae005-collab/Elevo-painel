@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.88 — acesso por e-mail/senha; verificação 4h com suspensão; recuperação para contas comuns; sem login social
 # ÉLÉVO V16.8.87 — login estilo app premium; Google à vista; pré-cadastro por 4h
 # ÉLÉVO V16.8.86 — WhatsApp flutuante nativo e animado (correção de SVG gigante/HTML exposto)
 # ÉLÉVO V16.8.85 — atendimento WhatsApp, menu lateral e email verificado por OTP (ativação segura)
@@ -286,7 +287,7 @@ SESSAO_DADOS_PRIVADOS = {
     "elevo_bv_epoca_local_v16814", "elevo_bv_chave_v16814",
     "elevo_bv_password_nonce_v16814", "elevo_bv_google_nonce_v16814",
     "elevo_cadastro_otp_pendente_v16885", "elevo_senha_otp_email_v16885",
-    "elevo_preconta_email_v16887",
+    "elevo_preconta_email_v16887", "elevo_email_aviso_adiado_v16888",
 }
 
 def limpar_sessao_privada():
@@ -490,41 +491,15 @@ def entrar_usuario(email, nome):
     cookies.save()
 
 # ==========================================================
-# AUTENTICAÇÃO OPCIONAL GOOGLE (OIDC, sem acessar o Google Flow)
-# Configurar [auth] e [auth.google] nos Secrets (ver guia do pacote).
-# st.login valida ID token; autorização vem do cadastro e vínculo salvo.
-# ==========================================================
-def google_habilitado():
-    """Aceita tanto [auth.google] (provider nomeado) quanto [auth] Google padrão."""
-    try:
-        configuracao = st.secrets.get("auth", {})
-        provedor = configuracao.get("google") or configuracao
-        return bool(configuracao.get("cookie_secret") and configuracao.get("redirect_uri")
-                    and provedor.get("client_id") and provedor.get("client_secret")
-                    and provedor.get("server_metadata_url"))
-    except (AttributeError, KeyError, TypeError):
-        return False
-
-GOOGLE_ATIVO = google_habilitado()
-
-
-def elevo_google_login_v16887():
-    """Abre o seletor oficial do Google, jamais uma imitação no HTML."""
-    if not GOOGLE_ATIVO:
-        raise RuntimeError("Login Google depende da configuração do OAuth no Google Cloud.")
-    autenticacao = st.secrets.get("auth", {})
-    if autenticacao.get("google"):
-        st.login("google")
-    else:
-        st.login()
-
+# LOGIN ÉLÉVO V16.8.88 — somente e-mail e senha.
+# O envio de códigos por SMTP é independente do serviço de login social.
 # ==========================================================
 # V16.8.84 — DOCUMENTOS LEGAIS E ACEITES (PLANILHA SEPARADA).
-# Login Google é OIDC padrão do Streamlit, sem Gmail/Drive scopes.
+# Documentos e aceite versionado para contas com e-mail e senha.
 # Ativação de documentos exige dados reais do responsável e do contato;
 # isso evita publicar uma política contendo informações inventadas.
 # ==========================================================
-ELEVO_LEGAL_VERSAO_V16884 = "2026-11-13-v2"
+ELEVO_LEGAL_VERSAO_V16884 = "2026-11-13-v3"
 ELEVO_LEGAL_COLUNAS_V16884 = ["Id", "Email", "Versao", "Data", "Origem", "TermosAceitos", "PoliticaInformada"]
 ELEVO_SUPORTE_EMAIL_V16884 = str(st.secrets.get("ELEVO_SUPORTE_EMAIL", "") or "").strip().lower()
 ELEVO_RESPONSAVEL_V16884 = str(st.secrets.get("ELEVO_RESPONSAVEL_LEGAL", "") or "").strip()
@@ -550,8 +525,9 @@ roteiros, prompts e recursos de gestão de créditos. Os resultados dependem da 
 da revisão humana e de serviços externos; não há promessa de vendas, alcance ou viralização.
 
 **2. Conta e acesso.** O usuário deve fornecer informações corretas, preservar seus acessos e
-não compartilhar credenciais. É possível entrar por senha ou por Google, quando habilitado. A
-conta Google não autoriza leitura de mensagens do Gmail ou arquivos do Drive.
+não compartilhar credenciais. O acesso é realizado por e-mail e senha. No cadastro, a
+confirmação do e-mail é solicitada por código; contas novas pendentes podem ser suspensas
+por falta de verificação depois de quatro horas, sem excluir sua caixa de e-mail.
 
 **3. Créditos e compras.** O saldo e o preço de cada pacote são exibidos antes da compra. Uma
 criação consome os créditos mostrados no aplicativo; os valores podem ser atualizados com aviso
@@ -578,13 +554,15 @@ data serão registradas para comprovação.
 **Responsável pelo tratamento:** {responsavel}  
 **Contato para privacidade e solicitações LGPD:** {contato}
 
-**Quais dados usamos.** Nome/apelido, e-mail, hash da senha quando houver, identificação Google
-(`sub`) se a pessoa vincular sua conta, foto de perfil opcional, registros de créditos, compras,
+**Quais dados usamos.** Nome/apelido, e-mail, hash da senha, foto de perfil opcional,
+registros de créditos, compras,
 aceite dos Termos, histórico administrativo de acesso e moderação, códigos de confirmação
-armazenados como hash, horário e tentativas de uso para cadastro ou recuperação. Registros de cadastro ainda não verificado têm prazo máximo de quatro horas para habilitação; sem confirmação, não dão acesso ao serviço e serão descartados. Os códigos
-expiram em dez minutos; registros técnicos devem seguir a política de retenção do operador.
-Pedidos pagos podem envolver informações de pagamento processadas pelo Mercado Pago. O aplicativo não precisa ter acesso às
-mensagens do Gmail ou aos arquivos Google Drive dos clientes para fazer login.
+armazenados como hash, horário e tentativas de uso para cadastro ou recuperação. Registros de pré-cadastro não verificado ficam pendentes por até quatro horas; depois,
+permanecem suspensos até confirmação do e-mail, sujeito a retenção e descarte conforme a
+política do responsável. Contas anteriores não são suspensas apenas por ausência dessa confirmação.
+Os códigos expiram em dez minutos; registros técnicos seguem a política de retenção do operador.
+Pedidos pagos podem envolver informações processadas pelo Mercado Pago.
+O envio de códigos não requer acesso às mensagens da caixa postal do cliente.
 
 **Para que servem.** Cadastro/autenticação, prestação do serviço, proteção das contas,
 gerenciamento de créditos, pagamentos, atendimento, controle de abusos e cumprimento de
@@ -593,7 +571,7 @@ cumprimento de obrigação legal e legítimo interesse, sujeito à avaliação a
 que dependam de consentimento específico exigirão manifestação separada.
 
 **Com quem compartilhamos.** Provedores técnicos essenciais ao serviço, como Streamlit
-(hospedagem), Google (identidade e armazenamento administrativo via conta de serviço),
+(hospedagem), Google Sheets (armazenamento administrativo via conta de serviço),
 Mercado Pago (pagamentos), OpenAI (geração por IA), serviço de envio de e-mail (códigos de
 verificação) e eventuais serviços de síntese de voz, na medida necessária à função utilizada.
 Ao optar por contato no WhatsApp, a pessoa é direcionada ao serviço externo de mensagens.
@@ -837,6 +815,110 @@ def elevo_senha_redefinir_v16885(email, nova_senha):
 
 
 # ==========================================================
+# V16.8.88 — MARCAÇÃO DE E-MAIL VERIFICADO (aba segregada)
+# Contas antigas não são punidas por não haver histórico de verificação.
+# ==========================================================
+ELEVO_EMAIL_VERIFICADOS_ABA_V16888 = "Elevo_Emails_Verificados_V1"
+ELEVO_EMAIL_VERIFICADOS_COLS_V16888 = ["Email", "Estado", "CriadoEm", "VerificadoEm", "Origem"]
+
+
+def elevo_email_verificacao_aba_v16888():
+    if robo_sheets is None:
+        raise RuntimeError("Verificação temporariamente indisponível")
+    planilha = elevo_pasta_principal_v16816()
+    try:
+        return planilha.worksheet(ELEVO_EMAIL_VERIFICADOS_ABA_V16888)
+    except gspread.exceptions.WorksheetNotFound:
+        try:
+            aba = planilha.add_worksheet(title=ELEVO_EMAIL_VERIFICADOS_ABA_V16888, rows=3000, cols=5)
+            aba.append_row(ELEVO_EMAIL_VERIFICADOS_COLS_V16888, value_input_option="RAW")
+            return aba
+        except Exception:
+            return planilha.worksheet(ELEVO_EMAIL_VERIFICADOS_ABA_V16888)
+
+
+def elevo_email_esta_verificado_v16888(email):
+    email = str(email or "").strip().lower()
+    if not email:
+        return False
+    if email == str(EMAIL_MESTRE).strip().lower():
+        return True  # A identidade administrativa é tratada nos Secrets.
+    aba = elevo_email_verificacao_aba_v16888()
+    regs = aba.get_all_records()
+    for reg in reversed(regs):
+        if str(reg.get("Email", "")).strip().lower() == email:
+            return str(reg.get("Estado", "")).strip().upper() == "VERIFICADO"
+    return False
+
+
+def elevo_email_marcar_verificado_v16888(email, origem="codigo"):
+    """Somente chamar após confirmar OTP; nunca por preenchimento de formulário."""
+    email = str(email or "").strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
+        raise ValueError("E-mail inválido")
+    aba = elevo_email_verificacao_aba_v16888()
+    regs = aba.get_all_records()
+    for idx, reg in reversed(list(enumerate(regs, start=2))):
+        if str(reg.get("Email", "")).strip().lower() != email:
+            continue
+        if str(reg.get("Estado", "")).upper() != "VERIFICADO":
+            aba.update_cell(idx, 2, "VERIFICADO")
+            aba.update_cell(idx, 4, datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat())
+            aba.update_cell(idx, 5, str(origem)[:40])
+        return True
+    agora = datetime.now(ZoneInfo("America/Sao_Paulo")).isoformat()
+    aba.append_row([email, "VERIFICADO", agora, agora, str(origem)[:40]], value_input_option="RAW")
+    return True
+
+
+def elevo_preconta_finalizar_por_recuperacao_v16888(email, nova_senha):
+    """Após confirmação de código 'senha', converte pré-conta em conta verificada."""
+    pendente = elevo_preconta_buscar_v16887(email)
+    if not pendente:
+        raise ValueError("Cadastro provisório não localizado.")
+    if usuario_cadastrado_por_email(email):
+        raise ValueError("Já existe uma conta definitiva para este endereço.")
+    if len(str(nova_senha)) < 10:
+        raise ValueError("A nova senha precisa ter pelo menos 10 caracteres.")
+    elevo_conta_verificada_criar_v16885(email, pendente["nome"], senha_hash(nova_senha))
+    elevo_email_marcar_verificado_v16888(email, "recuperacao")
+    try:
+        elevo_preconta_descartar_v16887(email)
+    except Exception:
+        logging.warning("ELEVO_PRECONTA: remoção de pré-cadastro adiada após recuperação")
+    return True
+
+
+def elevo_smtp_teste_ceo_v16888():
+    """Teste privado: conexão/autenticação SMTP e aceitação de mensagem pelo servidor."""
+    if not elevo_admin_v16813():
+        raise PermissionError("Ação exclusiva do administrador")
+    if not elevo_email_envio_pronto_v16885():
+        raise RuntimeError("Configure ELEVO_SMTP_HOST/PORT/USER/PASSWORD/FROM nos Secrets")
+    destinatario = ELEVO_SUPORTE_EMAIL_V16884 or ELEVO_SMTP_FROM_V16885
+    msg = EmailMessage()
+    msg["Subject"] = "ÉLÉVO | teste do envio automático"
+    msg["From"] = ELEVO_SMTP_FROM_V16885
+    msg["To"] = destinatario
+    msg.set_content("Teste de conexão SMTP da ÉLÉVO. Nenhuma ação é necessária.")
+    try:
+        if ELEVO_SMTP_PORT_V16885 == 465:
+            with smtplib.SMTP_SSL(ELEVO_SMTP_HOST_V16885, 465, timeout=15,
+                                  context=ssl.create_default_context()) as c:
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+        else:
+            with smtplib.SMTP(ELEVO_SMTP_HOST_V16885, 587, timeout=15) as c:
+                c.starttls(context=ssl.create_default_context())
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+    except Exception:
+        logging.warning("ELEVO_SMTP_DIAG: teste falhou (sem divulgar segredos)")
+        raise RuntimeError("O servidor não aceitou o teste SMTP. Confira os Secrets.")
+    return destinatario
+
+
+# ==========================================================
 # V16.8.87 — PRÉ-CADASTRO COM PRAZO ABSOLUTO DE 4 HORAS
 # A conta NÃO entra no Banco_Usuarios nem recebe créditos até confirmar OTP.
 # Verificar Depois é seguro: login provisório só mostra o código.
@@ -862,7 +944,10 @@ def elevo_preconta_aba_v16887():
 
 
 def elevo_preconta_buscar_v16887(email, limpar_expirado=True):
-    """Falha fechada: pré-conta vencida não autentica, mesmo sem limpeza física."""
+    """Pré-conta fica suspensa após 4h e pode ser reativada com código válido.
+
+    O argumento antigo é preservado para compatibilidade, mas não apaga linhas.
+    """
     email = str(email or "").strip().lower()
     if not email:
         return None
@@ -872,20 +957,21 @@ def elevo_preconta_buscar_v16887(email, limpar_expirado=True):
         r = regs[i]
         if str(r.get("Email", "")).strip().lower() != email:
             continue
-        if str(r.get("Estado", "")).strip().upper() != "PENDENTE":
+        estado = str(r.get("Estado", "")).strip().upper()
+        if estado not in ("PENDENTE", "SUSPENSO_VERIFICACAO"):
             return None
         limite = int(r.get("Expira") or 0)
-        if limite <= int(time.time()):
-            if limpar_expirado:
-                try:
-                    aba.delete_rows(i+2)
-                except Exception:
-                    logging.warning("ELEVO_PRECONTA: limpeza adiada, conta já bloqueada por TTL")
-            return None
+        suspensa = (limite <= int(time.time()) or estado == "SUSPENSO_VERIFICACAO")
+        if suspensa and estado == "PENDENTE" and limpar_expirado:
+            try:
+                aba.update_cell(i+2, 7, "SUSPENSO_VERIFICACAO")
+            except Exception:
+                # Mesmo se a planilha oscilar, a checagem do TTL já suspende.
+                logging.warning("ELEVO_PRECONTA: status suspenso sem confirmação de escrita")
         return {"email":email, "nome":str(r.get("Nome") or "Usuário"),
                 "hash":str(r.get("SenhaHash") or ""),
                 "aceitou":str(r.get("AceitouTermos") or "").upper() == "SIM",
-                "expira":limite, "linha":i+2, "id":str(r.get("Id") or "")}
+                "expira":limite, "suspensa":suspensa, "linha":i+2, "id":str(r.get("Id") or "")}
     return None
 
 
@@ -900,7 +986,7 @@ def elevo_preconta_criar_v16887(email, nome, senha, aceitou):
     if email == EMAIL_MESTRE.strip().lower() or usuario_cadastrado_por_email(email):
         raise ValueError("Este e-mail já pertence a uma conta ÉLÉVO.")
     if elevo_preconta_buscar_v16887(email):
-        raise ValueError("Este e-mail tem um cadastro pendente. Acesse Entrar para verificar.")
+        raise ValueError("Este e-mail tem cadastro pendente ou suspenso. Entre com sua senha e verifique o e-mail para ativar.")
     if not elevo_email_envio_pronto_v16885():
         raise RuntimeError("O envio automático de códigos ainda não está disponível. Fale com o suporte.")
     agora = int(time.time())
@@ -921,13 +1007,14 @@ def elevo_preconta_descartar_v16887(email):
 
 
 def elevo_preconta_finalizar_v16887(email):
-    """Chamar SOMENTE após OTP confirmado; recusa vencimento de 4h."""
+    """Chamar SOMENTE após OTP confirmado; pode reativar conta suspensa."""
     pendente = elevo_preconta_buscar_v16887(email)
     if not pendente:
-        raise ValueError("Cadastro expirou. Crie um novo cadastro para continuar.")
+        raise ValueError("Cadastro provisório não localizado. Procure o suporte.")
     if usuario_cadastrado_por_email(email):
         raise ValueError("Este e-mail já tem uma conta. Entre normalmente.")
     elevo_conta_verificada_criar_v16885(email, pendente["nome"], pendente["hash"])
+    elevo_email_marcar_verificado_v16888(email, "cadastro")
     try:
         elevo_preconta_descartar_v16887(email)
     except Exception:
@@ -944,13 +1031,17 @@ def elevo_preconta_aviso_v16887(email):
         return
     if not pendente:
         st.session_state.pop("elevo_preconta_email_v16887", None)
-        st.warning("Seu cadastro provisório não existe mais ou expirou após quatro horas. Crie uma nova conta.")
+        st.warning("Cadastro provisório não encontrado. Procure o suporte se precisar recuperar o acesso.")
         return
     segundos = max(0, pendente["expira"] - int(time.time()))
-    st.markdown("#### 📩 Confirme seu e-mail")
-    st.info(f"Cadastro iniciado para **{html_std.escape(email)}**. "
-            f"Faltam aproximadamente **{segundos//3600}h {(segundos%3600)//60}min** para confirmar. "
-            "O código enviado vence em 10 minutos; você pode solicitar outro.")
+    st.markdown("#### 📩 Verificação do seu e-mail")
+    if pendente["suspensa"]:
+        st.error("Sua conta provisória está **suspensa por falta de verificação** após quatro horas. "
+                 "Você pode pedir um novo código e confirmar agora para ativá-la; seus dados não foram apagados.")
+    else:
+        st.info(f"Conta provisória de **{html_std.escape(email)}**. "
+                f"Restam **{segundos//3600}h {(segundos%3600)//60}min** até a suspensão. "
+                "Você pode verificar agora ou depois. O código dura 10 minutos.")
     col_agora, col_depois = st.columns(2)
     with col_agora:
         if st.button("✉ Enviar / reenviar código", key="elevo_preconta_send_v16887",
@@ -965,7 +1056,7 @@ def elevo_preconta_aviso_v16887(email):
     with col_depois:
         if st.button("Depois", key="elevo_preconta_later_v16887", use_container_width=True):
             st.session_state.pop("elevo_preconta_email_v16887", None)
-            st.info("Você poderá voltar por Entrar, com este e-mail e senha, dentro de quatro horas.")
+            st.info("Você poderá voltar por Entrar com este e-mail e senha; após quatro horas, a conta fica suspensa até confirmar o código.")
             st.rerun()
     with st.form("elevo_preconta_otp_form_v16887"):
         codigo = st.text_input("Código de 6 dígitos", max_chars=6,
@@ -973,9 +1064,9 @@ def elevo_preconta_aviso_v16887(email):
         confirmado = st.form_submit_button("✓ Verificar agora", type="primary", use_container_width=True)
     if confirmado:
         try:
-            # Não aceitar códigos para contas que venceram durante o preenchimento.
+            # Conta suspensa após quatro horas ainda pode ser reativada com OTP.
             if not elevo_preconta_buscar_v16887(email):
-                st.error("Prazo de quatro horas encerrado. Faça um novo cadastro.")
+                st.error("Cadastro não encontrado. Peça ajuda ao suporte.")
             elif not elevo_codigo_confirmar_v16885(email, "cadastro", codigo):
                 st.error("Código inválido, expirado ou já usado. Solicite outro.")
             else:
@@ -1054,59 +1145,6 @@ with st.container(key="elevo_wa_fab_v16886"):
                    use_container_width=False)
 
 
-def google_identidade_atual():
-    """Somente Google autenticado/validado e com e-mail verificado."""
-    if not GOOGLE_ATIVO or not st.user.is_logged_in:
-        return None
-    ident = st.user
-    email = str(ident.get("email", "")).strip().lower()
-    sub = str(ident.get("sub", "")).strip()
-    email_confirmado = ident.get("email_verified", False) in (True, "true", "True", "1", 1)
-    if not sub or not email_confirmado or not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
-        return None
-    return {"email": email, "sub": sub, "nome": str(ident.get("name", "")).strip() or email.split("@")[0]}
-
-
-def _aba_google_vinculos():
-    if not robo_sheets:
-        raise RuntimeError("Banco de dados indisponível")
-    planilha = robo_sheets.open_by_key(re.search(r'/d/([a-zA-Z0-9-_]+)', LINK_BANCO_MESTRE).group(1))
-    try:
-        return planilha.worksheet("Google_Vinculos")
-    except gspread.exceptions.WorksheetNotFound:
-        aba = planilha.add_worksheet(title="Google_Vinculos", rows="1000", cols="4")
-        aba.append_row(["Google_Sub", "Email_Google", "Email_Conta", "Criado_Em"])
-        return aba
-
-
-def buscar_vinculo_google(ident):
-    """Não confundir e-mail Google com autorização; o vínculo usa sub."""
-    registros = _aba_google_vinculos().get_all_records()
-    correspondencias = [r for r in registros if str(r.get("Google_Sub", "")) == ident["sub"]]
-    if len(correspondencias) != 1:
-        return None
-    registro = correspondencias[0]
-    if str(registro.get("Email_Google", "")).strip().lower() != ident["email"]:
-        return None
-    return str(registro.get("Email_Conta", "")).strip().lower()
-
-
-def gravar_vinculo_google(ident, email_conta):
-    email_conta = email_conta.strip().lower()
-    if ident["email"] != email_conta:
-        raise ValueError("Por segurança, a conta Google precisa usar o mesmo e-mail do cadastro.")
-    aba = _aba_google_vinculos()
-    registros = aba.get_all_records()
-    for r in registros:
-        if str(r.get("Google_Sub", "")) == ident["sub"]:
-            return str(r.get("Email_Conta", "")).strip().lower() == email_conta
-        if str(r.get("Email_Conta", "")).strip().lower() == email_conta:
-            raise ValueError("Esta conta já está vinculada a outro Google.")
-    aba.append_row([ident["sub"], ident["email"], email_conta,
-                    datetime.now(ZoneInfo("America/Sao_Paulo")).strftime("%d/%m/%Y %H:%M")])
-    return True
-
-
 def usuario_cadastrado_por_email(email):
     if email == EMAIL_MESTRE.strip().lower():
         return {"Email": EMAIL_MESTRE, "Nome": "Sócio", "Senha": ""}
@@ -1116,38 +1154,7 @@ def usuario_cadastrado_por_email(email):
     return next((u for u in usuarios if str(u.get("Email", "")).strip().lower() == email), None)
 
 
-def entrar_com_google_vinculado(ident):
-    email_vinculado = buscar_vinculo_google(ident)
-    if not email_vinculado:
-        return False
-    conta = usuario_cadastrado_por_email(email_vinculado)
-    if not conta:
-        return False  # Cadastro removido / revogado.
-    ativar_identidade(email_vinculado, str(conta.get("Nome", "Usuário")), "google")
-    return True
-
-ident_google = google_identidade_atual() if GOOGLE_ATIVO else None
-if (GOOGLE_ATIVO and st.user.is_logged_in
-        and not st.session_state.get("elevo_logout_pendente", False)
-        and st.query_params.get("elevo_acesso") != "novo"):
-    # Identidade Google assume precedência, NUNCA herda a sessão de outro Gmail.
-    if not ident_google:
-        st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
-        st.session_state["google_erro"] = "Conta Google sem identidade ou e-mail verificado."
-    else:
-        try:
-            if not entrar_com_google_vinculado(ident_google):
-                if st.session_state.get("email_usuario") != ident_google["email"]:
-                    limpar_sessao_privada()
-                st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
-                st.session_state["google_pendente"] = True
-                st.session_state.pop("google_erro", None)
-            else:
-                st.session_state.pop("google_pendente", None)
-                st.session_state.pop("google_erro", None)
-        except Exception:
-            st.session_state.update(usuario_logado=False, email_usuario="", nome_usuario="", auth_metodo="")
-            st.session_state["google_erro"] = "Não foi possível validar o vínculo Google no banco. Acesso não liberado."
+# A V16.8.88 não ativa login social nem faz vinculação de provedores.
 
 # Códigos antigos ?sessao=... eram falsificáveis: eliminar e nunca aceitá-los.
 if "sessao" in st.query_params:
@@ -1167,8 +1174,7 @@ if st.session_state.get("elevo_logout_pendente", False) or ELEVO_MOSTRAR_LOGIN:
 if (not st.session_state["usuario_logado"]
         and not st.session_state.get("elevo_logout_pendente", False)
         and not ELEVO_MOSTRAR_LOGIN
-        and cookies.get("login")
-        and not (GOOGLE_ATIVO and st.user.is_logged_in)):
+        and cookies.get("login")):
     email_cookie = ler_token(cookies.get("login", ""))
     if email_cookie == EMAIL_MESTRE.strip().lower():
         ativar_identidade(EMAIL_MESTRE, "Sócio", "senha")
@@ -1230,7 +1236,7 @@ if not st.session_state["usuario_logado"]:
 
     # ==========================================================
     # V16.8.59 — NOVA PORTARIA VIP (somente visual + sem autocadastro).
-    # A lógica de senha, cookies, Google e Aurora é a MESMA de antes.
+    # A lógica de senha, cookies e Aurora permanece; autenticação social foi retirada.
     # Contas novas agora são liberadas apenas pelo CEO no painel administrativo.
     # ==========================================================
     st.markdown("""
@@ -1403,115 +1409,10 @@ if not st.session_state["usuario_logado"]:
 
     with _evl_col_form:
         with st.container(key="elevo_login_card_v16859"):
-            if GOOGLE_ATIVO and ident_google and st.session_state.get("google_pendente"):
-                st.markdown("""<div class="evl-card-head"><div class="evl-lock">🔗</div>
-                    <h3>Finalizar acesso com Google</h3>
-                    <p>Confirme que esta conta Google é sua.</p></div>""", unsafe_allow_html=True)
-                st.info(f"Google autenticado: **{ident_google['email']}**")
-                try:
-                    conta_google_atual = usuario_cadastrado_por_email(ident_google["email"])
-                    if conta_google_atual:
-                        st.caption("Este e-mail já possui conta ÉLÉVO. Confirme a senha atual para vincular com segurança.")
-                        with st.form("vinculo_google_seguro"):
-                            senha_de_vinculo = st.text_input("Senha atual da sua conta ÉLÉVO", type="password")
-                            confirmar_vinculo = st.form_submit_button("🔗 VINCULAR MINHA CONTA GOOGLE", use_container_width=True)
-                        if confirmar_vinculo:
-                            senha_ok = (hmac.compare_digest(senha_de_vinculo, SENHA_MESTRA)
-                                        if ident_google["email"] == EMAIL_MESTRE.strip().lower()
-                                        else senha_confere(senha_de_vinculo, conta_google_atual.get("Senha", "")))
-                            if senha_ok and senha_de_vinculo:
-                                try:
-                                    if gravar_vinculo_google(ident_google, ident_google["email"]):
-                                        ativar_identidade(ident_google["email"], str(conta_google_atual.get("Nome", "Usuário")), "google")
-                                        st.rerun()
-                                except Exception:
-                                    st.error("Não foi possível gravar o vínculo. Tente novamente.")
-                            else:
-                                st.error("Senha atual inválida. Vínculo não autorizado.")
-                    else:
-                        # V16.8.63 — cadastro aberto de novo: primeiro acesso com Google cria a conta.
-                        st.caption("Primeiro acesso com Google? Você poderá usar esta conta sem criar outra senha.")
-                        elevo_legal_exibir_documentos_v16884()
-                        _google_aceita_v16884 = st.checkbox(
-                            "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
-                            key="elevo_google_aceite_v16884", value=False)
-                        if st.button("✨ Criar meu acesso com Google", use_container_width=True, key="btn_criar_google_v16863"):
-                            if ELEVO_LEGAL_ATIVO_V16884 and not _google_aceita_v16884:
-                                st.warning("Leia e aceite os Termos para criar a conta.")
-                                st.stop()
-                            try:
-                                if st.query_params.get("elevo_acesso") == "novo":
-                                    del st.query_params["elevo_acesso"]
-                                st.session_state.pop("elevo_logout_pendente", None)
-                                # Senha aleatória não entregue ao usuário; login por OIDC.
-                                if not gravar_vinculo_google(ident_google, ident_google["email"]):
-                                    raise RuntimeError("Falha ao vincular")
-                                cadastrado = conectar_banco_usuarios("salvar", ident_google["email"], ident_google["nome"], secrets.token_urlsafe(48))
-                                if not cadastrado:
-                                    raise RuntimeError("Falha ao criar conta")
-                                ativar_identidade(ident_google["email"], ident_google["nome"], "google")
-                                try:
-                                    elevo_preconta_descartar_v16887(ident_google["email"])
-                                except Exception:
-                                    pass  # Conta Google foi concluída; registro provisório expira sozinho.
-                                if ELEVO_LEGAL_ATIVO_V16884 and _google_aceita_v16884:
-                                    st.session_state["elevo_legal_pendente_v16884"] = ident_google["email"]
-                                st.rerun()
-                            except Exception:
-                                st.error("Não foi possível concluir o cadastro Google. Não crie outra conta: tente novamente com o mesmo Google quando o banco estiver disponível.")
-                except Exception:
-                    st.error("O banco de usuários está indisponível. Acesso Google não foi liberado.")
-                if st.button("Cancelar / escolher outra conta Google", key="cancelar_google_pendente",
-                             use_container_width=True):
-                    st.logout()
-                st.stop()
-            if st.session_state.get("google_erro"):
-                st.error(st.session_state["google_erro"])
-                if st.button("Sair da conta Google atual", use_container_width=True):
-                    st.logout()
-                st.stop()
-
-            # V16.8.87 — primeiro Google oficial, depois e-mail; sem login simulado.
+            # V16.8.88 — entrada por e-mail e senha, sem botão ou mensagem de login social.
             st.markdown("""<div class="evl-card-head"><div class="evl-lock">💎</div>
                 <h3>Bem-vindo à ÉLÉVO</h3>
-                <p>Escolha como prefere entrar ou criar sua conta.</p></div>""", unsafe_allow_html=True)
-            st.markdown("""<style>
-            .st-key-elevo_login_card_v16859 .st-key-elevo_google_btn_v16887 button {
-                min-height:53px!important; background:#F8FAFC!important; color:#18304F!important;
-                border:1px solid #CFD9E6!important; border-radius:14px!important;
-                box-shadow:0 8px 22px rgba(0,0,0,.12)!important; font-weight:800!important;
-            }
-            .st-key-elevo_login_card_v16859 .st-key-elevo_google_btn_v16887 button p {
-                color:#18304F!important; font-weight:800!important;
-            }
-            .st-key-elevo_login_card_v16859 .st-key-elevo_google_btn_v16887 button:hover {
-                background:#FFFFFF!important; border-color:#7EAFDD!important;
-            }
-            /* Pequeno G colorido, sem imagem externa nem JavaScript de terceiros. */
-            .st-key-elevo_login_card_v16859 .st-key-elevo_google_btn_v16887 button::before {
-                content:"G"; display:inline-block; margin-right:9px; font:900 1.25rem Arial,sans-serif;
-                background:conic-gradient(from -35deg,#4285F4 0 25%,#34A853 25% 50%,#FBBC05 50% 75%,#EA4335 75% 100%);
-                -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent;
-            }
-            .evl-auth-separator-v16887 {display:flex; align-items:center; gap:13px;
-                color:#9EB0C7; font-size:.77rem; margin:1.15rem 0 .8rem;}
-            .evl-auth-separator-v16887:before,.evl-auth-separator-v16887:after {
-                content:"";height:1px;flex:1;background:rgba(137,171,207,.23);}
-            </style>""",unsafe_allow_html=True)
-            with st.container(key="elevo_google_btn_v16887"):
-                if GOOGLE_ATIVO:
-                    if st.button("Continuar com Google", key="elevo_google_principal_v16887",
-                                 use_container_width=True):
-                        if st.query_params.get("elevo_acesso") == "novo":
-                            del st.query_params["elevo_acesso"]
-                        st.session_state.pop("elevo_logout_pendente", None)
-                        elevo_google_login_v16887()
-                else:
-                    st.button("Continuar com Google", key="elevo_google_nao_ativo_v16887",
-                              use_container_width=True, disabled=True,
-                              help="O administrador ainda precisa ativar o Google Cloud OAuth.")
-                    st.caption("Login Google em ativação. É necessário configurar o Google Cloud e os Secrets; a senha de app do Gmail não ativa este botão.")
-            st.markdown('<div class="evl-auth-separator-v16887">ou use e-mail e senha</div>',unsafe_allow_html=True)
+                <p>Entre com seu e-mail ou crie sua conta em poucos passos.</p></div>""", unsafe_allow_html=True)
             # Aviso fora das abas para aparecer IMEDIATAMENTE quando o cliente voltar.
             _preconta_atual_v16887 = st.session_state.get("elevo_preconta_email_v16887", "")
             if _preconta_atual_v16887:
@@ -1529,7 +1430,7 @@ if not st.session_state["usuario_logado"]:
                             "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
                             key="elevo_signup_aceite_v16884",value=False)
                         criar_conta_btn = st.form_submit_button("Criar conta com e-mail",use_container_width=True,type="primary")
-                    st.caption("Conta provisória por até quatro horas. Verifique agora ou depois. Seus 100 créditos iniciais ficam disponíveis após a confirmação.")
+                    st.caption("Crie sua conta, verifique agora ou depois. Após quatro horas sem confirmação, o cadastro fica suspenso até verificar. Os 100 créditos são liberados somente após a verificação.")
                     if criar_conta_btn:
                         email_clean = novo_email.strip().lower()
                         try:
@@ -1575,10 +1476,10 @@ if not st.session_state["usuario_logado"]:
                                         provisoria = elevo_preconta_buscar_v16887(email_clean)
                                         if provisoria and senha_confere(senha_input, provisoria["hash"]):
                                             st.session_state["elevo_preconta_email_v16887"] = email_clean
-                                            st.info("Conta provisória: conclua a verificação do e-mail na aba Criar conta em até quatro horas.")
+                                            st.info("Cadastro provisório: verifique seu e-mail para ativar. Se passou das quatro horas, ele permanece suspenso até a confirmação.")
                                             st.rerun()
                                         else:
-                                            st.error("E-mail ou senha incorretos, ou cadastro provisório vencido.")
+                                            st.error("E-mail ou senha incorretos.")
                                     except Exception:
                                         st.error("Não foi possível consultar o cadastro provisório. Tente novamente.")
                             else: st.error("Não foi possível conectar ao servidor. Tente novamente em instantes.")
@@ -1586,7 +1487,7 @@ if not st.session_state["usuario_logado"]:
 
                 with st.expander("🔑 Esqueci minha senha", expanded=False):
                     st.caption("Receba um código no e-mail cadastrado para definir uma nova senha. "
-                               "Contas Google podem entrar pelo botão Google.")
+                               "Funciona também em cadastros provisórios ou suspensos por falta de verificação.")
                     if elevo_email_envio_pronto_v16885():
                         with st.form("elevo_senha_solicitar_v16885"):
                             email_rec_v16885 = st.text_input("E-mail da conta", key="elevo_rec_email_v16885")
@@ -1599,7 +1500,9 @@ if not st.session_state["usuario_logado"]:
                             else:
                                 try:
                                     _rec_conta = usuario_cadastrado_por_email(_rec_email)
-                                    if _rec_conta and _rec_email != EMAIL_MESTRE.strip().lower():
+                                    _rec_pendente = (elevo_preconta_buscar_v16887(_rec_email)
+                                                     if not _rec_conta else None)
+                                    if (_rec_conta or _rec_pendente) and _rec_email != EMAIL_MESTRE.strip().lower():
                                         elevo_codigo_enviar_v16885(_rec_email, "senha")
                                         st.session_state["elevo_senha_otp_email_v16885"] = _rec_email
                                     st.info("Se existir uma conta elegível, o código será enviado ao e-mail informado.")
@@ -1626,9 +1529,16 @@ if not st.session_state["usuario_logado"]:
                                                 _email_otp_senha_v16885, "senha", _senha_codigo):
                                             st.error("Código inválido, vencido ou já utilizado.")
                                         else:
-                                            elevo_senha_redefinir_v16885(_email_otp_senha_v16885, _senha_nova)
+                                            _rec_existente = usuario_cadastrado_por_email(_email_otp_senha_v16885)
+                                            if _rec_existente:
+                                                elevo_senha_redefinir_v16885(_email_otp_senha_v16885, _senha_nova)
+                                                elevo_email_marcar_verificado_v16888(_email_otp_senha_v16885, "recuperacao")
+                                            else:
+                                                elevo_preconta_finalizar_por_recuperacao_v16888(
+                                                    _email_otp_senha_v16885, _senha_nova)
                                             st.session_state.pop("elevo_senha_otp_email_v16885", None)
-                                            st.success("Senha redefinida. Entre novamente usando a nova senha.")
+                                            st.session_state.pop("elevo_preconta_email_v16887", None)
+                                            st.success("Senha redefinida e e-mail confirmado. Entre usando a nova senha.")
                                     except Exception:
                                         st.error("Não foi possível atualizar a senha. Fale com o suporte.")
                     else:
@@ -3420,9 +3330,10 @@ def elevo_abrir_central_ajuda_v16885():
             st.caption("E-mail: " + ELEVO_SUPORTE_EMAIL_V16884)
         st.info("Nunca compartilhe sua senha, códigos de confirmação ou dados completos do cartão.")
     with tab_seg:
-        st.markdown("**Acesso com Google**")
-        st.write("O Google verifica a identidade. O login não dá acesso às suas mensagens do Gmail.")
-        st.write("Para vincular uma conta existente, use **Minha conta → Vincular Google** no topo.")
+        st.markdown("**Verificação por e-mail**")
+        st.write("Cadastros novos recebem um código para confirmar o endereço. "
+                 "Se não confirmarem em quatro horas, ficam suspensos até verificar.")
+        st.write("Contas antigas seguem ativas e recebem somente um lembrete para verificar.")
         st.markdown("**Recuperação de senha**")
         st.write("Saia da conta e escolha **Esqueci minha senha** na tela de login. "
                  "O código só é enviado quando a central de e-mails estiver configurada.")
@@ -3461,15 +3372,7 @@ with st.container(border=True, key="elevo_topbar_v16853"):
             st.markdown(f"**{html_std.escape(_nome_completo_topo_v16853)}**")
             st.caption(_email_topo_v16853)
             st.caption("Método de acesso: " + str(st.session_state.get("auth_metodo", "senha")).upper())
-            if GOOGLE_ATIVO and not (st.user.is_logged_in):
-                st.caption("Vincule sua conta Google usando o mesmo e-mail. O sistema confirmará sua senha após o retorno do Google.")
-                if st.button("🌐 Vincular conta Google", key="btn_vincular_google_logado",
-                             use_container_width=True):
-                    elevo_google_login_v16887()
-            elif GOOGLE_ATIVO:
-                st.caption("✅ Conta Google vinculada e protegida pelo identificador Google.")
-            else:
-                st.caption("Login com Google ainda não configurado pelo administrador.")
+            st.caption("Acesso por e-mail e senha. Você pode verificar o e-mail na Central de Operação.")
 
     # V16.8.54 — botão Sair visível e destacado no topo (lógica idêntica à anterior).
     with _tb_sair_v16853:
@@ -3477,21 +3380,63 @@ with st.container(border=True, key="elevo_topbar_v16853"):
                      help="Encerrar a sessão com segurança"):
             # 1) Solicitar a exclusão do cookie antes do rerun; a sincronização do
             # componente acontece no navegador, por isso o bloqueio de restauração.
-            sair_do_google = bool(GOOGLE_ATIVO and st.user.is_logged_in)
             cookies.pop("login", None)
-            cookies.pop("elevo_bv_google_v16814", None)
             cookies.pop("elevo_bv_login_v16814", None)
             cookies.save()
             # 2) Forçar explicitamente a tela de login. Não contém e-mail/token.
             st.query_params["elevo_acesso"] = "novo"
             # 3) Limpar apenas o estado do aplicativo.
             limpar_sessao_ao_sair()
-            if sair_do_google:
-                # Logout nativo do Google/OIDC; o Streamlit inicia nova sessão.
-                st.logout()
-                st.stop()
             # Não usar sleep(): isso não espera uma confirmação do navegador.
             st.rerun()
+
+# ==========================================================
+# V16.8.88 — LEMBRETE DE VERIFICAÇÃO PARA CONTAS JÁ EXISTENTES
+# Nunca suspende uma conta antiga pela falta de um registro de e-mail.
+# Não consulta nem altera abas financeiras.
+# ==========================================================
+if st.session_state.get("usuario_logado") and not elevo_admin_v16813():
+    _email_aviso_v16888 = str(st.session_state.get("email_usuario", "")).strip().lower()
+    try:
+        _email_confirmado_v16888 = elevo_email_esta_verificado_v16888(_email_aviso_v16888)
+    except Exception:
+        _email_confirmado_v16888 = None
+    if _email_confirmado_v16888 is False:
+        if not st.session_state.get("elevo_email_aviso_adiado_v16888"):
+            st.warning("📩 Seu e-mail ainda não foi verificado na ÉLÉVO. "
+                       "Sua conta antiga continua ativa; confirme quando puder para facilitar a recuperação de acesso.")
+            with st.expander("✉ Verificar meu e-mail", expanded=False):
+                st.caption("Enviaremos um código de 6 dígitos para o e-mail da conta. Ele vence em 10 minutos.")
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Enviar código", key="elevo_legacy_send_v16888", use_container_width=True):
+                        try:
+                            elevo_codigo_enviar_v16885(_email_aviso_v16888, "cadastro")
+                            st.success("Código enviado. Confira sua caixa de entrada.")
+                        except (RuntimeError,ValueError) as exc:
+                            st.warning(str(exc))
+                        except Exception:
+                            st.error("Não foi possível enviar o código agora.")
+                with c2:
+                    if st.button("Fazer depois", key="elevo_legacy_later_v16888", use_container_width=True):
+                        st.session_state["elevo_email_aviso_adiado_v16888"] = True
+                        st.rerun()
+                with st.form("elevo_legacy_verify_form_v16888"):
+                    _codigo_legacy_v16888 = st.text_input("Código recebido", max_chars=6, placeholder="000000")
+                    _conf_legacy_v16888 = st.form_submit_button("Confirmar e-mail", use_container_width=True)
+                if _conf_legacy_v16888:
+                    try:
+                        if elevo_codigo_confirmar_v16885(_email_aviso_v16888, "cadastro", _codigo_legacy_v16888):
+                            elevo_email_marcar_verificado_v16888(_email_aviso_v16888, "conta_antiga")
+                            st.success("E-mail confirmado!")
+                            st.rerun()
+                        st.error("Código inválido, expirado ou utilizado. Solicite outro.")
+                    except Exception:
+                        st.error("Não foi possível concluir a verificação. Tente novamente.")
+    elif _email_confirmado_v16888 is None:
+        st.info("Não foi possível conferir a verificação do e-mail no momento. "
+                "O acesso à sua conta permanece normal.")
+
 
 if modo_claro:
     bg_color = "linear-gradient(180deg, #F4F6F9 0%, #E2E8F0 100%)"
@@ -7972,13 +7917,19 @@ if E_O_CEO:
     st.markdown("#### 💠 Console de gestão ÉLÉVO")
     st.caption("Liberações e patentes • Promoções de crédito • Moderação de acesso • Auditoria de vendas")
     # V16.8.51 — voz principal fixa: Francisca. Laboratório de amostras removido.
-    with st.expander("🔐 Google Login e documentos legais • Status", expanded=False):
-        st.write("Google (OIDC):", "✅ Configurado" if GOOGLE_ATIVO else "⚠️ Falta configurar Google Cloud e Secrets")
+    with st.expander("📩 E-mail automático e documentos legais • Status", expanded=False):
+        st.write("Envio por e-mail:", "🟢 Secrets presentes" if elevo_email_envio_pronto_v16885()
+                 else "⚠️ Falta configurar SMTP nos Secrets")
+        st.caption("O teste abaixo confirma conexão e aceitação do envio pelo servidor. Confira também a chegada da mensagem.")
+        if st.button("📨 Enviar e-mail de teste ao suporte", key="elevo_smtp_test_v16888"):
+            try:
+                _smtp_destino_v16888 = elevo_smtp_teste_ceo_v16888()
+                st.success("Servidor aceitou o envio para " + _smtp_destino_v16888 + ". Confira a caixa de entrada e o spam.")
+            except Exception as exc:
+                st.error(str(exc))
         st.write("Documentos legais:", "✅ Aceite versionado ativo" if ELEVO_LEGAL_ATIVO_V16884 else
-                 "⚠️ Cadastre ELEVO_SUPORTE_EMAIL e ELEVO_RESPONSAVEL_LEGAL nos Secrets para ativar o aceite")
-        st.caption("As credenciais Google devem ficar apenas nos Secrets, nunca no GitHub. As contas Google "
-                   "continuam vinculadas pelo identificador Google; o histórico de aceites fica em aba própria.")
-    # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
+                 "⚠️ Cadastre ELEVO_SUPORTE_EMAIL e ELEVO_RESPONSAVEL_LEGAL nos Secrets")
+        # V16.8.42 — prévia manual do Protocolo VIP, exclusiva do CEO.
     # Não altera o registro diário nem consome a saudação de usuários.
     with st.container(border=True):
         st.markdown("#### 🎬 Prévia do Protocolo VIP")
