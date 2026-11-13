@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.73 — PROMOÇÃO RELÂMPAGO R$ 1,00 por 10 min (ligada pelo CEO) para validar o checkout em produção
 # ÉLÉVO V16.8.72 — teste do Mercado Pago com o COMPRADOR DE TESTE como pagador (corrige 401 live credentials)
 # ÉLÉVO V16.8.71 — erro "live credentials" explicado corretamente + teste diz o ambiente da Public Key
 # ÉLÉVO V16.8.70 — motivo da recusa gravado na venda + pagamento de teste automático no painel do CEO
@@ -1379,6 +1380,63 @@ ELEVO_PACOTES_V16859 = {
     "Pro":   {"creditos": 6500,  "preco": 49.90, "desc": "≈ 650 criações", "selo": "Mais vendido"},
     "Elite": {"creditos": 10000, "preco": 77.00, "desc": "≈ 1.000 criações", "selo": "Melhor custo"},
 }
+
+# V16.8.73 — PROMOÇÃO RELÂMPAGO (ligada só pelo CEO, por tempo limitado).
+# Serve para uma compra REAL de baixo valor e validar o checkout em produção.
+ELEVO_PLANO_RELAMPAGO_V16873 = {"nome": "Relâmpago", "creditos": 100, "preco": 1.00,
+                                "desc": "Oferta relâmpago", "selo": "⚡ Só agora"}
+ELEVO_CONFIG_COLS_V16873 = ["Chave", "Valor", "AtualizadoEm"]
+
+
+@st.cache_data(ttl=15, show_spinner=False)
+def _elevo_promo_ate_cache_v16873():
+    try:
+        for r in elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873).get_all_records():
+            if str(r.get("Chave")) == "promo_relampago_ate":
+                return float(str(r.get("Valor") or 0).replace(",", "."))
+    except Exception:
+        pass
+    return 0.0
+
+
+def elevo_promo_restante_v16873():
+    """Segundos restantes da promoção relâmpago (0 = desligada)."""
+    return max(0, int(_elevo_promo_ate_cache_v16873() - time.time()))
+
+
+def elevo_promo_definir_v16873(minutos):
+    if not elevo_admin_v16813():
+        raise PermissionError("Somente o CEO controla a promoção.")
+    ate = (time.time() + int(minutos) * 60) if int(minutos) > 0 else 0
+    aba = elevo_aba_v16813("Elevo_Config_V1", ELEVO_CONFIG_COLS_V16873)
+    linhas = aba.get_all_records()
+    for i, r in enumerate(linhas):
+        if str(r.get("Chave")) == "promo_relampago_ate":
+            aba.update_cell(i + 2, 2, f"{ate:.0f}")
+            aba.update_cell(i + 2, 3, elevo_agora_v16813())
+            break
+    else:
+        aba.append_row(["promo_relampago_ate", f"{ate:.0f}", elevo_agora_v16813()])
+    _elevo_promo_ate_cache_v16873.clear()
+
+
+def elevo_planos_ativos_v16873():
+    """Planos à venda agora (oficiais + relâmpago enquanto o CEO deixar ligado)."""
+    planos = dict(ELEVO_PACOTES_V16859)
+    if elevo_promo_restante_v16873() > 0:
+        planos[ELEVO_PLANO_RELAMPAGO_V16873["nome"]] = ELEVO_PLANO_RELAMPAGO_V16873
+    return planos
+
+
+def elevo_plano_info_v16873(plano, para_venda=False):
+    """Preço/créditos OFICIAIS de um plano. para_venda=True exige que esteja à venda agora."""
+    if plano in ELEVO_PACOTES_V16859:
+        return ELEVO_PACOTES_V16859[plano]
+    if plano == ELEVO_PLANO_RELAMPAGO_V16873["nome"]:
+        if para_venda and elevo_promo_restante_v16873() <= 0:
+            return None
+        return ELEVO_PLANO_RELAMPAGO_V16873
+    return None
 ELEVO_CONTAS_COLS_V16859 = ["Id", "Email", "Nome", "Plano", "Creditos", "Preco", "Origem",
                             "Referencia", "Observacao", "CriadoEm", "Autor"]
 ELEVO_EMAIL_RE_V16859 = r"[^@\s]+@[^@\s]+\.[^@\s]+"
@@ -1686,14 +1744,14 @@ def elevo_checkout_criar_v16863(plano):
         raise PermissionError("Entre na sua conta para comprar créditos.")
     if elevo_admin_v16813():
         raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
-    if plano not in ELEVO_PACOTES_V16859 or float(ELEVO_PACOTES_V16859[plano]["preco"]) <= 0:
-        raise ValueError("Plano indisponível.")
+    if not elevo_plano_info_v16873(plano, para_venda=True) or float(elevo_plano_info_v16873(plano)["preco"]) <= 0:
+        raise ValueError("Plano indisponível (a promoção pode ter acabado).")
     if elevo_status_v16813(email, fresco=True) != "ATIVO":
         raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
     cfg = elevo_mp_config_v16863()
     if not cfg["app_url"]:
         raise ElevoCreditoErroV16813("Endereço do app não configurado (mercadopago.app_url).")
-    pacote = ELEVO_PACOTES_V16859[plano]
+    pacote = elevo_plano_info_v16873(plano)
     creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
     aba = elevo_vendas_aba_v16863()
     # Reaproveita um link pendente do mesmo plano criado há pouco (evita pedidos em dobro).
@@ -1787,9 +1845,10 @@ def elevo_checkout_confirmar_v16863(payment_id=None):
             # V16.8.69 — planilha em pt-BR transformava 29,90 em 299 na leitura.
             # O valor esperado vem do plano oficial; a planilha é só registro.
             plano_reg = str(reg.get("Plano", ""))
-            if plano_reg in ELEVO_PACOTES_V16859:
-                valor_pedido = float(ELEVO_PACOTES_V16859[plano_reg]["preco"])
-                creditos = int(ELEVO_PACOTES_V16859[plano_reg]["creditos"])
+            _info_reg = elevo_plano_info_v16873(plano_reg)
+            if _info_reg:
+                valor_pedido = float(_info_reg["preco"])
+                creditos = int(_info_reg["creditos"])
             else:
                 valor_pedido = elevo_valor_br_v16869(reg.get("Valor"))
                 creditos = int(reg.get("Creditos") or 0)
@@ -1853,13 +1912,13 @@ def _elevo_pedido_registrar_v16865(plano, metodo):
         raise PermissionError("Entre na sua conta para comprar créditos.")
     if elevo_admin_v16813():
         raise ValueError("A conta do CEO já tem créditos ilimitados. Teste a compra com uma conta comum.")
-    if plano not in ELEVO_PACOTES_V16859 or float(ELEVO_PACOTES_V16859[plano]["preco"]) <= 0:
-        raise ValueError("Plano indisponível.")
+    if not elevo_plano_info_v16873(plano, para_venda=True) or float(elevo_plano_info_v16873(plano)["preco"]) <= 0:
+        raise ValueError("Plano indisponível (a promoção pode ter acabado).")
     if elevo_status_v16813(email, fresco=True) != "ATIVO":
         raise ElevoCreditoErroV16813("Conta bloqueada ou desativada.")
     if not elevo_mp_ativo_v16863():
         raise ElevoCreditoErroV16813("Pagamentos ainda não configurados.")
-    pacote = ELEVO_PACOTES_V16859[plano]
+    pacote = elevo_plano_info_v16873(plano)
     pedido = "elv_" + secrets.token_hex(10)
     creditos, preco = int(pacote["creditos"]), round(float(pacote["preco"]), 2)
     elevo_vendas_aba_v16863().append_row([pedido, email, plano, creditos, f"{preco:.2f}", "PENDENTE", "", "",
@@ -4002,8 +4061,16 @@ export default function (component) {
         st.markdown("<div class='wal-etapa'><i>1</i>Escolha o plano</div>", unsafe_allow_html=True)
         st.session_state.setdefault("elevo_wal_plano_v16865", "Pro")
         _wal_sel = st.session_state["elevo_wal_plano_v16865"]
-        _wal_cols = st.columns(len(ELEVO_PACOTES_V16859))
-        for _wal_c, (_wal_nome, _wal_p) in zip(_wal_cols, ELEVO_PACOTES_V16859.items()):
+        _wal_planos = elevo_planos_ativos_v16873()
+        if _wal_sel not in _wal_planos:
+            _wal_sel = st.session_state["elevo_wal_plano_v16865"] = "Pro"
+        _wal_promo_s = elevo_promo_restante_v16873()
+        if _wal_promo_s > 0:
+            st.markdown(f"<div class='wal-resumo' style='border-color:#D8B66A'><span>⚡ <b style='font-size:.95rem'>Oferta relâmpago</b> "
+                        f"• 100 créditos por R$ 1,00</span><b>termina em {_wal_promo_s // 60:02d}:{_wal_promo_s % 60:02d}</b></div>",
+                        unsafe_allow_html=True)
+        _wal_cols = st.columns(len(_wal_planos))
+        for _wal_c, (_wal_nome, _wal_p) in zip(_wal_cols, _wal_planos.items()):
             with _wal_c:
                 _wal_ativo = _wal_nome == _wal_sel
                 st.markdown(
@@ -4017,7 +4084,7 @@ export default function (component) {
                     st.session_state["elevo_wal_plano_v16865"] = _wal_nome
                     st.session_state.pop("elevo_pix_ativo_v16865", None)
                     st.rerun()
-        _wal_pk = ELEVO_PACOTES_V16859[_wal_sel]
+        _wal_pk = _wal_planos[_wal_sel]
         _wal_valor_txt = "R$ " + ("%.2f" % float(_wal_pk["preco"])).replace(".", ",")
         st.markdown(
             f"<div class='wal-resumo'><span>Plano <b style='font-size:.95rem'>{html_std.escape(_wal_sel)}</b> • "
@@ -6761,6 +6828,18 @@ if E_O_CEO:
             _evv_pk = ""
         if _evv_cfg["token"] and not _evv_pk:
             st.caption("💳 Cartão dentro do app desligado: falta a **public_key** nos Secrets (o Pix funciona).")
+        _evv_promo = elevo_promo_restante_v16873()
+        if _evv_promo > 0:
+            st.success(f"⚡ Promoção relâmpago LIGADA: 100 créditos por R$ 1,00 • termina em {_evv_promo // 60} min {_evv_promo % 60} s.")
+            if st.button("⏹ Encerrar promoção agora", key="elevo_promo_off_v16873", use_container_width=True):
+                elevo_promo_definir_v16873(0)
+                st.rerun()
+        elif st.button("⚡ Liberar promoção relâmpago: R$ 1,00 por 10 minutos", key="elevo_promo_on_v16873",
+                       use_container_width=True, type="primary"):
+            elevo_promo_definir_v16873(10)
+            st.rerun()
+        st.caption("A promoção aparece para todos os clientes como um 4º plano e some sozinha no fim do prazo. "
+                   "Use para uma compra REAL de R$ 1,00 com uma conta comum e valide o checkout em produção.")
         if st.button("🔌 Testar conexão com o Mercado Pago", key="elevo_mp_diag_v16868", use_container_width=True):
             with st.spinner("Conferindo as chaves..."):
                 for _evv_l in elevo_mp_diagnostico_v16868()["linhas"]:
@@ -6784,8 +6863,8 @@ if E_O_CEO:
         _evv_c1, _evv_c2, _evv_c3 = st.columns(3)
         _evv_c1.metric("Vendas pagas", len(_evv_pagos))
         def _evv_valor(r):
-            p = str(r.get("Plano", ""))
-            return float(ELEVO_PACOTES_V16859[p]["preco"]) if p in ELEVO_PACOTES_V16859 else elevo_valor_br_v16869(r.get("Valor"))
+            _info = elevo_plano_info_v16873(str(r.get("Plano", "")))
+            return float(_info["preco"]) if _info else elevo_valor_br_v16869(r.get("Valor"))
         _evv_c2.metric("Faturamento bruto", "R$ " + f"{sum(_evv_valor(r) for r in _evv_pagos):,.2f}"
                        .replace(",", "X").replace(".", ",").replace("X", "."))
         _evv_c3.metric("Créditos vendidos", format(int(sum(_evv_num(r.get("Creditos")) for r in _evv_pagos)), ",").replace(",", "."))
