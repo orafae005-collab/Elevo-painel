@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.82 — acentos azul/esmeralda na Central de Operação (somente UI da carteira)
 # ÉLÉVO V16.8.81 — CARTEIRA EM DOIS CARTÕES PREMIUM (IDENTIDADE + SALDO), MODOS CLARO/ESCURO
 # ÉLÉVO V16.8.80 — carteira modo escuro fosco + nome com microefeito hacker (modo claro intocado)
 # ÉLÉVO V16.8.79 — textura premium na carteira da Central de Operação (somente UI do cartão)
@@ -4277,6 +4278,64 @@ _wal_paineis_css_v16881 = """<style>
 for _wal_cor_v16881, _wal_valor_v16881 in _wal_paineis_tema_v16881.items():
     _wal_paineis_css_v16881 = _wal_paineis_css_v16881.replace(_wal_cor_v16881, _wal_valor_v16881)
 st.markdown(_wal_paineis_css_v16881, unsafe_allow_html=True)
+
+# V16.8.82 — refinamento cromático da carteira: remove dourado pesado e
+# adota azul/esmeralda mais elegante nos selos e acentos, sem alterar lógica.
+if modo_claro:
+    st.markdown("""<style>
+    .st-key-elevo_carteira_v16865 .wal-chip-ceo {
+      color:#083B63!important;
+      background:linear-gradient(105deg,#DDF3FF,#F8FEFF)!important;
+      border:1px solid rgba(73,153,224,.35)!important;
+      box-shadow:0 5px 14px rgba(63,132,210,.10), inset 0 1px 0 rgba(255,255,255,.72)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-selo-icone-v16881 {
+      color:#1F90D9!important; opacity:.92!important; filter:drop-shadow(0 3px 10px rgba(48,129,214,.16));
+    }
+    .st-key-elevo_carteira_v16865 .wal-pill.ceo {
+      color:#0F5E95!important; background:rgba(44,144,226,.10)!important;
+      border:1px solid rgba(44,144,226,.24)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip-diamante {
+      color:#0B4F73!important; background:linear-gradient(105deg,#DDF8FF,#FFFFFF,#C9EEFF)!important;
+      border:1px solid rgba(86,179,226,.34)!important;
+    }
+    </style>""", unsafe_allow_html=True)
+else:
+    st.markdown("""<style>
+    .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881::before {
+      background:linear-gradient(150deg,#153A57 0%,#114A73 48%,#0A5D5E 100%)!important;
+      opacity:.68!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-avatar {
+      background:conic-gradient(from 210deg,#78E4DA,#4FA9E8,#245B88,#78E4DA)!important;
+      box-shadow:0 7px 18px rgba(0,0,0,.20)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip-ceo {
+      color:#E9FFFD!important;
+      background:linear-gradient(105deg,#0F4551,#147485,#83E2D7)!important;
+      border:1px solid rgba(122,231,220,.34)!important;
+      box-shadow:0 6px 16px rgba(0,0,0,.18), inset 0 1px 0 rgba(255,255,255,.10)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-chip-diamante {
+      color:#E8FBFF!important;
+      background:linear-gradient(105deg,#1A4961,#1B6B88,#7BD5F1)!important;
+      border:1px solid rgba(116,214,241,.28)!important;
+      box-shadow:0 6px 16px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.10)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-selo-icone-v16881 {
+      color:#63DFD3!important; opacity:.96!important;
+      filter:drop-shadow(0 3px 10px rgba(72,209,197,.14));
+    }
+    .st-key-elevo_carteira_v16865 .wal-pill.ceo {
+      color:#88EFE4!important; background:rgba(72,209,197,.10)!important;
+      border:1px solid rgba(72,209,197,.24)!important;
+    }
+    .st-key-elevo_carteira_v16865 .wal-pill.ok {
+      color:#6BE5C6!important; background:rgba(72,209,197,.10)!important;
+      border:1px solid rgba(72,209,197,.24)!important;
+    }
+    </style>""", unsafe_allow_html=True)
 
 _evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
 if _evp_sucesso and not E_O_CEO:
