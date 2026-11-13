@@ -1,3 +1,6 @@
+# ÉLÉVO V16.8.94 — presente de 200 CR para novos cadastros, banner mobile e preservação dos INIT históricos
+# ÉLÉVO V16.8.93 — contraste legível em todas as patentes (somente CSS, modo claro/escuro)
+# ÉLÉVO V16.8.92 — e-mail de agradecimento por compra aprovada, após créditos confirmados (sem mexer no financeiro)
 # ÉLÉVO V16.8.91 — e-mail transacional HTML hacker premium + aviso de spam (somente UX de email)
 # ÉLÉVO V16.8.90 — diagnóstico SMTP seguro: identifica campo ausente sem expor Secrets nem alterar envio
 # ÉLÉVO V16.8.89 — contraste do topo e dos documentos, botão Sair sóbrio (somente UI)
@@ -1400,6 +1403,14 @@ if not st.session_state["usuario_logado"]:
         background:linear-gradient(100deg,rgba(216,182,106,.13),rgba(216,182,106,.04));
         border:1px solid rgba(216,182,106,.32); color:#F1DFAF; font-size:.82rem; line-height:1.45;}
       .evl-invite b {color:#F4DC9A;}
+      /* Banner de boas-vindas somente no celular: a lateral desktop é ocultada. */
+      .evl-gift-mobile-v16894 {display:none!important;}
+      .evl-gift-mobile-v16894 .gift-icon {display:grid;place-items:center;flex:0 0 43px;
+        width:43px;height:43px;border-radius:14px;font-size:1.52rem;line-height:1;
+        background:rgba(58,192,180,.12);border:1px solid rgba(82,208,193,.24);}
+      .evl-gift-mobile-v16894 strong {display:block;color:#E9FFF9!important;font:800 .94rem Montserrat,sans-serif;line-height:1.3;}
+      .evl-gift-mobile-v16894 small {display:block;color:#A9C6D2!important;
+        font:500 .72rem Montserrat,sans-serif;line-height:1.45;margin-top:3px;}
 
       /* ---------- Cartão de login ---------- */
       .st-key-elevo_login_card_v16859 {
@@ -1475,6 +1486,10 @@ if not st.session_state["usuario_logado"]:
         .block-container {padding:1rem .8rem 2rem;}
         .evl-sub {font-size:.6rem; letter-spacing:.2em;}
         .evl-side {display:none;}
+        .evl-gift-mobile-v16894 {display:flex!important;align-items:center;gap:11px;
+          margin:0 0 1.05rem;padding:12px 13px;border-radius:16px;
+          background:linear-gradient(112deg,rgba(14,77,75,.42),rgba(21,62,99,.31));
+          border:1px solid rgba(86,205,188,.32);box-shadow:inset 0 1px 0 rgba(255,255,255,.045);}
         .evl-help-mobile {display:block !important;}
       }
       @media (prefers-reduced-motion:reduce) {
@@ -1504,7 +1519,7 @@ if not st.session_state["usuario_logado"]:
             <small>Oportunidades e missões diárias para crescer com método.</small></div></div>
           <div class="evl-feat"><div class="evl-ico">💎</div><div><strong>Créditos sob controle</strong>
             <small>Seu saldo acompanha cada criação, com transparência.</small></div></div>
-          <div class="evl-invite">🎁 <div><b>Crie sua conta e ganhe 100 créditos</b> para testar.
+          <div class="evl-invite">🎁 <div><b>Crie sua conta e ganhe 200 créditos</b> para testar.
             Planos a partir de R$ 29,90, com Pix ou cartão.</div></div>
         </aside>
         """, unsafe_allow_html=True)
@@ -1514,7 +1529,12 @@ if not st.session_state["usuario_logado"]:
             # V16.8.88 — entrada por e-mail e senha, sem botão ou mensagem de login social.
             st.markdown("""<div class="evl-card-head"><div class="evl-lock">💎</div>
                 <h3>Bem-vindo à ÉLÉVO</h3>
-                <p>Entre com seu e-mail ou crie sua conta em poucos passos.</p></div>""", unsafe_allow_html=True)
+                <p>Entre com seu e-mail ou crie sua conta em poucos passos.</p></div>
+                <div class="evl-gift-mobile-v16894" role="note" aria-label="Presente de boas-vindas de 200 créditos">
+                  <span class="gift-icon" aria-hidden="true">🎁</span>
+                  <div><strong>Ganhe 200 créditos de boas-vindas</strong>
+                    <small>Crie sua conta e verifique seu e-mail para liberar o presente.</small></div>
+                </div>""", unsafe_allow_html=True)
             # Aviso fora das abas para aparecer IMEDIATAMENTE quando o cliente voltar.
             _preconta_atual_v16887 = st.session_state.get("elevo_preconta_email_v16887", "")
             if _preconta_atual_v16887:
@@ -1532,7 +1552,7 @@ if not st.session_state["usuario_logado"]:
                             "Li e aceito os Termos de Uso e tomei ciência da Política de Privacidade.",
                             key="elevo_signup_aceite_v16884",value=False)
                         criar_conta_btn = st.form_submit_button("Criar conta com e-mail",use_container_width=True,type="primary")
-                    st.caption("Crie sua conta, verifique agora ou depois. Após quatro horas sem confirmação, o cadastro fica suspenso até verificar. Os 100 créditos são liberados somente após a verificação.")
+                    st.caption("Crie sua conta, verifique agora ou depois. Após quatro horas sem confirmação, o cadastro fica suspenso até verificar. Os 200 créditos são liberados somente após a verificação.")
                     st.caption("📨 O código pode chegar em **Spam / Lixo eletrônico**. Confira essa pasta se não aparecer na caixa de entrada.")
                     if criar_conta_btn:
                         email_clean = novo_email.strip().lower()
@@ -1738,7 +1758,10 @@ def validar_cota_ia():
 # ==========================================================
 from threading import RLock
 
-ELEVO_CREDITOS_INICIAIS_V16813 = 100
+# O bônus anunciado para novos usuários é de 200 CR a partir desta versão.
+# Lançamentos INIT históricos devem continuar valendo a quantidade gravada na planilha.
+ELEVO_CREDITOS_INICIAIS_V16813 = 200
+ELEVO_CREDITOS_INIT_LEGADO_V16894 = 100  # fallback para INIT antigo sem valor válido
 ELEVO_CUSTO_PROMPT_V16813 = 20
 ELEVO_CUSTO_FERRAMENTA_V16813 = 3
 ELEVO_CREDITOS_COLS_V16813 = ["Id", "Email", "Data", "Tipo", "Valor", "Referencia", "Autor"]
@@ -2253,7 +2276,10 @@ def elevo_creditos_apurar_v16813(registros, email):
         except (TypeError, ValueError):
             continue
         if tipo == "INIT" and not iniciada:
-            saldo += ELEVO_CREDITOS_INICIAIS_V16813
+            # V16.8.94: respeitar o valor persistido (100 CR nas concessões antigas,
+            # 200 CR nas novas). Nunca recalcular o passado pela promoção atual.
+            # INIT histórico sem valor positivo conserva a regra antiga de 100 CR.
+            saldo += valor if valor > 0 else ELEVO_CREDITOS_INIT_LEGADO_V16894
             iniciada = True
         elif tipo == "ADD" and valor > 0:
             saldo += valor
@@ -2337,7 +2363,7 @@ def elevo_credito_saldo_v16813(email=None, fresco=False):
         linhas = (aba.get_all_records() if fresco
                   else elevo_creditos_ler_cache_v16816())
         resultado = elevo_creditos_apurar_v16813(linhas, email)
-        # Não conceder 100 CR novamente se já existir SET 0 ou outra operação.
+        # Não conceder o bônus inicial novamente se já existir SET 0 ou outra operação.
         # Inicializar SOMENTE conta que realmente não tem qualquer lançamento.
         if not resultado["possui_registros"]:
             aba.append_row([secrets.token_hex(16), email, elevo_agora_v16813(), "INIT",
@@ -3045,6 +3071,161 @@ def _elevo_credito_venda_v16863(email, creditos, referencia):
         elevo_creditos_ler_cache_v16816.clear()
 
 
+
+# ==========================================================
+# V16.8.92 — E-MAIL DE AGRADECIMENTO APÓS COMPRA CONFIRMADA
+# - Só chama depois de _elevo_credito_venda_v16863 retornar sem falhar.
+# - Não interfere no Pix, cartão, saldo, valores ou conversão pt-BR.
+# - Uma aba auxiliar registra o ID do pagamento ANTES da tentativa SMTP.
+# - Nunca reenvia automaticamente se a resposta do SMTP ficar ambígua.
+# - Se o envio não funcionar, o crédito segue confirmado normalmente.
+# ==========================================================
+ELEVO_EMAIL_COMPRAS_COLS_V16892 = ["PaymentId", "Pedido", "Email", "Estado", "CriadoEm", "EnviadoEm", "Detalhe"]
+
+
+def elevo_compra_email_modelo_v16892(plano, creditos, valor, metodo, pedido):
+    """Retorna assunto, texto e HTML de uma confirmação de compra (não é nota fiscal)."""
+    from decimal import Decimal, ROUND_HALF_UP
+    plano_lido = elevo_promo_nome_v16883(str(plano or "").strip()[:80])
+    if not plano_lido:
+        plano_lido = "Pacote de créditos"
+    creditos_int = int(creditos)
+    if creditos_int <= 0:
+        raise ValueError("Créditos inválidos para confirmação")
+    quantia = Decimal(str(valor)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    if not quantia.is_finite() or quantia <= 0:
+        raise ValueError("Valor inválido para confirmação")
+    preco_br = "R$ " + f"{quantia:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    qtd_br = f"{creditos_int:,}".replace(",", ".")
+    metodo = str(metodo or "").strip().lower()
+    forma = {"pix": "Pix", "credit_card": "Cartão de crédito", "debit_card": "Cartão de débito",
+             "bank_transfer": "Transferência", "ticket": "Boleto", "account_money": "Saldo Mercado Pago"}.get(metodo,
+                "Pagamento aprovado")
+    pedido_texto = str(pedido or "")[:48]
+    assunto = "ÉLÉVO | Compra aprovada e créditos disponíveis 💎"
+    texto = ("ÉLÉVO • Intelligence Studio\n\n"
+             "💎 Pagamento aprovado! Obrigado por escolher a ÉLÉVO.\n\n"
+             "Sua compra foi confirmada e seus créditos já estão disponíveis na sua conta.\n\n"
+             f"Pacote: {plano_lido}\n"
+             f"Créditos recebidos: {qtd_br} CR\n"
+             f"Valor pago: {preco_br}\n"
+             f"Forma de pagamento: {forma}\n"
+             f"Referência do pedido: {pedido_texto}\n\n"
+             "🚀 Abra a ÉLÉVO e coloque suas próximas ideias em prática!\n\n"
+             "Se você não reconhece esta compra, entre em contato com o suporte da ÉLÉVO.\n"
+             "Esta mensagem confirma a compra na plataforma, mas não é documento fiscal.\n"
+             "Equipe ÉLÉVO | Intelligence Studio\n")
+    # HTML com CSS inline e sem mídias remotas, para melhor compatibilidade e entrega.
+    h = lambda v: html_std.escape(str(v), quote=True)
+    html_email = """<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Compra confirmada • ÉLÉVO</title></head>
+<body style="margin:0;padding:0;background:#edf3f8;color:#142b42;font-family:Arial,Helvetica,sans-serif;">
+<div style="display:none!important;visibility:hidden;mso-hide:all;opacity:0;height:0;width:0;overflow:hidden;">Pagamento aprovado: seus créditos ÉLÉVO já estão disponíveis.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edf3f8;"><tr><td align="center" style="padding:28px 12px;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="560" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #dae6f0;border-radius:20px;overflow:hidden;">
+<tr><td style="background:#112238;padding:26px 28px;border-bottom:3px solid #2bc5ae;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>
+<td style="font-weight:800;font-size:23px;letter-spacing:2px;color:#fff;">◈ ÉLÉVO</td>
+<td align="right" style="font-size:10px;color:#99e4d8;letter-spacing:1.7px;font-weight:bold;">COMPRA • CONFIRMADA</td>
+</tr></table>
+<div style="margin-top:7px;color:#b6cadd;font-size:11px;letter-spacing:2px;">INTELLIGENCE STUDIO</div></td></tr>
+<tr><td style="padding:28px 28px 8px;">
+<div style="display:inline-block;background:#e3f7f2;color:#067c68;border-radius:20px;padding:8px 13px;font-size:12px;font-weight:bold;">✅ PAGAMENTO CONFIRMADO</div>
+<h1 style="font-size:27px;line-height:1.23;letter-spacing:-.5px;color:#122c47;margin:21px 0 9px;">Sua próxima criação começa agora! 💎</h1>
+<p style="font-size:15px;line-height:1.7;color:#425c75;margin:0 0 10px;">Obrigado por confiar na <strong>ÉLÉVO</strong>! Seu pagamento foi aprovado e os créditos da compra já estão disponíveis na sua carteira.</p>
+</td></tr>
+<tr><td style="padding:10px 28px 20px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#132b42;border-radius:15px;overflow:hidden;"><tr><td align="center" style="padding:23px 12px 20px;">
+<div style="color:#92dbd1;font-size:10px;font-weight:bold;letter-spacing:2px;">CRÉDITOS ADICIONADOS</div>
+<div style="font-size:42px;line-height:1.3;color:#fff;font-weight:bold;margin-top:8px;">__CREDITOS__ <span style="font-size:17px;color:#8be1d6;">CR</span></div>
+<div style="font-size:12px;color:#c7dbe6;margin-top:7px;">✨ Saldo disponível para novas criações</div>
+</td></tr></table></td></tr>
+<tr><td style="padding:0 28px 25px;">
+<div style="font-size:12px;color:#667b90;letter-spacing:1.2px;font-weight:bold;margin-bottom:13px;">RESUMO DA COMPRA</div>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:14px;">
+<tr><td style="padding:12px 4px;border-top:1px solid #e5edf4;color:#61778a;">Plano adquirido</td><td align="right" style="padding:12px 4px;border-top:1px solid #e5edf4;color:#193d58;font-weight:bold;">__PLANO__</td></tr>
+<tr><td style="padding:12px 4px;border-top:1px solid #e5edf4;color:#61778a;">Valor pago</td><td align="right" style="padding:12px 4px;border-top:1px solid #e5edf4;color:#193d58;font-weight:bold;">__VALOR__</td></tr>
+<tr><td style="padding:12px 4px;border-top:1px solid #e5edf4;color:#61778a;">Pagamento</td><td align="right" style="padding:12px 4px;border-top:1px solid #e5edf4;color:#193d58;font-weight:bold;">__METODO__</td></tr>
+<tr><td style="padding:12px 4px;border-top:1px solid #e5edf4;color:#61778a;">Referência</td><td align="right" style="padding:12px 4px;border-top:1px solid #e5edf4;color:#516b7d;font:12px 'Courier New',monospace;word-break:break-all;">__PEDIDO__</td></tr>
+</table></td></tr>
+<tr><td style="padding:0 28px 27px;"><div style="background:#eff9f7;border-left:3px solid #23aa97;border-radius:9px;padding:16px;color:#285c59;font-size:13px;line-height:1.65;">🚀 <strong>Hora de criar!</strong> Entre na ÉLÉVO e transforme suas ideias em conteúdo com inteligência artificial.</div>
+<p style="margin:17px 0 0;color:#74869a;font-size:12px;line-height:1.6;">Não reconhece essa compra? Fale com o suporte da ÉLÉVO. Por segurança, nunca compartilhe senhas ou códigos de acesso.</p>
+</td></tr>
+<tr><td style="background:#f7fafc;border-top:1px solid #e1e9ef;text-align:center;padding:20px 24px;">
+<div style="color:#31536e;font-size:12px;font-weight:bold;">ÉLÉVO • Intelligence Studio</div>
+<div style="margin-top:7px;color:#8191a1;font-size:11px;line-height:1.6;">Confirmação de compra na plataforma. Esta mensagem não é documento fiscal.</div>
+</td></tr></table></td></tr></table></body></html>"""
+    for marcador, valor in (("__CREDITOS__", qtd_br), ("__PLANO__", plano_lido),
+                            ("__VALOR__", preco_br), ("__METODO__", forma),
+                            ("__PEDIDO__", pedido_texto)):
+        html_email = html_email.replace(marcador, h(valor))
+    return assunto, texto, html_email
+
+
+def elevo_compra_email_notificar_v16892(*, email, pedido, payment_id, plano, creditos, valor, metodo):
+    """Notificação opcional, idempotência de tentativa por payment_id em aba auxiliar.
+
+    Se o SMTP responder com falha ambígua, não faz retry automático para evitar
+    e-mails duplicados. O pagamento e a liberação de créditos não dependem dela.
+    """
+    email = str(email or "").strip().lower()
+    pid = str(payment_id or "").strip()
+    if (not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", email)
+            or not pid.isdigit() or not str(pedido).startswith("elv_")):
+        return False
+    if not elevo_email_envio_pronto_v16885():
+        logging.info("ELEVO_COMPRA_EMAIL: SMTP indisponível; créditos preservados")
+        return False
+    # Reserva persistente ANTES de tentar enviar; evita reenvios por F5/polling.
+    try:
+        with elevo_credito_lock_v16813():
+            aba = elevo_aba_v16813("Elevo_Emails_Compras_V1", ELEVO_EMAIL_COMPRAS_COLS_V16892)
+            regs = aba.get_all_records()
+            if any(str(r.get("PaymentId", "")).strip() == pid for r in regs):
+                return False
+            criado = elevo_agora_v16813()
+            aba.append_row([pid, str(pedido)[:50], email, "RESERVADO", criado, "", ""],
+                           value_input_option="RAW")
+            indice = len(regs) + 2
+    except Exception as exc:
+        logging.warning("ELEVO_COMPRA_EMAIL: reserva indisponível (%s)", type(exc).__name__)
+        return False
+
+    try:
+        assunto, txt, html_email = elevo_compra_email_modelo_v16892(plano, creditos, valor, metodo, pedido)
+        msg = EmailMessage()
+        msg["Subject"] = assunto
+        msg["From"] = formataddr(("ÉLÉVO • Compras", ELEVO_SMTP_FROM_V16885))
+        msg["To"] = email
+        msg.set_content(txt, charset="utf-8")
+        msg.add_alternative(html_email, subtype="html", charset="utf-8")
+        if ELEVO_SMTP_PORT_V16885 == 465:
+            with smtplib.SMTP_SSL(ELEVO_SMTP_HOST_V16885, 465, timeout=10,
+                                  context=ssl.create_default_context()) as c:
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+        else:
+            with smtplib.SMTP(ELEVO_SMTP_HOST_V16885, 587, timeout=10) as c:
+                c.starttls(context=ssl.create_default_context())
+                c.login(ELEVO_SMTP_USER_V16885, ELEVO_SMTP_PASSWORD_V16885)
+                c.send_message(msg)
+    except Exception as exc:
+        # Sem imprimir destinatário, segredo, ID do pedido ou qualquer conteúdo.
+        try:
+            aba.update_cell(indice, 4, "FALHOU")
+            aba.update_cell(indice, 7, type(exc).__name__[:60])
+        except Exception:
+            pass
+        logging.warning("ELEVO_COMPRA_EMAIL: tentativa falhou (%s)", type(exc).__name__)
+        return False
+    try:
+        aba.update_cell(indice, 4, "ENVIADO")
+        aba.update_cell(indice, 6, elevo_agora_v16813())
+    except Exception:
+        logging.warning("ELEVO_COMPRA_EMAIL: SMTP aceitou o envio; registro final pendente")
+    return True
+
+
 def elevo_checkout_confirmar_v16863(payment_id=None):
     """Confere no Mercado Pago os pedidos pendentes do usuário e credita os aprovados.
 
@@ -3108,6 +3289,17 @@ def elevo_checkout_confirmar_v16863(payment_id=None):
             aba.update_cell(linha, col["Metodo"], str(pg.get("payment_type_id", ""))[:30])
         except Exception:
             logging.warning("ELEVO_VENDA: crédito feito, mas status do pedido %s não atualizado", pedido)
+        # E-mail é apenas uma notificação: o crédito já foi lançado e confirmado.
+        # Erros de SMTP não revertem a compra nem bloqueiam o cliente.
+        try:
+            elevo_compra_email_notificar_v16892(
+                email=email, pedido=pedido, payment_id=pid, plano=plano_reg,
+                creditos=creditos, valor=valor_pago,
+                metodo=(str(pg.get("payment_method_id") or "").lower()
+                        if str(pg.get("payment_method_id") or "").lower() == "pix"
+                        else str(pg.get("payment_type_id") or "").lower()))
+        except Exception as exc:
+            logging.warning("ELEVO_COMPRA_EMAIL: falha isolada (%s)", type(exc).__name__)
         meus.pop(pedido, None)
         creditados.append({"plano": reg.get("Plano"), "creditos": creditos})
     return creditados
@@ -5276,6 +5468,102 @@ else:
       border:1px solid rgba(72,209,197,.24)!important;
     }
     </style>""", unsafe_allow_html=True)
+
+
+# V16.8.93 — patentes sempre legíveis (apenas CSS da carteira da Central de Operação).
+# O brilho/gradiente da faixa antiga deixava o texto PRATA quase invisível no PC.
+# Aumenta o selo e fixa contraste próprio em TODOS os níveis, para ambos os temas.
+_wal_patentes_css_v16893 = """<style>
+.st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 {
+  width:128px!important; right:15px!important; gap:8px!important;
+}
+.st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 .wal-topo {
+  width:calc(100% - 144px)!important;
+}
+.st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 .wal-chip {
+  box-sizing:border-box!important; display:inline-flex!important;
+  align-items:center!important; justify-content:center!important;
+  min-height:34px!important; width:100%!important; max-width:128px!important;
+  padding:9px 11px!important; border-radius:999px!important;
+  font-family:Montserrat,Arial,sans-serif!important;
+  font-size:11px!important; line-height:1.22!important;
+  font-weight:900!important; letter-spacing:.012em!important;
+  text-align:center!important; white-space:normal!important;
+  word-break:normal!important; overflow-wrap:normal!important;
+  opacity:1!important; filter:none!important;
+  text-shadow:none!important;
+  background-clip:padding-box!important;
+  -webkit-background-clip:padding-box!important;
+  box-shadow:0 5px 15px rgba(0,0,0,.17),inset 0 1px 0 rgba(255,255,255,.16)!important;
+}
+/* As cores são reforçadas também em -webkit-text-fill-color para evitar
+   herdar letras brancas/pálidas do tema global do Streamlit. */
+.st-key-elevo_carteira_v16865 .wal-chip-iniciante {
+  color:__TXT_INICIANTE__!important; -webkit-text-fill-color:__TXT_INICIANTE__!important;
+  background:__BG_INICIANTE__!important; border:1px solid __BD_INICIANTE__!important;
+}
+.st-key-elevo_carteira_v16865 .wal-chip-bronze {
+  color:__TXT_BRONZE__!important; -webkit-text-fill-color:__TXT_BRONZE__!important;
+  background:__BG_BRONZE__!important; border:1px solid __BD_BRONZE__!important;
+}
+.st-key-elevo_carteira_v16865 .wal-chip-prata {
+  color:__TXT_PRATA__!important; -webkit-text-fill-color:__TXT_PRATA__!important;
+  background:__BG_PRATA__!important; border:1px solid __BD_PRATA__!important;
+}
+.st-key-elevo_carteira_v16865 .wal-chip-ouro {
+  color:__TXT_OURO__!important; -webkit-text-fill-color:__TXT_OURO__!important;
+  background:__BG_OURO__!important; border:1px solid __BD_OURO__!important;
+}
+.st-key-elevo_carteira_v16865 .wal-chip-diamante {
+  color:__TXT_DIAMANTE__!important; -webkit-text-fill-color:__TXT_DIAMANTE__!important;
+  background:__BG_DIAMANTE__!important; border:1px solid __BD_DIAMANTE__!important;
+}
+.st-key-elevo_carteira_v16865 .wal-chip-ceo {
+  color:__TXT_CEO__!important; -webkit-text-fill-color:__TXT_CEO__!important;
+  background:__BG_CEO__!important; border:1px solid __BD_CEO__!important;
+}
+@media(max-width:710px) {
+  .st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 {
+    right:10px!important; width:116px!important;
+  }
+  .st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 .wal-chip {
+    max-width:116px!important; min-height:34px!important;
+    font-size:10.5px!important; padding:8px 9px!important;
+  }
+  .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 .wal-topo {
+    width:calc(100% - 124px)!important;
+  }
+}
+@media(max-width:380px) {
+  .st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 {
+    right:8px!important; width:105px!important;
+  }
+  .st-key-elevo_carteira_v16865 .wal-selo-lateral-v16881 .wal-chip {
+    max-width:105px!important; font-size:10px!important;
+  }
+  .st-key-elevo_carteira_v16865 .wal-painel-identidade-v16881 .wal-topo {
+    width:calc(100% - 111px)!important;
+  }
+}
+</style>"""
+_wal_patentes_paleta_v16893 = ({
+    '__TXT_INICIANTE__':'#16334F','__BG_INICIANTE__':'linear-gradient(125deg,#D8E5F0,#F0F5FA)','__BD_INICIANTE__':'#A3B9CD',
+    '__TXT_BRONZE__':'#FFFFFF','__BG_BRONZE__':'linear-gradient(125deg,#754227,#945534)','__BD_BRONZE__':'#C28C62',
+    '__TXT_PRATA__':'#FFFFFF','__BG_PRATA__':'linear-gradient(125deg,#23435F,#365A78)','__BD_PRATA__':'#5D8EAE',
+    '__TXT_OURO__':'#372706','__BG_OURO__':'linear-gradient(125deg,#E2C074,#F9E1A4)','__BD_OURO__':'#C49A47',
+    '__TXT_DIAMANTE__':'#FFFFFF','__BG_DIAMANTE__':'linear-gradient(125deg,#075971,#066E85)','__BD_DIAMANTE__':'#60BFD2',
+    '__TXT_CEO__':'#FFFFFF','__BG_CEO__':'linear-gradient(125deg,#07575E,#076B70)','__BD_CEO__':'#50BEB5',
+} if modo_claro else {
+    '__TXT_INICIANTE__':'#FFFFFF','__BG_INICIANTE__':'linear-gradient(125deg,#30435C,#243A52)','__BD_INICIANTE__':'#7892AE',
+    '__TXT_BRONZE__':'#322013','__BG_BRONZE__':'linear-gradient(125deg,#F0C89D,#DDAF78)','__BD_BRONZE__':'#C88D53',
+    '__TXT_PRATA__':'#10293D','__BG_PRATA__':'linear-gradient(125deg,#D6E2ED,#AFC5D9)','__BD_PRATA__':'#8FA8C0',
+    '__TXT_OURO__':'#3A2A0B','__BG_OURO__':'linear-gradient(125deg,#F1D798,#DEC17E)','__BD_OURO__':'#BA9B53',
+    '__TXT_DIAMANTE__':'#0A344A','__BG_DIAMANTE__':'linear-gradient(125deg,#9AE8EA,#72C8DD)','__BD_DIAMANTE__':'#4EADC0',
+    '__TXT_CEO__':'#073530','__BG_CEO__':'linear-gradient(125deg,#70D6C7,#49B5A7)','__BD_CEO__':'#319F96',
+})
+for _cor_chave_v16893,_cor_valor_v16893 in _wal_patentes_paleta_v16893.items():
+    _wal_patentes_css_v16893 = _wal_patentes_css_v16893.replace(_cor_chave_v16893,_cor_valor_v16893)
+st.markdown(_wal_patentes_css_v16893, unsafe_allow_html=True)
 
 _evp_sucesso = st.session_state.pop("elevo_checkout_sucesso_v16863", None)
 if _evp_sucesso and not E_O_CEO:
