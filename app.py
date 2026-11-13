@@ -1,3 +1,4 @@
+# ÉLÉVO V16.8.72 — teste do Mercado Pago com o COMPRADOR DE TESTE como pagador (corrige 401 live credentials)
 # ÉLÉVO V16.8.71 — erro "live credentials" explicado corretamente + teste diz o ambiente da Public Key
 # ÉLÉVO V16.8.70 — motivo da recusa gravado na venda + pagamento de teste automático no painel do CEO
 # ÉLÉVO V16.8.69 — valor das vendas imune ao formato pt-BR da planilha (29,90 lido como 299)
@@ -1489,7 +1490,13 @@ def elevo_mp_config_v16863():
     # vem do Secrets: modo = "teste" ou "producao" (TEST- antigo continua reconhecido).
     modo = str(cfg.get("modo", "") or "").strip().lower()
     teste = token.startswith("TEST-") or modo in ("teste", "test", "sandbox")
-    return {"token": token, "app_url": app_url, "teste": teste, "token_antigo": token.startswith("TEST-")}
+    # V16.8.72 — no TESTE o pagador precisa ser um USUÁRIO DE TESTE comprador (test_user_<id>@testuser.com).
+    # E-mail real (ou genérico) gera 401 "Unauthorized use of live credentials".
+    email_teste = str(cfg.get("email_teste", "") or "").strip()
+    if not email_teste and str(cfg.get("comprador_teste_id", "") or "").strip().isdigit():
+        email_teste = f"test_user_{str(cfg.get('comprador_teste_id')).strip()}@testuser.com"
+    return {"token": token, "app_url": app_url, "teste": teste, "token_antigo": token.startswith("TEST-"),
+            "email_teste": email_teste}
 
 
 def elevo_mp_ativo_v16863():
@@ -1529,8 +1536,12 @@ def _elevo_mp_req_v16863(metodo, caminho, **kwargs):
     logging.warning("MERCADOPAGO %s %s -> %s", metodo, caminho, tecnico)
     baixo = (msg_mp + " " + causas_txt).lower()
     if "live credentials" in baixo:
-        amigavel = ("Chaves misturadas: uma é de PRODUÇÃO e a outra de TESTE. Copie a public_key e o access_token "
-                    "da MESMA aba (Teste) da MESMA aplicação no Mercado Pago.")
+        if cfg["teste"]:
+            amigavel = ("O Mercado Pago recusou o comprador do teste. No modo teste, o pagador precisa ser o seu "
+                        "COMPRADOR DE TESTE: coloque comprador_teste_id (User ID do comprador) no Secrets.")
+        else:
+            amigavel = ("O Mercado Pago recusou as credenciais de produção. Confira se elas estão ATIVADAS no "
+                        "painel do Mercado Pago (Produção → Credenciais de produção).")
     elif resp.status_code == 401 or "invalid access token" in baixo or "invalid_token" in baixo:
         amigavel = "Access Token inválido ou expirado. Confira a chave no Secrets do app."
     elif "key enabled" in baixo or ("pix" in baixo and "key" in baixo) or "qr render" in baixo:
@@ -1567,7 +1578,8 @@ def elevo_mp_pagamento_teste_v16870():
         return ["❌ " + str(exc), "Detalhe: " + exc.tecnico]
     if not str(eu.get("nickname", "")).upper().startswith("TEST"):
         return ["⚠️ Este teste só roda com as chaves de TESTE (nunca cobra cartão real)."]
-    linhas = []
+    linhas = [("✅ Comprador de teste: " + cfg["email_teste"]) if cfg["email_teste"] else
+              "⚠️ Falta comprador_teste_id no Secrets (User ID do Comprador de teste). Sem ele, o teste costuma dar 'live credentials'."]
     try:
         r = requests.post(ELEVO_MP_API_V16863 + "/v1/card_tokens", params={"public_key": pk}, timeout=25, json={
             "card_number": "5480832801033311", "expiration_month": 11, "expiration_year": 2030,
@@ -1594,7 +1606,8 @@ def elevo_mp_pagamento_teste_v16870():
         pg = _elevo_mp_req_v16863("POST", "/v1/payments", headers={"X-Idempotency-Key": "diag_" + secrets.token_hex(8)}, json={
             "transaction_amount": 1.0, "token": dados_tk["id"], "description": "Teste de integração ÉLÉVO",
             "installments": 1, "payment_method_id": "master",
-            "payer": {"email": "test@testuser.com", "identification": {"type": "CPF", "number": "12345678909"}}})
+            "payer": {"email": cfg["email_teste"] or "test@testuser.com",
+                      "identification": {"type": "CPF", "number": "12345678909"}}})
     except ElevoMPErroV16868 as exc:
         linhas.append("❌ Passo 2: o Access Token recusou o pagamento. " + str(exc))
         linhas.append("Detalhe: " + exc.tecnico)
@@ -1621,6 +1634,10 @@ def elevo_mp_diagnostico_v16868():
     linhas.append(f"✅ Access Token válido • conta {apelido or eu.get('id')} • país {eu.get('site_id', '?')}")
     linhas.append("🧪 Esta chave é de TESTE (conta de teste vendedora)." if conta_teste
                   else "💰 Esta chave é de PRODUÇÃO (conta real).")
+    if cfg["teste"]:
+        linhas.append(("✅ Comprador de teste configurado: " + cfg["email_teste"]) if cfg["email_teste"] else
+                      "⚠️ Falta **comprador_teste_id** no Secrets: o User ID do seu Comprador de teste "
+                      "(Suas integrações → Contas de teste). Sem ele, o pagamento de teste dá 'live credentials'.")
     if conta_teste != bool(cfg["teste"]):
         linhas.append("⚠️ O `modo` no Secrets não combina com a chave: use modo = \"teste\" para chave de teste "
                       "e modo = \"producao\" para chave de produção.")
@@ -1891,7 +1908,8 @@ def elevo_pix_criar_v16865(plano, nome, cpf):
         "payment_method_id": "pix",
         "external_reference": ped["pedido"],
         "date_of_expiration": expira.strftime("%Y-%m-%dT%H:%M:%S.000%z")[:-2] + ":" + expira.strftime("%z")[-2:],
-        "payer": {"email": ped["email"], "first_name": partes[0][:60],
+        "payer": {"email": (elevo_mp_config_v16863()["email_teste"] if elevo_mp_config_v16863()["teste"]
+                            and elevo_mp_config_v16863()["email_teste"] else ped["email"]), "first_name": partes[0][:60],
                   "last_name": (partes[1] if len(partes) > 1 else partes[0])[:60],
                   "identification": {"type": "CPF", "number": cpf_ok}},
     }
@@ -1928,6 +1946,9 @@ def elevo_cartao_pagar_v16865(plano, form):
     email_pag = str(pagador.get("email") or ped["email"]).strip()[:120]
     if not re.fullmatch(ELEVO_EMAIL_RE_V16859, email_pag):
         email_pag = ped["email"]
+    _cfg_pag = elevo_mp_config_v16863()
+    if _cfg_pag["teste"] and _cfg_pag["email_teste"]:
+        email_pag = _cfg_pag["email_teste"]
     corpo = {
         "transaction_amount": ped["preco"],  # valor do plano no servidor
         "token": token,
@@ -4071,7 +4092,8 @@ export default function (component) {
                     _wal_ret_brick = _elevo_brick_cartao_v16865(
                         key=f"elevo_brick_{_wal_chave}_v16865",
                         data={"publicKey": _wal_public, "valor": float(_wal_pk["preco"]), "valorTexto": _wal_valor_txt,
-                              "email": "test@testuser.com" if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813,
+                              "email": ((elevo_mp_config_v16863()["email_teste"] or "test@testuser.com")
+                                        if elevo_mp_config_v16863()["teste"] else _elevo_email_painel_v16813),
                               "tema": "default" if modo_claro else "dark",
                               "chave": _wal_chave})
                     _wal_form = getattr(_wal_ret_brick, "pagar", None) if _wal_ret_brick is not None else None
@@ -6787,7 +6809,9 @@ if E_O_CEO:
             "1. Crie ou acesse sua conta em **mercadopago.com.br** e abra **Suas integrações** (área de desenvolvedor).\n"
             "2. Crie uma aplicação do tipo **Checkout Pro** e copie o **Access Token de produção** (começa com `APP_USR-`).\n"
             "3. No Streamlit, abra o app → **Settings → Secrets** e cole:\n"
-            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\npublic_key = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\n```\n"
+            "```toml\n[mercadopago]\naccess_token = \"APP_USR-...\"\npublic_key = \"APP_USR-...\"\napp_url = \"https://SEU-APP.streamlit.app\"\nmodo = \"teste\"\ncomprador_teste_id = \"1234567890\"\n```\n"
+            "No teste, **comprador_teste_id** é o User ID do seu Comprador de teste (Suas integrações → Contas de teste). "
+            "Em produção, apague essa linha.\n"
             "A **public_key** liga o pagamento com cartão dentro do app; sem ela, o Pix continua funcionando.\n"
             "4. Salve. No teste, compre com uma conta comum do app (o CEO não compra) e pague com uma "
             "**conta de teste comprador** do Mercado Pago. Para vender de verdade, troque o token pelo de "
